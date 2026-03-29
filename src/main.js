@@ -190,3 +190,4 @@ function logDebug(msg) {
 
 // 구동 시작
 initApp();
+// force build
