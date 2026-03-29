@@ -2,7 +2,7 @@
  * [The Oreum Attendance System - Refactored Logic]
  * 기존 GAS 로직을 Vite + Vercel 환경으로 이식한 엔진입니다.
  */
-import '../style.css';
+import './style.css';
 import { callGAS } from '../api/rpc.js';
 
 // --- 1. 전역 상수 및 유틸리티 ---
