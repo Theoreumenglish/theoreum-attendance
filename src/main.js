@@ -3,7 +3,8 @@
  * 최우선 순위: 퀄리티, 안정성, 실시간 디버깅 검토
  */
 
-import { callGAS } from '../api/rpc.js';
+// [수정 후 - Case 2: 경로를 가장 확실하게 찾는 절대 경로 방식]
+import { callGAS } from '/api/rpc.js';
 
 // --- 1. 유틸리티 및 전역 상태 관리 ---
 const $ = (target) => document.querySelector(target);
