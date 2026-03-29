@@ -1,53 +1,68 @@
-/**
- * [The Oreum Attendance System - Refactored Logic]
- * 기존 GAS 로직을 Vite + Vercel 환경으로 이식한 엔진입니다.
- */
 import './style.css';
 import { callGAS } from '../api/rpc.js';
 
-// --- 1. 전역 상수 및 유틸리티 ---
+// --- 유틸리티 ---
 const $ = (sel, root = document) => root.querySelector(sel);
 
 const App = {
-  sess: localStorage.getItem('ATT_SESS') || '',
-  currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
-  
-  // 핵심: 기존의 google.script.run 대신 이 rpc 함수를 사용합니다.
-  async rpc(op, args = {}) {
-    const response = await callGAS({ op, args, sessionToken: App.sess });
-    return response;
-  },
-
-  async init() {
-    // 초기 화면 설정
-    if (this.currentView === 'staff') this.goStaff();
-    else this.goKiosk();
+    sess: localStorage.getItem('ATT_SESS') || '',
+    currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
     
-    this.startClock(); // 시계 가동
-  },
+    // 🔥 [수정] 기존 google.script.run 대신 Vercel rpc.js를 사용합니다.
+    async rpc(op, args = {}) {
+        UI.busy(true);
+        try {
+            const res = await callGAS({ op, args, sessionToken: App.sess });
+            return res;
+        } catch (err) {
+            return { ok: false, error: { message: '통신 오류가 발생했습니다.' } };
+        } finally {
+            UI.busy(false);
+        }
+    },
 
-  startClock() {
-    setInterval(() => {
-      const now = new Date();
-      // 원장님 코드의 시계 로직 반영
-      const elTime = $('#ssTime');
-      if (elTime) elTime.textContent = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-    }, 1000);
-  },
+    // 원장님의 기존 App.init() 로직...
+    async init() {
+        this.startClock();
+        Router.bindTopbar();
+        if (this.currentView === 'staff') await Router.goStaff();
+        else await Router.goKiosk();
+    },
 
-  goKiosk() {
-    this.currentView = 'kiosk';
-    this.render('tpl-kiosk');
-    // 여기서부터 원장님의 Kiosk.init() 로직을 연결하면 됩니다.
-  },
-
-  render(tplId) {
-    const tpl = document.getElementById(tplId);
-    const v = $('#app');
-    v.innerHTML = '';
-    v.appendChild(tpl.content.cloneNode(true));
-  }
+    startClock() {
+        setInterval(() => {
+            const now = new Date();
+            if ($('#ssTime')) $('#ssTime').textContent = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        }, 1000);
+    }
 };
 
-// 앱 구동
-App.init();
+// --- 원장님 코드의 UI, Router, Kiosk 객체들을 이 아래에 쭉 붙여넣으세요 ---
+// (단, google.script.run 호출부는 모두 App.rpc()로 대체되어야 합니다.)
+
+const UI = {
+    busy(on) { $('#busyBar')?.classList.toggle('on', !!on); },
+    render(tplId) {
+        const tpl = document.getElementById(tplId);
+        const v = $('#viewPort');
+        v.innerHTML = '';
+        v.appendChild(tpl.content.cloneNode(true));
+    },
+    // ... 나머지 UI 메서드들
+};
+
+const Router = {
+    bindTopbar() {
+        $('#navKiosk').onclick = () => this.goKiosk();
+        $('#navStaff').onclick = () => this.goStaff();
+    },
+    async goKiosk() {
+        App.currentView = 'kiosk';
+        UI.render('tpl-kiosk');
+        // Kiosk.init() 호출 등...
+    },
+    // ... 나머지 Router 메서드들
+};
+
+// 앱 구동 시작
+window.onload = () => App.init();
