@@ -17,6 +17,1955 @@
   </head>
   <body>
     <div id="app"></div>
+    <body>
+	<div class="busy" id="busyBar"></div>
+
+	<div id="offlineLock">
+		<div style="font-size:100px; margin-bottom:24px;">📡</div>
+		<div style="font-size:40px; font-weight:900; letter-spacing:-1px;">학원 네트워크 점검 중입니다.</div>
+		<div style="font-size:24px; margin-top:16px; color:#cbd5e1; font-weight:600;">Wi-Fi 복구 후 시스템이 자동으로 재시작됩니다.</div>
+	</div>
+
+	<div id="screensaver">
+		<div class="clock-time" id="ssTime">00:00</div>
+		<div class="clock-date" id="ssDate">1월 1일 월요일</div>
+		<div class="hint-pulse">📷 바코드를 스캐너에 대면 바로 시작합니다</div>
+	</div>
+
+	<div id="fullModal">
+		<div class="modal-icon" id="fmIcon"></div>
+		<h1 class="modal-title" id="fmTitle">타이틀</h1>
+		<p class="modal-desc" id="fmDesc">상세 설명</p>
+	</div>
+
+  <div id="traceModal" class="hidden" style="position:fixed; inset:0; z-index:10003; background:rgba(15,23,42,.62); backdrop-filter:blur(8px);">
+    <div style="max-width:980px; margin:48px auto; background:var(--card); color:var(--text); border-radius:24px; box-shadow:var(--shadow-huge); padding:28px;">
+      <div class="row" style="margin-bottom:16px;">
+        <div style="font-size:24px; font-weight:900;">원본 출결 로그</div>
+        <div class="sp"></div>
+        <button class="btn btn-ghost" id="btnTraceCopy" type="button">복사</button>
+        <button class="btn btn-bad" id="btnTraceClose" type="button">닫기</button>
+      </div>
+      <pre id="traceModalBody" class="mono" style="height:420px; overflow:auto; white-space:pre-wrap; margin:0;"></pre>
+    </div>
+  </div>
+
+	<header class="topbar">
+		<div class="wrap row">
+			<div class="brand" id="brandLogoContainer">
+         <img
+            src="<?= typeof BRAND_LOGO_DATA_URL !== 'undefined' ? BRAND_LOGO_DATA_URL : '' ?>"
+            alt="더오름"
+            class="header-logo"
+            id="headerLogo"
+            onerror="window.__logoFail && window.__logoFail(this);"
+          />
+			</div>
+
+			<div class="navRow">
+				<button class="tabBtn on" id="navKiosk" type="button">키오스크</button>
+				<button class="tabBtn" id="navStaff" type="button">직원</button>
+			</div>
+
+			<div class="sp row">
+				<div class="pill" id="safePill">
+					<span class="dot" id="safeDot"></span>
+					<span id="safeText">Online</span>
+				</div>
+				<div class="pill" id="whoPill">guest</div>
+				<button class="btn btn-ghost hidden" id="btnLogout" type="button" style="padding:10px 20px; font-size:15px;">로그아웃</button>
+			</div>
+		</div>
+	</header>
+
+	<main class="main">
+		<div class="viewport" id="viewPort">
+      <div id="bootSkeleton" class="card heroCard" style="max-width:1000px;">
+        <div class="titleWrap">
+          <span class="floor-badge">로딩 중</span>
+          <h2 class="cardTitle">출결 키오스크 준비 중...</h2>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;">
+          <div style="height:140px;border-radius:24px;background:#e2e8f0;"></div>
+          <div style="height:140px;border-radius:24px;background:#e2e8f0;"></div>
+          <div style="height:140px;border-radius:24px;background:#e2e8f0;"></div>
+          <div style="height:140px;border-radius:24px;background:#e2e8f0;"></div>
+        </div>
+
+        <div style="height:120px;border-radius:24px;background:#e2e8f0;margin-bottom:20px;"></div>
+        <div style="height:64px;border-radius:18px;background:#e2e8f0;"></div>
+      </div>
+    </div>
+	</main>
+
+	<template id="tpl-kiosk">
+		<div class="card heroCard">
+			<div class="titleWrap">
+				<span class="floor-badge" id="floorPill">5F</span>
+				<h2 class="cardTitle">출결 키오스크</h2>
+			</div>
+
+			<div class="actGrid">
+				<button class="actBtn on" id="btnCHECK_IN" type="button" data-mode="CHECK_IN">
+					<div class="spinner"></div>
+					<svg fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+						<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+						<polyline points="10 17 15 12 10 7"></polyline>
+						<line x1="15" y1="12" x2="3" y2="12"></line>
+					</svg>
+					<span>등원</span>
+				</button>
+
+				<button class="actBtn" id="btnCHECK_OUT" type="button" data-mode="CHECK_OUT">
+					<div class="spinner"></div>
+					<svg fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+						<polyline points="16 17 21 12 16 7"></polyline>
+						<line x1="21" y1="12" x2="9" y2="12"></line>
+					</svg>
+					<span>하원</span>
+				</button>
+
+				<button class="actBtn" id="btnMOVE" type="button" data-mode="MOVE">
+					<div class="spinner"></div>
+					<svg fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+						<polyline points="17 1 21 5 17 9"></polyline>
+						<line x1="3" y1="5" x2="21" y2="5"></line>
+						<polyline points="7 23 3 19 7 15"></polyline>
+						<line x1="21" y1="19" x2="3" y2="19"></line>
+					</svg>
+					<span>교실 이동</span>
+				</button>
+
+				<button class="actBtn" id="btnOUTING" type="button" data-mode="OUTING">
+					<div class="spinner"></div>
+					<svg fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+						<ellipse cx="7" cy="6" rx="3" ry="4"></ellipse>
+						<line x1="7" y1="10" x2="7" y2="21"></line>
+						<line x1="15" y1="3" x2="15" y2="21"></line>
+						<line x1="19" y1="3" x2="19" y2="21"></line>
+					</svg>
+					<span>외출/복귀</span>
+				</button>
+			</div>
+
+			<div class="input-wrapper">
+				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="QR 스캔 / 예외학생은 승인 후 학번 입력">
+			</div>
+
+			<div class="msg" id="kMsg"></div>
+			<div class="mono" id="kDbg" style="display:none;"></div>
+		</div>
+	</template>
+
+	<template id="tpl-login">
+    <div class="card loginWrap">
+      <h2 class="cardTitle" style="text-align:left; font-size:36px; margin-bottom:12px;">직원 로그인</h2>
+      <div class="subText" style="text-align:left; margin-bottom:38px; font-size:18px;">중앙DB STAFF 계정으로 로그인합니다.</div>
+
+      <div class="section">
+        <input class="inp" id="loginId" placeholder="아이디">
+        <div class="footerGap"></div>
+        <input class="inp" id="loginPw" type="password" placeholder="비밀번호">
+
+        <div class="row" style="margin-top:24px;">
+          <button class="btn btn-pri" id="btnDoLogin" type="button" style="flex:1; height:60px; font-size:20px;">로그인</button>
+        </div>
+
+        <div class="msg" id="loginMsg"></div>
+        <div class="mono" id="loginDiag" style="display:none; margin-top:16px; text-align:left;"></div>
+      </div>
+
+      <div class="section">
+        <div class="sectionTitle">계정 안내</div>
+        <div class="subText" style="text-align:left;">직원 계정 생성, 비밀번호 초기 세팅, 권한 변경은 중앙DB STAFF에서만 관리합니다. 이 화면에서는 로그인만 가능합니다.</div>
+      </div>
+    </div>
+  </template>
+
+	<template id="tpl-staff">
+    <div class="staffWrap">
+      <div class="staffShell">
+        <!-- 왼쪽: 공통 핵심 -->
+        <div class="card compactCard">
+          <div class="row" style="margin-bottom:24px;">
+            <div>
+              <h2 class="cardTitle" style="font-size:32px; text-align:left; margin-bottom:8px;">직원 화면</h2>
+              <div class="subText" id="staffHeadText" style="text-align:left; font-size:18px;">로그인 완료</div>
+            </div>
+            <div class="sp pill" id="staffRolePill" style="color:var(--pri); border-color:var(--pri); border-width:2px;">role</div>
+          </div>
+
+          <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+            <div class="sectionTitle">직원 근태</div>
+            <div class="subText" style="text-align:left; margin-top:8px;">기본 사용은 직원 QR 스캔입니다. 웹 기록은 QR 장애 시만 사용하세요.</div>
+
+            <div class="quickGrid" style="margin-top:20px;">
+              <button class="btn btn-pri" id="btnClockInQr" type="button" style="height:60px;">QR 출근</button>
+              <button class="btn btn-bad" id="btnClockOutQr" type="button" style="height:60px;">QR 퇴근</button>
+            </div>
+
+            <div class="row" style="margin-top:16px;">
+              <input class="inp" id="staffQrInput" placeholder="직원 QR 스캔" style="flex:1;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            </div>
+
+            <div class="msg staffResultBox" id="staffClockMsg" style="margin-top:16px;"></div>
+
+            <div class="foldCard">
+              <details>
+                <summary>비상용 수동 기록</summary>
+                <div class="foldBody">
+                  <div class="row" style="margin-top:18px;">
+                    <button class="btn btn-pri" id="btnClockIn" type="button" style="flex:1; height:56px;">출근 기록</button>
+                    <button class="btn btn-bad" id="btnClockOut" type="button" style="flex:1; height:56px;">퇴근 기록</button>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <div class="section section-tight">
+            <div class="sectionTitle">예외학생 PIN 승인</div>
+            <div class="row" style="margin-top:20px;">
+              <input class="inp" id="pinSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
+              <input class="inp" id="staffPinInput" placeholder="PIN" type="password" inputmode="numeric" style="flex:1;">
+              <button class="btn btn-pri" id="btnApprovePin" type="button">승인</button>
+            </div>
+            <div class="msg" id="pinMsg" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
+        <!-- 오른쪽: assistant 이상 -->
+        <div class="card compactCard assistantOnly">
+          <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+            <div class="sectionTitle">출결 로그 조회</div>
+            <div class="row" style="margin-top:20px;">
+              <input class="inp" id="logDate" placeholder="YYYYMMDD" style="flex:1;">
+              <input class="inp" id="logSid" placeholder="학번 (선택)" style="flex:1;">
+              <button class="btn btn-pri" id="btnLoadLogs" type="button">조회</button>
+            </div>
+            <div class="mono" id="logBox" style="margin-top:16px; max-height:260px; overflow:auto; text-align:left;"></div>
+          </div>
+
+          <div class="section section-tight">
+            <div class="sectionTitle">정정 로그 조회</div>
+            <div class="row" style="margin-top:20px;">
+              <input class="inp" id="corrDate" placeholder="YYYYMMDD" style="flex:1;">
+              <input class="inp" id="corrSid" placeholder="학번 (선택)" style="flex:1;">
+              <button class="btn btn-pri" id="btnLoadCorrLogs" type="button">조회</button>
+            </div>
+            <div class="mono" id="corrLogBox" style="margin-top:16px; max-height:260px; overflow:auto; text-align:left;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- teacher 이상 -->
+      <div class="card compactCard teacherOnly" style="margin-top:24px;">
+        <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+          <div class="sectionTitle">예외학생 지정</div>
+          <div class="row" style="margin-top:20px;">
+            <input class="inp" id="exSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
+            <input class="inp" id="exNote" placeholder="사유 메모" style="flex:2;">
+            <button class="btn btn-pri" id="btnSetExY" type="button">예외 등록</button>
+            <button class="btn btn-ghost" id="btnSetExN" type="button">예외 해제</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- admin 전용 -->
+      <div class="card compactCard adminOnly" style="margin-top:24px;">
+        <div class="foldCard" style="margin-top:0;">
+          <details open>
+            <summary>오늘 운영</summary>
+            <div class="foldBody">
+              <div class="row" style="margin-top:18px;">
+                <button class="btn btn-pri" id="btnLoadStaffMonth" type="button">월근무 요약 조회</button>
+                <button class="btn btn-pri" id="btnLoadStaffMonthDetail" type="button">월근무 상세 조회</button>
+              </div>
+              <div class="row" style="margin-top:16px;">
+                <input class="inp" id="staffMonthYyyymm" placeholder="YYYYMM" style="flex:1;">
+                <input class="inp" id="staffMonthDetailId" placeholder="staff_id (상세용)" style="flex:1;">
+              </div>
+              <div class="mono" id="staffMonthBox" style="margin-top:16px; max-height:260px; overflow:auto; text-align:left;"></div>
+            </div>
+          </details>
+        </div>
+
+        <div class="foldCard">
+          <details>
+            <summary>출결 관리</summary>
+            <div class="foldBody">
+              <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
+                <div class="sectionTitle">특정일 결석 예외</div>
+                <div class="row" style="margin-top:16px;">
+                  <input class="inp" id="abDate" placeholder="YYYYMMDD" style="flex:1;">
+                  <input class="inp" id="abClassId" placeholder="class_id (선택)" style="flex:1;">
+                  <input class="inp" id="abSid" placeholder="학번 4자리" style="flex:1;">
+                </div>
+                <div class="row" style="margin-top:16px;">
+                  <input class="inp" id="abReason" placeholder="사유" style="flex:2;">
+                  <input class="inp" id="abUntilMin" placeholder="유효분 (선택)" style="flex:1;">
+                </div>
+                <div class="row" style="margin-top:16px;">
+                  <button class="btn btn-pri" id="btnAbList" type="button">조회</button>
+                  <button class="btn btn-pri" id="btnAbUpsert" type="button">등록/수정</button>
+                  <button class="btn btn-bad" id="btnAbRemove" type="button">삭제</button>
+                </div>
+                <div class="mono" id="abBox" style="margin-top:16px; max-height:220px; overflow:auto; text-align:left;"></div>
+              </div>
+
+              <div class="section section-tight">
+                <div class="sectionTitle">수동 정정</div>
+                <div class="row" style="margin-top:16px;">
+                  <input class="inp" id="manSid" placeholder="학번 4자리" style="flex:1;">
+                  <input class="inp" id="manAction" placeholder="CHECK_IN / CHECK_OUT / MOVE / OUTING_OUT / OUTING_BACK" style="flex:2;">
+                </div>
+                <div class="row" style="margin-top:16px;">
+                  <input class="inp" id="manReason" placeholder="정정 사유" style="flex:2;">
+                  <input class="inp" id="manSourceTrace" placeholder="원본 trace_id" style="flex:2;">
+                </div>
+                <div class="row" style="margin-top:16px;">
+                  <button class="btn btn-pri" id="btnManualAttendance" type="button">수동 정정 저장</button>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="foldCard">
+          <details>
+            <summary>시스템 진단</summary>
+            <div class="foldBody">
+              <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
+                <div class="sectionTitle">서버 시스템 및 통신 진단</div>
+                <div class="row" style="margin-top:16px;">
+                  <button class="btn btn-pri" id="btnDiag" type="button">상태 점검</button>
+                  <button class="btn btn-pri" id="btnCheckCentral" type="button">중앙DB 점검</button>
+                </div>
+                <div class="row" style="margin-top:16px;">
+                  <input class="inp" id="ncpTestPhone" placeholder="테스트 수신 번호 (- 없이)" style="flex:1;">
+                  <button class="btn btn-sky" id="btnTestNcp" type="button">NCP 알림톡/SMS 발송 테스트</button>
+                </div>
+                <div class="mono" id="diagBox" style="margin-top:16px; max-height:280px; overflow:auto; text-align:left;"></div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="foldCard">
+          <details>
+            <summary>관리자 도구</summary>
+            <div class="foldBody">
+              <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
+                <div class="sectionTitle">안전 모드 / 트리거 / 캐시 / 스케줄</div>
+                <div class="row" style="margin-top:16px;">
+                  <button class="btn btn-ghost" id="btnSafeOff" type="button">온라인 전환</button>
+                  <button class="btn btn-bad" id="btnSafeOn" type="button">점검 모드</button>
+                  <button class="btn btn-pri" id="btnInstallAbsent" type="button">미등원 트리거</button>
+                  <button class="btn btn-pri" id="btnInstallDaily" type="button">데일리 트리거</button>
+                </div>
+                <div class="row" style="margin-top:16px;">
+                  <button class="btn btn-pri" id="btnRunAbsent" type="button">미등원 즉시 실행</button>
+                  <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
+                  <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
+                  <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
+                  <button class="btn btn-sky" id="btnGenSchedule" type="button">스케줄 재생성</button>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </template>
+
+	<script>
+		// 📌 [수정] PWA 서비스워커 활성화
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('?res=sw').catch(() => {});
+		}
+
+		const $ = (sel, root = document) => root.querySelector(sel);
+    window.addEventListener('error', (e) => {
+      const v = document.getElementById('viewPort');
+      if (v) {
+        v.innerHTML = `
+          <div style="max-width:900px;width:100%;margin:40px auto;background:#fff1f2;border:2px solid #fecdd3;
+                      color:#881337;border-radius:24px;padding:28px;font-weight:800;line-height:1.6;">
+            <div style="font-size:28px;margin-bottom:12px;">화면 초기화 오류</div>
+            <div style="font-size:16px;white-space:pre-wrap;">${String(e.message || '알 수 없는 오류')}</div>
+          </div>
+        `;
+      }
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      const v = document.getElementById('viewPort');
+      const msg = e && e.reason ? (e.reason.message || String(e.reason)) : 'Promise 오류';
+      if (v) {
+        v.innerHTML = `
+          <div style="max-width:900px;width:100%;margin:40px auto;background:#fff1f2;border:2px solid #fecdd3;
+                      color:#881337;border-radius:24px;padding:28px;font-weight:800;line-height:1.6;">
+            <div style="font-size:28px;margin-bottom:12px;">비동기 초기화 오류</div>
+            <div style="font-size:16px;white-space:pre-wrap;">${String(msg)}</div>
+          </div>
+        `;
+      }
+    });
+
+    window.__logoFail = function(img) {
+      try {
+        App.rpc('meta.logoError', {
+          src: img && img.src ? img.src : '',
+          userAgent: navigator.userAgent || '',
+          currentView: App.currentView || ''
+        });
+      } catch (_) {}
+
+      if (img) {
+        img.onerror = null;
+        img.src = '?res=brand-logo';
+      }
+    };
+
+		let inactivityTimer = null;
+    const resetInactivity = () => {
+      clearTimeout(inactivityTimer);
+
+      if (App.currentView !== 'kiosk') {
+        inactivityTimer = setTimeout(() => {
+          if (App.currentView !== 'kiosk') {
+            Router.goKiosk().then(() => {
+              UI.toast(false, '보안을 위해 키오스크 화면으로 자동 복귀했습니다.');
+            });
+          }
+        }, 3 * 60 * 1000);
+      }
+    };
+
+		['touchstart', 'mousemove', 'keydown'].forEach(evt => {
+			document.body.addEventListener(evt, resetInactivity, { passive: true });
+		});
+
+		const App = {
+			sess: localStorage.getItem('ATT_SESS') || '',
+			pending: 0,
+			currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
+			meta: null,
+			_booted: false,
+
+			rpc(op, args = {}, extra = {}) {
+				return new Promise(resolve => {
+					if (typeof google === 'undefined' || !google.script || !google.script.run) {
+						resolve({ ok: false, error: { code: 'NO_GOOGLE', message: '서버 연결 불가' } });
+						return;
+					}
+
+					App.pending++;
+					UI.busy(true);
+
+					const payload = { op, args, sessionToken: App.sess, ...extra };
+
+					google.script.run
+						.withSuccessHandler(res => resolve(res))
+						.withFailureHandler(err => resolve({
+							ok: false,
+							error: {
+								code: 'RPC_FAIL',
+								message: (err && err.message) ? err.message : String(err || 'RPC 오류')
+							}
+						}))
+						.rpc(payload);
+				}).finally(() => {
+					App.pending = Math.max(0, App.pending - 1);
+					if (App.pending === 0) UI.busy(false);
+				});
+			},
+
+			setWho(text) {
+				const el = $('#whoPill');
+				if (el) el.textContent = text || 'guest';
+			},
+
+			async refreshMeta() {
+				const ping = await App.rpc('meta.ping');
+				if (ping.ok) {
+					App.meta = ping.data || {};
+					UI.setMeta(App.meta);
+				} else {
+					App.meta = null;
+					UI.setMeta(null);
+				}
+			},
+
+			async init() {
+				if (App._booted) {
+					await App.refreshMeta();
+					return;
+				}
+				App._booted = true;
+
+				await App.refreshMeta();
+				Router.bindTopbar();
+				$('#btnLogout').addEventListener('click', Auth.logout);
+
+				if (App.currentView === 'staff') await Router.goStaff();
+        else await Router.goKiosk();
+			}
+		};
+
+		const Voice = {
+			synth: window.speechSynthesis,
+			speak(text) {
+				if (!this.synth || !text) return;
+				this.synth.cancel();
+				const u = new SpeechSynthesisUtterance(text);
+				u.lang = 'ko-KR';
+				u.rate = 1.08;
+				u.pitch = 1.0;
+				this.synth.speak(u);
+			}
+		};
+
+		const UI = {
+			audioCtx: null,
+
+			busy(on) {
+				const bar = $('#busyBar');
+				if (bar) bar.classList.toggle('on', !!on);
+			},
+
+			render(tplId) {
+				const tpl = document.getElementById(tplId);
+				const v = $('#viewPort');
+				v.innerHTML = '';
+				v.appendChild(tpl.content.cloneNode(true));
+			},
+
+			showMsg(el, ok, text) {
+				if (!el) return;
+				el.className = 'msg ' + (ok ? 'ok' : 'no');
+				el.textContent = text || '';
+			},
+
+			clearMsg(el) {
+				if (!el) return;
+				el.className = 'msg';
+				el.textContent = '';
+			},
+
+			toast(ok, text) {
+				const d = document.createElement('div');
+				d.style.cssText = 'position:fixed; left:50%; bottom:40px; transform:translateX(-50%); z-index:120; padding:20px 32px; border-radius:999px; font-weight:900; font-size:20px; box-shadow:var(--shadow-huge); background:' + (ok ? '#ecfdf5' : '#fef2f2') + '; color:' + (ok ? '#065f46' : '#991b1b') + ';';
+				d.textContent = text || '';
+				document.body.appendChild(d);
+				setTimeout(() => {
+					d.style.opacity = '0';
+					d.style.transition = 'opacity 0.3s ease';
+					setTimeout(() => d.remove(), 300);
+				}, 2400);
+			},
+
+			showModal(ok, title, desc) {
+				const m = $('#fullModal');
+				const ic = $('#fmIcon');
+				$('#fmTitle').textContent = title;
+				$('#fmDesc').textContent = desc;
+
+				ic.className = 'modal-icon ' + (ok ? 'ok' : 'no');
+				ic.innerHTML = ok
+					? '<svg width="80" height="80" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+					: '<svg width="80" height="80" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+
+				m.classList.add('show');
+				setTimeout(() => m.classList.remove('show'), 2000);
+			},
+
+			initAudio() {
+				if (!UI.audioCtx) {
+					UI.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+				}
+				if (UI.audioCtx.state === 'suspended') UI.audioCtx.resume();
+			},
+
+			beep(ok) {
+				try {
+					UI.initAudio();
+					const o = UI.audioCtx.createOscillator();
+					const g = UI.audioCtx.createGain();
+					o.type = 'sine';
+					o.frequency.value = ok ? 880 : 220;
+					g.gain.value = 0.05;
+					o.connect(g);
+					g.connect(UI.audioCtx.destination);
+					o.start();
+					setTimeout(() => o.stop(), ok ? 90 : 160);
+				} catch (e) {}
+			},
+
+			flashScreen(ok) {
+				document.body.classList.add(ok ? 'flash-ok' : 'flash-no');
+				setTimeout(() => {
+					document.body.classList.remove(ok ? 'flash-ok' : 'flash-no');
+				}, 800);
+			},
+
+			setMeta(meta) {
+				const dot = $('#safeDot');
+				const text = $('#safeText');
+				const isSafe = !!(meta && meta.safe && String(meta.safe.mode || '').toUpperCase() === 'Y');
+
+				if (dot) {
+					dot.style.background = isSafe ? 'var(--bad)' : 'var(--ok)';
+					dot.style.boxShadow = isSafe
+						? '0 0 0 4px rgba(239, 68, 68, 0.15)'
+						: '0 0 0 4px rgba(16, 185, 129, 0.15)';
+				}
+				if (text) text.textContent = isSafe ? 'Maintenance' : 'Online';
+			},
+
+			maskName(name) {
+				if (!name) return '';
+				if (name.length <= 2) return name.charAt(0) + '*';
+				return name.charAt(0) + '*'.repeat(name.length - 2) + name.charAt(name.length - 1);
+			},
+
+      async withBtnBusy(selector, busyText, fn) {
+        const btn = $(selector);
+        if (!btn) return await fn();
+        if (btn.disabled) return;
+
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = busyText || '처리 중...';
+
+        try {
+          return await fn();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      },
+
+			padSid(v) {
+				const d = String(v || '').replace(/[^0-9]/g, '');
+				if (!d) return '';
+				return d.length >= 4 ? d.slice(-4) : d.padStart(4, '0');
+			}
+		};
+
+		['click', 'touchstart', 'keydown'].forEach(evt => {
+			document.body.addEventListener(evt, UI.initAudio, { once: true, passive: true });
+		});
+
+		let idleTimer = null;
+		const resetIdle = () => {
+			clearTimeout(idleTimer);
+			$('#screensaver').classList.remove('active');
+
+			if (App.currentView === 'kiosk') {
+				idleTimer = setTimeout(() => {
+					$('#screensaver').classList.add('active');
+				}, 60000);
+			}
+		};
+
+		['touchstart', 'mousemove', 'keydown', 'click'].forEach(evt => {
+			document.body.addEventListener(evt, resetIdle, { passive: true });
+		});
+
+		setInterval(() => {
+			const now = new Date();
+			const hh = String(now.getHours()).padStart(2, '0');
+			const mm = String(now.getMinutes()).padStart(2, '0');
+			const month = now.getMonth() + 1;
+			const date = now.getDate();
+			const dow = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
+
+			const elTime = $('#ssTime');
+			const elDate = $('#ssDate');
+			if (elTime) elTime.textContent = hh + ':' + mm;
+			if (elDate) elDate.textContent = month + '월 ' + date + '일 ' + dow + '요일';
+
+			const isNight = now.getHours() >= 19 || now.getHours() < 6;
+			document.body.classList.toggle('dark-mode', isNight);
+
+			if (now.getHours() === 4 && now.getMinutes() === 0 && now.getSeconds() < 6) {
+				location.reload();
+			}
+		}, 1000);
+
+		if (navigator.getBattery) {
+			navigator.getBattery().then(battery => {
+				const checkBatteryStatus = () => {
+					if (!battery.charging) {
+						UI.toast(false, '⚠️ 노트북 전원 케이블이 분리되었습니다. 배터리를 확인해주세요.');
+						UI.beep(false);
+					}
+				};
+				battery.addEventListener('chargingchange', checkBatteryStatus);
+			}).catch(() => {});
+		}
+
+		const Router = {
+			_bound: false,
+
+			bindTopbar() {
+				if (Router._bound) return;
+				Router._bound = true;
+
+				$('#navKiosk').addEventListener('click', Router.goKiosk);
+				$('#navStaff').addEventListener('click', Router.goStaff);
+
+				let logoClicks = 0;
+				let logoTimer = null;
+				$('#brandLogoContainer').addEventListener('click', () => {
+					logoClicks++;
+					clearTimeout(logoTimer);
+					logoTimer = setTimeout(() => { logoClicks = 0; }, 1000);
+					if (logoClicks >= 5) {
+						logoClicks = 0;
+						if (!document.fullscreenElement) {
+							document.documentElement.requestFullscreen().catch(() => {});
+						} else {
+							document.exitFullscreen().catch(() => {});
+						}
+					}
+				});
+			},
+
+			setNav(which) {
+				$('#navKiosk').classList.toggle('on', which === 'kiosk');
+				$('#navStaff').classList.toggle('on', which === 'staff');
+				resetInactivity();
+				resetIdle();
+			},
+
+			// 수정 형태
+      async goKiosk() {
+        if (App.currentView === 'staff' && App.sess) {
+          await App.rpc('auth.logout', {});
+          App.sess = '';
+          localStorage.removeItem('ATT_SESS');
+        }
+
+        App.currentView = 'kiosk';
+        localStorage.setItem('ATT_LAST_VIEW', 'kiosk');
+        Router.setNav('kiosk');
+        App.setWho('guest');
+        $('#btnLogout').classList.add('hidden');
+
+        UI.render('tpl-kiosk');
+        Kiosk.init();
+      },
+
+      async goStaff() {
+        App.currentView = 'staff';
+        localStorage.setItem('ATT_LAST_VIEW', 'staff');
+        Router.setNav('staff');
+
+        const me = await App.rpc('auth.me');
+        if (me.ok && me.data && me.data.loggedIn) {
+          UI.render('tpl-staff');
+          App.setWho(me.data.name + ' (' + me.data.role + ')');
+          $('#btnLogout').classList.remove('hidden');
+          StaffUI.init(me.data);
+          return;
+        }
+
+        App.setWho('guest');
+        $('#btnLogout').classList.add('hidden');
+        UI.render('tpl-login');
+        Auth.initLogin();
+      }
+		};
+
+		const Kiosk = {
+			action: 'CHECK_IN',
+			focusTimer: null,
+			_autoTimer: null,
+			_idleClearTimer: null,
+			isSubmitting: false,
+
+			init() {
+				const floor = (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F';
+				const floorPill = $('#floorPill');
+				floorPill.textContent = floor;
+				if (floor.includes('7')) {
+					floorPill.style.background = '#fff7ed';
+					floorPill.style.color = '#d97706';
+				}
+
+				$('#btnCHECK_IN').addEventListener('click', () => Kiosk.setAction('CHECK_IN'));
+				$('#btnCHECK_OUT').addEventListener('click', () => Kiosk.setAction('CHECK_OUT'));
+				$('#btnMOVE').addEventListener('click', () => Kiosk.setAction('MOVE'));
+				$('#btnOUTING').addEventListener('click', () => Kiosk.setAction('OUTING'));
+
+				const input = $('#kInput');
+				input.setAttribute('autocapitalize', 'off');
+				input.setAttribute('autocorrect', 'off');
+				input.setAttribute('spellcheck', 'false');
+				input.setAttribute('autocomplete', 'off');
+
+				input.addEventListener('input', () => {
+					clearTimeout(Kiosk._idleClearTimer);
+					Kiosk._idleClearTimer = setTimeout(() => {
+						input.value = '';
+						UI.clearMsg($('#kMsg'));
+						$('#kDbg').style.display = 'none';
+						$('#kDbg').textContent = '';
+					}, 10000);
+
+					if (Kiosk.action === 'MOVE' || Kiosk.action === 'OUTING') {
+						const digits = String(input.value || '').replace(/[^0-9]/g, '').slice(-4);
+						input.value = digits;
+
+						if (digits.length === 4) {
+							clearTimeout(Kiosk._autoTimer);
+							Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+						}
+					} else {
+						const v = Kiosk.normalizeScanText(input.value);
+						const digits = String(v || '').replace(/[^0-9]/g, '').slice(-4);
+						input.value = v;
+
+						if (/^QR1\./i.test(v) || digits.length === 4) {
+							clearTimeout(Kiosk._autoTimer);
+							Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+						}
+					}
+				});
+
+				input.addEventListener('keydown', e => {
+					if (e.key !== 'Enter') return;
+					e.preventDefault();
+					clearTimeout(Kiosk._autoTimer);
+					Kiosk.submit();
+				});
+
+				if (Kiosk.focusTimer) clearInterval(Kiosk.focusTimer);
+				Kiosk.focusTimer = setInterval(() => {
+					const el = $('#kInput');
+					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && document.activeElement !== el) {
+						el.focus();
+					}
+				}, 1200);
+
+				Kiosk.setAction('CHECK_IN');
+				setTimeout(() => input.focus(), 50);
+			},
+
+			setAction(action) {
+				Kiosk.action = action;
+
+				['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
+					const btn = document.getElementById('btn' + x);
+					if (btn) btn.classList.toggle('on', x === action);
+				});
+
+				const input = $('#kInput');
+				const msg = $('#kMsg');
+				const dbg = $('#kDbg');
+				input.value = '';
+				UI.clearMsg(msg);
+				dbg.style.display = 'none';
+				dbg.textContent = '';
+				input.blur();
+
+				if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
+          input.placeholder = 'QR 스캔 / 예외학생은 승인 후 학번 입력';
+          input.setAttribute('inputmode', 'text');
+        } else {
+          input.placeholder = '학번 4자리를 입력하세요';
+          input.setAttribute('inputmode', 'numeric');
+        }
+
+				setTimeout(() => input.focus(), 50);
+			},
+
+			normalizeScanText(v) {
+				const map = {
+					'ㅂ':'q','ㅈ':'w','ㄷ':'e','ㄱ':'r','ㅅ':'t','ㅛ':'y','ㅕ':'u','ㅑ':'i','ㅐ':'o','ㅔ':'p',
+					'ㅁ':'a','ㄴ':'s','ㅇ':'d','ㄹ':'f','ㅎ':'g','ㅗ':'h','ㅓ':'j','ㅏ':'k','ㅣ':'l',
+					'ㅋ':'z','ㅌ':'x','ㅊ':'c','ㅍ':'v','ㅠ':'b','ㅜ':'n','ㅡ':'m',
+					'ㅃ':'Q','ㅉ':'W','ㄸ':'E','ㄲ':'R','ㅆ':'T','ㅒ':'O','ㅖ':'P'
+				};
+
+				let s = String(v || '').split('').map(ch => map[ch] || ch).join('').replace(/\s+/g, '').trim();
+				if (/^qr1\./i.test(s)) s = 'QR1.' + s.slice(4);
+          if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
+          return s;
+			},
+
+			setLoading(loading) {
+				Kiosk.isSubmitting = loading;
+				const btn = document.getElementById('btn' + Kiosk.action);
+				if (btn) btn.classList.toggle('loading', loading);
+
+				const input = $('#kInput');
+				if (!input) return;
+
+				if (loading) {
+					input.disabled = true;
+					input.style.opacity = '0.5';
+					input.placeholder = '⏳ 처리 중입니다...';
+				} else {
+					input.disabled = false;
+					input.style.opacity = '1';
+					input.placeholder = (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
+            ? 'QR 스캔 / 예외학생은 승인 후 학번 입력'
+            : '학번 4자리를 입력하세요';
+					setTimeout(() => input.focus(), 50);
+				}
+			},
+
+			getErrorMessage(code, defaultMsg) {
+				const map = {
+          'QR_EXPIRED': '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.',
+          'QR_REQUIRED': '등/하원은 QR 스캔 또는 예외학생 승인 후 학번 입력만 가능합니다.',
+          'QR_INVALID': '이미 사용했거나 유효하지 않은 QR입니다.',
+          'NOT_FOUND': '등록되지 않은 학생입니다. 데스크에 문의하세요.',
+          'NOT_ACTIVE': '현재 재원 상태가 아닙니다. 데스크에 문의하세요.',
+          'SAFE_MODE': '현재 점검 모드입니다. 데스크에 문의하세요.',
+          'INVALID_STATE': '현재 출결 상태에서는 사용할 수 없습니다.',
+          'NEED_PIN': '예외학생은 데스크 PIN 승인이 필요합니다.',
+          'NOT_EXCEPTION': '예외 등록된 학생만 학번으로 등/하원할 수 있습니다.',
+          'NO_QR_ID': '학생 QR ID가 등록되어 있지 않습니다. 데스크에 문의하세요.'
+        };
+				return map[code] || defaultMsg || '처리 실패';
+			},
+
+			async submit() {
+				if (Kiosk.isSubmitting) return;
+				Kiosk.setLoading(true);
+
+				try {
+					const input = $('#kInput');
+					const msg = $('#kMsg');
+					const dbg = $('#kDbg');
+
+					clearTimeout(Kiosk._idleClearTimer);
+
+					const val = (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
+						? Kiosk.normalizeScanText(input.value)
+						: (input.value || '').trim();
+
+					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
+					const isQr = /^QR1\./i.test(val);
+					const isExceptionId = digits.length === 4;
+
+					const hasNonAscii = /[^\x20-\x7E]/.test(val);
+					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
+						UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
+						dbg.textContent = 'NON_ASCII_INPUT';
+						dbg.style.display = 'block';
+						UI.beep(false);
+						Voice.speak('한영 키를 확인해주세요.');
+						UI.flashScreen(false);
+						return;
+					}
+
+					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isExceptionId) {
+            UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
+            dbg.textContent = 'QR_OR_EXCEPTION_ID_REQUIRED';
+            dbg.style.display = 'block';
+            UI.beep(false);
+            Voice.speak('입력 방식을 확인해주세요.');
+            UI.flashScreen(false);
+            return;
+          }
+
+					if (!val) return;
+
+					input.value = '';
+					UI.clearMsg(msg);
+					dbg.textContent = '';
+					dbg.style.display = 'none';
+
+					const r = await App.rpc('kiosk.mark', { action: Kiosk.action, input: val });
+
+          if (r.ok && r.data && r.data.duplicate) {
+            UI.toast(false, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '중복 입력');
+            return;
+          }
+
+					if (r.ok) {
+            const ui = (r.data && r.data.ui) ? r.data.ui : {};
+            const sid = ui.message ? (ui.message.match(/\((.*?)\)/)?.[1] || val) : val;
+            const rawName = ui.message ? (ui.message.split(' ')[0] || '') : '';
+            const maskedName = UI.maskName(rawName);
+
+            if (r.data && r.data.alreadyDone) {
+              UI.showModal(false, ui.title || '이미 처리됨', maskedName + ' (' + sid + ')');
+              UI.beep(false);
+              UI.flashScreen(false);
+              return;
+            }
+
+            UI.showModal(true, ui.title || '완료', maskedName + ' (' + sid + ')');
+            UI.beep(true);
+            UI.flashScreen(true);
+            if (rawName) Voice.speak(rawName + ' 학생, ' + (ui.title || '처리') + '되었습니다.');
+            return;
+          }
+
+					if (r.error && r.error.code === 'NEED_PIN') {
+						const d = r.error.detail || {};
+						const sid = d.student_id ? UI.padSid(d.student_id) : '';
+						const nm = d.student_name || '';
+
+						UI.showModal(false, '예외 학생입니다', '데스크에서 학번 [' + sid + '] PIN 승인을 요청하세요.');
+						dbg.textContent = 'NEED_PIN · ' + sid + ' ' + nm + ' · ' + (r.error.traceId || '');
+						dbg.style.display = 'block';
+						UI.beep(false);
+						Voice.speak('예외학생입니다. 데스크에 문의해주세요.');
+						UI.flashScreen(false);
+						return;
+					}
+
+					const errMsg = Kiosk.getErrorMessage(r.error ? r.error.code : '', r.error ? r.error.message : '');
+					UI.showModal(false, '처리 실패', errMsg);
+					dbg.textContent = ((r.error && r.error.code) ? r.error.code : 'ERROR') + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : '');
+					dbg.style.display = 'block';
+					UI.beep(false);
+					Voice.speak('다시 한번 시도해주세요.');
+					UI.flashScreen(false);
+				} finally {
+					Kiosk.setLoading(false);
+				}
+			}
+		};
+
+		document.addEventListener('keydown', e => {
+			if ($('#offlineLock').classList.contains('show') || Kiosk.isSubmitting) return;
+
+			if (['F5', 'F12'].includes(e.key) || (e.ctrlKey && e.key.toLowerCase() === 'r')) {
+				e.preventDefault();
+			}
+			if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'q') {
+				location.reload();
+			}
+
+			if (App.currentView !== 'kiosk') return;
+
+			if (e.getModifierState && e.getModifierState('CapsLock')) {
+				UI.toast(false, '⚠️ Caps Lock을 꺼주세요.');
+			}
+
+			const modeMap = {
+				'F1': 'CHECK_IN', '1': 'CHECK_IN',
+				'F2': 'CHECK_OUT', '2': 'CHECK_OUT',
+				'F3': 'MOVE', '3': 'MOVE',
+				'F4': 'OUTING', '4': 'OUTING'
+			};
+
+			if (['F1', 'F2', 'F3', 'F4'].includes(e.key) || (e.altKey && ['1', '2', '3', '4'].includes(e.key))) {
+				e.preventDefault();
+				Kiosk.setAction(modeMap[e.key]);
+				return;
+			}
+
+			if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+				$('#fullModal').classList.remove('show');
+			}
+
+			const input = $('#kInput');
+			if (!input || document.activeElement.tagName === 'BUTTON') return;
+
+			if (document.activeElement !== input) {
+				input.focus();
+				if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+					input.value += e.key;
+					e.preventDefault();
+				}
+			}
+		});
+
+		const Auth = {
+			initLogin() {
+        $('#btnDoLogin').addEventListener('click', Auth.login);
+
+				const enterLogin = e => { if (e.key === 'Enter') Auth.login(); };
+				$('#loginId').addEventListener('keydown', enterLogin);
+				$('#loginPw').addEventListener('keydown', enterLogin);
+
+				const first = $('#loginId');
+				if (first) setTimeout(() => first.focus(), 50);
+			},
+
+			async login() {
+				const id = ($('#loginId').value || '').trim();
+				const pw = ($('#loginPw').value || '');
+				const box = $('#loginMsg');
+
+				if (!id || !pw) {
+					UI.showMsg(box, false, '아이디와 비밀번호를 입력하세요.');
+					return;
+				}
+
+				const r = await App.rpc('auth.login', { staff_id: id, password: pw });
+				if (r.ok && r.data && r.data.loggedIn) {
+					App.sess = r.data.sessionToken || '';
+					localStorage.setItem('ATT_SESS', App.sess);
+					Router.goStaff();
+					return;
+				}
+
+				UI.showMsg(box, false, (r.error && r.error.message) ? r.error.message : '로그인 실패');
+			},
+
+			async logout() {
+				await App.rpc('auth.logout', {});
+				App.sess = '';
+				localStorage.removeItem('ATT_SESS');
+				Router.goStaff();
+			}
+		};
+
+		const StaffUI = {
+			me: null,
+
+			init(me) {
+				StaffUI.me = me;
+				$('#staffHeadText').textContent = me.name + '님 접속중';
+				$('#staffRolePill').textContent = me.role || 'staff';
+
+				$('#btnApprovePin').addEventListener('click', StaffUI.approvePin);
+				$('#btnClockIn').addEventListener('click', () => StaffUI.clock('IN'));
+        $('#btnClockOut').addEventListener('click', () => StaffUI.clock('OUT'));
+        $('#btnClockInQr').addEventListener('click', () => {
+          StaffUI._lastStaffQrAction = 'IN';
+          StaffUI.clockQr('IN');
+        });
+
+        $('#btnClockOutQr').addEventListener('click', () => {
+          StaffUI._lastStaffQrAction = 'OUT';
+          StaffUI.clockQr('OUT');
+        });
+        $('#btnLoadLogs').addEventListener('click', StaffUI.loadLogs);
+        $('#btnLoadCorrLogs').addEventListener('click', StaffUI.loadCorrectionLogs);
+				$('#btnDiag').addEventListener('click', StaffUI.diag);
+				$('#btnCheckCentral').addEventListener('click', StaffUI.checkCentral);
+        $('#btnTestNcp').addEventListener('click', StaffUI.testNcp);
+
+				$('#btnSetExY').addEventListener('click', () => StaffUI.setException('Y'));
+				$('#btnSetExN').addEventListener('click', () => StaffUI.setException('N'));
+
+				$('#btnAbList').addEventListener('click', StaffUI.abList);
+				$('#btnAbUpsert').addEventListener('click', StaffUI.abUpsert);
+				$('#btnAbRemove').addEventListener('click', StaffUI.abRemove);
+        $('#btnManualAttendance').addEventListener('click', StaffUI.manualAttendance);
+
+				$('#btnSafeOff').addEventListener('click', () => StaffUI.toggleSafe('N'));
+				$('#btnSafeOn').addEventListener('click', () => StaffUI.toggleSafe('Y'));
+				$('#btnInstallAbsent').addEventListener('click', StaffUI.installAbsentTrigger);
+				$('#btnInstallDaily').addEventListener('click', StaffUI.installDailyTrigger);
+				$('#btnRunAbsent').addEventListener('click', StaffUI.runAbsentNow);
+				$('#btnFloor5').addEventListener('click', () => StaffUI.setFloor('5F'));
+				$('#btnFloor7').addEventListener('click', () => StaffUI.setFloor('7F'));
+        $('#btnFlushCache').addEventListener('click', StaffUI.flushCache);
+        $('#btnGenSchedule').addEventListener('click', StaffUI.generateSchedule);
+        $('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
+        $('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
+        $('#corrLogBox').addEventListener('click', async (e) => {
+					const btn = e.target.closest('[data-source-trace]');
+					if (!btn) return;
+
+					const sourceTraceId = String(btn.getAttribute('data-source-trace') || '').trim();
+					if (!sourceTraceId) return;
+
+					await StaffUI.openSourceTrace(sourceTraceId);
+				});
+
+        const staffQrInput = $('#staffQrInput');
+          if (staffQrInput) {
+            staffQrInput.addEventListener('input', () => {
+              const v = Kiosk.normalizeScanText(staffQrInput.value);
+              staffQrInput.value = v;
+
+              if (!v) return;
+              if (!/^STAFFQR1\./i.test(v) || v.length < 20) return;
+
+              clearTimeout(StaffUI._staffQrAutoTimer);
+              StaffUI._staffQrAutoTimer = setTimeout(() => {
+                const preferred = StaffUI._lastStaffQrAction || 'IN';
+                StaffUI.clockQr(preferred);
+              }, 150);
+            });
+          }
+
+				StaffUI.applyRoleView();
+        StaffUI._lastStaffQrAction = 'IN';
+			},
+
+      setRoleSectionVisible(selector, visible) {
+        document.querySelectorAll(selector).forEach(el => {
+          el.classList.toggle('hiddenByRole', !visible);
+        });
+      },
+
+			applyRoleView() {
+        const role = String((StaffUI.me && StaffUI.me.role) || '').toLowerCase();
+        const assistantPlus = ['assistant', 'staff', 'teacher', 'admin', 'owner'].includes(role);
+        const teacherPlus = ['teacher', 'admin', 'owner'].includes(role);
+        const adminPlus = ['admin', 'owner'].includes(role);
+
+        StaffUI.setRoleSectionVisible('.assistantOnly', assistantPlus);
+        StaffUI.setRoleSectionVisible('.teacherOnly', teacherPlus);
+        StaffUI.setRoleSectionVisible('.adminOnly', adminPlus);
+
+        if (!assistantPlus) {
+          ['btnLoadLogs', 'btnApprovePin', 'btnLoadCorrLogs'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.disabled = true; el.style.opacity = '.45'; }
+          });
+        }
+
+        if (!teacherPlus) {
+          ['btnSetExY', 'btnSetExN'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.disabled = true; el.style.opacity = '.45'; }
+          });
+        }
+
+        if (!adminPlus) {
+          [
+            'btnSafeOff', 'btnSafeOn', 'btnInstallAbsent', 'btnInstallDaily',
+            'btnFloor5', 'btnFloor7', 'btnFlushCache', 'btnRunAbsent',
+            'btnGenSchedule', 'btnDiag', 'btnCheckCentral', 'btnTestNcp',
+            'btnLoadStaffMonth', 'btnLoadStaffMonthDetail',
+            'btnAbList', 'btnAbUpsert', 'btnAbRemove',
+            'btnManualAttendance'
+          ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.disabled = true; el.style.opacity = '.45'; }
+          });
+        }
+      },
+
+      // 수정 형태
+      async openSourceTrace(sourceTraceId) {
+        const r = await App.rpc('assistant.getLogByTrace', { trace_id: sourceTraceId });
+        if (!r.ok) {
+          UI.toast(false, (r.error && r.error.message) ? r.error.message : '원본 로그 조회 실패');
+          return;
+        }
+
+        const log = r.data || {};
+        if (!log.trace_id) {
+          UI.toast(false, '원본 로그를 찾지 못했습니다.');
+          return;
+        }
+
+        $('#logDate').value = log.yyyymmdd || '';
+        $('#logSid').value = log.student_id || '';
+        await StaffUI.loadLogs();
+
+        UI.toast(true, '원본 로그를 불러왔습니다: ' + sourceTraceId);
+      },
+
+      showTraceModal(x) {
+        const modal = $('#traceModal');
+        const body = $('#traceModalBody');
+        const copyBtn = $('#btnTraceCopy');
+        const closeBtn = $('#btnTraceClose');
+
+        if (!modal || !body) return;
+
+        const text = [
+          '[원본 출결 로그]',
+          '시간: ' + (x.ts || ''),
+          '날짜: ' + (x.yyyymmdd || ''),
+          '학번: ' + (x.student_id || ''),
+          '액션: ' + (x.action_type || ''),
+          '층: ' + (x.kiosk_floor || ''),
+          '결과: ' + (x.result || ''),
+          '사유: ' + (x.deny_reason || ''),
+          'QR ID: ' + (x.qr_id || ''),
+          'TRACE: ' + (x.trace_id || ''),
+          'meta_json: ' + (x.meta_json || '')
+        ].join('\n');
+
+        body.textContent = text;
+        modal.classList.remove('hidden');
+
+        if (copyBtn) {
+          copyBtn.onclick = async () => {
+            try {
+              await navigator.clipboard.writeText(text);
+              UI.toast(true, '원본 로그를 복사했습니다.');
+            } catch (e) {
+              UI.toast(false, '복사 실패');
+            }
+          };
+        }
+
+        if (closeBtn) {
+          closeBtn.onclick = () => modal.classList.add('hidden');
+        }
+
+        modal.onclick = (e) => {
+          if (e.target === modal) modal.classList.add('hidden');
+        };
+      },
+
+      bindTraceButtons(root) {
+        root.querySelectorAll('.btn-copy-trace').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const trace = btn.getAttribute('data-trace') || '';
+            try {
+              await navigator.clipboard.writeText(trace);
+              UI.toast(true, 'trace_id를 복사했습니다.');
+            } catch (e) {
+              UI.toast(false, '복사 실패');
+            }
+          });
+        });
+
+        root.querySelectorAll('.btn-open-trace').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const trace = btn.getAttribute('data-trace') || '';
+            if (!trace) return;
+
+            const r = await App.rpc('assistant.getLogByTrace', { trace_id: trace });
+            if (!r.ok) {
+              UI.toast(false, (r.error && r.error.message) ? r.error.message : '원본 로그 조회 실패');
+              return;
+            }
+
+            const x = r.data || {};
+            StaffUI.showTraceModal(x);
+          });
+        });
+      },
+			renderLogsTable(logs) {
+        const body = $('#logBoxBody');
+        if (!body) return;
+
+        if (!logs || !logs.length) {
+          body.innerHTML = '<tr><td colspan="9">조회 결과가 없습니다.</td></tr>';
+          return;
+        }
+
+        body.innerHTML = logs.map(x => `
+          <tr>
+            <td>${x.ts || ''}</td>
+            <td>${x.student_id || ''}</td>
+            <td>${x.action_type || ''}</td>
+            <td>${x.kiosk_floor || ''}</td>
+            <td>${x.result || ''}</td>
+            <td class="wrap">${x.qr_id || ''}</td>
+            <td class="wrap">${[x.input_mode || '', x.exception === 'Y' ? 'EX' : ''].filter(Boolean).join(' / ')}</td>
+            <td class="wrap">${x.deny_reason || ''}</td>
+            <td class="wrap">${x.trace_id || ''}</td>
+          </tr>
+        `).join('');
+      },
+
+			renderCorrectionTable(logs) {
+				const body = $('#corrLogBoxBody');
+				if (!body) return;
+
+				if (!logs || !logs.length) {
+					body.innerHTML = '<tr><td colspan="7">조회 결과가 없습니다.</td></tr>';
+					return;
+				}
+
+				body.innerHTML = logs.map(x => `
+					<tr>
+						<td>${x.ts || ''}</td>
+						<td>${x.student_id || ''}</td>
+						<td>${x.corrected_action || ''}</td>
+						<td class="wrap">${x.reason || ''}</td>
+						<td>${x.actor || ''}</td>
+						<td class="wrap">${x.source_trace_id || ''}</td>
+						<td>${x.source_trace_id ? `<button type="button" class="traceBtn" data-source-trace="${x.source_trace_id}">원본 열기</button>` : ''}</td>
+					</tr>
+				`).join('');
+			},
+
+			async approvePin() {
+				const sid = UI.padSid(($('#pinSid').value || '').trim());
+				const pin = ($('#staffPinInput').value || '').trim();
+				if (!sid || !pin) {
+					UI.toast(false, '학번과 PIN을 입력하세요.');
+					return;
+				}
+
+				const r = await App.rpc('kiosk.approvePin', { student_id: sid, pin });
+				if (!r.ok) {
+					UI.toast(false, (r.error && r.error.message) ? r.error.message : 'PIN 승인 실패');
+					return;
+				}
+
+				$('#staffPinInput').value = '';
+				UI.toast(true, 'PIN 승인 완료: ' + sid + ' (유효시간 ' + (r.data.ttlSec || 0) + '초)');
+			},
+
+			async clock(action) {
+				const r = await App.rpc('staff.clock', { action });
+				UI.toast(!!r.ok, r.ok ? ((r.data && r.data.msg) ? r.data.msg : '기록 완료') : ((r.error && r.error.message) ? r.error.message : '실패'));
+			},
+
+      async clockQr(action) {
+        const input = $('#staffQrInput');
+        const msg = $('#staffQrMsg');
+        const qrText = String((input && input.value) || '').trim();
+
+        StaffUI._lastStaffQrAction = action;
+
+        if (!qrText) {
+          UI.toast(false, '직원 QR을 먼저 스캔하세요.');
+          if (input) input.focus();
+          return;
+        }
+
+        if (msg) {
+          msg.style.display = 'block';
+          msg.textContent = '직원 QR 검증 중...';
+        }
+
+        const r = await App.rpc('staff.clock.qr', {
+          action: action,
+          qrText: qrText,
+          note: ''
+        });
+
+        if (input) {
+          input.value = '';
+          setTimeout(() => input.focus(), 50);
+        }
+
+        if (!r.ok) {
+          const m = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
+          if (msg) msg.textContent = '실패: ' + m;
+          UI.toast(false, m);
+          return;
+        }
+
+        const name = (r.data && r.data.name) ? r.data.name : '';
+        const text = (action === 'IN' ? 'QR 출근 완료' : 'QR 퇴근 완료') + (name ? ' · ' + name : '');
+
+        if (msg) msg.textContent = text;
+        UI.toast(true, text);
+
+        const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
+        if (yyyymm) {
+          StaffUI.loadStaffMonthSummary().catch(() => {});
+        }
+      },
+
+			async loadLogs() {
+        const yyyymmdd = ($('#logDate').value || '').trim();
+        const student_id = ($('#logSid').value || '').trim();
+        const body = $('#logBoxBody');
+
+        if (body) {
+          body.innerHTML = '<tr><td colspan="9">조회 중...</td></tr>';
+        }
+
+        const r = await App.rpc('assistant.getLogs', {
+          yyyymmdd,
+          student_id,
+          limit: 200
+        });
+
+        if (!r.ok) {
+          if (body) {
+            body.innerHTML = `<tr><td colspan="9">${(r.error && r.error.message) ? r.error.message : '조회 실패'}</td></tr>`;
+          }
+          return;
+        }
+
+        const logs = (r.data && r.data.logs) ? r.data.logs : [];
+        StaffUI.renderLogsTable(logs);
+      },
+
+			async loadCorrectionLogs() {
+        const yyyymmdd = ($('#corrDate').value || '').trim();
+        const student_id = ($('#corrSid').value || '').trim();
+        const body = $('#corrLogBoxBody');
+
+        if (body) {
+          body.innerHTML = '<tr><td colspan="7">조회 중...</td></tr>';
+        }
+
+        const r = await App.rpc('assistant.getCorrectionLogs', {
+          yyyymmdd,
+          student_id,
+          limit: 200
+        });
+
+        if (!r.ok) {
+          if (body) {
+            body.innerHTML = `<tr><td colspan="7">${(r.error && r.error.message) ? r.error.message : '조회 실패'}</td></tr>`;
+          }
+          return;
+        }
+
+        const logs = (r.data && r.data.logs) ? r.data.logs : [];
+        StaffUI.renderCorrectionTable(logs);
+      },
+
+			async diag() {
+				const box = $('#diagBox');
+				box.innerHTML = '<div style="color:var(--sub); text-align:center;">진단 중...</div>';
+				const r = await App.rpc('meta.diag', {});
+				if (!r.ok) {
+					box.innerHTML = `<div style="color:var(--bad);">${r.error?.message || '진단 실패'}</div>`;
+					return;
+				}
+				const d = r.data;
+				box.innerHTML = `
+          <b>[서버 버전]</b> ${d.version}<br>
+          <b>[Pepper]</b> ${d.pepperReady ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[QR 검증 URL]</b> ${d.verifyUrlSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[QR 검증 Secret]</b> ${d.verifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[출결 템플릿]</b> ${d.attendanceTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[미등원 템플릿]</b> ${d.classAbsentTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[플러스친구]</b> ${d.plusFriendSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[발신번호]</b> ${d.fromNumberSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+          <b>[직원 QR URL]</b> ${d.staffQrVerifyUrlSet ? '✅ 설정됨' : '⚪ 미사용'}<br>
+          <b>[직원 QR Secret]</b> ${d.staffQrVerifySecretSet ? '✅ 설정됨' : '⚪ 미사용'}<br>
+          <b>[STAFF_DAILY]</b> ${d.staffDailySheetReady ? '✅ 준비됨' : '❌ 없음'}<br>
+          <b>[STAFF_MONTHLY]</b> ${d.staffMonthlySheetReady ? '✅ 준비됨' : '❌ 없음'}<br>
+          <b>[키오스크 층수]</b> ${d.kioskFloor}<br>
+          <b>[미등원 stage]</b> ${(d.absentStages || []).join(' / ')}
+        `;
+			},
+
+			async checkCentral() {
+				const box = $('#diagBox');
+				box.innerHTML = '<div style="color:var(--sub); text-align:center;">중앙DB 구조 스캔 중...</div>';
+				const r = await App.rpc('meta.checkCentral', {});
+				if (!r.ok) {
+					box.innerHTML = `<div style="color:var(--bad);">${r.error?.message || '스캔 실패'}</div>`;
+					return;
+				}
+				const checks = (r.data.checks || []).map(c => {
+					return `[${c.ok ? '✅' : '❌'}] ${c.name} ${c.ok ? '' : `(${c.message})`}`;
+				}).join('<br>');
+				box.innerHTML = `<div style="margin-bottom:8px; font-weight:800;">데이터베이스 연결 상태: ${r.data.ok ? '<span style="color:var(--ok)">정상</span>' : '<span style="color:var(--bad)">오류 발생</span>'}</div>${checks}`;
+			},
+
+			async testNcp() {
+				const phone = ($('#ncpTestPhone').value || '').trim();
+				const box = $('#diagBox');
+
+				if (!phone) {
+					UI.toast(false, '테스트 번호를 입력하세요.');
+					return;
+				}
+
+				box.textContent = 'NCP 테스트 중...';
+
+				const r = await App.rpc('admin.testNcp', { phone });
+
+				if (!r.ok) {
+					const detail = (r.error && r.error.detail) ? r.error.detail : null;
+					box.textContent =
+						'NCP 테스트 실패\n\n' +
+						'message: ' + ((r.error && r.error.message) ? r.error.message : '알 수 없는 오류') + '\n\n' +
+						(detail ? JSON.stringify(detail, null, 2) : '');
+					UI.toast(false, (r.error && r.error.message) ? r.error.message : '발송 실패');
+					return;
+				}
+
+				const d = r.data || {};
+				box.textContent =
+          'NCP 테스트 결과\n\n' +
+          'to: ' + (d.to || '') + '\n' +
+          'tested_at: ' + (d.tested_at || '') + '\n' +
+          'used_template: ' + (d.used_template || '') + '\n' +
+          'used_failover: ' + (!!d.used_failover) + '\n' +
+          'final_channel: ' + (d.final_channel || '') + '\n' +
+          'alimtalk.ok: ' + !!(d.alimtalk && d.alimtalk.ok) + '\n' +
+          'alimtalk.error: ' + ((d.alimtalk && d.alimtalk.error) || '') + '\n' +
+          'alimtalk.code: ' + ((d.alimtalk && d.alimtalk.code) || '') + '\n' +
+          'sms.ok: ' + !!(d.sms && d.sms.ok) + '\n' +
+          'sms.error: ' + ((d.sms && d.sms.error) || '');
+				UI.toast(true, '테스트 메시지 발송: ' + (d.final_channel || '성공'));
+			},
+
+      renderStaffMonthSummary(items, yyyymm) {
+        const box = $('#staffMonthBox');
+        if (!box) return;
+
+        if (!items || !items.length) {
+          box.innerHTML = '조회된 월 집계가 없습니다.';
+          return;
+        }
+
+        box.innerHTML = `
+          <div style="font-weight:900; margin-bottom:10px;">월: ${yyyymm || ''}</div>
+          <div class="logScroll" style="max-height:220px;">
+            <table class="logTable">
+              <thead>
+                <tr>
+                  <th>staff_id</th>
+                  <th>이름</th>
+                  <th>역할</th>
+                  <th>총시간</th>
+                  <th>근무일수</th>
+                  <th>누락일수</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(x => `
+                  <tr>
+                    <td>${x.staff_id || ''}</td>
+                    <td>${x.name || ''}</td>
+                    <td>${x.role || ''}</td>
+                    <td>${x.total_hours || ''}</td>
+                    <td>${x.work_days || ''}</td>
+                    <td>${x.missing_days || ''}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      },
+
+      renderStaffMonthDetail(items, staffId, yyyymm) {
+        const box = $('#staffMonthBox');
+        if (!box) return;
+
+        if (!items || !items.length) {
+          box.innerHTML = '조회된 일별 집계가 없습니다.';
+          return;
+        }
+
+        box.innerHTML = `
+          <div style="font-weight:900; margin-bottom:10px;">직원: ${staffId || ''} / 월: ${yyyymm || ''}</div>
+          <div class="logScroll" style="max-height:220px;">
+            <table class="logTable">
+              <thead>
+                <tr>
+                  <th>날짜</th>
+                  <th>첫 출근</th>
+                  <th>마지막 퇴근</th>
+                  <th>근무시간</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(x => `
+                  <tr>
+                    <td>${x.yyyymmdd || ''}</td>
+                    <td>${x.first_in_ts || ''}</td>
+                    <td>${x.last_out_ts || ''}</td>
+                    <td>${x.worked_hours || ''}</td>
+                    <td>${x.status || ''}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      },
+
+      async loadStaffMonthSummary() {
+        const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
+        const box = $('#staffMonthBox');
+
+        box.textContent = '조회 중...';
+        const r = await App.rpc('admin.getStaffMonthlySummary', { yyyymm });
+
+        if (!r.ok) {
+          box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+          return;
+        }
+
+        const items = (r.data && r.data.items) ? r.data.items : [];
+        if (!items.length) {
+          box.textContent = '조회된 월 집계가 없습니다.';
+          return;
+        }
+
+        StaffUI.renderStaffMonthSummary(
+          items,
+          r.data && r.data.yyyymm ? r.data.yyyymm : ''
+        );
+      },
+
+      async loadStaffMonthDetail() {
+        const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
+        const staff_id = ($('#staffMonthDetailId').value || '').trim();
+        const box = $('#staffMonthBox');
+
+        if (!staff_id) {
+          UI.toast(false, 'staff_id를 입력하세요.');
+          return;
+        }
+
+        box.textContent = '조회 중...';
+        const r = await App.rpc('admin.getStaffDailyDetail', { yyyymm, staff_id });
+
+        if (!r.ok) {
+          box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+          return;
+        }
+
+        const items = (r.data && r.data.items) ? r.data.items : [];
+        if (!items.length) {
+          box.textContent = '조회된 일별 집계가 없습니다.';
+          return;
+        }
+
+        StaffUI.renderStaffMonthDetail(
+          items,
+          staff_id,
+          r.data && r.data.yyyymm ? r.data.yyyymm : ''
+        );
+      },
+
+			async setException(yn) {
+				const student_id = ($('#exSid').value || '').trim();
+				const exception_note = ($('#exNote').value || '').trim();
+				if (!student_id) {
+					UI.toast(false, '학번을 입력하세요.');
+					return;
+				}
+
+				const r = await App.rpc('teacher.setException', { student_id, is_exception: yn, exception_note });
+				UI.toast(!!r.ok, r.ok ? ('저장 완료: ' + UI.padSid(student_id) + ' → ' + yn) : ((r.error && r.error.message) ? r.error.message : '실패'));
+			},
+
+			async abList() {
+				const yyyymmdd = ($('#abYmd').value || '').trim();
+				const class_id = ($('#abClass').value || '').trim();
+				const student_id = ($('#abSid').value || '').trim();
+				const box = $('#abBox');
+
+				box.textContent = '조회 중...';
+				const r = await App.rpc('assistant.listAbsenceExcuses', { yyyymmdd, class_id, student_id });
+				box.textContent = r.ok ? JSON.stringify(r.data, null, 2) : ((r.error && r.error.message) ? r.error.message : '조회 실패');
+			},
+
+			async abUpsert() {
+				const yyyymmdd = ($('#abYmd').value || '').trim();
+				const class_id = ($('#abClass').value || '').trim();
+				const student_id = ($('#abSid').value || '').trim();
+				const reason = ($('#abReason').value || '').trim();
+				const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
+
+				if (!yyyymmdd || !student_id) {
+					UI.toast(false, '날짜와 학번은 필수입니다.');
+					return;
+				}
+
+				const r = await App.rpc('assistant.addAbsenceExcuse', {
+          yyyymmdd,
+          class_id,
+          student_id,
+          reason,
+          until_min: untilMin || 0
+        });
+				UI.toast(!!r.ok, r.ok ? '결석 예외 저장 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
+			},
+
+			async abRemove() {
+				const yyyymmdd = ($('#abYmd').value || '').trim();
+				const class_id = ($('#abClass').value || '').trim();
+				const student_id = ($('#abSid').value || '').trim();
+
+				if (!yyyymmdd && !student_id) {
+					UI.toast(false, '날짜 또는 학번 조건이 필요합니다.');
+					return;
+				}
+
+        if (!confirm('정말 진행할까요?')) return;
+
+				const r = await App.rpc('assistant.removeAbsenceExcuse', { yyyymmdd, class_id, student_id });
+				UI.toast(!!r.ok, r.ok ? '결석 예외 삭제 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
+			},
+
+			async toggleSafe(mode) {
+        const message = ($('#safeMsg').value || '').trim();
+        const pin = prompt('[보안 확인] 안전 모드를 변경하려면 관리자 PIN을 입력하세요.');
+        if (!pin) return;
+
+        const r = await App.rpc('admin.toggleSafe', { mode, message, pin });
+        if (!r.ok) {
+          UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+          return;
+        }
+
+        await App.refreshMeta();
+        UI.toast(true, mode === 'Y' ? '점검 모드가 켜졌습니다.' : '온라인 상태로 복구되었습니다.');
+      },
+
+			async installAbsentTrigger() {
+        const pin = prompt('[보안 확인] 미등원 트리거를 설치하려면 관리자 PIN을 입력하세요.');
+        if (!pin) return;
+
+        const r = await App.rpc('absent.installTrigger', { pin });
+        UI.toast(
+          !!r.ok,
+          r.ok ? ((r.data && r.data.message) ? r.data.message : '설치 완료')
+              : ((r.error && r.error.message) ? r.error.message : '실패')
+        );
+      },
+
+			async installDailyTrigger() {
+        const pin = prompt('[보안 확인] 데일리 트리거를 설치하려면 관리자 PIN을 입력하세요.');
+        if (!pin) return;
+
+        const r = await App.rpc('admin.installDailyTrigger', { pin });
+        UI.toast(
+          !!r.ok,
+          r.ok ? ((r.data && r.data.message) ? r.data.message : '설치 완료')
+              : ((r.error && r.error.message) ? r.error.message : '실패')
+        );
+      },
+
+			async runAbsentNow() {
+        const pin = prompt('[보안 확인] 미등원 즉시 감지를 실행하려면 관리자 PIN을 입력하세요.');
+        if (!pin) return;
+
+        const r = await App.rpc('absent.runNow', { pin });
+        if (!r.ok) {
+          UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+          return;
+        }
+        UI.toast(true, '감지: ' + (r.data.candidates || 0) + '명 · 알림 전송: ' + (r.data.sentCount || 0) + '건');
+      },
+
+			async setFloor(floor) {
+        const pin = prompt('[보안 확인] 키오스크 층을 변경하려면 관리자 PIN을 입력하세요.');
+        if (!pin) return;
+
+        const r = await App.rpc('admin.setKioskFloor', { kiosk_floor: floor, pin });
+        if (!r.ok) {
+          UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+          return;
+        }
+
+        if (App.meta) App.meta.kiosk_floor = floor;
+        UI.toast(true, '현재 기기가 ' + floor + ' 키오스크로 지정되었습니다.');
+
+        const floorPill = $('#floorPill');
+        if (floorPill) {
+          floorPill.textContent = floor;
+          if (floor.includes('7')) {
+            floorPill.style.background = '#fff7ed';
+            floorPill.style.color = '#d97706';
+          } else {
+            floorPill.style.background = 'rgba(79, 70, 229, 0.1)';
+            floorPill.style.color = 'var(--pri)';
+          }
+        }
+      },
+
+			async flushCache() {
+                const pin = prompt('[보안 확인] 캐시를 비우시려면 관리자 PIN을 입력하세요.');
+                if (!pin) return;
+				const r = await App.rpc('admin.flushCache', { pin });
+				UI.toast(!!r.ok, r.ok ? '캐시를 비웠습니다.' : ((r.error && r.error.message) ? r.error.message : '실패'));
+			},
+
+			async generateSchedule() {
+                const pin = prompt('[보안 확인] 42일치 스케줄을 재생성하려면 관리자 PIN을 입력하세요.');
+                if (!pin) return;
+				const r = await App.rpc('admin.generateSchedule', { days: 42, pin });
+				UI.toast(!!r.ok, r.ok ? (r.data.message || '완료') : ((r.error && r.error.message) ? r.error.message : '실패'));
+			},
+
+      async manualAttendance() {
+        const student_id = ($('#manSid').value || '').trim();
+        const action_type = ($('#manAction').value || '').trim();
+        const reason = ($('#manReason').value || '').trim();
+        const source_trace_id = ($('#manSourceTrace').value || '').trim();
+
+        if (!student_id || !reason || !source_trace_id) {
+          UI.toast(false, '학번, 정정 사유, 그리고 오류 원본 trace_id 입력이 모두 필수입니다.');
+          return;
+        }
+
+        const pin = prompt(`[${student_id}] 학생의 출결을 [${action_type}]으로 강제 정정합니다.\n진행하시려면 본인(직원)의 PIN 번호를 입력하세요.`);
+        if (pin == null) {
+          UI.toast(false, '수동 정정이 취소되었습니다.');
+          return;
+        }
+
+        const btn = $('#btnManualAttendance');
+        if (!btn || btn.disabled) return;
+
+        const oldText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '처리 중...';
+
+        try {
+          const r = await App.rpc('assistant.manualAttendance', {
+            pin,
+            student_id,
+            action_type,
+            reason,
+            source_trace_id
+          });
+
+          if (r.ok) {
+            UI.toast(true, '수동 정정 저장 완료');
+            $('#manSid').value = '';
+            $('#manReason').value = '';
+            $('#manSourceTrace').value = '';
+          } else {
+            UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+          }
+        } finally {
+          btn.disabled = false;
+          btn.textContent = oldText;
+        }
+      },
+
+		};
+
+		window.addEventListener('offline', () => {
+			$('#offlineLock').classList.add('show');
+			const input = $('#kInput');
+			if (input) {
+				input.disabled = true;
+				input.blur();
+			}
+			UI.setMeta({ safe: { mode: 'Y', message: '오프라인' } });
+		});
+
+		window.addEventListener('online', async () => {
+      $('#offlineLock').classList.remove('show');
+
+      await App.refreshMeta();
+
+      if (App.currentView === 'staff') {
+        Router.goStaff();
+      } else {
+        Router.goKiosk();
+      }
+    });
+
+		window.onload = () => {
+			if (!navigator.onLine) {
+				$('#offlineLock').classList.add('show');
+				UI.setMeta({ safe: { mode: 'Y', message: '오프라인' } });
+			}
+			App.init().catch(err => {
+        const v = document.getElementById('viewPort');
+        if (v) {
+          v.innerHTML = `
+            <div style="max-width:900px;width:100%;margin:40px auto;background:#fff1f2;border:2px solid #fecdd3;
+                        color:#881337;border-radius:24px;padding:28px;font-weight:800;line-height:1.6;">
+              <div style="font-size:28px;margin-bottom:12px;">앱 시작 실패</div>
+              <div style="font-size:16px;white-space:pre-wrap;">${String((err && err.message) || err || '알 수 없는 오류')}</div>
+            </div>
+          `;
+        }
+      });
+		};
+	</script>
+</body>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
