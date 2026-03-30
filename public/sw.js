@@ -1,4 +1,4 @@
-const CACHE = 'theoreum-attendance-shell-v1';
+const CACHE = 'theoreum-attendance-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/brand-logo.svg', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
