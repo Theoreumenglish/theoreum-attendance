@@ -803,7 +803,7 @@
 		<div class="wrap row">
 			<div class="brand" id="brandLogoContainer">
          <img
-            src="/brand-logo.svg"
+            src="/theoreum-logo.png"
             alt="더오름"
             class="header-logo"
             id="headerLogo"
@@ -1461,8 +1461,7 @@
 			if (elTime) elTime.textContent = hh + ':' + mm;
 			if (elDate) elDate.textContent = month + '월 ' + date + '일 ' + dow + '요일';
 
-			const isNight = now.getHours() >= 19 || now.getHours() < 6;
-			document.body.classList.toggle('dark-mode', isNight);
+			document.body.classList.remove('dark-mode');
 
 			if (now.getHours() === 4 && now.getMinutes() === 0 && now.getSeconds() < 6) {
 				location.reload();
