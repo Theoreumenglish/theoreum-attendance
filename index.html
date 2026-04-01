@@ -1729,14 +1729,22 @@
 
 					const hasNonAscii = /[^\x20-\x7E]/.test(val);
 					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
-						UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
-						dbg.textContent = 'NON_ASCII_INPUT';
-						dbg.style.display = 'block';
-						UI.beep(false);
-						Voice.speak('한영 키를 확인해주세요.');
-						UI.flashScreen(false);
-						return;
-					}
+            UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
+            dbg.textContent = 'NON_ASCII_INPUT';
+            dbg.style.display = 'block';
+            UI.beep(false);
+            Voice.speak('한영 키를 확인해주세요.');
+            UI.flashScreen(false);
+
+            input.value = '';
+            UI.clearMsg(msg);
+
+            setTimeout(() => {
+              input.focus();
+            }, 50);
+
+            return;
+          }
 
 					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isExceptionId) {
             UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
