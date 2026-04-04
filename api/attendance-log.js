@@ -1,28 +1,43 @@
-const { createClient } = require('@supabase/supabase-js');
-const { randomUUID } = require('crypto');
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'node:crypto'
 
 function normalizeMetaJson(value) {
-  if (value == null || value === '') return {};
-  if (typeof value === 'object') return value;
+  if (value == null || value === '') return {}
+  if (typeof value === 'object') return value
+
   try {
-    return JSON.parse(String(value));
+    return JSON.parse(String(value))
   } catch (e) {
-    return { raw: String(value) };
+    return { raw: String(value) }
   }
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
+    return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' })
   }
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const supabaseUrl = process.env.SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({
+        ok: false,
+        error: 'MISSING_ENV',
+        detail: {
+          hasSupabaseUrl: !!supabaseUrl,
+          hasSupabaseServiceRoleKey: !!supabaseKey
+        }
+      })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const body =
+      typeof req.body === 'string'
+        ? JSON.parse(req.body)
+        : (req.body || {})
 
     const record = {
       record_id: body.record_id || randomUUID(),
@@ -36,43 +51,43 @@ module.exports = async (req, res) => {
       deny_reason: String(body.deny_reason || '').trim(),
       qr_id: String(body.qr_id || '').trim(),
       trace_id: String(body.trace_id || randomUUID()).trim()
-    };
-
-    if (!record.yyyymmdd || !/^\d{8}$/.test(record.yyyymmdd)) {
-      return res.status(400).json({ ok: false, error: 'BAD_YYYYMMDD' });
     }
 
-    if (!record.student_id || !/^\d{4}$/.test(record.student_id)) {
-      return res.status(400).json({ ok: false, error: 'BAD_STUDENT_ID' });
+    if (!/^\d{8}$/.test(record.yyyymmdd)) {
+      return res.status(400).json({ ok: false, error: 'BAD_YYYYMMDD' })
+    }
+
+    if (!/^\d{4}$/.test(record.student_id)) {
+      return res.status(400).json({ ok: false, error: 'BAD_STUDENT_ID' })
     }
 
     if (!record.action_type) {
-      return res.status(400).json({ ok: false, error: 'BAD_ACTION_TYPE' });
+      return res.status(400).json({ ok: false, error: 'BAD_ACTION_TYPE' })
     }
 
     const { data, error } = await supabase
       .from('attendance_logs')
       .insert([record])
       .select()
-      .single();
+      .single()
 
     if (error) {
       return res.status(500).json({
         ok: false,
         error: 'DB_INSERT_FAILED',
         detail: error.message
-      });
+      })
     }
 
     return res.status(200).json({
       ok: true,
       record: data
-    });
+    })
   } catch (e) {
     return res.status(500).json({
       ok: false,
       error: 'SERVER_ERROR',
-      detail: e && e.message ? e.message : String(e)
-    });
+      detail: e?.message || String(e)
+    })
   }
-};
+}
