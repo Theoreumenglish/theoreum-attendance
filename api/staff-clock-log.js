@@ -6,6 +6,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' })
   }
 
+  const sharedSecret = req.headers['x-api-shared-secret']
+  if (!sharedSecret || sharedSecret !== process.env.API_SHARED_SECRET) {
+    return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' })
+  }
+  
   try {
     const supabaseUrl = process.env.SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
