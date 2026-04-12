@@ -88,8 +88,8 @@
 		#screensaver {
 			position: fixed;
 			inset: 0;
-			background: #000;
-			color: #fff;
+			background: #ffffff;
+			color: #0f172a;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
@@ -115,14 +115,14 @@
 		.clock-date {
 			font-size: 34px;
 			font-weight: 600;
-			color: #94a3b8;
+			color: #64748b;
 			margin-bottom: 80px;
 		}
 
 		.hint-pulse {
 			font-size: 30px;
 			font-weight: 800;
-			color: #38bdf8;
+			color: #2563eb;
 			animation: pulse 2s infinite;
 		}
 
@@ -339,6 +339,84 @@
 			font-weight: 900;
 			margin-bottom: 16px;
 		}
+
+    .kStaffQuick {
+      display: none;
+      margin-top: 18px;
+      padding: 18px;
+      border: 2px dashed rgba(79, 70, 229, 0.22);
+      border-radius: 22px;
+      background: rgba(79, 70, 229, 0.04);
+    }
+
+    .kStaffQuick.show {
+      display: block;
+    }
+
+    .kStaffQuickHead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .kStaffQuickTitle {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--pri);
+      letter-spacing: -0.2px;
+    }
+
+    .kStaffQuickClose {
+      border: none;
+      background: transparent;
+      color: var(--sub);
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 10px;
+    }
+
+    .kStaffQuickClose:hover {
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--text);
+    }
+
+    .kStaffQuickRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .kStaffQuickBtn {
+      border: 2px solid var(--line);
+      background: #fff;
+      color: var(--sub);
+      border-radius: 16px;
+      padding: 14px 12px;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all .15s ease;
+    }
+
+    .kStaffQuickBtn.on {
+      border-color: var(--pri);
+      background: rgba(79, 70, 229, 0.10);
+      color: var(--pri);
+      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.12);
+    }
+
+    .kStaffQuickHint {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--sub);
+      text-align: center;
+      line-height: 1.45;
+    }
 
 		.cardTitle {
 			font-size: 46px;
@@ -575,12 +653,6 @@
       align-items:start;
     }
 
-    .quickGrid{
-      display:grid;
-      grid-template-columns:repeat(2, minmax(0, 1fr));
-      gap:16px;
-    }
-
     .compactCard{
       padding:32px;
     }
@@ -625,10 +697,6 @@
     .foldBody{
       padding:0 24px 24px 24px;
       border-top:2px solid var(--line);
-    }
-
-    .staffResultBox{
-      min-height:88px;
     }
 
     @media (max-width: 1024px){
@@ -680,7 +748,7 @@
 		}
 
 		.loginWrap {
-			max-width: 640px;
+			max-width: 560px;
 			margin: 0 auto;
 		}
 
@@ -901,6 +969,22 @@
 
 			<div class="input-wrapper">
 				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="QR 스캔 / 예외학생은 승인 후 학번 입력">
+        <div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
+        <div class="kStaffQuickHead">
+          <div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
+          <button id="btnStaffQuickClose" class="kStaffQuickClose" type="button">닫기</button>
+        </div>
+
+        <div class="kStaffQuickRow">
+          <button id="btnStaffQuickIn" class="kStaffQuickBtn on" type="button">직원 출근</button>
+          <button id="btnStaffQuickOut" class="kStaffQuickBtn" type="button">직원 퇴근</button>
+        </div>
+
+        <div class="kStaffQuickHint">
+          직원 모드입니다. 전용 QR을 스캔하세요.<br>
+          처리 후 자동으로 일반 키오스크 상태로 돌아갑니다.
+        </div>
+      </div>
 			</div>
 
 			<div class="msg" id="kMsg"></div>
@@ -910,25 +994,19 @@
 
 	<template id="tpl-login">
     <div class="card loginWrap">
-      <h2 class="cardTitle" style="text-align:left; font-size:36px; margin-bottom:12px;">직원 로그인</h2>
-      <div class="subText" style="text-align:left; margin-bottom:38px; font-size:18px;">중앙DB STAFF 계정으로 로그인합니다.</div>
-
-      <div class="section">
+      <h2 class="cardTitle" style="text-align:left; font-size:34px; margin-bottom:8px;">직원 로그인</h2>
+      <div class="subText" style="text-align:left; margin-bottom:26px; font-size:17px;">중앙DB STAFF 계정으로 로그인합니다.</div>
+      <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
         <input class="inp" id="loginId" placeholder="아이디">
         <div class="footerGap"></div>
         <input class="inp" id="loginPw" type="password" placeholder="비밀번호">
 
-        <div class="row" style="margin-top:24px;">
-          <button class="btn btn-pri" id="btnDoLogin" type="button" style="flex:1; height:60px; font-size:20px;">로그인</button>
+        <div class="row" style="margin-top:18px;">
+          <button class="btn btn-pri" id="btnDoLogin" type="button" style="flex:1; height:56px; font-size:19px;">로그인</button>
         </div>
 
         <div class="msg" id="loginMsg"></div>
         <div class="mono" id="loginDiag" style="display:none; margin-top:16px; text-align:left;"></div>
-      </div>
-
-      <div class="section">
-        <div class="sectionTitle">계정 안내</div>
-        <div class="subText" style="text-align:left;">직원 계정 생성, 비밀번호 초기 세팅, 권한 변경은 중앙DB STAFF에서만 관리합니다. 이 화면에서는 로그인만 가능합니다.</div>
       </div>
     </div>
   </template>
@@ -947,34 +1025,6 @@
           </div>
 
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-            <div class="sectionTitle">직원 근태</div>
-            <div class="subText" style="text-align:left; margin-top:8px;">기본 사용은 직원 QR 스캔입니다. 웹 기록은 QR 장애 시만 사용하세요.</div>
-
-            <div class="quickGrid" style="margin-top:20px;">
-              <button class="btn btn-pri" id="btnClockInQr" type="button" style="height:60px;">QR 출근</button>
-              <button class="btn btn-bad" id="btnClockOutQr" type="button" style="height:60px;">QR 퇴근</button>
-            </div>
-
-            <div class="row" style="margin-top:16px;">
-              <input class="inp" id="staffQrInput" placeholder="직원 QR 스캔" style="flex:1;" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-            </div>
-
-            <div class="msg staffResultBox" id="staffClockMsg" style="margin-top:16px;"></div>
-
-            <div class="foldCard">
-              <details>
-                <summary>비상용 수동 기록</summary>
-                <div class="foldBody">
-                  <div class="row" style="margin-top:18px;">
-                    <button class="btn btn-pri" id="btnClockIn" type="button" style="flex:1; height:56px;">출근 기록</button>
-                    <button class="btn btn-bad" id="btnClockOut" type="button" style="flex:1; height:56px;">퇴근 기록</button>
-                  </div>
-                </div>
-              </details>
-            </div>
-          </div>
-
-          <div class="section section-tight">
             <div class="sectionTitle">예외학생 PIN 승인</div>
             <div class="row" style="margin-top:20px;">
               <input class="inp" id="pinSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
@@ -994,7 +1044,28 @@
               <input class="inp" id="logSid" placeholder="학번 (선택)" style="flex:1;">
               <button class="btn btn-pri" id="btnLoadLogs" type="button">조회</button>
             </div>
-            <div class="mono" id="logBox" style="margin-top:16px; max-height:260px; overflow:auto; text-align:left;"></div>
+            <div class="logTableWrap" id="logBox" style="margin-top:16px;">
+              <div class="logScroll">
+                <table class="logTable">
+                  <thead>
+                    <tr>
+                      <th>시간</th>
+                      <th>학번</th>
+                      <th>액션</th>
+                      <th>층</th>
+                      <th>결과</th>
+                      <th>QR ID</th>
+                      <th>입력/예외</th>
+                      <th>사유</th>
+                      <th>trace_id</th>
+                    </tr>
+                  </thead>
+                  <tbody id="logBoxBody">
+                    <tr><td colspan="9">조회 결과가 없습니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <div class="section section-tight">
@@ -1004,7 +1075,26 @@
               <input class="inp" id="corrSid" placeholder="학번 (선택)" style="flex:1;">
               <button class="btn btn-pri" id="btnLoadCorrLogs" type="button">조회</button>
             </div>
-            <div class="mono" id="corrLogBox" style="margin-top:16px; max-height:260px; overflow:auto; text-align:left;"></div>
+            <div class="logTableWrap" id="corrLogBox" style="margin-top:16px;">
+              <div class="logScroll">
+                <table class="logTable">
+                  <thead>
+                    <tr>
+                      <th>시간</th>
+                      <th>학번</th>
+                      <th>정정 액션</th>
+                      <th>사유</th>
+                      <th>담당자</th>
+                      <th>원본 trace</th>
+                      <th>원본 열기</th>
+                    </tr>
+                  </thead>
+                  <tbody id="corrLogBoxBody">
+                    <tr><td colspan="7">조회 결과가 없습니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1108,6 +1198,9 @@
             <div class="foldBody">
               <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
                 <div class="sectionTitle">안전 모드 / 트리거 / 캐시 / 스케줄</div>
+                <div class="row" style="margin-top:16px;">
+                  <input class="inp" id="safeMsg" placeholder="점검 모드 안내 문구 (선택)" style="flex:1;">
+                </div>
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-ghost" id="btnSafeOff" type="button">온라인 전환</button>
                   <button class="btn btn-bad" id="btnSafeOn" type="button">점검 모드</button>
@@ -1559,6 +1652,9 @@
 			_autoTimer: null,
 			_idleClearTimer: null,
 			isSubmitting: false,
+      staffQuickOpen: false,
+      staffQuickAction: 'IN',
+      _staffLongPressTimer: null,
 
 			init() {
 				const floor = (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F';
@@ -1568,6 +1664,31 @@
 					floorPill.style.background = '#fff7ed';
 					floorPill.style.color = '#d97706';
 				}
+        const startLongPress = () => {
+          clearTimeout(Kiosk._staffLongPressTimer);
+          Kiosk._staffLongPressTimer = setTimeout(() => {
+            Kiosk.openStaffQuick();
+          }, 2000);
+        };
+
+        const cancelLongPress = () => {
+          clearTimeout(Kiosk._staffLongPressTimer);
+        };
+
+        floorPill.addEventListener('mousedown', startLongPress);
+        floorPill.addEventListener('touchstart', startLongPress, { passive: true });
+        floorPill.addEventListener('mouseup', cancelLongPress);
+        floorPill.addEventListener('mouseleave', cancelLongPress);
+        floorPill.addEventListener('touchend', cancelLongPress);
+        floorPill.addEventListener('touchcancel', cancelLongPress);
+
+        const btnStaffQuickIn = $('#btnStaffQuickIn');
+        const btnStaffQuickOut = $('#btnStaffQuickOut');
+        const btnStaffQuickClose = $('#btnStaffQuickClose');
+
+        if (btnStaffQuickIn) btnStaffQuickIn.addEventListener('click', () => Kiosk.setStaffQuickAction('IN'));
+        if (btnStaffQuickOut) btnStaffQuickOut.addEventListener('click', () => Kiosk.setStaffQuickAction('OUT'));
+        if (btnStaffQuickClose) btnStaffQuickClose.addEventListener('click', () => Kiosk.closeStaffQuick());
 
 				$('#btnCHECK_IN').addEventListener('click', () => Kiosk.setAction('CHECK_IN'));
 				$('#btnCHECK_OUT').addEventListener('click', () => Kiosk.setAction('CHECK_OUT'));
@@ -1581,33 +1702,46 @@
 				input.setAttribute('autocomplete', 'off');
 
 				input.addEventListener('input', () => {
-					clearTimeout(Kiosk._idleClearTimer);
-					Kiosk._idleClearTimer = setTimeout(() => {
-						input.value = '';
-						UI.clearMsg($('#kMsg'));
-						$('#kDbg').style.display = 'none';
-						$('#kDbg').textContent = '';
-					}, 10000);
+          clearTimeout(Kiosk._idleClearTimer);
+          Kiosk._idleClearTimer = setTimeout(() => {
+            input.value = '';
+            UI.clearMsg($('#kMsg'));
+            $('#kDbg').style.display = 'none';
+            $('#kDbg').textContent = '';
+          }, 10000);
 
-					if (Kiosk.action === 'MOVE' || Kiosk.action === 'OUTING') {
-						const digits = String(input.value || '').replace(/[^0-9]/g, '').slice(-4);
-						input.value = digits;
+          if (Kiosk.staffQuickOpen) {
+            const v = Kiosk.normalizeScanText(input.value);
+            input.value = v;
 
-						if (digits.length === 4) {
-							clearTimeout(Kiosk._autoTimer);
-							Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
-						}
-					} else {
-						const v = Kiosk.normalizeScanText(input.value);
-						const digits = String(v || '').replace(/[^0-9]/g, '').slice(-4);
-						input.value = v;
+            if (/^STAFFQR1\./i.test(v)) {
+              clearTimeout(Kiosk._autoTimer);
+              Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+            }
+            return;
+          }
 
-						if (/^QR1\./i.test(v) || digits.length === 4) {
-							clearTimeout(Kiosk._autoTimer);
-							Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
-						}
-					}
-				});
+          if (Kiosk.action === 'MOVE' || Kiosk.action === 'OUTING') {
+            const digits = String(input.value || '').replace(/[^0-9]/g, '').slice(-4);
+            input.value = digits;
+
+            if (digits.length === 4) {
+              clearTimeout(Kiosk._autoTimer);
+              Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+            }
+          } else {
+            const v = Kiosk.normalizeScanText(input.value);
+            const digits = String(v || '').replace(/[^0-9]/g, '').slice(-4);
+            input.value = v;
+
+            const shouldSubmitStudent = /^QR1\./i.test(v) || digits.length === 4;
+
+            if (shouldSubmitStudent) {
+              clearTimeout(Kiosk._autoTimer);
+              Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+            }
+          }
+        });
 
 				input.addEventListener('keydown', e => {
 					if (e.key !== 'Enter') return;
@@ -1629,32 +1763,33 @@
 			},
 
 			setAction(action) {
-				Kiosk.action = action;
+        Kiosk.closeStaffQuick();
+        Kiosk.action = action;
 
-				['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
-					const btn = document.getElementById('btn' + x);
-					if (btn) btn.classList.toggle('on', x === action);
-				});
+        ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
+          const btn = document.getElementById('btn' + x);
+          if (btn) btn.classList.toggle('on', x === action);
+        });
 
-				const input = $('#kInput');
-				const msg = $('#kMsg');
-				const dbg = $('#kDbg');
-				input.value = '';
-				UI.clearMsg(msg);
-				dbg.style.display = 'none';
-				dbg.textContent = '';
-				input.blur();
+        const input = $('#kInput');
+        const msg = $('#kMsg');
+        const dbg = $('#kDbg');
+        input.value = '';
+        UI.clearMsg(msg);
+        dbg.style.display = 'none';
+        dbg.textContent = '';
+        input.blur();
 
-				if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
-          input.placeholder = 'QR 스캔 / 예외학생은 승인 후 학번 입력';
+        if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
+          input.placeholder = Kiosk.getInputPlaceholder();
           input.setAttribute('inputmode', 'text');
         } else {
-          input.placeholder = '학번 4자리를 입력하세요';
+          input.placeholder = Kiosk.getInputPlaceholder();
           input.setAttribute('inputmode', 'numeric');
         }
 
-				setTimeout(() => input.focus(), 50);
-			},
+        setTimeout(() => input.focus(), 50);
+      },
 
 			normalizeScanText(v) {
 				const map = {
@@ -1669,6 +1804,79 @@
           if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
           return s;
 			},
+
+      getInputPlaceholder() {
+        return Kiosk.staffQuickOpen
+          ? '직원 QR 스캔'
+          : ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
+            ? 'QR 스캔 / 예외학생은 승인 후 학번 입력'
+            : '학번 4자리를 입력하세요');
+      },
+
+      openStaffQuick() {
+        Kiosk.staffQuickOpen = true;
+
+        const box = $('#kStaffQuick');
+        if (box) {
+          box.classList.add('show');
+          box.setAttribute('aria-hidden', 'false');
+        }
+
+        Kiosk.setStaffQuickAction(Kiosk.staffQuickAction || 'IN');
+
+        const input = $('#kInput');
+        if (input) {
+          input.value = '';
+          input.setAttribute('inputmode', 'text');
+          input.placeholder = Kiosk.getInputPlaceholder();
+          setTimeout(() => input.focus(), 50);
+        }
+
+        UI.clearMsg($('#kMsg'));
+        const dbg = $('#kDbg');
+        if (dbg) {
+          dbg.textContent = '';
+          dbg.style.display = 'none';
+        }
+      },
+
+      closeStaffQuick() {
+        Kiosk.staffQuickOpen = false;
+
+        const box = $('#kStaffQuick');
+        if (box) {
+          box.classList.remove('show');
+          box.setAttribute('aria-hidden', 'true');
+        }
+
+        const input = $('#kInput');
+        if (input && !Kiosk.isSubmitting) {
+          input.value = '';
+          input.setAttribute(
+            'inputmode',
+            (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') ? 'text' : 'numeric'
+          );
+          input.placeholder = Kiosk.getInputPlaceholder();
+          setTimeout(() => input.focus(), 50);
+        }
+      },
+
+      setStaffQuickAction(action) {
+        Kiosk.staffQuickAction = String(action || '').toUpperCase() === 'OUT' ? 'OUT' : 'IN';
+
+        const btnIn = $('#btnStaffQuickIn');
+        const btnOut = $('#btnStaffQuickOut');
+        const label = $('#staffQuickLabel');
+
+        if (btnIn) btnIn.classList.toggle('on', Kiosk.staffQuickAction === 'IN');
+        if (btnOut) btnOut.classList.toggle('on', Kiosk.staffQuickAction === 'OUT');
+        if (label) label.textContent = Kiosk.staffQuickAction === 'IN' ? '직원 출근' : '직원 퇴근';
+
+        const input = $('#kInput');
+        if (input && !Kiosk.isSubmitting) {
+          input.placeholder = Kiosk.getInputPlaceholder();
+        }
+      },
 
 			setLoading(loading) {
 				Kiosk.isSubmitting = loading;
@@ -1685,9 +1893,7 @@
 				} else {
 					input.disabled = false;
 					input.style.opacity = '1';
-					input.placeholder = (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
-            ? 'QR 스캔 / 예외학생은 승인 후 학번 입력'
-            : '학번 4자리를 입력하세요';
+					input.placeholder = Kiosk.getInputPlaceholder();
 					setTimeout(() => input.focus(), 50);
 				}
 			},
@@ -1724,11 +1930,12 @@
 						: (input.value || '').trim();
 
 					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
-					const isQr = /^QR1\./i.test(val);
-					const isExceptionId = digits.length === 4;
+          const isQr = /^QR1\./i.test(val);
+          const isStaffQr = /^STAFFQR1\./i.test(val);
+          const isExceptionId = digits.length === 4;
 
-					const hasNonAscii = /[^\x20-\x7E]/.test(val);
-					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
+          const hasNonAscii = /[^\x20-\x7E]/.test(val);
+          if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
             UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
             dbg.textContent = 'NON_ASCII_INPUT';
             dbg.style.display = 'block';
@@ -1746,7 +1953,16 @@
             return;
           }
 
-					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isExceptionId) {
+          if (isStaffQr && !Kiosk.staffQuickOpen) {
+            UI.showModal(false, '직원 QR 감지', '직원 처리는 층 표시를 길게 눌러 직원 모드를 연 뒤 진행하세요.');
+            dbg.textContent = 'STAFF_QUICK_MODE_REQUIRED';
+            dbg.style.display = 'block';
+            UI.beep(false);
+            UI.flashScreen(false);
+            return;
+          }
+
+          if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isExceptionId) {
             UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
             dbg.textContent = 'QR_OR_EXCEPTION_ID_REQUIRED';
             dbg.style.display = 'block';
@@ -1756,14 +1972,46 @@
             return;
           }
 
-					if (!val) return;
+          if (!val) return;
 
-					input.value = '';
-					UI.clearMsg(msg);
-					dbg.textContent = '';
-					dbg.style.display = 'none';
+          input.value = '';
+          UI.clearMsg(msg);
+          dbg.textContent = '';
+          dbg.style.display = 'none';
 
-					const r = await App.rpc('kiosk.mark', { action: Kiosk.action, input: val });
+          if (isStaffQr) {
+            const staffAction = Kiosk.staffQuickAction || 'IN';
+            const r = await App.rpc('staff.clock.qr', {
+              action: staffAction,
+              qrText: val,
+              note: 'KIOSK_QUICK'
+            });
+
+            if (r.ok) {
+              const name = (r.data && r.data.name) ? r.data.name : '';
+              const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
+              const desc = name ? (name + ' 선생님') : '직원 처리 완료';
+
+              UI.showModal(true, title, desc);
+              UI.beep(true);
+              UI.flashScreen(true);
+              if (name) Voice.speak(name + ' 선생님, ' + (staffAction === 'IN' ? '출근' : '퇴근') + '되었습니다.');
+              Kiosk.closeStaffQuick();
+              return;
+            }
+
+            const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
+            const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_QR_FAIL';
+
+            UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg);
+            dbg.textContent = staffErrCode;
+            dbg.style.display = 'block';
+            UI.beep(false);
+            UI.flashScreen(false);
+            return;
+          }
+
+          const r = await App.rpc('kiosk.mark', { action: Kiosk.action, input: val });
 
           if (r.ok && r.data && r.data.duplicate) {
             UI.toast(false, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '중복 입력');
@@ -1912,17 +2160,7 @@
 				$('#staffRolePill').textContent = me.role || 'staff';
 
 				$('#btnApprovePin').addEventListener('click', StaffUI.approvePin);
-				$('#btnClockIn').addEventListener('click', () => StaffUI.clock('IN'));
-        $('#btnClockOut').addEventListener('click', () => StaffUI.clock('OUT'));
-        $('#btnClockInQr').addEventListener('click', () => {
-          StaffUI._lastStaffQrAction = 'IN';
-          StaffUI.clockQr('IN');
-        });
 
-        $('#btnClockOutQr').addEventListener('click', () => {
-          StaffUI._lastStaffQrAction = 'OUT';
-          StaffUI.clockQr('OUT');
-        });
         $('#btnLoadLogs').addEventListener('click', StaffUI.loadLogs);
         $('#btnLoadCorrLogs').addEventListener('click', StaffUI.loadCorrectionLogs);
 				$('#btnDiag').addEventListener('click', StaffUI.diag);
@@ -1958,25 +2196,8 @@
 					await StaffUI.openSourceTrace(sourceTraceId);
 				});
 
-        const staffQrInput = $('#staffQrInput');
-          if (staffQrInput) {
-            staffQrInput.addEventListener('input', () => {
-              const v = Kiosk.normalizeScanText(staffQrInput.value);
-              staffQrInput.value = v;
-
-              if (!v) return;
-              if (!/^STAFFQR1\./i.test(v) || v.length < 20) return;
-
-              clearTimeout(StaffUI._staffQrAutoTimer);
-              StaffUI._staffQrAutoTimer = setTimeout(() => {
-                const preferred = StaffUI._lastStaffQrAction || 'IN';
-                StaffUI.clockQr(preferred);
-              }, 150);
-            });
-          }
 
 				StaffUI.applyRoleView();
-        StaffUI._lastStaffQrAction = 'IN';
 			},
 
       setRoleSectionVisible(selector, visible) {
@@ -2045,155 +2266,51 @@
         UI.toast(true, '원본 로그를 불러왔습니다: ' + sourceTraceId);
       },
 
-      showTraceModal(x) {
-        const modal = $('#traceModal');
-        const body = $('#traceModalBody');
-        const copyBtn = $('#btnTraceCopy');
-        const closeBtn = $('#btnTraceClose');
-
-        if (!modal || !body) return;
-
-        const text = [
-          '[원본 출결 로그]',
-          '시간: ' + (x.ts || ''),
-          '날짜: ' + (x.yyyymmdd || ''),
-          '학번: ' + (x.student_id || ''),
-          '액션: ' + (x.action_type || ''),
-          '층: ' + (x.kiosk_floor || ''),
-          '결과: ' + (x.result || ''),
-          '사유: ' + (x.deny_reason || ''),
-          'QR ID: ' + (x.qr_id || ''),
-          'TRACE: ' + (x.trace_id || ''),
-          'meta_json: ' + (x.meta_json || '')
-        ].join('\n');
-
-        body.textContent = text;
-        modal.classList.remove('hidden');
-
-        if (copyBtn) {
-          copyBtn.onclick = async () => {
-            try {
-              await navigator.clipboard.writeText(text);
-              UI.toast(true, '원본 로그를 복사했습니다.');
-            } catch (e) {
-              UI.toast(false, '복사 실패');
-            }
-          };
-        }
-
-        if (closeBtn) {
-          closeBtn.onclick = () => modal.classList.add('hidden');
-        }
-
-        modal.onclick = (e) => {
-          if (e.target === modal) modal.classList.add('hidden');
-        };
-      },
-
-      bindTraceButtons(root) {
-        root.querySelectorAll('.btn-copy-trace').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const trace = btn.getAttribute('data-trace') || '';
-            try {
-              await navigator.clipboard.writeText(trace);
-              UI.toast(true, 'trace_id를 복사했습니다.');
-            } catch (e) {
-              UI.toast(false, '복사 실패');
-            }
-          });
-        });
-
-        root.querySelectorAll('.btn-open-trace').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const trace = btn.getAttribute('data-trace') || '';
-            if (!trace) return;
-
-            const r = await App.rpc('assistant.getLogByTrace', { trace_id: trace });
-            if (!r.ok) {
-              UI.toast(false, (r.error && r.error.message) ? r.error.message : '원본 로그 조회 실패');
-              return;
-            }
-
-            const x = r.data || {};
-            StaffUI.showTraceModal(x);
-          });
-        });
-      },
 			renderLogsTable(logs) {
-        const box = $('#logBox');
-        if (!box) return;
+        const body = $('#logBoxBody');
+        if (!body) return;
 
         if (!logs || !logs.length) {
-          box.innerHTML = '조회 결과가 없습니다.';
+          body.innerHTML = '<tr><td colspan="9">조회 결과가 없습니다.</td></tr>';
           return;
         }
 
-        box.innerHTML = `
-          <div class="logTableWrap">
-            <div class="logScroll">
-              <table class="logTable">
-                <thead>
-                  <tr>
-                    <th>시간</th><th>학번</th><th>액션</th><th>층</th><th>결과</th><th>QR ID</th><th>입력</th><th>사유</th><th>trace</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${logs.map(x => `
-                    <tr>
-                      <td>${x.ts || ''}</td>
-                      <td>${x.student_id || ''}</td>
-                      <td>${x.action_type || ''}</td>
-                      <td>${x.kiosk_floor || ''}</td>
-                      <td>${x.result || ''}</td>
-                      <td class="wrap">${x.qr_id || ''}</td>
-                      <td class="wrap">${[x.input_mode || '', x.exception === 'Y' ? 'EX' : ''].filter(Boolean).join(' / ')}</td>
-                      <td class="wrap">${x.deny_reason || ''}</td>
-                      <td class="wrap">${x.trace_id || ''}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        `;
+        body.innerHTML = logs.map(x => `
+          <tr>
+            <td>${x.ts || ''}</td>
+            <td>${x.student_id || ''}</td>
+            <td>${x.action_type || ''}</td>
+            <td>${x.kiosk_floor || ''}</td>
+            <td>${x.result || ''}</td>
+            <td class="wrap">${x.qr_id || ''}</td>
+            <td class="wrap">${[x.input_mode || '', x.exception === 'Y' ? 'EX' : ''].filter(Boolean).join(' / ')}</td>
+            <td class="wrap">${x.deny_reason || ''}</td>
+            <td class="wrap">${x.trace_id || ''}</td>
+          </tr>
+        `).join('');
       },
 
 			renderCorrectionTable(logs) {
-        const box = $('#corrLogBox');
-        if (!box) return;
+				const body = $('#corrLogBoxBody');
+				if (!body) return;
 
-        if (!logs || !logs.length) {
-          box.innerHTML = '조회 결과가 없습니다.';
-          return;
-        }
+				if (!logs || !logs.length) {
+					body.innerHTML = '<tr><td colspan="7">조회 결과가 없습니다.</td></tr>';
+					return;
+				}
 
-        box.innerHTML = `
-          <div class="logTableWrap">
-            <div class="logScroll">
-              <table class="logTable">
-                <thead>
-                  <tr>
-                    <th>시간</th><th>학번</th><th>정정</th><th>사유</th><th>담당자</th><th>원본 trace</th><th>원본 보기</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${logs.map(x => `
-                    <tr>
-                      <td>${x.ts || ''}</td>
-                      <td>${x.student_id || ''}</td>
-                      <td>${x.corrected_action || ''}</td>
-                      <td class="wrap">${x.reason || ''}</td>
-                      <td>${x.actor || ''}</td>
-                      <td class="wrap">${x.source_trace_id || ''}</td>
-                      <td>${x.source_trace_id ? `<button type="button" class="traceBtn" data-source-trace="${x.source_trace_id}">원본 열기</button>` : ''}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        `;
-      },
+				body.innerHTML = logs.map(x => `
+					<tr>
+						<td>${x.ts || ''}</td>
+						<td>${x.student_id || ''}</td>
+						<td>${x.corrected_action || ''}</td>
+						<td class="wrap">${x.reason || ''}</td>
+						<td>${x.actor || ''}</td>
+						<td class="wrap">${x.source_trace_id || ''}</td>
+						<td>${x.source_trace_id ? `<button type="button" class="traceBtn" data-source-trace="${x.source_trace_id}">원본 열기</button>` : ''}</td>
+					</tr>
+				`).join('');
+			},
 
 			async approvePin() {
 				const sid = UI.padSid(($('#pinSid').value || '').trim());
@@ -2213,66 +2330,13 @@
 				UI.toast(true, 'PIN 승인 완료: ' + sid + ' (유효시간 ' + (r.data.ttlSec || 0) + '초)');
 			},
 
-			async clock(action) {
-				const r = await App.rpc('staff.clock', { action });
-				UI.toast(!!r.ok, r.ok ? ((r.data && r.data.msg) ? r.data.msg : '기록 완료') : ((r.error && r.error.message) ? r.error.message : '실패'));
-			},
-
-      async clockQr(action) {
-        const input = $('#staffQrInput');
-        const msg = $('#staffClockMsg');
-        const qrText = String((input && input.value) || '').trim();
-
-        StaffUI._lastStaffQrAction = action;
-
-        if (!qrText) {
-          UI.toast(false, '직원 QR을 먼저 스캔하세요.');
-          if (input) input.focus();
-          return;
-        }
-
-        if (msg) {
-          msg.style.display = 'block';
-          msg.textContent = '직원 QR 검증 중...';
-        }
-
-        const r = await App.rpc('staff.clock.qr', {
-          action: action,
-          qrText: qrText,
-          note: ''
-        });
-
-        if (input) {
-          input.value = '';
-          setTimeout(() => input.focus(), 50);
-        }
-
-        if (!r.ok) {
-          const m = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
-          if (msg) msg.textContent = '실패: ' + m;
-          UI.toast(false, m);
-          return;
-        }
-
-        const name = (r.data && r.data.name) ? r.data.name : '';
-        const text = (action === 'IN' ? 'QR 출근 완료' : 'QR 퇴근 완료') + (name ? ' · ' + name : '');
-
-        if (msg) msg.textContent = text;
-        UI.toast(true, text);
-
-        const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
-        if (yyyymm) {
-          StaffUI.loadStaffMonthSummary().catch(() => {});
-        }
-      },
-
 			async loadLogs() {
         const yyyymmdd = ($('#logDate').value || '').trim();
         const student_id = ($('#logSid').value || '').trim();
-        const box = $('#logBox');
+        const body = $('#logBoxBody');
 
-        if (box) {
-          box.textContent = '조회 중...';
+        if (body) {
+          body.innerHTML = '<tr><td colspan="9">조회 중...</td></tr>';
         }
 
         const r = await App.rpc('assistant.getLogs', {
@@ -2282,8 +2346,8 @@
         });
 
         if (!r.ok) {
-          if (box) {
-            box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+          if (body) {
+            body.innerHTML = `<tr><td colspan="9">${(r.error && r.error.message) ? r.error.message : '조회 실패'}</td></tr>`;
           }
           return;
         }
@@ -2295,10 +2359,10 @@
 			async loadCorrectionLogs() {
         const yyyymmdd = ($('#corrDate').value || '').trim();
         const student_id = ($('#corrSid').value || '').trim();
-        const box = $('#corrLogBox');
+        const body = $('#corrLogBoxBody');
 
-        if (box) {
-          box.textContent = '조회 중...';
+        if (body) {
+          body.innerHTML = '<tr><td colspan="7">조회 중...</td></tr>';
         }
 
         const r = await App.rpc('assistant.getCorrectionLogs', {
@@ -2308,8 +2372,8 @@
         });
 
         if (!r.ok) {
-          if (box) {
-            box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+          if (body) {
+            body.innerHTML = `<tr><td colspan="7">${(r.error && r.error.message) ? r.error.message : '조회 실패'}</td></tr>`;
           }
           return;
         }
@@ -2547,8 +2611,8 @@
 
 			async abList() {
 				const yyyymmdd = ($('#abDate').value || '').trim();
-				const class_id = ($('#abClassId').value || '').trim();
-				const student_id = ($('#abSid').value || '').trim();
+        const class_id = ($('#abClassId').value || '').trim();
+        const student_id = ($('#abSid').value || '').trim();
 				const box = $('#abBox');
 
 				box.textContent = '조회 중...';
@@ -2558,10 +2622,10 @@
 
 			async abUpsert() {
 				const yyyymmdd = ($('#abDate').value || '').trim();
-				const class_id = ($('#abClassId').value || '').trim();
-				const student_id = ($('#abSid').value || '').trim();
-				const reason = ($('#abReason').value || '').trim();
-				const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
+        const class_id = ($('#abClassId').value || '').trim();
+        const student_id = ($('#abSid').value || '').trim();
+        const reason = ($('#abReason').value || '').trim();
+        const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
 
 				if (!yyyymmdd || !student_id) {
 					UI.toast(false, '날짜와 학번은 필수입니다.');
@@ -2580,8 +2644,8 @@
 
 			async abRemove() {
 				const yyyymmdd = ($('#abDate').value || '').trim();
-				const class_id = ($('#abClassId').value || '').trim();
-				const student_id = ($('#abSid').value || '').trim();
+        const class_id = ($('#abClassId').value || '').trim();
+        const student_id = ($('#abSid').value || '').trim();
 
 				if (!yyyymmdd && !student_id) {
 					UI.toast(false, '날짜 또는 학번 조건이 필요합니다.');
@@ -2595,7 +2659,8 @@
 			},
 
 			async toggleSafe(mode) {
-        const message = prompt('[선택] 점검 모드 안내 문구를 입력하세요.\n비워두면 기본 문구를 사용합니다.', '') || '';
+        const safeMsgEl = $('#safeMsg');
+        const message = safeMsgEl ? (safeMsgEl.value || '').trim() : '';
         const pin = prompt('[보안 확인] 안전 모드를 변경하려면 관리자 PIN을 입력하세요.');
         if (!pin) return;
 

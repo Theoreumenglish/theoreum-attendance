@@ -1,4 +1,5 @@
 const DEFAULT_TIMEOUT_MS = 25000;
+const MAX_BODY_BYTES = 64 * 1024;
 
 function send(res, status, body) {
   res.status(status);
@@ -7,9 +8,30 @@ function send(res, status, body) {
   res.send(JSON.stringify(body));
 }
 
+function toPositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+function isPlainObject(value) {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
 async function readBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string' && req.body.trim()) return JSON.parse(req.body);
+  if (Buffer.isBuffer(req.body)) {
+    const text = req.body.toString('utf8').trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (typeof req.body === 'string') {
+    const text = req.body.trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+
   return {};
 }
 
@@ -21,11 +43,22 @@ export default async function handler(req, res) {
     });
   }
 
-  const gasUrl = process.env.GAS_WEBAPP_URL;
+  const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
   if (!gasUrl) {
     return send(res, 500, {
       ok: false,
       error: { code: 'CONFIG_REQUIRED', message: 'Vercel 환경변수 GAS_WEBAPP_URL이 없습니다.' }
+    });
+  }
+
+  const contentLength = toPositiveInt(req.headers['content-length'], 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return send(res, 413, {
+      ok: false,
+      error: {
+        code: 'PAYLOAD_TOO_LARGE',
+        message: `요청 크기가 너무 큽니다. 최대 ${MAX_BODY_BYTES} bytes`
+      }
     });
   }
 
@@ -39,17 +72,43 @@ export default async function handler(req, res) {
     });
   }
 
+  if (!isPlainObject(payload)) {
+    return send(res, 400, {
+      ok: false,
+      error: { code: 'BAD_PAYLOAD', message: '요청 본문은 JSON 객체여야 합니다.' }
+    });
+  }
+
+  const op = String(payload.op || '').trim();
+  if (!op) {
+    return send(res, 400, {
+      ok: false,
+      error: { code: 'BAD_OP', message: 'op 값이 필요합니다.' }
+    });
+  }
+
+  if (payload.args != null && !isPlainObject(payload.args)) {
+    return send(res, 400, {
+      ok: false,
+      error: { code: 'BAD_ARGS', message: 'args는 JSON 객체여야 합니다.' }
+    });
+  }
+
   const controller = new AbortController();
-  const timeoutMs = Number(process.env.GAS_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
+  const timeoutMs = toPositiveInt(process.env.GAS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const upstream = await fetch(gasUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(payload),
       redirect: 'follow',
-      signal: controller.signal
+      signal: controller.signal,
+      cache: 'no-store'
     });
 
     const text = await upstream.text();
