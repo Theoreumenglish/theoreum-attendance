@@ -1,4 +1,3 @@
-import { handleKioskMark } from './kiosk-mark.js';
 const DEFAULT_TIMEOUT_MS = 25000;
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -93,11 +92,6 @@ export default async function handler(req, res) {
       ok: false,
       error: { code: 'BAD_ARGS', message: 'args는 JSON 객체여야 합니다.' }
     });
-  }
-
-  if (op === 'kiosk.mark') {
-    const result = await handleKioskMark(payload);
-    return send(res, result.status, result.body);
   }
 
   const controller = new AbortController();
