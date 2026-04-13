@@ -401,6 +401,9 @@ export async function handleKioskMark(payload) {
     const hasTodaySchedule = schedules.length > 0;
     const primarySchedule = hasTodaySchedule ? schedules[0] : null;
 
+    const now = new Date();
+    const nowMs = now.getTime();
+
     const { data: existingAction, error: existingErr } = await findExistingTodayAction(
       supabase,
       sid,
@@ -421,30 +424,39 @@ export async function handleKioskMark(payload) {
       };
     }
 
+    const sameActionCooldownMs = toPositiveInt(
+      process.env.KIOSK_SAME_ACTION_COOLDOWN_MS,
+      15000
+    );
+
     if (existingAction) {
-      return {
-        status: 200,
-        body: {
-          ok: true,
-          data: {
-            duplicate: false,
-            alreadyDone: true,
-            source: 'supabase-direct',
-            action,
-            input,
-            student,
-            schedule: primarySchedule,
-            ui: {
-              title: action === 'CHECK_IN' ? '이미 등원 처리됨' : '이미 하원 처리됨',
-              message: `${student.student_name} (${student.student_id})`
-            }
-          },
-          traceId
-        }
-      };
+      const prevTs = Date.parse(String(existingAction.ts || ''));
+      const diffMs = Number.isFinite(prevTs) ? (nowMs - prevTs) : Number.MAX_SAFE_INTEGER;
+
+      if (diffMs >= 0 && diffMs < sameActionCooldownMs) {
+        return {
+          status: 200,
+          body: {
+            ok: true,
+            data: {
+              duplicate: false,
+              alreadyDone: true,
+              source: 'supabase-direct',
+              action,
+              input,
+              student,
+              schedule: primarySchedule,
+              ui: {
+                title: action === 'CHECK_IN' ? '중복 등원 스캔' : '중복 하원 스캔',
+                message: `${student.student_name} (${student.student_id}) · ${Math.ceil((sameActionCooldownMs - diffMs) / 1000)}초 이내 중복 스캔`
+              }
+            },
+            traceId
+          }
+        };
+      }
     }
 
-    const now = new Date();
     const record = {
       record_id: buildRecordId(),
       ts: now.toISOString(),
@@ -489,7 +501,6 @@ export async function handleKioskMark(payload) {
       hasTodaySchedule,
       traceId
     });
-
     return {
       status: 200,
       body: {
