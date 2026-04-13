@@ -485,7 +485,8 @@ export async function handleKioskMark(payload) {
       sid,
       yyyymmdd,
       action,
-      classId: primarySchedule.class_id,
+      classId: primarySchedule ? primarySchedule.class_id : '',
+      hasTodaySchedule,
       traceId
     });
 
@@ -503,7 +504,9 @@ export async function handleKioskMark(payload) {
           schedule: primarySchedule,
           ui: {
             title: action === 'CHECK_IN' ? '등원 완료' : '하원 완료',
-            message: `${student.student_name} (${student.student_id})`
+            message: hasTodaySchedule
+              ? `${student.student_name} (${student.student_id})`
+              : `${student.student_name} (${student.student_id}) · 오늘 수업 정보 없음`
           }
         },
         traceId,
