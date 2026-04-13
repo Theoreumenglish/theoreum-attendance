@@ -397,20 +397,9 @@ export async function handleKioskMark(payload) {
       };
     }
 
-    if (!todaySchedules || !todaySchedules.length) {
-      return {
-        status: 404,
-        body: {
-          ok: false,
-          error: {
-            code: 'NO_TODAY_CLASS',
-            message: '오늘 출결 대상 수업이 없습니다.'
-          }
-        }
-      };
-    }
-
-    const primarySchedule = todaySchedules[0];
+    const schedules = Array.isArray(todaySchedules) ? todaySchedules : [];
+    const hasTodaySchedule = schedules.length > 0;
+    const primarySchedule = hasTodaySchedule ? schedules[0] : null;
 
     const { data: existingAction, error: existingErr } = await findExistingTodayAction(
       supabase,
@@ -467,8 +456,10 @@ export async function handleKioskMark(payload) {
         actor: '__VERCEL__',
         input_mode: 'ID',
         source: 'supabase-direct',
-        class_id: primarySchedule.class_id,
-        class_name: primarySchedule.class_name || ''
+        has_today_schedule: hasTodaySchedule ? 'Y' : 'N',
+        class_id: primarySchedule ? primarySchedule.class_id : '',
+        class_name: primarySchedule ? (primarySchedule.class_name || '') : '',
+        today_class_ids: schedules.map(x => String(x.class_id || '').trim()).filter(Boolean)
       },
       result: 'OK',
       deny_reason: '',
