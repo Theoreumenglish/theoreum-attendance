@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="등하원QR">
+  <meta name="theme-color" content="#4f46e5">
+  <title>등하원 QR코드 생성기</title>
+
+  <link rel="manifest" href="/student-qr-manifest.webmanifest">
+  <link rel="icon" href="/student-qr-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/student-qr-icon.svg">
+
+  <script src="/student-qr-lib.js"></script>
+
+  <style>
+    :root{
+      --bg-gradient-start: #f8fbff;
+      --bg-gradient-end: #eef4ff;
+      --card-bg: rgba(255, 255, 255, 0.98);
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --text-placeholder: #94a3b8;
+      --primary-color: #4f46e5;
+      --secondary-color: #2563eb;
+      --error-bg: #fef2f2;
+      --error-text: #b91c1c;
+      --error-border: #fecaca;
+      --ok-bg: #ecfdf5;
+      --ok-text: #166534;
+      --ok-border: #bbf7d0;
+      --card-shadow: 0 5vw 10vw rgba(0, 0, 0, 0.06), 0 1.5vw 3vw rgba(0, 0, 0, 0.03);
+      --input-shadow: 0 0.5vw 1vw rgba(0, 0, 0, 0.03) inset;
+      --border-radius-xl: clamp(28px, 6.5vw, 48px);
+      --border-radius-lg: clamp(18px, 4.5vw, 28px);
+      --border-radius-md: clamp(14px, 3.5vw, 20px);
+    }
+
+    *{
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body{
+      width: 100%;
+      height: 100%;
+    }
+
+    body{
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: env(safe-area-inset-top) 4vw env(safe-area-inset-bottom) 4vw;
+      overflow-x: hidden;
+    }
+
+    .card{
+      width: 94vw;
+      max-width: 760px;
+      min-height: clamp(640px, 88svh, 1000px);
+      background: var(--card-bg);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--border-radius-xl);
+      box-shadow: var(--card-shadow);
+      padding: clamp(40px, 10vw, 80px) clamp(24px, 7vw, 56px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .brand-logo-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: clamp(28px, 7vw, 48px);
+    }
+
+    .brand-logo {
+      width: clamp(220px, 55vw, 360px);
+      height: auto;
+      display: block;
+      object-fit: contain;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .title{
+      text-align: center;
+      font-size: clamp(36px, 9vw, 56px);
+      line-height: 1.2;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: var(--text-main);
+      word-break: keep-all;
+    }
+
+    .sub{
+      margin-top: clamp(12px, 3vw, 20px);
+      text-align: center;
+      color: var(--text-sub);
+      font-size: clamp(20px, 5vw, 30px);
+      line-height: 1.45;
+      font-weight: 600;
+      word-break: keep-all;
+    }
+
+    .field{
+      width: 100%;
+      margin-top: clamp(64px, 14vw, 120px);
+    }
+
+    .label{
+      display: block;
+      margin-bottom: clamp(12px, 3vw, 20px);
+      font-size: clamp(20px, 5vw, 28px);
+      font-weight: 800;
+      color: var(--text-sub);
+      padding-left: 2vw;
+    }
+
+    .inp{
+      width: 100%;
+      height: clamp(90px, 16vw, 130px);
+      background: #f8fafc;
+      border: 2px solid transparent;
+      border-radius: var(--border-radius-lg);
+      padding: 0 4vw;
+      text-align: center;
+      font-size: clamp(48px, 13vw, 76px);
+      font-weight: 900;
+      letter-spacing: clamp(12px, 4vw, 24px);
+      color: var(--text-main);
+      box-shadow: var(--input-shadow);
+      outline: none;
+      transition: all 0.2s ease-in-out;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .inp::placeholder{
+      color: var(--text-placeholder);
+      font-weight: 700;
+      letter-spacing: normal;
+    }
+
+    .inp:focus{
+      background: #ffffff;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 clamp(4px, 1vw, 8px) rgba(79, 70, 229, 0.15);
+    }
+
+    .btnRow{
+      width: 100%;
+      margin-top: clamp(32px, 8vw, 60px);
+      display: flex;
+      gap: clamp(16px, 4vw, 32px);
+    }
+
+    .btn{
+      border: none;
+      border-radius: var(--border-radius-lg);
+      height: clamp(76px, 14vw, 104px);
+      padding: 0 4vw;
+      cursor: pointer;
+      font-size: clamp(24px, 6vw, 36px);
+      font-weight: 800;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btnMain{
+      flex: 1;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      box-shadow: 0 2vw 4vw rgba(79, 70, 229, 0.25);
+    }
+
+    .btnSub{
+      flex: 0 0 clamp(140px, 30vw, 200px);
+      background: #f1f5f9;
+      color: var(--text-sub);
+      border: 2px solid transparent;
+    }
+
+    .msg{
+      width: 100%;
+      margin-top: clamp(20px, 5vw, 36px);
+      padding: clamp(16px, 4vw, 28px);
+      border-radius: var(--border-radius-md);
+      font-size: clamp(16px, 4.5vw, 24px);
+      font-weight: 700;
+      text-align: center;
+      display: none;
+      word-break: keep-all;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-1vw); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg.err{
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-border);
+    }
+
+    .msg.ok{
+      background: var(--ok-bg);
+      color: var(--ok-text);
+      border: 1px solid var(--ok-border);
+    }
+
+    .qrWrap{
+      width: 100%;
+      margin-top: clamp(40px, 10vw, 64px);
+      display: none;
+      animation: fadeIn 0.4s ease;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .who{
+      width: 100%;
+      margin-bottom: clamp(20px, 5vw, 36px);
+      text-align: center;
+      font-size: clamp(26px, 7vw, 40px);
+      font-weight: 900;
+      color: var(--primary-color);
+      background: #eff6ff;
+      padding: clamp(16px, 4vw, 32px);
+      border-radius: var(--border-radius-md);
+    }
+
+    .qrCard{
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: var(--border-radius-xl);
+      padding: clamp(32px, 8vw, 64px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 2vw 5vw rgba(0,0,0,0.05);
+    }
+
+    .qrBox{
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #qrcode{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #qrcode img,
+    #qrcode canvas{
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .timer{
+      margin-top: clamp(24px, 6vw, 48px);
+      text-align: center;
+      font-size: clamp(20px, 5.5vw, 28px);
+      font-weight: 800;
+      color: var(--secondary-color);
+      background: #f1f5f9;
+      padding: clamp(12px, 3vw, 20px) clamp(24px, 6vw, 40px);
+      border-radius: 40px;
+    }
+
+    .tiny{
+      margin-top: clamp(16px, 4vw, 24px);
+      text-align: center;
+      font-size: clamp(15px, 4vw, 20px);
+      color: var(--text-placeholder);
+      font-weight: 600;
+    }
+
+    body.running .field,
+    body.running .btnRow,
+    body.running .title,
+    body.running .sub {
+      display: none;
+    }
+
+    body.running .brand-logo {
+      width: clamp(140px, 35vw, 260px);
+      margin-bottom: 0;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @media (max-width: 480px) {
+      body {
+        align-items: flex-start;
+        padding-top: 80px;
+        padding-bottom: 60px;
+      }
+      .card {
+        padding: 40px 24px 40px;
+        min-height: auto;
+      }
+      .brand-logo { width: 230px; }
+      .inp { height: 96px; font-size: 52px; letter-spacing: 12px; }
+      .btn { height: 80px; font-size: 24px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="brand-logo-container">
+      <img src="/student-qr-brand.svg" alt="더오름 로고" class="brand-logo" id="mainLogo" />
+    </div>
+
+    <h1 class="title">등하원 QR코드 생성기</h1>
+    <div class="sub">학번 4자리와 휴대폰 뒤 4자리를 입력하고<br>출결 인증을 진행해주세요.</div>
+
+    <div class="field">
+      <label class="label" for="sid">학번 입력</label>
+      <input
+        id="sid"
+        class="inp"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        enterkeyhint="next"
+        maxlength="4"
+        placeholder="0123"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+
+      <div style="height:16px;"></div>
+
+      <label class="label" for="phoneTail">휴대폰 뒤 4자리</label>
+      <input
+        id="phoneTail"
+        class="inp"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        enterkeyhint="done"
+        maxlength="4"
+        placeholder="1234"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <div class="btnRow">
+      <button id="btnStart" class="btn btnMain" type="button">QR 생성하기</button>
+      <button id="btnStop" class="btn btnSub" type="button">초기화</button>
+    </div>
+
+    <div id="msg" class="msg err"></div>
+
+    <div id="qrWrap" class="qrWrap">
+      <div class="who" id="who"></div>
+      <div class="qrCard">
+        <div class="qrBox">
+          <div id="qrcode"></div>
+        </div>
+        <div class="timer" id="timer">-</div>
+        <div class="tiny">
+          보안을 위해 화면을 벗어나면 자동 종료됩니다.<br>
+          같은 학번으로 다른 탭/기기에서 새 QR을 만들면 기존 QR은 즉시 무효가 됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APP_VERSION = 'student-qr-vercel-v1';
+    const API = {
+      sessionStart: '/api/student-qr/session-start',
+      frame: '/api/student-qr/frame',
+      stop: '/api/student-qr/stop'
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const sidInput = $('#sid');
+    const phoneInput = $('#phoneTail');
+    const btnStart = $('#btnStart');
+    const btnStop = $('#btnStop');
+
+    const State = {
+      running: false,
+      starting: false,
+      sessionToken: '',
+      sessionExpAt: 0,
+      stepMs: 10000,
+      timerId: null,
+      resizeTimer: null,
+      uiTimerId: null,
+      qr: null,
+      studentId: '',
+      studentName: '',
+      lastQrText: '',
+      lastFrameExpAt: 0,
+      lastRotateAt: 0,
+      serverNowOffsetMs: 0,
+      frameErrorStreak: 0
+    };
+
+    function cleanSid(v){
+      return String(v || '')
+        .replace(/[^0-9]/g, '')
+        .slice(0, 4);
+    }
+
+    function normSid(v){
+      const d = cleanSid(v);
+      if (!d) return '';
+      return d.length >= 4 ? d : d.padStart(4, '0');
+    }
+
+    function maskName(name){
+      const s = String(name || '').trim();
+      if (!s) return '';
+      if (s.length <= 2) return s.charAt(0) + '*';
+      return s.charAt(0) + '*'.repeat(s.length - 2) + s.charAt(s.length - 1);
+    }
+
+    function setBusyUi(busy) {
+      btnStart.disabled = !!busy;
+      btnStop.disabled = !!busy;
+      btnStart.style.opacity = busy ? '0.65' : '1';
+      btnStop.style.opacity = busy ? '0.65' : '1';
+      btnStart.textContent = busy ? '생성 중...' : 'QR 생성하기';
+    }
+
+    function showMsg(text, type='err'){
+      const el = $('#msg');
+      el.className = 'msg ' + (type === 'ok' ? 'ok' : 'err');
+      el.style.display = 'block';
+      el.textContent = text;
+    }
+
+    function hideMsg(){
+      const el = $('#msg');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
+    function clearQr(){
+      const box = $('#qrcode');
+      box.innerHTML = '';
+      State.qr = null;
+      State.lastQrText = '';
+      State.lastFrameExpAt = 0;
+    }
+
+    function focusSid(){
+      setTimeout(() => {
+        if (State.running) return;
+        sidInput.focus();
+        if (sidInput.value) sidInput.select();
+      }, 80);
+    }
+
+    function stopSession(clearInput = true, useKeepalive = false){
+      const tokenToStop = State.sessionToken;
+
+      State.running = false;
+      State.sessionToken = '';
+      State.sessionExpAt = 0;
+      State.frameErrorStreak = 0;
+      State.studentId = '';
+      State.studentName = '';
+      State.lastQrText = '';
+      State.lastRotateAt = 0;
+      State.lastFrameExpAt = 0;
+      State.serverNowOffsetMs = 0;
+
+      document.body.classList.remove('running');
+
+      if (State.timerId) {
+        clearTimeout(State.timerId);
+        State.timerId = null;
+      }
+
+      if (State.resizeTimer) {
+        clearTimeout(State.resizeTimer);
+        State.resizeTimer = null;
+      }
+
+      if (State.uiTimerId) {
+        clearInterval(State.uiTimerId);
+        State.uiTimerId = null;
+      }
+
+      clearQr();
+      $('#qrWrap').style.display = 'none';
+
+      if (clearInput) {
+        sidInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+      }
+
+      sidInput.blur();
+      if (phoneInput) phoneInput.blur();
+
+      focusSid();
+
+      if (useKeepalive) {
+        sessionStopKeepalive(tokenToStop);
+      } else {
+        sessionStopRpc(tokenToStop).catch(() => {});
+      }
+    }
+
+    function getDynamicQrSize() {
+      const screenWidth = window.innerWidth;
+      return Math.floor(Math.min(screenWidth * 0.85, 420));
+    }
+
+    function drawQr(text){
+      const box = $('#qrcode');
+      const dynamicSize = getDynamicQrSize();
+
+      State.lastQrText = text;
+      box.style.width = dynamicSize + 'px';
+      box.style.height = dynamicSize + 'px';
+
+      if (typeof QRCode === 'undefined') {
+        throw new Error('QR 라이브러리를 불러오지 못했습니다.');
+      }
+
+      if (!State.qr) {
+        State.qr = new QRCode(box, {
+          text: '',
+          width: dynamicSize,
+          height: dynamicSize,
+          colorDark: "#0f172a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      State.qr._applyOptions({
+        width: dynamicSize,
+        height: dynamicSize
+      });
+      State.qr.makeCode(text);
+    }
+
+    function redrawCurrentQr(){
+      if (!State.running || !State.lastQrText) return;
+      drawQr(State.lastQrText);
+      if (State.lastFrameExpAt) updateTimer();
+    }
+
+    function approxServerNow(){
+      return Date.now() + (State.serverNowOffsetMs || 0);
+    }
+
+    function syncServerClock(serverNow){
+      const n = Number(serverNow || 0);
+      if (!Number.isFinite(n) || n <= 0) return;
+      State.serverNowOffsetMs = n - Date.now();
+    }
+
+    function updateTimer(){
+      const nowServer = approxServerNow();
+      const remainSess = Math.max(0, State.sessionExpAt - nowServer);
+      const remainQr = Math.max(0, State.lastRotateAt - nowServer);
+
+      let qrText = '-';
+      if (State.lastRotateAt > 0) {
+        qrText = remainQr > 0 ? (Math.ceil(remainQr / 1000) + '초') : '갱신 중';
+      }
+
+      $('#timer').textContent =
+        '현재 QR ' + qrText + ' / 세션 ' + Math.ceil(remainSess / 1000) + '초';
+    }
+
+    async function postJson(url, body, timeoutMs) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(body || {}),
+          cache: 'no-store',
+          signal: controller.signal
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = {
+            ok: false,
+            error: {
+              code: 'BAD_JSON',
+              message: '서버 응답을 해석할 수 없습니다.'
+            }
+          };
+        }
+
+        if (!res.ok && (!data || typeof data !== 'object')) {
+          return {
+            ok: false,
+            error: {
+              code: 'HTTP_' + res.status,
+              message: '서버 요청 실패'
+            }
+          };
+        }
+
+        return data;
+      } catch (e) {
+        const aborted = e && e.name === 'AbortError';
+        return {
+          ok: false,
+          error: {
+            code: aborted ? 'TIMEOUT' : 'NETWORK',
+            message: aborted ? '요청 시간이 초과되었습니다.' : '네트워크 통신 오류가 발생했습니다.'
+          }
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function sessionStartRpc(studentId, phoneTail){
+      return postJson(API.sessionStart, {
+        student_id: studentId,
+        phone_tail: phoneTail
+      }, 10000);
+    }
+
+    function sessionFrameRpc(sessionToken){
+      return postJson(API.frame, {
+        token: sessionToken
+      }, 7000);
+    }
+
+    function sessionStopRpc(sessionToken){
+      if (!sessionToken) {
+        return Promise.resolve({ ok: true, data: { ok: true } });
+      }
+      return postJson(API.stop, {
+        token: sessionToken
+      }, 5000);
+    }
+
+    function sessionStopKeepalive(sessionToken){
+      if (!sessionToken) return;
+
+      const body = JSON.stringify({ token: sessionToken });
+
+      try {
+        if (navigator.sendBeacon) {
+          const blob = new Blob([body], { type: 'application/json; charset=UTF-8' });
+          navigator.sendBeacon(API.stop, blob);
+          return;
+        }
+      } catch (e) {}
+
+      try {
+        fetch(API.stop, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+          body: body,
+          keepalive: true,
+          credentials: 'omit'
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    async function tickFrame(){
+      if (!State.running) return;
+
+      const now = Date.now();
+      if (now >= State.sessionExpAt) {
+        showMsg('인증 시간이 만료되었습니다. 다시 시도해주세요.');
+        stopSession();
+        return;
+      }
+
+      const r = await sessionFrameRpc(State.sessionToken);
+
+      if (!State.running) return;
+
+      if (!r.ok) {
+        State.frameErrorStreak = (State.frameErrorStreak || 0) + 1;
+
+        const code = r.error?.code || "";
+        const msg = r.error?.message || '새로운 QR 코드를 받아올 수 없습니다.';
+
+        if (code === "SESSION_EXPIRED" || code === "SESSION_BROKEN" || code === "SESSION_NOT_FOUND") {
+          showMsg(msg);
+          stopSession();
+          return;
+        }
+
+        if (State.frameErrorStreak <= 2) {
+          if (State.timerId) clearTimeout(State.timerId);
+          State.timerId = setTimeout(tickFrame, 250);
+          return;
+        }
+
+        showMsg(msg);
+        stopSession();
+        return;
+      }
+
+      const rotateAt = r.data.rotateAt || r.data.expiresAt;
+      const exp = r.data.expiresAt;
+      const prevQrText = State.lastQrText;
+      const sameQr = !!prevQrText && prevQrText === String(r.data.qrText || '');
+
+      syncServerClock(r.data.serverNow);
+      State.frameErrorStreak = 0;
+      State.lastFrameExpAt = exp;
+      State.lastRotateAt = rotateAt;
+
+      try {
+        if (!sameQr) {
+          drawQr(r.data.qrText);
+        }
+      } catch (e) {
+        showMsg(e && e.message ? e.message : 'QR 표시 중 오류가 발생했습니다.');
+        stopSession(false);
+        return;
+      }
+
+      updateTimer();
+
+      const remain = Math.max(0, rotateAt - approxServerNow());
+      let nextWait;
+
+      if (sameQr) {
+        nextWait = Math.max(40, remain + 60);
+      } else {
+        nextWait = Math.max(120, remain - 120);
+      }
+
+      if (State.timerId) clearTimeout(State.timerId);
+      State.timerId = setTimeout(tickFrame, nextWait);
+    }
+
+    async function startSession(){
+      if (State.starting) return;
+
+      if (typeof QRCode === 'undefined') {
+        showMsg('QR 라이브러리를 불러오지 못했습니다. 관리자에게 문의해주세요.');
+        return;
+      }
+
+      State.starting = true;
+      setBusyUi(true);
+
+      try {
+        hideMsg();
+
+        State.frameErrorStreak = 0;
+        State.lastQrText = '';
+        State.lastRotateAt = 0;
+        State.lastFrameExpAt = 0;
+        State.serverNowOffsetMs = 0;
+
+        const rawSid = cleanSid(sidInput.value);
+        const rawPhoneTail = cleanSid(phoneInput.value);
+
+        if (!rawSid || rawSid.length < 4) {
+          showMsg('학번 4자리를 정확히 입력해주세요.');
+          focusSid();
+          return;
+        }
+
+        if (!rawPhoneTail || rawPhoneTail.length < 4) {
+          showMsg('휴대폰 뒤 4자리를 정확히 입력해주세요.');
+          phoneInput.focus();
+          return;
+        }
+
+        if (State.running) {
+          stopSession(false);
+        }
+
+        const sid = normSid(rawSid);
+        const r = await sessionStartRpc(sid, rawPhoneTail);
+
+        if (!r.ok) {
+          const code = r.error?.code || "";
+          const msg = r.error?.message || '인증 서버에 연결할 수 없습니다. 확인 후 다시 시도해주세요.';
+
+          showMsg(msg);
+
+          if (code === "AUTH_FAILED" || code === "NO_PHONE") {
+            phoneInput.focus();
+            if (phoneInput.value) phoneInput.select();
+          } else {
+            focusSid();
+          }
+          return;
+        }
+
+        phoneInput.value = '';
+
+        State.running = true;
+        State.sessionToken = r.data.token;
+        State.sessionExpAt = r.data.expiresAt;
+        State.stepMs = 10000;
+        syncServerClock(r.data.serverNow);
+        State.studentId = r.data.student?.student_id || sid;
+        State.studentName = r.data.student?.student_name || '';
+
+        document.body.classList.add('running');
+        sidInput.blur();
+        phoneInput.blur();
+
+        const maskedName = maskName(State.studentName);
+
+        $('#who').textContent = maskedName
+          ? (State.studentId + ' · ' + maskedName)
+          : State.studentId;
+
+        $('#qrWrap').style.display = 'flex';
+
+        if (State.uiTimerId) clearInterval(State.uiTimerId);
+        State.uiTimerId = setInterval(() => {
+          if (State.running && State.lastFrameExpAt) {
+            updateTimer();
+          }
+        }, 100);
+
+        await tickFrame();
+      } finally {
+        State.starting = false;
+        setBusyUi(false);
+      }
+    }
+
+    sidInput.addEventListener('input', (e) => {
+      e.target.value = cleanSid(e.target.value);
+      if (e.target.value.length === 4) {
+        setTimeout(() => {
+          phoneInput.focus();
+          if (phoneInput.value) phoneInput.select();
+        }, 0);
+      }
+    });
+
+    phoneInput.addEventListener('input', (e) => {
+      e.target.value = cleanSid(e.target.value);
+    });
+
+    sidInput.addEventListener('focus', () => {
+      if (!sidInput.value) return;
+      setTimeout(() => sidInput.select(), 0);
+    });
+
+    sidInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        startSession();
+      }
+    });
+
+    phoneInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        startSession();
+      }
+    });
+
+    btnStart.addEventListener('click', startSession);
+
+    btnStop.addEventListener('click', () => {
+      hideMsg();
+      stopSession();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && State.running) {
+        sessionStopKeepalive(State.sessionToken);
+      } else if (!document.hidden) {
+        hideMsg();
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (State.running) {
+        sessionStopKeepalive(State.sessionToken);
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (!State.running || !State.lastQrText) return;
+      if (State.resizeTimer) clearTimeout(State.resizeTimer);
+      State.resizeTimer = setTimeout(() => {
+        redrawCurrentQr();
+      }, 120);
+    });
+
+    window.addEventListener('offline', () => {
+      showMsg('인터넷 연결이 끊겼습니다. 네트워크를 확인한 뒤 다시 시도해주세요.');
+      if (State.running) {
+        stopSession(false);
+      }
+    });
+
+    window.addEventListener('online', () => {
+      if (!State.running) {
+        hideMsg();
+      }
+    });
+
+    window.addEventListener('load', () => {
+      focusSid();
+
+      if (typeof QRCode === 'undefined') {
+        showMsg('QR 라이브러리를 불러오지 못했습니다. 관리자에게 문의해주세요.');
+        btnStart.disabled = true;
+        btnStart.style.opacity = '0.5';
+      }
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/student-qr-sw.js?v=' + encodeURIComponent(APP_VERSION)).catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>

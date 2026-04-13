@@ -1,0 +1,24 @@
+{
+  "id": "/student-qr.html",
+  "name": "더오름 QR 발급기",
+  "short_name": "더오름QR",
+  "start_url": "/student-qr.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/student-qr-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/student-qr-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
