@@ -13,11 +13,8 @@ function toPositiveInt(value, fallback) {
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
 
-  // 실제 QR 문자열은 학번 직접입력이 아니므로 여기서 학번으로 해석하지 않는다.
   if (!text) return '';
   if (/^QR1\./i.test(text)) return '';
-
-  // 학번 직접입력 경로만 허용
   if (!/^\d{1,4}$/.test(text)) return '';
 
   return text.padStart(4, '0');

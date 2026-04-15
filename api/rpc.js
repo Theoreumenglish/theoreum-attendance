@@ -101,6 +101,13 @@ export default async function handler(req, res) {
       });
     }
 
+    if (!gasUrl) {
+      return send(res, 500, {
+        ok: false,
+        error: { code: 'CONFIG_REQUIRED', message: 'Vercel 환경변수 GAS_WEBAPP_URL이 없습니다.' }
+      });
+    }
+
   const controller = new AbortController();
   const timeoutMs = toPositiveInt(process.env.GAS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
