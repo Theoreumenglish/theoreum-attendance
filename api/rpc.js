@@ -44,14 +44,6 @@ export default async function handler(req, res) {
     });
   }
 
-  const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
-  if (!gasUrl) {
-    return send(res, 500, {
-      ok: false,
-      error: { code: 'CONFIG_REQUIRED', message: 'Vercel 환경변수 GAS_WEBAPP_URL이 없습니다.' }
-    });
-  }
-
   const contentLength = toPositiveInt(req.headers['content-length'], 0);
   if (contentLength > MAX_BODY_BYTES) {
     return send(res, 413, {
@@ -95,10 +87,19 @@ export default async function handler(req, res) {
     });
   }
 
-  if (op === 'kiosk.mark') {
-    const result = await handleKioskMark(payload);
-    return send(res, result.status, result.body);
-  }
+    const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
+
+    if (op === 'kiosk.mark') {
+      const result = await handleKioskMark(payload);
+      return send(res, result.status, result.body);
+    }
+
+    if (!gasUrl) {
+      return send(res, 500, {
+        ok: false,
+        error: { code: 'CONFIG_REQUIRED', message: 'Vercel 환경변수 GAS_WEBAPP_URL이 없습니다.' }
+      });
+    }
 
   const controller = new AbortController();
   const timeoutMs = toPositiveInt(process.env.GAS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
