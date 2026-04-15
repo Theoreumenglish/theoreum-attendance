@@ -1760,7 +1760,7 @@
 					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && document.activeElement !== el) {
 						el.focus();
 					}
-				}, 1200);
+				}, 3000);
 
 				Kiosk.setAction('CHECK_IN');
 				setTimeout(() => input.focus(), 50);

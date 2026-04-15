@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
+import { studentQrVerify } from '../lib/student-qr-core.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT']);
@@ -12,12 +13,14 @@ function toPositiveInt(value, fallback) {
 
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
-
   if (!text) return '';
   if (/^QR1\./i.test(text)) return '';
   if (!/^\d{1,4}$/.test(text)) return '';
-
   return text.padStart(4, '0');
+}
+
+function isStudentQrText(input) {
+  return /^QR1\./i.test(String(input || '').trim());
 }
 
 function normalizeFloor(input) {
@@ -71,6 +74,14 @@ function isActiveStudentStatus(raw) {
 
 function pickArgs(payload) {
   return payload?.args && typeof payload.args === 'object' ? payload.args : {};
+}
+
+function getVerifySharedSecret() {
+  return String(
+    process.env.STUDENT_QR_VERIFY_SHARED_SECRET ||
+    process.env.VERIFY_SHARED_SECRET ||
+    ''
+  ).trim();
 }
 
 async function proxyToGas(payload, gasUrl) {
@@ -158,7 +169,10 @@ async function findTodayClassIds(supabase, sid, yyyymmdd) {
 
   if (relErr) return { error: relErr };
 
-  const classIds = Array.from(new Set((rels || []).map(x => String(x.class_id || '').trim()).filter(Boolean)));
+  const classIds = Array.from(
+    new Set((rels || []).map(x => String(x.class_id || '').trim()).filter(Boolean))
+  );
+
   if (!classIds.length) return { data: [] };
 
   const { data: schedules, error: schErr } = await supabase
@@ -208,6 +222,108 @@ async function insertAttendanceLog(supabase, record) {
     .single();
 
   return { data, error };
+}
+
+function mapQrVerifyError(err) {
+  const code = String(err?.code || '').trim();
+  const message = String(err?.message || '').trim();
+
+  if (code === 'EXPIRED') {
+    return {
+      status: 400,
+      body: {
+        ok: false,
+        error: {
+          code: 'QR_EXPIRED',
+          message: '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.'
+        }
+      }
+    };
+  }
+
+  if (
+    code === 'ALREADY_USED' ||
+    code === 'BAD_SIG' ||
+    code === 'BAD_FORMAT' ||
+    code === 'BAD_PAYLOAD' ||
+    code === 'BAD_NONCE' ||
+    code === 'NOT_ISSUED' ||
+    code === 'BAD_SID'
+  ) {
+    return {
+      status: 400,
+      body: {
+        ok: false,
+        error: {
+          code: 'QR_INVALID',
+          message: '이미 사용했거나 유효하지 않은 QR입니다.'
+        }
+      }
+    };
+  }
+
+  if (code === 'NOT_FOUND') {
+    return {
+      status: 404,
+      body: {
+        ok: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: '등록되지 않은 학생입니다. 데스크에 문의하세요.'
+        }
+      }
+    };
+  }
+
+  if (code === 'NOT_ALLOWED') {
+    return {
+      status: 403,
+      body: {
+        ok: false,
+        error: {
+          code: 'NOT_ACTIVE',
+          message: '현재 재원 상태가 아닙니다. 데스크에 문의하세요.'
+        }
+      }
+    };
+  }
+
+  if (
+    code === 'CONFIG_REQUIRED' ||
+    code === 'CALLER_AUTH_FAILED' ||
+    code === 'DB_SELECT_FAILED' ||
+    code === 'DB_UPDATE_FAILED'
+  ) {
+    return {
+      status: 500,
+      body: {
+        ok: false,
+        error: {
+          code: code || 'SERVER_ERROR',
+          message: message || 'QR 검증 서버 설정 또는 DB 오류'
+        }
+      }
+    };
+  }
+
+  return {
+    status: 400,
+    body: {
+      ok: false,
+      error: {
+        code: code || 'QR_INVALID',
+        message: message || 'QR 검증 실패'
+      }
+    }
+  };
+}
+
+async function verifyStudentQrDirect(qrText) {
+  return await studentQrVerify({
+    qrText,
+    consume: 'Y',
+    shared_secret: getVerifySharedSecret()
+  });
 }
 
 export async function handleKioskMark(payload) {
@@ -275,31 +391,38 @@ export async function handleKioskMark(payload) {
     };
   }
 
+  const isQr = isStudentQrText(input);
+  const sidFromIdInput = normalizeStudentId(input);
+
   console.info('[kiosk.mark] entered', {
     action,
     kioskFloor,
-    inputPreview: input.slice(0, 20),
+    isQr,
+    inputPreview: input.slice(0, 24),
     hasSessionToken: !!payload?.sessionToken
   });
 
-  const sid = normalizeStudentId(input);
-
-  // 아직 학생 QR rotating token / 직원 QR 경로는 완전 이전 전이므로
-  // 4자리 학번 입력 경로만 Vercel 직처리하고, 나머지는 GAS fallback 한다.
-  if (!sid) {
-    if (!gasUrl) {
-      return {
-        status: 500,
-        body: {
-          ok: false,
-          error: {
-            code: 'CONFIG_REQUIRED',
-            message: 'GAS fallback 경로가 없습니다.'
-          }
-        }
-      };
-    }
+  // 예외학생 4자리 입력 경로는 정책 보존을 위해 GAS에 남긴다.
+  // 본질적 속도 패치는 학생 QR 등/하원 핫패스만 Vercel 직처리한다.
+  if (!isQr && sidFromIdInput && gasUrl) {
     return await proxyToGas(payload, gasUrl);
+  }
+
+  if (!isQr && !sidFromIdInput) {
+    if (gasUrl) {
+      return await proxyToGas(payload, gasUrl);
+    }
+
+    return {
+      status: 400,
+      body: {
+        ok: false,
+        error: {
+          code: 'QR_REQUIRED',
+          message: '등/하원은 전용 QR만 사용할 수 있습니다.'
+        }
+      }
+    };
   }
 
   try {
@@ -332,14 +455,43 @@ export async function handleKioskMark(payload) {
       };
     }
 
+    let sid = sidFromIdInput;
+    let inputMode = 'ID';
+    let qrId = '';
+    let verifiedStudentName = '';
+
+    if (isQr) {
+      const verifyOut = await verifyStudentQrDirect(input);
+
+      if (!verifyOut.ok) {
+        return mapQrVerifyError(verifyOut.error);
+      }
+
+      sid = normalizeStudentId(verifyOut.data?.student_id);
+      inputMode = 'QR';
+      qrId = String(verifyOut.data?.qr_id || '').trim();
+      verifiedStudentName = String(verifyOut.data?.student_name || '').trim();
+
+      if (!sid) {
+        return {
+          status: 500,
+          body: {
+            ok: false,
+            error: {
+              code: 'SERVER_ERROR',
+              message: 'QR 검증 결과에 student_id가 없습니다.'
+            }
+          }
+        };
+      }
+    }
+
     const { data: student, error: studentErr } = await findStudent(supabase, sid);
     if (studentErr) {
       console.error('[kiosk.mark] student read failed', {
         sid,
         message: studentErr.message || String(studentErr)
       });
-
-      if (gasUrl) return await proxyToGas(payload, gasUrl);
 
       return {
         status: 500,
@@ -386,8 +538,6 @@ export async function handleKioskMark(payload) {
         yyyymmdd,
         message: scheduleErr.message || String(scheduleErr)
       });
-
-      if (gasUrl) return await proxyToGas(payload, gasUrl);
 
       return {
         status: 500,
@@ -470,16 +620,19 @@ export async function handleKioskMark(payload) {
       kiosk_floor: kioskFloor,
       meta_json: {
         actor: '__VERCEL__',
-        input_mode: 'ID',
+        input_mode: inputMode,
         source: 'supabase-direct',
         has_today_schedule: hasTodaySchedule ? 'Y' : 'N',
         class_id: primarySchedule ? primarySchedule.class_id : '',
         class_name: primarySchedule ? (primarySchedule.class_name || '') : '',
-        today_class_ids: schedules.map(x => String(x.class_id || '').trim()).filter(Boolean)
+        today_class_ids: schedules.map(x => String(x.class_id || '').trim()).filter(Boolean),
+        qr_verify_direct: inputMode === 'QR' ? 'Y' : 'N'
       },
       result: 'OK',
       deny_reason: '',
-      qr_id: '',
+      qr_id: inputMode === 'QR'
+        ? (qrId || String(student.qr_id || '').trim())
+        : '',
       trace_id: traceId
     };
 
@@ -503,8 +656,10 @@ export async function handleKioskMark(payload) {
       action,
       classId: primarySchedule ? primarySchedule.class_id : '',
       hasTodaySchedule,
+      inputMode,
       traceId
     });
+
     return {
       status: 200,
       body: {
@@ -515,13 +670,16 @@ export async function handleKioskMark(payload) {
           source: 'supabase-direct',
           action,
           input,
-          student,
+          student: {
+            ...student,
+            student_name: student.student_name || verifiedStudentName || ''
+          },
           schedule: primarySchedule,
           ui: {
             title: action === 'CHECK_IN' ? '등원 완료' : '하원 완료',
             message: hasTodaySchedule
-              ? `${student.student_name} (${student.student_id})`
-              : `${student.student_name} (${student.student_id}) · 오늘 수업 정보 없음`
+              ? `${student.student_name || verifiedStudentName} (${student.student_id})`
+              : `${student.student_name || verifiedStudentName} (${student.student_id}) · 오늘 수업 정보 없음`
           }
         },
         traceId,
