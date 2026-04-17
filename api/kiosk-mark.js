@@ -681,13 +681,13 @@ export async function handleKioskMark(payload) {
     }
 
     const notifyResult = await enqueueAttendanceNotify(
-  {
-    ...student,
-    student_name: student.student_name || verifiedStudentName || ''
-  },
-  action,
-  traceId
-);
+      {
+        ...student,
+        student_name: student.student_name || verifiedStudentName || ''
+      },
+      action,
+      traceId
+    );
 
     console.info('[kiosk.mark] supabase direct success', {
       sid,

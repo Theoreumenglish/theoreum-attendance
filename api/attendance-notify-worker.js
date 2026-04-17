@@ -34,7 +34,6 @@ export default async function handler(req, res) {
   try {
     const limit = readLimit(req);
     const out = await runAttendanceNotifyWorker({ limit });
-
     return send(res, out.ok ? 200 : 500, out);
   } catch (e) {
     return send(res, 500, {

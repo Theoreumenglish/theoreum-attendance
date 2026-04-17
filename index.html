@@ -1353,6 +1353,18 @@
         });
       },
 
+			kickNotifyWorker(limit = 5) {
+				try {
+					fetch('/api/attendance-notify-worker', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json; charset=utf-8' },
+					body: JSON.stringify({ limit }),
+					cache: 'no-store',
+					keepalive: true
+					}).catch(() => {});
+				} catch (_) {}
+			},
+
 			setWho(text) {
 				const el = $('#whoPill');
 				if (el) el.textContent = text || 'guest';
@@ -2023,12 +2035,18 @@
             return;
           }
 
-					if (r.ok) {
-            const ui = (r.data && r.data.ui) ? r.data.ui : {};
-            const sid = ui.message ? (ui.message.match(/\((.*?)\)/)?.[1] || val) : val;
-            const rawName = ui.message ? (ui.message.split(' ')[0] || '') : '';
-            const maskedName = UI.maskName(rawName);
+			if (r.ok) {
+				if (
+					!((r.data && r.data.alreadyDone) || false) &&
+					(Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
+				) {
+					App.kickNotifyWorker(5);
+				}
 
+				const ui = (r.data && r.data.ui) ? r.data.ui : {};
+				const sid = ui.message ? (ui.message.match(/\((.*?)\)/)?.[1] || val) : val;
+				const rawName = ui.message ? (ui.message.split(' ')[0] || '') : '';
+				const maskedName = UI.maskName(rawName);
             if (r.data && r.data.alreadyDone) {
               UI.showModal(false, ui.title || '이미 처리됨', maskedName + ' (' + sid + ')');
               UI.beep(false);
