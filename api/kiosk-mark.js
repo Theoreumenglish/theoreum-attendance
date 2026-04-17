@@ -4,8 +4,9 @@ import { studentQrVerify } from '../lib/student-qr-core.js';
 import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
-const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT']);
+const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
+const MOVE_DEDUPE_MS = 90000;
 
 function toPositiveInt(value, fallback) {
   const n = Number(value);
@@ -35,6 +36,8 @@ function normalizeAction(input) {
   const text = String(input || '').trim().toUpperCase();
   if (text === 'IN' || text === 'CHECKIN' || text === 'CHECK_IN') return 'CHECK_IN';
   if (text === 'OUT' || text === 'CHECKOUT' || text === 'CHECK_OUT') return 'CHECK_OUT';
+  if (text === 'MOVE') return 'MOVE';
+  if (text === 'OUTING') return 'OUTING';
   return text;
 }
 
@@ -162,48 +165,6 @@ async function findStudent(supabase, sid) {
   return { data, error };
 }
 
-async function findTodayClassIds(supabase, sid, yyyymmdd) {
-  const { data: rels, error: relErr } = await supabase
-    .from('class_students')
-    .select('class_id')
-    .eq('student_id', sid);
-
-  if (relErr) return { error: relErr };
-
-  const classIds = Array.from(
-    new Set((rels || []).map(x => String(x.class_id || '').trim()).filter(Boolean))
-  );
-
-  if (!classIds.length) return { data: [] };
-
-  const { data: schedules, error: schErr } = await supabase
-    .from('class_schedule')
-    .select('class_id, class_name, teacher, start, end, status, reason')
-    .eq('yyyymmdd', yyyymmdd)
-    .in('class_id', classIds)
-    .eq('status', 'SCHEDULED')
-    .order('start', { ascending: true });
-
-  if (schErr) return { error: schErr };
-
-  return { data: schedules || [] };
-}
-
-async function findExistingTodayAction(supabase, sid, yyyymmdd, actionType) {
-  const { data, error } = await supabase
-    .from('attendance_logs')
-    .select('record_id, action_type, ts, trace_id')
-    .eq('student_id', sid)
-    .eq('yyyymmdd', yyyymmdd)
-    .eq('action_type', actionType)
-    .eq('result', 'OK')
-    .order('ts', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return { data, error };
-}
-
 async function findExistingTrace(supabase, traceId) {
   const { data, error } = await supabase
     .from('attendance_logs')
@@ -223,6 +184,88 @@ async function insertAttendanceLog(supabase, record) {
     .single();
 
   return { data, error };
+}
+
+async function getTodayLogs(supabase, sid, yyyymmdd) {
+  const { data, error } = await supabase
+    .from('attendance_logs')
+    .select('ts, action_type, kiosk_floor, meta_json, trace_id')
+    .eq('student_id', sid)
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('result', 'OK')
+    .order('ts', { ascending: true });
+
+  return { data: data || [], error };
+}
+
+function parseOutingFromMeta(meta) {
+  if (!meta || typeof meta !== 'object') return '';
+  const v = String(meta.outing || '').trim().toUpperCase();
+  if (v === 'START' || v === 'OUT' || v === 'OUTING_OUT') return 'START';
+  if (v === 'RETURN' || v === 'BACK' || v === 'OUTING_BACK') return 'RETURN';
+  return '';
+}
+
+function buildTodayState(logs) {
+  const state = {
+    checkedIn: false,
+    checkedOut: false,
+    outingActive: false,
+    lastActionType: '',
+    lastActionTs: 0,
+    lastMoveTs: 0,
+    lastMoveFloor: '',
+    lastCheckInTs: 0,
+    lastCheckOutTs: 0
+  };
+
+  for (const row of logs) {
+    const action = String(row?.action_type || '').trim().toUpperCase();
+    const ts = Date.parse(String(row?.ts || ''));
+    const ms = Number.isFinite(ts) ? ts : 0;
+
+    state.lastActionType = action || state.lastActionType;
+    state.lastActionTs = ms || state.lastActionTs;
+
+    if (action === 'CHECK_IN') {
+      state.checkedIn = true;
+      state.checkedOut = false;
+      state.outingActive = false;
+      state.lastCheckInTs = ms;
+      continue;
+    }
+
+    if (action === 'CHECK_OUT') {
+      state.checkedOut = true;
+      state.outingActive = false;
+      state.lastCheckOutTs = ms;
+      continue;
+    }
+
+    if (action === 'MOVE') {
+      state.lastMoveTs = ms;
+      state.lastMoveFloor = String(row?.kiosk_floor || '').trim().toUpperCase();
+      continue;
+    }
+
+    if (action === 'OUTING_OUT') {
+      state.outingActive = true;
+      continue;
+    }
+
+    if (action === 'OUTING_BACK') {
+      state.outingActive = false;
+      continue;
+    }
+
+    if (action === 'OUTING') {
+      const outing = parseOutingFromMeta(row?.meta_json);
+      if (outing === 'START') state.outingActive = true;
+      if (outing === 'RETURN') state.outingActive = false;
+    }
+  }
+
+  return state;
 }
 
 function mapQrVerifyError(err) {
@@ -327,162 +370,78 @@ async function verifyStudentQrDirect(qrText) {
   });
 }
 
-async function notifyParentSoft(student, actionType, traceId) {
-  const timeoutMs = toPositiveInt(process.env.ATT_NOTIFY_TIMEOUT_MS, 1200);
-
-  try {
-    return await Promise.race([
-      notifyParentOnAttendanceDirect(student, actionType, traceId),
-      new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            attempted: true,
-            ok: false,
-            channel: '',
-            error: 'NOTIFY_TIMEOUT',
-            reason: 'TIMEOUT'
-          });
-        }, timeoutMs);
-      })
-    ]);
-  } catch (e) {
-    return {
-      attempted: true,
+function fail(status, code, message, detail = {}) {
+  return {
+    status,
+    body: {
       ok: false,
-      channel: '',
-      error: e?.message || 'NOTIFY_FAIL',
-      reason: 'ERROR'
-    };
-  }
+      error: { code, message, detail }
+    }
+  };
+}
+
+function success(body) {
+  return { status: 200, body };
 }
 
 export async function handleKioskMark(payload) {
   const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
   const args = pickArgs(payload);
 
-  const action = normalizeAction(args.action || args.type);
+  const requestedAction = normalizeAction(args.action || args.type);
   const input = String(args.input || '').trim();
   const kioskFloor = normalizeFloor(args.kiosk_floor || args.floor || args.kioskFloor || '5F');
   const traceId = buildTraceId(payload);
 
-  if (!action) {
-    return {
-      status: 400,
-      body: {
-        ok: false,
-        error: {
-          code: 'BAD_ACTION',
-          message: 'action 값이 필요합니다.'
-        }
-      }
-    };
+  if (!requestedAction) {
+    return fail(400, 'BAD_ACTION', 'action 값이 필요합니다.');
   }
 
-  if (!ALLOWED_ACTIONS.has(action)) {
-    if (gasUrl) {
-      return await proxyToGas(payload, gasUrl);
-    }
-
-    return {
-      status: 400,
-      body: {
-        ok: false,
-        error: {
-          code: 'BAD_ACTION',
-          message: '현재 Vercel 직처리는 CHECK_IN / CHECK_OUT만 지원합니다.'
-        }
-      }
-    };
+  if (!ALLOWED_ACTIONS.has(requestedAction)) {
+    if (gasUrl) return await proxyToGas(payload, gasUrl);
+    return fail(400, 'BAD_ACTION', '지원하지 않는 action 입니다.');
   }
 
   if (!input) {
-    return {
-      status: 400,
-      body: {
-        ok: false,
-        error: {
-          code: 'BAD_INPUT',
-          message: 'input 값이 필요합니다.'
-        }
-      }
-    };
+    return fail(400, 'BAD_INPUT', 'input 값이 필요합니다.');
   }
 
   if (!ALLOWED_FLOORS.has(kioskFloor)) {
-    return {
-      status: 400,
-      body: {
-        ok: false,
-        error: {
-          code: 'BAD_KIOSK_FLOOR',
-          message: 'kiosk_floor는 5F 또는 7F여야 합니다.'
-        }
-      }
-    };
+    return fail(400, 'BAD_KIOSK_FLOOR', 'kiosk_floor는 5F 또는 7F여야 합니다.');
   }
 
   const isQr = isStudentQrText(input);
   const sidFromIdInput = normalizeStudentId(input);
 
-  console.info('[kiosk.mark] entered', {
-    action,
-    kioskFloor,
-    isQr,
-    inputPreview: input.slice(0, 24),
-    hasSessionToken: !!payload?.sessionToken
-  });
-
-  // 예외학생 4자리 입력 경로는 정책 보존을 위해 GAS에 남긴다.
-  // 본질적 속도 패치는 학생 QR 등/하원 핫패스만 Vercel 직처리한다.
-  if (!isQr && sidFromIdInput && gasUrl) {
+  if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput && gasUrl) {
     return await proxyToGas(payload, gasUrl);
   }
 
-  if (!isQr && !sidFromIdInput) {
-    if (gasUrl) {
-      return await proxyToGas(payload, gasUrl);
-    }
+  if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && !sidFromIdInput) {
+    return fail(400, 'QR_REQUIRED', '등/하원은 전용 QR 또는 예외학생 학번 승인 경로만 사용할 수 있습니다.');
+  }
 
-    return {
-      status: 400,
-      body: {
-        ok: false,
-        error: {
-          code: 'QR_REQUIRED',
-          message: '등/하원은 전용 QR만 사용할 수 있습니다.'
-        }
-      }
-    };
+  if ((requestedAction === 'MOVE' || requestedAction === 'OUTING') && !sidFromIdInput) {
+    return fail(400, 'BAD_INPUT', '교실이동/외출복귀는 학번 4자리 입력만 가능합니다.');
   }
 
   try {
     const supabase = getSupabaseAdmin();
     const yyyymmdd = formatYmdKst(new Date());
+    const now = new Date();
+    const nowMs = now.getTime();
 
-    const { data: traceExisting, error: traceErr } = await findExistingTrace(supabase, traceId);
+    const { data: existingTrace, error: traceErr } = await findExistingTrace(supabase, traceId);
     if (traceErr) {
-      return {
-        status: 500,
-        body: {
-          ok: false,
-          error: {
-            code: 'DB_SELECT_FAILED',
-            message: traceErr.message || 'attendance_logs trace 조회 실패'
-          }
-        }
-      };
+      return fail(500, 'DB_SELECT_FAILED', traceErr.message || 'attendance_logs trace 조회 실패');
     }
-
-    if (traceExisting) {
-      return {
-        status: 200,
-        body: {
-          ok: true,
-          duplicate: true,
-          record: traceExisting,
-          traceId
-        }
-      };
+    if (existingTrace) {
+      return success({
+        ok: true,
+        duplicate: true,
+        record: existingTrace,
+        traceId
+      });
     }
 
     let sid = sidFromIdInput;
@@ -492,10 +451,7 @@ export async function handleKioskMark(payload) {
 
     if (isQr) {
       const verifyOut = await verifyStudentQrDirect(input);
-
-      if (!verifyOut.ok) {
-        return mapQrVerifyError(verifyOut.error);
-      }
+      if (!verifyOut.ok) return mapQrVerifyError(verifyOut.error);
 
       sid = normalizeStudentId(verifyOut.data?.student_id);
       inputMode = 'QR';
@@ -503,141 +459,143 @@ export async function handleKioskMark(payload) {
       verifiedStudentName = String(verifyOut.data?.student_name || '').trim();
 
       if (!sid) {
-        return {
-          status: 500,
-          body: {
-            ok: false,
-            error: {
-              code: 'SERVER_ERROR',
-              message: 'QR 검증 결과에 student_id가 없습니다.'
-            }
-          }
-        };
+        return fail(500, 'SERVER_ERROR', 'QR 검증 결과에 student_id가 없습니다.');
       }
     }
 
     const { data: student, error: studentErr } = await findStudent(supabase, sid);
     if (studentErr) {
-      console.error('[kiosk.mark] student read failed', {
-        sid,
-        message: studentErr.message || String(studentErr)
-      });
-
-      return {
-        status: 500,
-        body: {
-          ok: false,
-          error: {
-            code: 'SUPABASE_STUDENT_READ_FAIL',
-            message: studentErr.message || 'students 조회 실패'
-          }
-        }
-      };
+      return fail(500, 'SUPABASE_STUDENT_READ_FAIL', studentErr.message || 'students 조회 실패');
     }
-
     if (!student) {
-      return {
-        status: 404,
-        body: {
-          ok: false,
-          error: {
-            code: 'STUDENT_NOT_FOUND',
-            message: '학생을 찾지 못했습니다.'
-          }
-        }
-      };
+      return fail(404, 'STUDENT_NOT_FOUND', '학생을 찾지 못했습니다.');
     }
-
     if (!isActiveStudentStatus(student.status)) {
-      return {
-        status: 403,
-        body: {
-          ok: false,
-          error: {
-            code: 'NOT_ACTIVE',
-            message: '재원 상태 학생만 출결 처리할 수 있습니다.'
-          }
-        }
-      };
+      return fail(403, 'NOT_ACTIVE', '재원 상태 학생만 출결 처리할 수 있습니다.');
     }
 
-    const { data: todaySchedules, error: scheduleErr } = await findTodayClassIds(supabase, sid, yyyymmdd);
-    if (scheduleErr) {
-      console.error('[kiosk.mark] today schedule read failed', {
-        sid,
-        yyyymmdd,
-        message: scheduleErr.message || String(scheduleErr)
-      });
-
-      return {
-        status: 500,
-        body: {
-          ok: false,
-          error: {
-            code: 'SUPABASE_SCHEDULE_READ_FAIL',
-            message: scheduleErr.message || 'class_schedule 조회 실패'
-          }
-        }
-      };
+    const { data: todayLogs, error: logsErr } = await getTodayLogs(supabase, sid, yyyymmdd);
+    if (logsErr) {
+      return fail(500, 'DB_SELECT_FAILED', logsErr.message || '오늘 출결 조회 실패');
     }
 
-    const schedules = Array.isArray(todaySchedules) ? todaySchedules : [];
-    const hasTodaySchedule = schedules.length > 0;
-    const primarySchedule = hasTodaySchedule ? schedules[0] : null;
+    const state = buildTodayState(todayLogs);
 
-    const now = new Date();
-    const nowMs = now.getTime();
+    let finalAction = requestedAction;
+    let title = '';
+    let message = `${student.student_name || verifiedStudentName} (${student.student_id})`;
+    let metaJson = {
+      actor: '__VERCEL__',
+      source: 'supabase-direct',
+      input_mode: inputMode
+    };
 
-    const { data: existingAction, error: existingErr } = await findExistingTodayAction(
-      supabase,
-      sid,
-      yyyymmdd,
-      action
-    );
+    if (requestedAction === 'CHECK_IN') {
+      if (state.checkedIn && !state.checkedOut) {
+        return success({
+          ok: true,
+          data: {
+            duplicate: false,
+            alreadyDone: true,
+            source: 'supabase-direct',
+            action: 'CHECK_IN',
+            student,
+            ui: {
+              title: '이미 등원 처리됨',
+              message
+            }
+          },
+          traceId
+        });
+      }
 
-    if (existingErr) {
-      return {
-        status: 500,
-        body: {
-          ok: false,
-          error: {
-            code: 'DB_SELECT_FAILED',
-            message: existingErr.message || '기존 출결 조회 실패'
-          }
-        }
-      };
+      finalAction = 'CHECK_IN';
+      title = '등원 완료';
     }
 
-    const sameActionCooldownMs = toPositiveInt(
-      process.env.KIOSK_SAME_ACTION_COOLDOWN_MS,
-      15000
-    );
+    if (requestedAction === 'CHECK_OUT') {
+      if (!state.checkedIn) {
+        return fail(400, 'NOT_CHECKED_IN', '아직 등원 처리되지 않은 학생입니다.');
+      }
+      if (state.checkedOut) {
+        return success({
+          ok: true,
+          data: {
+            duplicate: false,
+            alreadyDone: true,
+            source: 'supabase-direct',
+            action: 'CHECK_OUT',
+            student,
+            ui: {
+              title: '이미 하원 처리됨',
+              message
+            }
+          },
+          traceId
+        });
+      }
+      if (state.outingActive) {
+        return fail(400, 'OUTING_ACTIVE', '외출 중에는 하원 처리할 수 없습니다. 먼저 복귀 처리하세요.');
+      }
 
-    if (existingAction) {
-      const prevTs = Date.parse(String(existingAction.ts || ''));
-      const diffMs = Number.isFinite(prevTs) ? (nowMs - prevTs) : Number.MAX_SAFE_INTEGER;
+      finalAction = 'CHECK_OUT';
+      title = '하원 완료';
+    }
 
-      if (diffMs >= 0 && diffMs < sameActionCooldownMs) {
-        return {
-          status: 200,
-          body: {
-            ok: true,
-            data: {
-              duplicate: false,
-              alreadyDone: true,
-              source: 'supabase-direct',
-              action,
-              input,
-              student,
-              schedule: primarySchedule,
-              ui: {
-                title: action === 'CHECK_IN' ? '중복 등원 스캔' : '중복 하원 스캔',
-                message: `${student.student_name} (${student.student_id}) · ${Math.ceil((sameActionCooldownMs - diffMs) / 1000)}초 이내 중복 스캔`
-              }
-            },
-            traceId
-          }
-        };
+    if (requestedAction === 'MOVE') {
+      if (!state.checkedIn) {
+        return fail(400, 'NOT_CHECKED_IN', '등원 후에만 교실 이동을 사용할 수 있습니다.');
+      }
+      if (state.checkedOut) {
+        return fail(400, 'ALREADY_CHECKED_OUT', '이미 하원 처리된 학생입니다.');
+      }
+      if (state.outingActive) {
+        return fail(400, 'OUTING_ACTIVE', '외출 중에는 교실 이동을 사용할 수 없습니다.');
+      }
+
+      if (
+        state.lastActionType === 'MOVE' &&
+        state.lastMoveFloor === kioskFloor &&
+        state.lastMoveTs > 0 &&
+        nowMs - state.lastMoveTs < MOVE_DEDUPE_MS
+      ) {
+        return success({
+          ok: true,
+          data: {
+            duplicate: false,
+            alreadyDone: true,
+            source: 'supabase-direct',
+            action: 'MOVE',
+            student,
+            ui: {
+              title: '중복 교실 이동',
+              message: `${message} · ${Math.ceil((MOVE_DEDUPE_MS - (nowMs - state.lastMoveTs)) / 1000)}초 이내 중복 입력`
+            }
+          },
+          traceId
+        });
+      }
+
+      finalAction = 'MOVE';
+      title = '교실 이동 완료';
+    }
+
+    if (requestedAction === 'OUTING') {
+      if (!state.checkedIn) {
+        return fail(400, 'NOT_CHECKED_IN', '등원 후에만 외출/복귀를 사용할 수 있습니다.');
+      }
+      if (state.checkedOut) {
+        return fail(400, 'ALREADY_CHECKED_OUT', '이미 하원 처리된 학생입니다.');
+      }
+
+      if (state.outingActive) {
+        finalAction = 'OUTING_BACK';
+        title = '복귀 완료';
+        metaJson.outing = 'RETURN';
+      } else {
+        finalAction = 'OUTING_OUT';
+        title = '외출 완료';
+        metaJson.outing = 'START';
       }
     }
 
@@ -646,105 +604,65 @@ export async function handleKioskMark(payload) {
       ts: now.toISOString(),
       yyyymmdd,
       student_id: sid,
-      action_type: action,
+      action_type: finalAction,
       kiosk_floor: kioskFloor,
-      meta_json: {
-        actor: '__VERCEL__',
-        input_mode: inputMode,
-        source: 'supabase-direct',
-        has_today_schedule: hasTodaySchedule ? 'Y' : 'N',
-        class_id: primarySchedule ? primarySchedule.class_id : '',
-        class_name: primarySchedule ? (primarySchedule.class_name || '') : '',
-        today_class_ids: schedules.map(x => String(x.class_id || '').trim()).filter(Boolean),
-        qr_verify_direct: inputMode === 'QR' ? 'Y' : 'N'
-      },
+      meta_json: metaJson,
       result: 'OK',
       deny_reason: '',
-      qr_id: inputMode === 'QR'
-        ? (qrId || String(student.qr_id || '').trim())
-        : '',
+      qr_id: inputMode === 'QR' ? (qrId || String(student.qr_id || '').trim()) : '',
       trace_id: traceId
     };
 
     const { data: inserted, error: insertErr } = await insertAttendanceLog(supabase, record);
     if (insertErr) {
-      return {
-        status: 500,
-        body: {
-          ok: false,
-          error: {
-            code: 'DB_INSERT_FAILED',
-            message: insertErr.message || 'attendance_logs insert 실패'
-          }
-        }
-      };
+      return fail(500, 'DB_INSERT_FAILED', insertErr.message || 'attendance_logs insert 실패');
     }
 
-    const notifyResult = await enqueueAttendanceNotify(
-      {
-        ...student,
-        student_name: student.student_name || verifiedStudentName || ''
-      },
-      action,
-      traceId
-    );
-
-    console.info('[kiosk.mark] supabase direct success', {
-      sid,
-      yyyymmdd,
-      action,
-      classId: primarySchedule ? primarySchedule.class_id : '',
-      hasTodaySchedule,
-      inputMode,
-      traceId,
-      notify: notifyResult
-    });
-
-    return {
-      status: 200,
-      body: {
-        ok: true,
-        data: {
-          duplicate: false,
-          alreadyDone: false,
-          source: 'supabase-direct',
-          action,
-          input,
-          student: {
-            ...student,
-            student_name: student.student_name || verifiedStudentName || ''
-          },
-          schedule: primarySchedule,
-          notify: notifyResult,
-          ui: {
-            title: action === 'CHECK_IN' ? '등원 완료' : '하원 완료',
-            message: hasTodaySchedule
-              ? `${student.student_name || verifiedStudentName} (${student.student_id})`
-              : `${student.student_name || verifiedStudentName} (${student.student_id}) · 오늘 수업 정보 없음`
-          }
-        },
-        traceId,
-        record: inserted
-      }
+    let notifyResult = {
+      attempted: false,
+      queued: false,
+      ok: true,
+      channel: '',
+      error: '',
+      reason: 'NOT_ATTENDANCE_ACTION'
     };
-  } catch (e) {
-    console.error('[kiosk.mark] direct handler exception', {
-      message: e?.message || String(e)
-    });
 
-    if (gasUrl) {
+    if (finalAction === 'CHECK_IN' || finalAction === 'CHECK_OUT') {
+      notifyResult = await enqueueAttendanceNotify(
+        {
+          ...student,
+          student_name: student.student_name || verifiedStudentName || ''
+        },
+        finalAction,
+        traceId
+      );
+    }
+
+    return success({
+      ok: true,
+      data: {
+        duplicate: false,
+        alreadyDone: false,
+        source: 'supabase-direct',
+        action: finalAction,
+        student: {
+          ...student,
+          student_name: student.student_name || verifiedStudentName || ''
+        },
+        notify: notifyResult,
+        ui: {
+          title,
+          message
+        }
+      },
+      traceId,
+      record: inserted
+    });
+  } catch (e) {
+    if (gasUrl && (requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT')) {
       return await proxyToGas(payload, gasUrl);
     }
 
-    return {
-      status: 500,
-      body: {
-        ok: false,
-        error: {
-          code: 'SERVER_ERROR',
-          message: e?.message || 'kiosk.mark 처리 실패'
-        }
-      }
-    };
+    return fail(500, 'SERVER_ERROR', e?.message || 'kiosk.mark 처리 실패');
   }
 }
