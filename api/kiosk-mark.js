@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
+import { notifyParentOnAttendanceDirect } from '../lib/attendance-notify.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT']);
@@ -154,7 +155,7 @@ async function proxyToGas(payload, gasUrl) {
 async function findStudent(supabase, sid) {
   const { data, error } = await supabase
     .from('students')
-    .select('student_id, student_name, status, qr_id, is_exception')
+    .select('student_id, student_name, school, grade, parent_phone, status, qr_id, is_exception')
     .eq('student_id', sid)
     .maybeSingle();
 
@@ -650,6 +651,15 @@ export async function handleKioskMark(payload) {
       };
     }
 
+    const notifyResult = await notifyParentOnAttendanceDirect(
+  {
+    ...student,
+    student_name: student.student_name || verifiedStudentName || ''
+  },
+  action,
+  traceId
+);
+
     console.info('[kiosk.mark] supabase direct success', {
       sid,
       yyyymmdd,
@@ -657,7 +667,8 @@ export async function handleKioskMark(payload) {
       classId: primarySchedule ? primarySchedule.class_id : '',
       hasTodaySchedule,
       inputMode,
-      traceId
+      traceId,
+      notify: notifyResult
     });
 
     return {
@@ -675,6 +686,7 @@ export async function handleKioskMark(payload) {
             student_name: student.student_name || verifiedStudentName || ''
           },
           schedule: primarySchedule,
+          notify: notifyResult,
           ui: {
             title: action === 'CHECK_IN' ? '등원 완료' : '하원 완료',
             message: hasTodaySchedule
