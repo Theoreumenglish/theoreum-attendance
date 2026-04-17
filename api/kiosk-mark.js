@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
-import { notifyParentOnAttendanceDirect } from '../lib/attendance-notify.js';
+import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT']);
@@ -680,7 +680,7 @@ export async function handleKioskMark(payload) {
       };
     }
 
-    const notifyResult = await notifyParentSoft(
+    const notifyResult = await enqueueAttendanceNotify(
   {
     ...student,
     student_name: student.student_name || verifiedStudentName || ''
