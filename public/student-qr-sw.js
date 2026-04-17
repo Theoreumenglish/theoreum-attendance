@@ -1,10 +1,11 @@
-const CACHE = 'theoreum-attendance-shell-v18';
-const SHELL = [
-  '/',
-  '/manifest.webmanifest',
+const VERSION = 'student-qr-vercel-v18';
+const CACHE_NAME = 'theoreum-student-qr-' + VERSION;
+
+const SHELL_URLS = [
+  '/student-qr.html',
+  '/student-qr-manifest.webmanifest',
+  '/student-qr-lib.js',
   '/theoreum-banner.png',
-  '/student-qr-brand.svg',
-  '/favicon.svg',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-apple-180.png'
@@ -12,10 +13,10 @@ const SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
+    const cache = await caches.open(CACHE_NAME);
 
     const results = await Promise.allSettled(
-      SHELL.map(async (url) => {
+      SHELL_URLS.map(async (url) => {
         const res = await fetch(url, { cache: 'no-store' });
         if (!res || !res.ok || res.type === 'opaque') {
           throw new Error('CACHE_INSTALL_FAIL: ' + url + ' [' + (res ? res.status : 'NO_RESPONSE') + ']');
@@ -29,7 +30,7 @@ self.addEventListener('install', (event) => {
       .map(x => String(x.reason && x.reason.message ? x.reason.message : x.reason || 'unknown'));
 
     if (failed.length) {
-      console.warn('[SW_INSTALL_PARTIAL_FAIL]', failed);
+      console.warn('[STUDENT_QR_SW_INSTALL_PARTIAL_FAIL]', failed);
     }
 
     self.skipWaiting();
@@ -40,7 +41,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.map((k) => (k !== CACHE ? caches.delete(k) : Promise.resolve()))
+        keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve()))
       ))
       .then(() => self.clients.claim())
   );
@@ -54,7 +55,7 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/'))
+      fetch(event.request).catch(() => caches.match('/student-qr.html'))
     );
     return;
   }
@@ -67,7 +68,7 @@ self.addEventListener('fetch', (event) => {
         .then((res) => {
           if (!res || !res.ok || res.type === 'opaque') return res;
           const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
           return res;
         })
         .catch(() => caches.match(event.request));

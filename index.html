@@ -1371,18 +1371,19 @@
 
 			async init() {
 				if (App._booted) {
-					await App.refreshMeta();
+					App.refreshMeta().catch(() => {});
 					return;
 				}
 				App._booted = true;
 
-				await App.refreshMeta();
 				Router.bindTopbar();
 				$('#btnLogout').addEventListener('click', Auth.logout);
 
 				if (App.currentView === 'staff') await Router.goStaff();
-        else await Router.goKiosk();
-			}
+				else await Router.goKiosk();
+
+				App.refreshMeta().catch(() => {});
+				}
 		};
 
 		const Voice = {

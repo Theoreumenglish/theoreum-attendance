@@ -327,6 +327,35 @@ async function verifyStudentQrDirect(qrText) {
   });
 }
 
+async function notifyParentSoft(student, actionType, traceId) {
+  const timeoutMs = toPositiveInt(process.env.ATT_NOTIFY_TIMEOUT_MS, 1200);
+
+  try {
+    return await Promise.race([
+      notifyParentOnAttendanceDirect(student, actionType, traceId),
+      new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            attempted: true,
+            ok: false,
+            channel: '',
+            error: 'NOTIFY_TIMEOUT',
+            reason: 'TIMEOUT'
+          });
+        }, timeoutMs);
+      })
+    ]);
+  } catch (e) {
+    return {
+      attempted: true,
+      ok: false,
+      channel: '',
+      error: e?.message || 'NOTIFY_FAIL',
+      reason: 'ERROR'
+    };
+  }
+}
+
 export async function handleKioskMark(payload) {
   const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
   const args = pickArgs(payload);
@@ -651,7 +680,7 @@ export async function handleKioskMark(payload) {
       };
     }
 
-    const notifyResult = await notifyParentOnAttendanceDirect(
+    const notifyResult = await notifyParentSoft(
   {
     ...student,
     student_name: student.student_name || verifiedStudentName || ''

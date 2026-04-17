@@ -1,8 +1,8 @@
 {
-  "id": "/",
-  "name": "더오름 출결",
-  "short_name": "더오름출결",
-  "start_url": "/",
+  "id": "/student-qr.html",
+  "name": "더오름 QR 발급기",
+  "short_name": "더오름QR",
+  "start_url": "/student-qr.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f1f5f9",
