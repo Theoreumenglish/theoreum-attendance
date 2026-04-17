@@ -21,12 +21,12 @@ function readLimit(req) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
+  if (req.method !== 'POST') {
     return send(res, 405, {
       ok: false,
       error: {
         code: 'METHOD_NOT_ALLOWED',
-        message: 'GET 또는 POST만 허용됩니다.'
+        message: 'POST만 허용됩니다.'
       }
     });
   }
