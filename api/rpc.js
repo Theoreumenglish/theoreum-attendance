@@ -1,5 +1,8 @@
 import { handleKioskMark } from './kiosk-mark.js';
 import { handleStaffClockQr } from './staff-clock-qr.js';
+import { handleStaffClock } from './staff-clock.js';
+import { handleKioskApprovePin } from './kiosk-approve-pin.js';
+import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const MAX_BODY_BYTES = 64 * 1024;
@@ -89,8 +92,38 @@ export default async function handler(req, res) {
     });
   }
 
+  if (op === 'auth.login') {
+    const result = await authLoginDirect(payload.args || {});
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'auth.me') {
+    const me = await authMeDirect(
+      (payload.args && payload.args.sessionToken) || payload.sessionToken || '',
+      { touch: true }
+    );
+    return send(res, 200, { ok: true, data: me });
+  }
+
+  if (op === 'auth.logout') {
+    const result = await authLogoutDirect(
+      (payload.args && payload.args.sessionToken) || payload.sessionToken || ''
+    );
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'kiosk.approvePin') {
+    const result = await handleKioskApprovePin(payload);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'kiosk.mark') {
     const result = await handleKioskMark(payload);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'staff.clock') {
+    const result = await handleStaffClock(payload);
     return send(res, result.status, result.body);
   }
 

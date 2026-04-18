@@ -20,6 +20,25 @@ function readLimit(req) {
   return undefined;
 }
 
+function isWorkerAuthorized(req) {
+  const expected = String(process.env.NOTIFY_WORKER_KEY || '').trim();
+  if (!expected) return true;
+
+  const fromHeader = String(
+    req?.headers?.['x-worker-key'] ||
+    req?.headers?.['x-notify-worker-key'] ||
+    ''
+  ).trim();
+
+  const fromBody =
+    req?.body && typeof req.body === 'object'
+      ? String(req.body.worker_key || '').trim()
+      : '';
+
+  const provided = fromHeader || fromBody;
+  return !!provided && provided === expected;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return send(res, 405, {
@@ -27,6 +46,16 @@ export default async function handler(req, res) {
       error: {
         code: 'METHOD_NOT_ALLOWED',
         message: 'POST만 허용됩니다.'
+      }
+    });
+  }
+
+  if (!isWorkerAuthorized(req)) {
+    return send(res, 401, {
+      ok: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'worker 호출 인증 실패'
       }
     });
   }

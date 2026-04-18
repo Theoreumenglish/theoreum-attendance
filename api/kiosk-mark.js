@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
 import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
+import { hasValidPinApproval } from '../lib/staff-auth.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
@@ -413,9 +414,7 @@ export async function handleKioskMark(payload) {
   const isQr = isStudentQrText(input);
   const sidFromIdInput = normalizeStudentId(input);
 
-  if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput && gasUrl) {
-    return await proxyToGas(payload, gasUrl);
-  }
+  // 예외학생 학번 등·하원도 direct 처리
 
   if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && !sidFromIdInput) {
     return fail(400, 'QR_REQUIRED', '등/하원은 전용 QR 또는 예외학생 학번 승인 경로만 사용할 수 있습니다.');
@@ -446,6 +445,9 @@ export async function handleKioskMark(payload) {
 
     let sid = sidFromIdInput;
     let inputMode = 'ID';
+    if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput) {
+      inputMode = 'EXCEPTION_ID';
+    }
     let qrId = '';
     let verifiedStudentName = '';
 
@@ -472,6 +474,18 @@ export async function handleKioskMark(payload) {
     }
     if (!isActiveStudentStatus(student.status)) {
       return fail(403, 'NOT_ACTIVE', '재원 상태 학생만 출결 처리할 수 있습니다.');
+    }
+
+    if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput) {
+      const isException = String(student.is_exception || '').trim().toUpperCase() === 'Y';
+      if (!isException) {
+        return fail(400, 'NOT_EXCEPTION', '예외 등록된 학생만 학번으로 등/하원할 수 있습니다.');
+      }
+
+      const approved = await hasValidPinApproval(sid);
+      if (!approved) {
+        return fail(400, 'NEED_PIN', '예외학생은 데스크 PIN 승인이 필요합니다.');
+      }
     }
 
     const { data: todayLogs, error: logsErr } = await getTodayLogs(supabase, sid, yyyymmdd);
