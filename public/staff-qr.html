@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="직원QR">
+  <meta name="theme-color" content="#4f46e5">
+  <title>직원 QR코드 생성기</title>
+
+  <link rel="manifest" href="/staff-qr-manifest.webmanifest">
+  <link rel="icon" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" sizes="512x512" href="/icon-512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-apple-180.png">
+
+  <!-- 학생 QR 페이지가 이미 쓰는 QR 라이브러리 파일 재사용 -->
+  <script src="/student-qr-lib.js"></script>
+
+  <style>
+    :root{
+      --bg-gradient-start:#f8fbff;
+      --bg-gradient-end:#eef4ff;
+      --card-bg:rgba(255,255,255,.98);
+
+      --text-main:#0f172a;
+      --text-sub:#64748b;
+      --text-placeholder:#94a3b8;
+
+      --primary-color:#4f46e5;
+      --primary-hover:#4338ca;
+      --secondary-color:#2563eb;
+
+      --error-bg:#fef2f2;
+      --error-text:#b91c1c;
+      --error-border:#fecaca;
+
+      --ok-bg:#ecfdf5;
+      --ok-text:#166534;
+      --ok-border:#bbf7d0;
+
+      --card-shadow:0 5vw 10vw rgba(0,0,0,.06), 0 1.5vw 3vw rgba(0,0,0,.03);
+      --input-shadow:0 .5vw 1vw rgba(0,0,0,.03) inset;
+
+      --border-radius-xl:clamp(28px,6.5vw,48px);
+      --border-radius-lg:clamp(18px,4.5vw,28px);
+      --border-radius-md:clamp(14px,3.5vw,20px);
+    }
+
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+      margin:0;
+      padding:0;
+    }
+
+    html, body{
+      width:100%;
+      height:100%;
+    }
+
+    body{
+      background:linear-gradient(135deg,var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      color:var(--text-main);
+      font-family:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:env(safe-area-inset-top) 4vw env(safe-area-inset-bottom) 4vw;
+      overflow-x:hidden;
+    }
+
+    .card{
+      width:94vw;
+      max-width:760px;
+      min-height:clamp(640px, 86vh, 920px);
+      background:var(--card-bg);
+      border-radius:var(--border-radius-xl);
+      box-shadow:var(--card-shadow);
+      padding:clamp(28px, 5vw, 44px);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      backdrop-filter:blur(12px);
+    }
+
+    .brand-logo-container{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin-bottom:clamp(18px, 4vw, 28px);
+    }
+
+    .brand-logo{
+      width:clamp(180px, 42vw, 320px);
+      height:auto;
+      object-fit:contain;
+      display:block;
+      transition:width .35s ease, margin-bottom .35s ease;
+    }
+
+    .title{
+      text-align:center;
+      font-size:clamp(30px, 7vw, 48px);
+      font-weight:900;
+      letter-spacing:-.04em;
+      color:var(--text-main);
+      margin-bottom:clamp(10px, 2vw, 14px);
+    }
+
+    .sub{
+      text-align:center;
+      font-size:clamp(16px, 4vw, 22px);
+      line-height:1.5;
+      color:var(--text-sub);
+      font-weight:700;
+      margin-bottom:clamp(24px, 5vw, 36px);
+    }
+
+    .field{
+      width:100%;
+    }
+
+    .label{
+      display:block;
+      margin-bottom:10px;
+      font-size:clamp(15px, 3.8vw, 19px);
+      font-weight:800;
+      color:var(--text-main);
+    }
+
+    .inp{
+      width:100%;
+      height:clamp(84px, 12vw, 96px);
+      border:none;
+      outline:none;
+      border-radius:var(--border-radius-lg);
+      background:#f8fafc;
+      box-shadow:var(--input-shadow);
+      padding:0 24px;
+      font-size:clamp(24px, 6vw, 42px);
+      font-weight:900;
+      color:var(--text-main);
+      text-align:center;
+      letter-spacing:2px;
+    }
+
+    #staffId{
+      font-size:clamp(22px, 5vw, 34px);
+      letter-spacing:1px;
+      text-transform:none;
+    }
+
+    #pin{
+      letter-spacing:10px;
+    }
+
+    .btnRow{
+      width:100%;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      margin-top:20px;
+    }
+
+    .btn{
+      height:clamp(72px, 11vw, 84px);
+      border:none;
+      outline:none;
+      cursor:pointer;
+      border-radius:var(--border-radius-lg);
+      font-size:clamp(20px, 4.8vw, 28px);
+      font-weight:900;
+      transition:transform .08s ease, background .2s ease, opacity .2s ease;
+    }
+
+    .btn:active{
+      transform:scale(.985);
+    }
+
+    .btnMain{
+      background:var(--primary-color);
+      color:#fff;
+    }
+
+    .btnMain:hover{
+      background:var(--primary-hover);
+    }
+
+    .btnSub{
+      background:#e2e8f0;
+      color:#334155;
+    }
+
+    .btnSub:hover{
+      background:#cbd5e1;
+    }
+
+    .msg{
+      display:none;
+      width:100%;
+      margin-top:18px;
+      padding:16px 18px;
+      border-radius:var(--border-radius-md);
+      font-size:clamp(15px, 3.8vw, 18px);
+      line-height:1.45;
+      font-weight:800;
+      text-align:center;
+    }
+
+    .msg.err{
+      display:block;
+      background:var(--error-bg);
+      color:var(--error-text);
+      border:2px solid var(--error-border);
+    }
+
+    .msg.ok{
+      display:block;
+      background:var(--ok-bg);
+      color:var(--ok-text);
+      border:2px solid var(--ok-border);
+    }
+
+    .qrWrap{
+      width:100%;
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      margin-top:clamp(24px, 5vw, 34px);
+    }
+
+    body.running .qrWrap{
+      display:flex;
+    }
+
+    .who{
+      margin-bottom:clamp(14px, 3vw, 18px);
+      font-size:clamp(22px, 5vw, 30px);
+      font-weight:900;
+      color:var(--text-main);
+      text-align:center;
+    }
+
+    .qrCard{
+      width:100%;
+      border-radius:var(--border-radius-xl);
+      background:#ffffff;
+      padding:clamp(18px, 4vw, 26px);
+      box-shadow:0 2vw 5vw rgba(0,0,0,.05);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    .qrBox{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+
+    #qrcode{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+
+    #qrcode img,
+    #qrcode canvas{
+      display:block;
+      width:100% !important;
+      height:100% !important;
+    }
+
+    .timer{
+      margin-top:clamp(24px, 6vw, 48px);
+      text-align:center;
+      font-size:clamp(20px, 5.5vw, 28px);
+      font-weight:800;
+      color:var(--secondary-color);
+      background:#f1f5f9;
+      padding:clamp(12px, 3vw, 20px) clamp(24px, 6vw, 40px);
+      border-radius:40px;
+    }
+
+    .tiny{
+      margin-top:clamp(16px, 4vw, 24px);
+      text-align:center;
+      font-size:clamp(15px, 4vw, 20px);
+      color:var(--text-placeholder);
+      font-weight:600;
+      line-height:1.45;
+    }
+
+    body.running .field,
+    body.running .btnRow,
+    body.running .title,
+    body.running .sub{
+      display:none;
+    }
+
+    body.running .brand-logo{
+      width:clamp(140px, 35vw, 260px);
+      margin-bottom:0;
+    }
+
+    @media (max-width:480px){
+      body{
+        align-items:flex-start;
+        padding-top:80px;
+        padding-bottom:60px;
+      }
+
+      .card{
+        padding:40px 24px 40px;
+        min-height:auto;
+      }
+
+      .brand-logo{ width:230px; }
+      .inp{ height:96px; }
+      #staffId{ font-size:34px; }
+      #pin{ font-size:52px; }
+      .btn{ height:80px; font-size:24px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="brand-logo-container">
+      <img
+        src="/theoreum-banner.png"
+        alt="더오름 로고"
+        class="brand-logo"
+        id="mainLogo"
+        onerror="this.onerror=null; this.src='/icon-512.png';"
+      />
+    </div>
+
+    <h1 class="title">직원 QR코드 생성기</h1>
+    <div class="sub">직원 아이디와 PIN을 입력하고<br>근태 인증용 QR을 생성해주세요.</div>
+
+    <div class="field">
+      <label class="label" for="staffId">직원 아이디</label>
+      <input
+        id="staffId"
+        class="inp"
+        inputmode="text"
+        enterkeyhint="next"
+        placeholder="staff_id"
+        autocomplete="username"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+
+      <div style="height:16px;"></div>
+
+      <label class="label" for="pin">PIN</label>
+      <input
+        id="pin"
+        class="inp"
+        type="password"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        enterkeyhint="done"
+        maxlength="8"
+        placeholder="1234"
+        autocomplete="current-password"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <div class="btnRow">
+      <button id="btnStart" class="btn btnMain" type="button">QR 생성하기</button>
+      <button id="btnStop" class="btn btnSub" type="button">초기화</button>
+    </div>
+
+    <div id="msg" class="msg err"></div>
+
+    <div id="qrWrap" class="qrWrap">
+      <div class="who" id="who"></div>
+      <div class="qrCard">
+        <div class="qrBox">
+          <div id="qrcode"></div>
+        </div>
+        <div class="timer" id="timer">-</div>
+        <div class="tiny">
+          보안을 위해 화면을 벗어나면 자동 종료됩니다.<br>
+          같은 직원 아이디로 다른 탭/기기에서 새 QR을 만들면 기존 QR은 즉시 무효가 됩니다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const APP_VERSION = 'staff-qr-vercel-v1';
+    const API = {
+      sessionStart: '/api/staff-qr/session-start',
+      frame: '/api/staff-qr/frame',
+      stop: '/api/staff-qr/stop'
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const staffIdInput = $('#staffId');
+    const pinInput = $('#pin');
+    const btnStart = $('#btnStart');
+    const btnStop = $('#btnStop');
+
+    const State = {
+      running: false,
+      starting: false,
+      sessionToken: '',
+      sessionExpAt: 0,
+      timerId: null,
+      uiTimerId: null,
+      qr: null,
+      staffId: '',
+      staffName: '',
+      role: '',
+      lastQrText: '',
+      lastFrameExpAt: 0,
+      lastRotateAt: 0,
+      serverNowOffsetMs: 0,
+      frameErrorStreak: 0,
+      inFlightFrame: false
+    };
+
+    function cleanStaffId(v){
+      return String(v || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/[^a-z0-9._-]/g, '')
+        .slice(0, 40);
+    }
+
+    function cleanPin(v){
+      return String(v || '')
+        .replace(/[^0-9]/g, '')
+        .slice(0, 8);
+    }
+
+    function maskName(name){
+      const s = String(name || '').trim();
+      if (!s) return '';
+      if (s.length <= 2) return s.charAt(0) + '*';
+      return s.charAt(0) + '*'.repeat(s.length - 2) + s.charAt(s.length - 1);
+    }
+
+    function roleKo(role){
+      const r = String(role || '').trim().toLowerCase();
+      if (r === 'assistant') return '조교';
+      if (r === 'teacher') return '강사';
+      if (r === 'admin') return '관리자';
+      if (r === 'owner') return '오너';
+      return r || '';
+    }
+
+    function setBusyUi(busy){
+      btnStart.disabled = !!busy;
+      btnStop.disabled = !!busy;
+      btnStart.style.opacity = busy ? '0.65' : '1';
+      btnStop.style.opacity = busy ? '0.65' : '1';
+      btnStart.textContent = busy ? '생성 중...' : 'QR 생성하기';
+    }
+
+    function showMsg(text, type='err'){
+      const el = $('#msg');
+      el.className = 'msg ' + (type === 'ok' ? 'ok' : 'err');
+      el.style.display = 'block';
+      el.textContent = text;
+    }
+
+    function hideMsg(){
+      const el = $('#msg');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
+    function clearQr(){
+      const box = $('#qrcode');
+      box.innerHTML = '';
+      State.qr = null;
+      State.lastQrText = '';
+      State.lastFrameExpAt = 0;
+      State.lastRotateAt = 0;
+    }
+
+    function getDynamicQrSize(){
+      const screenWidth = window.innerWidth;
+      return Math.floor(Math.min(screenWidth * 0.82, 420));
+    }
+
+    function drawQr(text){
+      const box = $('#qrcode');
+      const dynamicSize = getDynamicQrSize();
+
+      State.lastQrText = text;
+      box.style.width = dynamicSize + 'px';
+      box.style.height = dynamicSize + 'px';
+
+      if (typeof QRCode === 'undefined') {
+        throw new Error('QR 라이브러리를 불러오지 못했습니다.');
+      }
+
+      if (!State.qr) {
+        State.qr = new QRCode(box, {
+          text: '',
+          width: dynamicSize,
+          height: dynamicSize,
+          colorDark: '#0f172a',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      State.qr._applyOptions({
+        width: dynamicSize,
+        height: dynamicSize
+      });
+      State.qr.makeCode(text);
+    }
+
+    function redrawCurrentQr(){
+      if (!State.running || !State.lastQrText) return;
+      drawQr(State.lastQrText);
+      updateTimer();
+    }
+
+    function approxServerNow(){
+      return Date.now() + (State.serverNowOffsetMs || 0);
+    }
+
+    function syncServerClock(serverNow){
+      const n = Number(serverNow || 0);
+      if (!Number.isFinite(n) || n <= 0) return;
+      State.serverNowOffsetMs = n - Date.now();
+    }
+
+    function updateTimer(){
+      const nowServer = approxServerNow();
+      const remainSess = Math.max(0, State.sessionExpAt - nowServer);
+      const remainQr = Math.max(0, State.lastFrameExpAt - nowServer);
+
+      let qrText = '-';
+      if (State.lastFrameExpAt > 0) {
+        qrText = remainQr > 0 ? (Math.ceil(remainQr / 1000) + '초') : '갱신 중';
+      }
+
+      $('#timer').textContent =
+        '현재 QR ' + qrText + ' / 세션 ' + Math.ceil(remainSess / 1000) + '초';
+    }
+
+    function withTimeout(promise, ms, message){
+      return Promise.race([
+        promise,
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: false,
+              error: {
+                code: 'TIMEOUT',
+                message
+              }
+            });
+          }, ms);
+        })
+      ]);
+    }
+
+    async function postJson(url, body, timeoutMs, timeoutMessage){
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body || {}),
+          cache: 'no-store',
+          signal: controller.signal
+        });
+
+        const text = await res.text();
+        let json = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch (_) {
+          json = null;
+        }
+
+        if (json) return json;
+
+        return {
+          ok: false,
+          error: {
+            code: 'BAD_JSON',
+            message: '서버 응답을 읽지 못했습니다.'
+          }
+        };
+      } catch (e) {
+        const aborted = e && e.name === 'AbortError';
+        return {
+          ok: false,
+          error: {
+            code: aborted ? 'TIMEOUT' : 'NETWORK',
+            message: aborted ? timeoutMessage : (e?.message || '네트워크 통신 오류')
+          }
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function sessionStartRpc(staffId, pin){
+      return withTimeout(
+        postJson(API.sessionStart, { staff_id: staffId, pin }, 12000, '인증 서버 응답이 지연되고 있습니다. 다시 시도해주세요.'),
+        13000,
+        '인증 서버 응답이 지연되고 있습니다. 다시 시도해주세요.'
+      );
+    }
+
+    function sessionFrameRpc(sessionToken){
+      return withTimeout(
+        postJson(API.frame, { sessionToken }, 12000, 'QR 갱신 응답이 지연되고 있습니다.'),
+        13000,
+        'QR 갱신 응답이 지연되고 있습니다.'
+      );
+    }
+
+    function sessionStopRpc(sessionToken, keepalive = false){
+      if (!sessionToken) return Promise.resolve({ ok:true });
+
+      const body = JSON.stringify({ sessionToken });
+
+      if (keepalive && navigator.sendBeacon) {
+        try {
+          const blob = new Blob([body], { type: 'application/json' });
+          navigator.sendBeacon(API.stop, blob);
+          return Promise.resolve({ ok:true });
+        } catch(_) {}
+      }
+
+      return postJson(API.stop, { sessionToken }, 7000, '세션 종료 응답이 지연되고 있습니다.');
+    }
+
+    function clearTimers(){
+      if (State.timerId) clearTimeout(State.timerId);
+      if (State.uiTimerId) clearInterval(State.uiTimerId);
+      State.timerId = null;
+      State.uiTimerId = null;
+      State.inFlightFrame = false;
+    }
+
+    async function stopSession(clearInput = true, useKeepalive = false){
+      const tokenToStop = State.sessionToken;
+
+      clearTimers();
+      State.running = false;
+      State.starting = false;
+      State.sessionToken = '';
+      State.sessionExpAt = 0;
+      State.staffId = '';
+      State.staffName = '';
+      State.role = '';
+      State.frameErrorStreak = 0;
+      State.serverNowOffsetMs = 0;
+
+      document.body.classList.remove('running');
+      clearQr();
+      hideMsg();
+      $('#who').textContent = '';
+      $('#timer').textContent = '-';
+
+      if (clearInput) {
+        pinInput.value = '';
+      }
+
+      if (tokenToStop) {
+        try { await sessionStopRpc(tokenToStop, useKeepalive); } catch(_) {}
+      }
+
+      setBusyUi(false);
+      focusStaffId();
+    }
+
+    function focusStaffId(){
+      setTimeout(() => {
+        if (State.running) return;
+        staffIdInput.focus();
+        if (staffIdInput.value) staffIdInput.select();
+      }, 80);
+    }
+
+    function mapErrorText(code, fallback){
+      const c = String(code || '').trim().toUpperCase();
+
+      const map = {
+        INVALID_INPUT: '직원 아이디와 PIN 형식을 다시 확인해주세요.',
+        AUTH_FAILED: '직원 아이디 또는 PIN을 확인해주세요.',
+        AUTH_LOCKED: '인증 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.',
+        RATE_LIMIT: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+        NOT_ALLOWED: '현재 QR 발급이 허용되지 않습니다. 관리자에게 문의해주세요.',
+        PIN_REQUIRED: '직원 PIN이 설정되어 있지 않습니다. 관리자에게 문의해주세요.',
+        SESSION_NOT_FOUND: '세션을 찾지 못했습니다. 다시 생성해주세요.',
+        SESSION_EXPIRED: '세션이 만료되었습니다. 다시 생성해주세요.',
+        DB_SELECT_FAILED: '서버 조회 중 오류가 발생했습니다.',
+        DB_INSERT_FAILED: '서버 저장 중 오류가 발생했습니다.',
+        SERVER_ERROR: '서버 처리 중 오류가 발생했습니다.',
+        TIMEOUT: fallback || '응답이 지연되고 있습니다. 다시 시도해주세요.',
+        NETWORK: '네트워크 연결을 확인해주세요.'
+      };
+
+      return map[c] || fallback || '처리 중 오류가 발생했습니다.';
+    }
+
+    async function tickFrame(){
+      if (!State.running || !State.sessionToken || State.inFlightFrame) return;
+      State.inFlightFrame = true;
+
+      try {
+        const r = await sessionFrameRpc(State.sessionToken);
+
+        if (!r || !r.ok) {
+          State.frameErrorStreak += 1;
+          const code = r?.error?.code || '';
+          const msg = mapErrorText(code, r?.error?.message || 'QR 갱신 실패');
+
+          if (code === 'SESSION_EXPIRED' || code === 'SESSION_NOT_FOUND') {
+            showMsg(msg, 'err');
+            await stopSession(false, false);
+            return;
+          }
+
+          if (State.frameErrorStreak >= 3) {
+            showMsg(msg, 'err');
+          }
+          return;
+        }
+
+        State.frameErrorStreak = 0;
+        syncServerClock(r.data?.serverNow);
+
+        const qrText = String(r.data?.qrText || '');
+        if (!qrText) {
+          showMsg('QR 데이터를 받지 못했습니다. 다시 시도해주세요.', 'err');
+          return;
+        }
+
+        State.lastFrameExpAt = Number(r.data?.expiresAt || 0);
+        State.lastRotateAt = Number(r.data?.rotateAt || 0);
+
+        if (qrText !== State.lastQrText) {
+          drawQr(qrText);
+        } else {
+          updateTimer();
+        }
+
+        const remain = Math.max(0, State.lastFrameExpAt - approxServerNow());
+        const nextMs = Math.max(1200, Math.min(3000, remain > 0 ? remain / 2 : 1500));
+
+        if (State.timerId) clearTimeout(State.timerId);
+        State.timerId = setTimeout(tickFrame, nextMs);
+      } finally {
+        State.inFlightFrame = false;
+      }
+    }
+
+    async function startSession(){
+      if (State.starting || State.running) return;
+
+      const staffId = cleanStaffId(staffIdInput.value);
+      const pin = cleanPin(pinInput.value);
+
+      staffIdInput.value = staffId;
+      pinInput.value = pin;
+
+      if (!staffId) {
+        showMsg('직원 아이디를 입력해주세요.');
+        focusStaffId();
+        return;
+      }
+      if (!/^[a-z0-9._-]{2,40}$/.test(staffId)) {
+        showMsg('직원 아이디 형식이 올바르지 않습니다.');
+        focusStaffId();
+        return;
+      }
+      if (!/^\d{4,8}$/.test(pin)) {
+        showMsg('PIN은 숫자 4~8자리여야 합니다.');
+        pinInput.focus();
+        pinInput.select();
+        return;
+      }
+
+      State.starting = true;
+      hideMsg();
+      setBusyUi(true);
+
+      try {
+        const r = await sessionStartRpc(staffId, pin);
+
+        if (!r || !r.ok) {
+          const code = r?.error?.code || '';
+          showMsg(mapErrorText(code, r?.error?.message || 'QR 생성에 실패했습니다.'), 'err');
+          return;
+        }
+
+        State.running = true;
+        State.starting = false;
+        State.sessionToken = String(r.data?.sessionToken || '');
+        State.sessionExpAt = Number(r.data?.sessionExpAt || 0);
+        State.staffId = String(r.data?.staff_id || staffId);
+        State.staffName = String(r.data?.staff_name || '');
+        State.role = String(r.data?.role || '');
+
+        syncServerClock(r.data?.serverNow);
+
+        document.body.classList.add('running');
+        hideMsg();
+        $('#who').textContent = [
+          maskName(State.staffName || State.staffId),
+          roleKo(State.role) ? (' · ' + roleKo(State.role)) : ''
+        ].join('');
+
+        if (State.uiTimerId) clearInterval(State.uiTimerId);
+        State.uiTimerId = setInterval(updateTimer, 250);
+
+        await tickFrame();
+      } finally {
+        State.starting = false;
+        setBusyUi(false);
+      }
+    }
+
+    staffIdInput.addEventListener('input', () => {
+      staffIdInput.value = cleanStaffId(staffIdInput.value);
+    });
+
+    pinInput.addEventListener('input', () => {
+      pinInput.value = cleanPin(pinInput.value);
+    });
+
+    staffIdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        pinInput.focus();
+        pinInput.select();
+      }
+    });
+
+    pinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        startSession();
+      }
+    });
+
+    btnStart.addEventListener('click', startSession);
+    btnStop.addEventListener('click', () => stopSession(true, false));
+
+    window.addEventListener('resize', redrawCurrentQr);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && State.running) {
+        stopSession(false, true);
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      if (State.running) {
+        stopSession(false, true);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (State.running) {
+        sessionStopRpc(State.sessionToken, true);
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/staff-qr-sw.js').catch(() => {});
+    }
+
+    focusStaffId();
+  </script>
+</body>
+</html>

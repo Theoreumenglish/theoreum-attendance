@@ -1,0 +1,24 @@
+{
+  "id": "/staff-qr.html",
+  "name": "더오름 직원 QR 발급기",
+  "short_name": "직원QR",
+  "start_url": "/staff-qr.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "purpose": "any maskable",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "purpose": "any maskable",
+      "type": "image/png"
+    }
+  ]
+}
