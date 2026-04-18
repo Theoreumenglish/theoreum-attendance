@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { writeStaffClockAndRollup } from '../lib/staff-attendance.js';
+import { staffQrVerify } from '../lib/staff-qr-core.js';
 
 const DEFAULT_TIMEOUT_MS = 12000;
 const DEDUPE_SEC = 10;
@@ -107,89 +108,6 @@ function mapVerifyErrorCode(code, message) {
   }
 }
 
-async function verifyStaffQrRemote(qrText) {
-  const url = String(process.env.STAFF_QR_VERIFY_URL || '').trim();
-  const shared = String(process.env.STAFF_QR_VERIFY_SHARED_SECRET || '').trim();
-  const innerQr = stripStaffQrEnvelope(qrText);
-
-  if (!url) {
-    return { ok: false, error: { code: 'CONFIG_REQUIRED', message: 'STAFF_QR_VERIFY_URL이 설정되지 않았습니다.' } };
-  }
-  if (!shared) {
-    return { ok: false, error: { code: 'CONFIG_REQUIRED', message: 'STAFF_QR_VERIFY_SHARED_SECRET이 설정되지 않았습니다.' } };
-  }
-  if (!innerQr) {
-    return { ok: false, error: { code: 'QR_REQUIRED', message: '직원 근태는 직원 전용 QR만 사용할 수 있습니다.' } };
-  }
-
-  const controller = new AbortController();
-  const timeoutMs = toPositiveInt(process.env.STAFF_QR_VERIFY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS, 3000, 30000);
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        op: 'verify',
-        args: {
-          qrText: innerQr,
-          consume: 'Y',
-          shared_secret: shared
-        }
-      }),
-      cache: 'no-store',
-      signal: controller.signal
-    });
-
-    const text = await resp.text();
-    let parsed = null;
-
-    try {
-      parsed = text ? JSON.parse(text) : null;
-    } catch (_) {
-      return { ok: false, error: { code: 'SERVER_ERROR', message: '직원 QR 검증 응답 파싱 실패' } };
-    }
-
-    if (resp.ok && parsed && parsed.ok) {
-      const data = parsed.data || {};
-      const staffId = normalizeStaffId(data.staff_id || '');
-      if (!staffId) {
-        return { ok: false, error: { code: 'SERVER_ERROR', message: '직원 QR 검증 결과에 staff_id가 없습니다.' } };
-      }
-
-      return {
-        ok: true,
-        data: {
-          staff_id: staffId,
-          staff_name: String(data.staff_name || '').trim(),
-          role: normalizeRole(data.role || ''),
-          consumed: !!data.consumed
-        }
-      };
-    }
-
-    const err = parsed && parsed.error ? parsed.error : {};
-    return { ok: false, error: mapVerifyErrorCode(err.code, err.message) };
-  } catch (e) {
-    const aborted = e && e.name === 'AbortError';
-    return {
-      ok: false,
-      error: {
-        code: 'SERVER_ERROR',
-        message: aborted
-          ? '직원 QR 검증 서버 응답 시간 초과'
-          : ('직원 QR 검증 서버 연결 실패: ' + (e?.message || String(e)))
-      }
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export async function handleStaffClockQr(payload) {
   const args = pickArgs(payload);
   const qrText = String(args.qrText || args.qr || args.input || '').trim();
@@ -204,7 +122,11 @@ export async function handleStaffClockQr(payload) {
     return fail(400, 'INVALID_INPUT', '허용되지 않는 action 입니다.');
   }
 
-  const verified = await verifyStaffQrRemote(qrText);
+  const verified = await staffQrVerify({
+    qrText,
+    consume: 'Y',
+    shared_secret: String(process.env.STAFF_QR_VERIFY_SHARED_SECRET || '').trim()
+    });
   if (!verified.ok) {
     const err = verified.error || {};
     const code = String(err.code || 'AUTH_FAILED').trim();
