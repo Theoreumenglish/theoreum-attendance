@@ -1364,16 +1364,9 @@
         });
       },
 
-			kickNotifyWorker(limit = 5) {
-				try {
-					fetch('/api/attendance-notify-worker', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json; charset=utf-8' },
-					body: JSON.stringify({ limit }),
-					cache: 'no-store',
-					keepalive: true
-					}).catch(() => {});
-				} catch (_) {}
+			kickNotifyWorker() {
+				// 보안상 worker key는 브라우저에 두지 않는다.
+				// 즉시 발송은 서버 내부 drain, 누락/실패 복구는 cron worker가 담당한다.
 			},
 
 			setWho(text) {
@@ -1993,6 +1986,16 @@
             return;
           }
 
+          if (Kiosk.staffQuickOpen && !isStaffQr) {
+            UI.showModal(false, '직원 모드', '직원 모드에서는 직원 전용 QR만 스캔할 수 있습니다.');
+            dbg.textContent = 'STAFF_QR_ONLY_IN_STAFF_MODE';
+            dbg.style.display = 'block';
+            UI.beep(false);
+            UI.flashScreen(false);
+            input.value = '';
+            return;
+          }
+
           if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isExceptionId) {
             UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
             dbg.textContent = 'QR_OR_EXCEPTION_ID_REQUIRED';
@@ -2054,7 +2057,7 @@
 					!((r.data && r.data.alreadyDone) || false) &&
 					(Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
 				) {
-					App.kickNotifyWorker(5);
+					// notify worker는 서버 내부에서 처리한다.
 				}
 
 				const ui = (r.data && r.data.ui) ? r.data.ui : {};

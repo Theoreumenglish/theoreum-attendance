@@ -1,4 +1,5 @@
-const CACHE_NAME = 'staff-qr-v1';
+const VERSION = 'staff-qr-vercel-v2';
+const CACHE_NAME = 'staff-qr-' + VERSION;
 const ASSETS = [
   '/staff-qr.html',
   '/staff-qr-manifest.webmanifest',

@@ -950,9 +950,16 @@
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && State.running) {
-        sessionStopKeepalive(State.sessionToken);
-      } else if (!document.hidden) {
         hideMsg();
+        stopSession(false, true);
+      } else if (!document.hidden && !State.running) {
+        hideMsg();
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      if (State.running) {
+        stopSession(false, true);
       }
     });
 

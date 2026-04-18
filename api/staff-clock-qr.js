@@ -128,18 +128,20 @@ export async function handleStaffClockQr(payload) {
     shared_secret: String(process.env.STAFF_QR_VERIFY_SHARED_SECRET || '').trim()
     });
   if (!verified.ok) {
-    const err = verified.error || {};
-    const code = String(err.code || 'AUTH_FAILED').trim();
-    const message = String(err.message || '직원 QR 검증 실패').trim();
+    const raw = verified.error || {};
+    const mapped = mapVerifyErrorCode(raw.code, raw.message);
 
-    if (code === 'QR_REQUIRED') return fail(400, code, message);
-    if (code === 'QR_EXPIRED') return fail(400, code, message);
-    if (code === 'QR_INVALID') return fail(400, code, message);
-    if (code === 'NOT_FOUND') return fail(404, code, message);
-    if (code === 'NOT_ACTIVE') return fail(403, code, message);
-    if (code === 'CONFIG_REQUIRED') return fail(500, code, message);
+    if (mapped.code === 'NOT_FOUND') {
+      return fail(404, mapped.code, mapped.message);
+    }
+    if (mapped.code === 'NOT_ACTIVE') {
+      return fail(403, mapped.code, mapped.message);
+    }
+    if (mapped.code === 'CONFIG_REQUIRED' || mapped.code === 'SERVER_ERROR') {
+      return fail(500, mapped.code, mapped.message);
+    }
 
-    return fail(500, code || 'SERVER_ERROR', message || '직원 QR 검증 실패');
+    return fail(400, mapped.code, mapped.message);
   }
 
   const staffId = normalizeStaffId(verified.data?.staff_id);

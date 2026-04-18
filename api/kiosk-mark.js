@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
-import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
+import { enqueueAttendanceNotify, runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
@@ -281,6 +281,19 @@ function mapQrVerifyError(err) {
         error: {
           code: 'QR_EXPIRED',
           message: '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.'
+        }
+      }
+    };
+  }
+
+  if (code === 'SESSION_EXPIRED') {
+    return {
+      status: 400,
+      body: {
+        ok: false,
+        error: {
+          code: 'QR_EXPIRED',
+          message: '이미 새 QR로 교체되었습니다. 학생 앱에서 다시 발급하세요.'
         }
       }
     };
@@ -650,6 +663,12 @@ export async function handleKioskMark(payload) {
         finalAction,
         traceId
       );
+
+      if (notifyResult && notifyResult.queued && !notifyResult.duplicate) {
+        try {
+          await runAttendanceNotifyWorker({ limit: 1 });
+        } catch (_) {}
+      }
     }
 
     return success({
@@ -673,10 +692,6 @@ export async function handleKioskMark(payload) {
       record: inserted
     });
   } catch (e) {
-    if (gasUrl && (requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT')) {
-      return await proxyToGas(payload, gasUrl);
-    }
-
     return fail(500, 'SERVER_ERROR', e?.message || 'kiosk.mark 처리 실패');
   }
 }

@@ -398,7 +398,7 @@
   </div>
 
   <script>
-    const APP_VERSION = 'staff-qr-vercel-v1';
+    const APP_VERSION = 'staff-qr-vercel-v2';
     const API = {
       sessionStart: '/api/staff-qr/session-start',
       frame: '/api/staff-qr/frame',
@@ -884,7 +884,9 @@
     });
 
     if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/staff-qr-sw.js').catch(() => {});
+      navigator.serviceWorker
+        .register('/staff-qr-sw.js?v=' + encodeURIComponent(APP_VERSION))
+        .catch(() => {});
     }
 
     focusStaffId();
