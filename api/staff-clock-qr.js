@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { getSupabaseAdmin } from '../lib/supabase-admin.js';
+import { writeStaffClockAndRollup } from '../lib/staff-attendance.js';
 
 const DEFAULT_TIMEOUT_MS = 12000;
 const DEDUPE_SEC = 10;
@@ -9,10 +9,6 @@ function toPositiveInt(value, fallback, min = 1, max = 60000) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(n)));
-}
-
-function nowIso() {
-  return new Date().toISOString();
 }
 
 function normalizeAction(input) {
@@ -84,30 +80,14 @@ function mapVerifyErrorCode(code, message) {
 
   switch (c) {
     case 'BAD_FORMAT':
-      return {
-        code: 'QR_REQUIRED',
-        message: '직원 근태는 직원 전용 QR만 사용할 수 있습니다.'
-      };
-
+      return { code: 'QR_REQUIRED', message: '직원 근태는 직원 전용 QR만 사용할 수 있습니다.' };
     case 'EXPIRED':
     case 'SESSION_EXPIRED':
-      return {
-        code: 'QR_EXPIRED',
-        message: '이미 만료되었거나 새 QR로 교체되었습니다. 다시 발급해주세요.'
-      };
-
+      return { code: 'QR_EXPIRED', message: '이미 만료되었거나 새 QR로 교체되었습니다. 다시 발급해주세요.' };
     case 'NOT_FOUND':
-      return {
-        code: 'NOT_FOUND',
-        message: '직원 계정을 찾지 못했습니다.'
-      };
-
+      return { code: 'NOT_FOUND', message: '직원 계정을 찾지 못했습니다.' };
     case 'NOT_ALLOWED':
-      return {
-        code: 'NOT_ACTIVE',
-        message: '현재 사용 가능한 직원 계정이 아닙니다.'
-      };
-
+      return { code: 'NOT_ACTIVE', message: '현재 사용 가능한 직원 계정이 아닙니다.' };
     case 'NOT_ISSUED':
     case 'REPLAY':
     case 'BAD_SIG':
@@ -116,29 +96,14 @@ function mapVerifyErrorCode(code, message) {
     case 'NONCE_BROKEN':
     case 'MISMATCH':
     case 'BAD_STAFF_ID':
-      return {
-        code: 'QR_INVALID',
-        message: '이미 사용했거나 유효하지 않은 직원 QR입니다.'
-      };
-
+      return { code: 'QR_INVALID', message: '이미 사용했거나 유효하지 않은 직원 QR입니다.' };
     case 'LOCK_TIMEOUT':
-      return {
-        code: 'SERVER_ERROR',
-        message: '동시 처리 중입니다. 다시 시도해주세요.'
-      };
-
+      return { code: 'SERVER_ERROR', message: '동시 처리 중입니다. 다시 시도해주세요.' };
     case 'CALLER_AUTH_FAILED':
     case 'CONFIG_REQUIRED':
-      return {
-        code: 'CONFIG_REQUIRED',
-        message: msg || '직원 QR 검증 설정이 올바르지 않습니다.'
-      };
-
+      return { code: 'CONFIG_REQUIRED', message: msg || '직원 QR 검증 설정이 올바르지 않습니다.' };
     default:
-      return {
-        code: c || 'SERVER_ERROR',
-        message: msg || ('직원 QR 검증 실패: ' + (c || 'UNKNOWN'))
-      };
+      return { code: c || 'SERVER_ERROR', message: msg || ('직원 QR 검증 실패: ' + (c || 'UNKNOWN')) };
   }
 }
 
@@ -148,42 +113,17 @@ async function verifyStaffQrRemote(qrText) {
   const innerQr = stripStaffQrEnvelope(qrText);
 
   if (!url) {
-    return {
-      ok: false,
-      error: {
-        code: 'CONFIG_REQUIRED',
-        message: 'STAFF_QR_VERIFY_URL이 설정되지 않았습니다.'
-      }
-    };
+    return { ok: false, error: { code: 'CONFIG_REQUIRED', message: 'STAFF_QR_VERIFY_URL이 설정되지 않았습니다.' } };
   }
-
   if (!shared) {
-    return {
-      ok: false,
-      error: {
-        code: 'CONFIG_REQUIRED',
-        message: 'STAFF_QR_VERIFY_SHARED_SECRET이 설정되지 않았습니다.'
-      }
-    };
+    return { ok: false, error: { code: 'CONFIG_REQUIRED', message: 'STAFF_QR_VERIFY_SHARED_SECRET이 설정되지 않았습니다.' } };
   }
-
   if (!innerQr) {
-    return {
-      ok: false,
-      error: {
-        code: 'QR_REQUIRED',
-        message: '직원 근태는 직원 전용 QR만 사용할 수 있습니다.'
-      }
-    };
+    return { ok: false, error: { code: 'QR_REQUIRED', message: '직원 근태는 직원 전용 QR만 사용할 수 있습니다.' } };
   }
 
   const controller = new AbortController();
-  const timeoutMs = toPositiveInt(
-    process.env.STAFF_QR_VERIFY_TIMEOUT_MS,
-    DEFAULT_TIMEOUT_MS,
-    3000,
-    30000
-  );
+  const timeoutMs = toPositiveInt(process.env.STAFF_QR_VERIFY_TIMEOUT_MS, DEFAULT_TIMEOUT_MS, 3000, 30000);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -211,27 +151,14 @@ async function verifyStaffQrRemote(qrText) {
     try {
       parsed = text ? JSON.parse(text) : null;
     } catch (_) {
-      return {
-        ok: false,
-        error: {
-          code: 'SERVER_ERROR',
-          message: '직원 QR 검증 응답 파싱 실패'
-        }
-      };
+      return { ok: false, error: { code: 'SERVER_ERROR', message: '직원 QR 검증 응답 파싱 실패' } };
     }
 
     if (resp.ok && parsed && parsed.ok) {
       const data = parsed.data || {};
       const staffId = normalizeStaffId(data.staff_id || '');
-
       if (!staffId) {
-        return {
-          ok: false,
-          error: {
-            code: 'SERVER_ERROR',
-            message: '직원 QR 검증 결과에 staff_id가 없습니다.'
-          }
-        };
+        return { ok: false, error: { code: 'SERVER_ERROR', message: '직원 QR 검증 결과에 staff_id가 없습니다.' } };
       }
 
       return {
@@ -246,10 +173,7 @@ async function verifyStaffQrRemote(qrText) {
     }
 
     const err = parsed && parsed.error ? parsed.error : {};
-    return {
-      ok: false,
-      error: mapVerifyErrorCode(err.code, err.message)
-    };
+    return { ok: false, error: mapVerifyErrorCode(err.code, err.message) };
   } catch (e) {
     const aborted = e && e.name === 'AbortError';
     return {
@@ -266,32 +190,6 @@ async function verifyStaffQrRemote(qrText) {
   }
 }
 
-async function findRecentDuplicate(supabase, staffId, action) {
-  const cutoffIso = new Date(Date.now() - (DEDUPE_SEC * 1000)).toISOString();
-
-  const { data, error } = await supabase
-    .from('staff_clock_logs')
-    .select('ts, staff_id, name, role, action, trace_id')
-    .eq('staff_id', staffId)
-    .eq('action', action)
-    .gte('ts', cutoffIso)
-    .order('ts', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return { data, error };
-}
-
-async function insertStaffClockLog(supabase, row) {
-  const { data, error } = await supabase
-    .from('staff_clock_logs')
-    .insert([row])
-    .select()
-    .single();
-
-  return { data, error };
-}
-
 export async function handleStaffClockQr(payload) {
   const args = pickArgs(payload);
   const qrText = String(args.qrText || args.qr || args.input || '').trim();
@@ -302,7 +200,6 @@ export async function handleStaffClockQr(payload) {
   if (!qrText) {
     return fail(400, 'INVALID_INPUT', '직원 QR 값이 필요합니다.');
   }
-
   if (!action) {
     return fail(400, 'INVALID_INPUT', '허용되지 않는 action 입니다.');
   }
@@ -327,63 +224,63 @@ export async function handleStaffClockQr(payload) {
   const staffName = String(verified.data?.staff_name || '').trim();
   const role = normalizeRole(verified.data?.role || '');
 
-  if (!staffId) {
-    return fail(500, 'SERVER_ERROR', '직원 QR 검증 결과에 staff_id가 없습니다.');
+  const result = await writeStaffClockAndRollup({
+    ts: new Date().toISOString(),
+    staff_id: staffId,
+    name: staffName,
+    role,
+    action,
+    note,
+    trace_id: traceId,
+    input_mode: 'QR'
+  }, {
+    recentDedupeSec: DEDUPE_SEC
+  });
+
+  if (!result.ok) {
+    return fail(
+      result.status || 500,
+      result.error || 'SERVER_ERROR',
+      result.detail || 'staff.clock.qr 처리 실패'
+    );
+  }
+
+  return success({
+    ok: true,
+    data: {
+      ok: true,
+      duplicate: !!result.duplicate,
+      msg: (result.duplicate ? '중복 스캔 방지 (이미 처리됨)' : ('QR 근태 기록: ' + action)),
+      staff_id: staffId,
+      name: staffName,
+      role
+    },
+    traceId,
+    record: result.record || null,
+    daily: result.daily || null,
+    monthly: result.monthly || null
+  });
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      ok: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'POST만 허용됩니다.' }
+    });
   }
 
   try {
-    const supabase = getSupabaseAdmin();
-
-    const { data: dup, error: dupErr } = await findRecentDuplicate(supabase, staffId, action);
-    if (dupErr) {
-      return fail(500, 'DB_SELECT_FAILED', dupErr.message || 'staff_clock_logs 중복 조회 실패');
-    }
-
-    if (dup) {
-      return success({
-        ok: true,
-        data: {
-          ok: true,
-          duplicate: true,
-          msg: '중복 스캔 방지 (이미 처리됨)',
-          staff_id: staffId,
-          name: String(dup.name || staffName || '').trim(),
-          role: normalizeRole(dup.role || role || '')
-        },
-        traceId,
-        record: dup
-      });
-    }
-
-    const row = {
-      ts: nowIso(),
-      staff_id: staffId,
-      name: staffName,
-      role,
-      action,
-      note,
-      trace_id: traceId,
-      input_mode: 'QR'
-    };
-
-    const { data: inserted, error: insErr } = await insertStaffClockLog(supabase, row);
-    if (insErr) {
-      return fail(500, 'DB_INSERT_FAILED', insErr.message || 'staff_clock_logs insert 실패');
-    }
-
-    return success({
-      ok: true,
-      data: {
-        ok: true,
-        msg: 'QR 근태 기록: ' + action,
-        staff_id: staffId,
-        name: staffName,
-        role
-      },
-      traceId,
-      record: inserted
-    });
+    const payload = typeof req.body === 'object' && req.body ? req.body : {};
+    const out = await handleStaffClockQr(payload);
+    return res.status(out.status).json(out.body);
   } catch (e) {
-    return fail(500, 'SERVER_ERROR', e?.message || 'staff.clock.qr 처리 실패');
+    return res.status(500).json({
+      ok: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: e?.message || 'staff.clock.qr 처리 실패'
+      }
+    });
   }
 }
