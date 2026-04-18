@@ -1,4 +1,5 @@
 import { handleKioskMark } from './kiosk-mark.js';
+import { handleStaffClockQr } from './staff-clock-qr.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const MAX_BODY_BYTES = 64 * 1024;
@@ -90,6 +91,11 @@ export default async function handler(req, res) {
 
   if (op === 'kiosk.mark') {
     const result = await handleKioskMark(payload);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'staff.clock.qr') {
+    const result = await handleStaffClockQr(payload);
     return send(res, result.status, result.body);
   }
 
