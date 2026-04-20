@@ -52,18 +52,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'BAD_BODY' });
   }
 
-  const result = await writeStaffClockAndRollup({
-    ts: body.ts,
-    staff_id: body.staff_id,
-    name: body.name,
-    role: body.role,
-    action: body.action,
-    note: body.note,
-    trace_id: body.trace_id,
-    input_mode: normalizeInputMode(body.input_mode)
-  }, {
-    recentDedupeSec: 0
-  });
+  const result = await writeStaffClockAndRollup(
+    {
+      ts: body.ts,
+      staff_id: body.staff_id,
+      name: body.name,
+      role: body.role,
+      action: body.action,
+      note: body.note,
+      trace_id: body.trace_id,
+      input_mode: normalizeInputMode(body.input_mode)
+    },
+    {
+      recentDedupeSec: 0
+    }
+  );
 
   if (!result.ok) {
     return res.status(result.status || 500).json({

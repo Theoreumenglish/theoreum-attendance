@@ -50,6 +50,12 @@ async function readBody(req) {
   return {};
 }
 
+function resolveTimeoutMs(rawValue) {
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_TIMEOUT_MS;
+  return Math.min(parsed, 120000);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return send(res, 405, {
@@ -129,8 +135,9 @@ export default async function handler(req, res) {
 
   if (op === 'auth.login') {
     const result = await authLoginDirect(payload.args || {});
-    return send(res, result.status, result.body);
-  }
+    if (!result.body || result.body.ok !== true) {
+      return send(res, result.status, result.body);
+    }
 
     const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
     if (gasUrl) {
@@ -237,7 +244,7 @@ export default async function handler(req, res) {
   }
 
   const controller = new AbortController();
-  const timeoutMs = toPositiveInt(process.env.GAS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+  const timeoutMs = resolveTimeoutMs(process.env.GAS_TIMEOUT_MS);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -256,7 +263,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json'
+        Accept: 'application/json'
       },
       body: JSON.stringify(upstreamPayload),
       redirect: 'follow',
@@ -269,7 +276,7 @@ export default async function handler(req, res) {
 
     try {
       data = text ? JSON.parse(text) : null;
-    } catch (e) {
+    } catch (_) {
       return send(res, 502, {
         ok: false,
         error: {
@@ -297,7 +304,7 @@ export default async function handler(req, res) {
       ok: false,
       error: {
         code: aborted ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_FETCH_FAIL',
-        message: aborted ? 'GAS 응답 시간 초과' : (e && e.message ? e.message : 'GAS 요청 실패')
+        message: aborted ? 'GAS 응답 시간 초과' : (e?.message || 'GAS 요청 실패')
       }
     });
   } finally {

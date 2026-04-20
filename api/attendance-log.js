@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
-import { randomUUID } from 'node:crypto'
+import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
 
 const ALLOWED_ACTIONS = new Set([
   'CHECK_IN',
@@ -8,57 +8,57 @@ const ALLOWED_ACTIONS = new Set([
   'OUTING',
   'OUTING_OUT',
   'OUTING_BACK'
-])
+]);
 
-const ALLOWED_FLOORS = new Set(['5F', '7F'])
-const ALLOWED_RESULTS = new Set(['OK', 'DENY'])
+const ALLOWED_FLOORS = new Set(['5F', '7F']);
+const ALLOWED_RESULTS = new Set(['OK', 'DENY']);
 
 function isPlainObject(value) {
-  return Object.prototype.toString.call(value) === '[object Object]'
+  return Object.prototype.toString.call(value) === '[object Object]';
 }
 
 function parseBody(req) {
   if (Buffer.isBuffer(req.body)) {
-    const text = req.body.toString('utf8').trim()
-    return text ? JSON.parse(text) : {}
+    const text = req.body.toString('utf8').trim();
+    return text ? JSON.parse(text) : {};
   }
 
   if (typeof req.body === 'string') {
-    const text = req.body.trim()
-    return text ? JSON.parse(text) : {}
+    const text = req.body.trim();
+    return text ? JSON.parse(text) : {};
   }
 
-  if (req.body == null) return {}
-  if (typeof req.body === 'object') return req.body
-  return {}
+  if (req.body == null) return {};
+  if (typeof req.body === 'object') return req.body;
+  return {};
 }
 
 function normalizeMetaJson(value) {
-  if (value == null || value === '') return {}
-  if (isPlainObject(value)) return value
+  if (value == null || value === '') return {};
+  if (isPlainObject(value)) return value;
 
   if (typeof value === 'string') {
     try {
-      const parsed = JSON.parse(value)
-      return isPlainObject(parsed) ? parsed : { raw: parsed }
-    } catch (e) {
-      return { raw: value }
+      const parsed = JSON.parse(value);
+      return isPlainObject(parsed) ? parsed : { raw: parsed };
+    } catch (_) {
+      return { raw: value };
     }
   }
 
-  return { raw: value }
+  return { raw: value };
 }
 
 function normalizeTimestamp(value) {
-  const text = String(value || '').trim()
-  const iso = text || new Date().toISOString()
-  const ms = Date.parse(iso)
-  return Number.isFinite(ms) ? new Date(ms).toISOString() : null
+  const text = String(value || '').trim();
+  const iso = text || new Date().toISOString();
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
 function buildSupabase() {
-  const supabaseUrl = process.env.SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     return {
@@ -70,49 +70,49 @@ function buildSupabase() {
           hasSupabaseServiceRoleKey: !!supabaseKey
         }
       }
-    }
+    };
   }
 
   return {
     client: createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     })
-  }
+  };
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' })
+    return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
   }
 
-  const sharedSecret = String(req.headers['x-api-shared-secret'] || '').trim()
+  const sharedSecret = String(req.headers['x-api-shared-secret'] || '').trim();
   if (!sharedSecret || sharedSecret !== process.env.API_SHARED_SECRET) {
-    return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' })
+    return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' });
   }
 
-  let body = {}
+  let body = {};
   try {
-    body = parseBody(req)
+    body = parseBody(req);
   } catch (e) {
     return res.status(400).json({
       ok: false,
       error: 'BAD_JSON',
       detail: e?.message || String(e)
-    })
+    });
   }
 
   if (!isPlainObject(body)) {
-    return res.status(400).json({ ok: false, error: 'BAD_PAYLOAD' })
+    return res.status(400).json({ ok: false, error: 'BAD_PAYLOAD' });
   }
 
-  const ts = normalizeTimestamp(body.ts)
+  const ts = normalizeTimestamp(body.ts);
   if (!ts) {
-    return res.status(400).json({ ok: false, error: 'BAD_TS' })
+    return res.status(400).json({ ok: false, error: 'BAD_TS' });
   }
 
-  const traceId = String(body.trace_id || '').trim()
+  const traceId = String(body.trace_id || '').trim();
   if (!traceId) {
-    return res.status(400).json({ ok: false, error: 'BAD_TRACE_ID' })
+    return res.status(400).json({ ok: false, error: 'BAD_TRACE_ID' });
   }
 
   const record = {
@@ -127,31 +127,31 @@ export default async function handler(req, res) {
     deny_reason: String(body.deny_reason || '').trim(),
     qr_id: String(body.qr_id || '').trim(),
     trace_id: traceId
-  }
+  };
 
   if (!/^\d{8}$/.test(record.yyyymmdd)) {
-    return res.status(400).json({ ok: false, error: 'BAD_YYYYMMDD' })
+    return res.status(400).json({ ok: false, error: 'BAD_YYYYMMDD' });
   }
 
   if (!/^\d{4}$/.test(record.student_id)) {
-    return res.status(400).json({ ok: false, error: 'BAD_STUDENT_ID' })
+    return res.status(400).json({ ok: false, error: 'BAD_STUDENT_ID' });
   }
 
   if (!ALLOWED_ACTIONS.has(record.action_type)) {
-    return res.status(400).json({ ok: false, error: 'BAD_ACTION_TYPE' })
+    return res.status(400).json({ ok: false, error: 'BAD_ACTION_TYPE' });
   }
 
   if (!ALLOWED_FLOORS.has(record.kiosk_floor)) {
-    return res.status(400).json({ ok: false, error: 'BAD_KIOSK_FLOOR' })
+    return res.status(400).json({ ok: false, error: 'BAD_KIOSK_FLOOR' });
   }
 
   if (!ALLOWED_RESULTS.has(record.result)) {
-    return res.status(400).json({ ok: false, error: 'BAD_RESULT' })
+    return res.status(400).json({ ok: false, error: 'BAD_RESULT' });
   }
 
-  const { client: supabase, error: envError } = buildSupabase()
+  const { client: supabase, error: envError } = buildSupabase();
   if (envError) {
-    return res.status(500).json(envError)
+    return res.status(500).json(envError);
   }
 
   try {
@@ -160,14 +160,14 @@ export default async function handler(req, res) {
       .select('*')
       .eq('trace_id', record.trace_id)
       .limit(1)
-      .maybeSingle()
+      .maybeSingle();
 
     if (existingError) {
       return res.status(500).json({
         ok: false,
         error: 'DB_SELECT_FAILED',
         detail: existingError.message
-      })
+      });
     }
 
     if (existing) {
@@ -175,29 +175,29 @@ export default async function handler(req, res) {
         ok: true,
         duplicate: true,
         record: existing
-      })
+      });
     }
 
     const { data, error } = await supabase
       .from('attendance_logs')
       .insert([record])
       .select()
-      .single()
+      .single();
 
     if (error) {
       return res.status(500).json({
         ok: false,
         error: 'DB_INSERT_FAILED',
         detail: error.message
-      })
+      });
     }
 
-    return res.status(200).json({ ok: true, record: data })
+    return res.status(200).json({ ok: true, record: data });
   } catch (e) {
     return res.status(500).json({
       ok: false,
       error: 'SERVER_ERROR',
       detail: e?.message || String(e)
-    })
+    });
   }
 }
