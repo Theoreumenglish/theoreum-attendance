@@ -1345,13 +1345,41 @@
               return;
             }
 
-            resolve(json || {
+            const out = json || {
               ok: false,
               error: {
                 code: 'EMPTY_RESPONSE',
                 message: '빈 응답입니다.'
               }
-            });
+            };
+
+            const authCode = String((out && out.error && out.error.code) || '').trim().toUpperCase();
+            const shouldResetStaffSession =
+              App.currentView === 'staff' &&
+              op !== 'auth.login' &&
+              op !== 'auth.me' &&
+              (
+                authCode === 'AUTH_REQUIRED' ||
+                authCode === 'SESSION_EXPIRED' ||
+                authCode === 'INVALID_SESSION'
+              );
+
+            if (shouldResetStaffSession) {
+              App.sess = '';
+              App.gasSess = '';
+              localStorage.removeItem('ATT_SESS');
+              localStorage.removeItem('ATT_GAS_SESS');
+              App.setWho('guest');
+
+              const logoutBtn = $('#btnLogout');
+              if (logoutBtn) logoutBtn.classList.add('hidden');
+
+              UI.render('tpl-login');
+              Auth.initLogin();
+              UI.toast(false, '세션이 만료되어 다시 로그인해주세요.');
+            }
+
+            resolve(out);
           } catch (err) {
 			const aborted = err && err.name === 'AbortError';
 			resolve({
@@ -1386,6 +1414,7 @@
 				if (ping.ok) {
 					App.meta = ping.data || {};
 					UI.setMeta(App.meta);
+					UI.setKioskFloor(App.meta && App.meta.kiosk_floor ? App.meta.kiosk_floor : '5F');
 				} else {
 					App.meta = {
 						safe: {
@@ -1395,6 +1424,7 @@
 						kiosk_floor: (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F'
 					};
 					UI.setMeta(App.meta);
+					UI.setKioskFloor(App.meta.kiosk_floor || '5F');
 				}
 			},
 
@@ -1523,6 +1553,22 @@
 						: '0 0 0 4px rgba(16, 185, 129, 0.15)';
 				}
 				if (text) text.textContent = isSafe ? 'Maintenance' : 'Online';
+			},
+
+			setKioskFloor(floor) {
+				const floorPill = $('#floorPill');
+				if (!floorPill) return;
+
+				const normalized = String(floor || '5F').trim() || '5F';
+				floorPill.textContent = normalized;
+
+				if (normalized.includes('7')) {
+					floorPill.style.background = '#fff7ed';
+					floorPill.style.color = '#d97706';
+				} else {
+					floorPill.style.background = 'rgba(79, 70, 229, 0.1)';
+					floorPill.style.color = 'var(--pri)';
+				}
 			},
 
 			maskName(name) {
@@ -1667,7 +1713,7 @@
         Router.setNav('staff');
 
         const me = await App.rpc('auth.me');
-        if (me.ok && me.data && me.data.loggedIn) {
+        if (me.ok && me.data && me.data.loggedIn && App.gasSess) {
           UI.render('tpl-staff');
           App.setWho(me.data.name + ' (' + me.data.role + ')');
           $('#btnLogout').classList.remove('hidden');
@@ -1675,10 +1721,19 @@
           return;
         }
 
+        App.sess = '';
+        App.gasSess = '';
+        localStorage.removeItem('ATT_SESS');
+        localStorage.removeItem('ATT_GAS_SESS');
+
         App.setWho('guest');
         $('#btnLogout').classList.add('hidden');
         UI.render('tpl-login');
         Auth.initLogin();
+
+        if (me.ok && me.data && me.data.loggedIn && !App.gasSess) {
+          UI.toast(false, '운영 세션이 없어 다시 로그인해야 합니다.');
+        }
       }
 		};
 
@@ -2253,7 +2308,7 @@
         $('#btnFlushCache').addEventListener('click', StaffUI.flushCache);
         $('#btnGenSchedule').addEventListener('click', StaffUI.generateSchedule);
         $('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
-        $('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
+				$('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
         $('#corrLogBox').addEventListener('click', async (e) => {
 					const btn = e.target.closest('[data-source-trace]');
 					if (!btn) return;
@@ -2264,6 +2319,18 @@
 					await StaffUI.openSourceTrace(sourceTraceId);
 				});
 
+        const btnTraceClose = $('#btnTraceClose');
+        if (btnTraceClose) btnTraceClose.onclick = StaffUI.closeTraceModal;
+
+        const btnTraceCopy = $('#btnTraceCopy');
+        if (btnTraceCopy) btnTraceCopy.onclick = StaffUI.copyTraceModal;
+
+        const traceModal = $('#traceModal');
+        if (traceModal) {
+          traceModal.onclick = (e) => {
+            if (e.target === traceModal) StaffUI.closeTraceModal();
+          };
+        }
 
 				StaffUI.applyRoleView();
 			},
@@ -2314,6 +2381,29 @@
       },
 
       // 수정 형태
+      closeTraceModal() {
+        const modal = $('#traceModal');
+        const body = $('#traceModalBody');
+        if (body) body.textContent = '';
+        if (modal) modal.classList.add('hidden');
+      },
+
+      async copyTraceModal() {
+        const body = $('#traceModalBody');
+        const text = body ? String(body.textContent || '') : '';
+        if (!text) {
+          UI.toast(false, '복사할 내용이 없습니다.');
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(text);
+          UI.toast(true, '원본 로그를 복사했습니다.');
+        } catch (_) {
+          UI.toast(false, '복사에 실패했습니다.');
+        }
+      },
+
       async openSourceTrace(sourceTraceId) {
         const r = await App.rpc('assistant.getLogByTrace', { trace_id: sourceTraceId });
         if (!r.ok) {
@@ -2327,11 +2417,15 @@
           return;
         }
 
-        $('#logDate').value = log.yyyymmdd || '';
-        $('#logSid').value = log.student_id || '';
-        await StaffUI.loadLogs();
+        const modal = $('#traceModal');
+        const body = $('#traceModalBody');
+        if (!modal || !body) {
+          UI.toast(false, '원본 로그 모달을 찾지 못했습니다.');
+          return;
+        }
 
-        UI.toast(true, '원본 로그를 불러왔습니다: ' + sourceTraceId);
+        body.textContent = JSON.stringify(log, null, 2);
+        modal.classList.remove('hidden');
       },
 
 			renderLogsTable(logs) {

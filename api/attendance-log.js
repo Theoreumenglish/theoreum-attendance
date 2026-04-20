@@ -56,6 +56,18 @@ function normalizeTimestamp(value) {
   return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
+function isDuplicateKeyError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || '').toLowerCase();
+  const detail = String(error?.details || '').toLowerCase();
+
+  return (
+    code === '23505' ||
+    message.includes('duplicate key') ||
+    detail.includes('duplicate key')
+  );
+}
+
 function buildSupabase() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -185,6 +197,23 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
+      if (isDuplicateKeyError(error)) {
+        const { data: dup, error: dupReadError } = await supabase
+          .from('attendance_logs')
+          .select('*')
+          .eq('trace_id', record.trace_id)
+          .limit(1)
+          .maybeSingle();
+
+        if (!dupReadError && dup) {
+          return res.status(200).json({
+            ok: true,
+            duplicate: true,
+            record: dup
+          });
+        }
+      }
+
       return res.status(500).json({
         ok: false,
         error: 'DB_INSERT_FAILED',
