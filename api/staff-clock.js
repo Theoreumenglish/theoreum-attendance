@@ -28,7 +28,10 @@ function success(body) {
 }
 
 export async function handleStaffClock(payload) {
-  const args = payload?.args && typeof payload.args === 'object' ? payload.args : {};
+  const args =
+  payload?.args && typeof payload.args === 'object'
+    ? payload.args
+    : (payload && typeof payload === 'object' ? payload : {});
   const action = normalizeAction(args.action || args.type);
   const note = String(args.note || '').trim();
   const inputMode = normalizeInputMode(args.input_mode || 'WEB');

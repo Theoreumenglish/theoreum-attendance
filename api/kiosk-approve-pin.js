@@ -1,7 +1,10 @@
 import { approveKioskPinDirect } from '../lib/staff-auth.js';
 
 export async function handleKioskApprovePin(payload) {
-  const args = payload?.args && typeof payload.args === 'object' ? payload.args : {};
+  const args =
+  payload?.args && typeof payload.args === 'object'
+    ? payload.args
+    : (payload && typeof payload === 'object' ? payload : {});
   const traceId = String(
     payload?.traceId ||
     payload?.trace_id ||

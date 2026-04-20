@@ -58,7 +58,9 @@ function buildTraceId(payload) {
 }
 
 function pickArgs(payload) {
-  return payload?.args && typeof payload.args === 'object' ? payload.args : {};
+  return payload?.args && typeof payload.args === 'object'
+    ? payload.args
+    : (payload && typeof payload === 'object' ? payload : {});
 }
 
 function fail(status, code, message, detail = {}) {

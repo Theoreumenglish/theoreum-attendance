@@ -32,12 +32,24 @@ export default async function handler(req, res) {
     return send(res, 405, { ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'POST만 허용됩니다.' } });
   }
 
+  let payload = {};
   try {
-    const payload = parseBody(req);
+    payload = parseBody(req);
+  } catch (e) {
+    return send(res, 400, {
+      ok: false,
+      error: { code: 'BAD_JSON', message: '요청 JSON 형식이 올바르지 않습니다.' }
+    });
+  }
+
+  try {
     const args = payload.args && typeof payload.args === 'object' ? payload.args : payload;
-    const out = await studentQrSessionStop(args);
+    const out = await someLibFn(args);
     return send(res, statusFromOut(out), out);
   } catch (e) {
-    return send(res, 400, { ok: false, error: { code: 'BAD_JSON', message: e?.message || 'stop 실패' } });
+    return send(res, 500, {
+      ok: false,
+      error: { code: 'SERVER_ERROR', message: e?.message || '처리 실패' }
+    });
   }
 }

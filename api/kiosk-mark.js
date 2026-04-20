@@ -79,7 +79,9 @@ function isActiveStudentStatus(raw) {
 }
 
 function pickArgs(payload) {
-  return payload?.args && typeof payload.args === 'object' ? payload.args : {};
+  return payload?.args && typeof payload.args === 'object'
+    ? payload.args
+    : (payload && typeof payload === 'object' ? payload : {});
 }
 
 function getVerifySharedSecret() {
