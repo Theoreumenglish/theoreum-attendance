@@ -1296,6 +1296,7 @@
 
 		const App = {
 			sess: localStorage.getItem('ATT_SESS') || '',
+			gasSess: localStorage.getItem('ATT_GAS_SESS') || '',
 			pending: 0,
 			currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
 			meta: null,
@@ -1312,7 +1313,13 @@
 					const timer = setTimeout(() => controller.abort(), timeoutMs);
 
 					try {
-					const payload = { op, args, sessionToken: App.sess, ...extra };
+					const payload = {
+						op,
+						args,
+						sessionToken: App.sess,
+						gasSessionToken: App.gasSess,
+						...extra
+					};
 
 					const res = await fetch('/api/rpc', {
 						method: 'POST',
@@ -1380,8 +1387,14 @@
 					App.meta = ping.data || {};
 					UI.setMeta(App.meta);
 				} else {
-					App.meta = null;
-					UI.setMeta(null);
+					App.meta = {
+						safe: {
+							mode: 'Y',
+							message: (ping.error && ping.error.message) ? ping.error.message : '운영 메타 조회 실패'
+						},
+						kiosk_floor: (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F'
+					};
+					UI.setMeta(App.meta);
 				}
 			},
 
@@ -1630,10 +1643,12 @@
 
 			// 수정 형태
       async goKiosk() {
-        if (App.currentView === 'staff' && App.sess) {
+        if (App.currentView === 'staff' && (App.sess || App.gasSess)) {
           await App.rpc('auth.logout', {});
           App.sess = '';
+          App.gasSess = '';
           localStorage.removeItem('ATT_SESS');
+          localStorage.removeItem('ATT_GAS_SESS');
         }
 
         App.currentView = 'kiosk';
@@ -2045,7 +2060,16 @@
             return;
           }
 
-          const r = await App.rpc('kiosk.mark', { action: Kiosk.action, input: val });
+          const kioskFloor = String(
+            (App.meta && App.meta.kiosk_floor) ||
+            (($('#floorPill') && $('#floorPill').textContent) || '5F')
+          ).trim();
+
+          const r = await App.rpc('kiosk.mark', {
+            action: Kiosk.action,
+            input: val,
+            kiosk_floor: kioskFloor
+          });
 
           if (r.ok && r.data && r.data.duplicate) {
             UI.toast(false, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '중복 입력');
@@ -2175,7 +2199,9 @@
 				const r = await App.rpc('auth.login', { staff_id: id, password: pw });
 				if (r.ok && r.data && r.data.loggedIn) {
 					App.sess = r.data.sessionToken || '';
+					App.gasSess = r.data.gasSessionToken || '';
 					localStorage.setItem('ATT_SESS', App.sess);
+					localStorage.setItem('ATT_GAS_SESS', App.gasSess);
 					Router.goStaff();
 					return;
 				}
@@ -2186,7 +2212,9 @@
 			async logout() {
 				await App.rpc('auth.logout', {});
 				App.sess = '';
+				App.gasSess = '';
 				localStorage.removeItem('ATT_SESS');
+				localStorage.removeItem('ATT_GAS_SESS');
 				Router.goStaff();
 			}
 		};

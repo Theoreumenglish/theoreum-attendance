@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
 import { enqueueAttendanceNotify, runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
+import { getAttendanceMetaCached } from '../lib/attendance-meta.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
@@ -404,8 +405,28 @@ export async function handleKioskMark(payload) {
 
   const requestedAction = normalizeAction(args.action || args.type);
   const input = String(args.input || '').trim();
-  const kioskFloor = normalizeFloor(args.kiosk_floor || args.floor || args.kioskFloor || '5F');
   const traceId = buildTraceId(payload);
+
+  const meta = await getAttendanceMetaCached();
+  if (!meta.ok) {
+    return fail(
+      503,
+      'META_UNAVAILABLE',
+      '운영 상태를 확인할 수 없습니다. 데스크에 문의하세요.'
+    );
+  }
+
+  const authoritativeFloor = String(meta.data?.kiosk_floor || '5F').trim();
+  const kioskFloor = normalizeFloor(
+    args.kiosk_floor || args.floor || args.kioskFloor || authoritativeFloor || '5F'
+  );
+
+  const safeMode = String(meta.data?.safe?.mode || 'N').trim().toUpperCase() === 'Y';
+  const safeMessage = String(meta.data?.safe?.message || '').trim();
+
+  if (safeMode) {
+    return fail(503, 'SAFE_MODE', safeMessage || '현재 점검 모드입니다. 데스크에 문의하세요.');
+  }
 
   if (!requestedAction) {
     return fail(400, 'BAD_ACTION', 'action 값이 필요합니다.');
