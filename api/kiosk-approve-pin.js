@@ -43,16 +43,28 @@ export default async function handler(req, res) {
     });
   }
 
+  let payload = {};
   try {
-    const payload = parseBody(req);
-    const out = await handleKioskMark(payload);
+    payload = parseBody(req);
+  } catch (e) {
+    return res.status(400).json({
+      ok: false,
+      error: {
+        code: 'BAD_JSON',
+        message: '요청 JSON 형식이 올바르지 않습니다.'
+      }
+    });
+  }
+
+  try {
+    const out = await handleKioskApprovePin(payload);
     return res.status(out.status).json(out.body);
   } catch (e) {
     return res.status(500).json({
       ok: false,
       error: {
         code: 'SERVER_ERROR',
-        message: e?.message || 'kiosk.mark 처리 실패'
+        message: e?.message || 'kiosk.approvePin 처리 실패'
       }
     });
   }

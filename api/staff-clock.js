@@ -114,8 +114,20 @@ export default async function handler(req, res) {
     });
   }
 
+  let payload = {};
   try {
-    const payload = parseBody(req);
+    payload = parseBody(req);
+  } catch (e) {
+    return res.status(400).json({
+      ok: false,
+      error: {
+        code: 'BAD_JSON',
+        message: '요청 JSON 형식이 올바르지 않습니다.'
+      }
+    });
+  }
+
+  try {
     const out = await handleStaffClock(payload);
     return res.status(out.status).json(out.body);
   } catch (e) {
