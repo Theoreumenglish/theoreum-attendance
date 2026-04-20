@@ -178,6 +178,20 @@ async function findExistingTrace(supabase, traceId) {
   return { data, error };
 }
 
+function isDuplicateKeyError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || '').toLowerCase();
+  const detail = String(error?.details || '').toLowerCase();
+
+  return (
+    code === '23505' ||
+    message.includes('duplicate key') ||
+    detail.includes('duplicate key')
+  );
+}
+
+async function insertAttendanceLog(supabase, record) {
+
 async function insertAttendanceLog(supabase, record) {
   const { data, error } = await supabase
     .from('attendance_logs')
@@ -471,9 +485,17 @@ export async function handleKioskMark(payload) {
     if (existingTrace) {
       return success({
         ok: true,
-        duplicate: true,
-        record: existingTrace,
-        traceId
+        data: {
+          duplicate: true,
+          alreadyDone: false,
+          source: 'supabase-direct',
+          ui: {
+            title: '중복 입력',
+            message: '이미 처리된 요청입니다.'
+          }
+        },
+        traceId,
+        record: existingTrace
       });
     }
 
@@ -537,6 +559,10 @@ export async function handleKioskMark(payload) {
       source: 'supabase-direct',
       input_mode: inputMode
     };
+
+    if (inputMode === 'EXCEPTION_ID') {
+      metaJson.exception = 'Y';
+    }
 
     if (requestedAction === 'CHECK_IN') {
       if (state.checkedIn && !state.checkedOut) {
@@ -663,6 +689,26 @@ export async function handleKioskMark(payload) {
 
     const { data: inserted, error: insertErr } = await insertAttendanceLog(supabase, record);
     if (insertErr) {
+      if (isDuplicateKeyError(insertErr)) {
+        const { data: dupAfterRace, error: dupReadErr } = await findExistingTrace(supabase, traceId);
+        if (!dupReadErr && dupAfterRace) {
+          return success({
+            ok: true,
+            data: {
+              duplicate: true,
+              alreadyDone: false,
+              source: 'supabase-direct',
+              ui: {
+                title: '중복 입력',
+                message: '이미 처리된 요청입니다.'
+              }
+            },
+            traceId,
+            record: dupAfterRace
+          });
+        }
+      }
+
       return fail(500, 'DB_INSERT_FAILED', insertErr.message || 'attendance_logs insert 실패');
     }
 
@@ -714,5 +760,46 @@ export async function handleKioskMark(payload) {
     });
   } catch (e) {
     return fail(500, 'SERVER_ERROR', e?.message || 'kiosk.mark 처리 실패');
+  }
+}
+
+function parseBody(req) {
+  if (Buffer.isBuffer(req.body)) {
+    const text = req.body.toString('utf8').trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (typeof req.body === 'string') {
+    const text = req.body.trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+
+  return {};
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      ok: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'POST만 허용됩니다.' }
+    });
+  }
+
+  try {
+    const payload = parseBody(req);
+    const out = await handleKioskMark(payload);
+    return res.status(out.status).json(out.body);
+  } catch (e) {
+    return res.status(500).json({
+      ok: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: e?.message || 'kiosk.mark 처리 실패'
+      }
+    });
   }
 }

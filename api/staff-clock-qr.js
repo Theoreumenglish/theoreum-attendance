@@ -148,6 +148,10 @@ export async function handleStaffClockQr(payload) {
   const staffName = String(verified.data?.staff_name || '').trim();
   const role = normalizeRole(verified.data?.role || '');
 
+  if (!staffId) {
+    return fail(500, 'SERVER_ERROR', '직원 QR 검증 결과에 staff_id가 없습니다.');
+  }
+
   const result = await writeStaffClockAndRollup({
     ts: new Date().toISOString(),
     staff_id: staffId,
@@ -186,6 +190,24 @@ export async function handleStaffClockQr(payload) {
   });
 }
 
+function parseBody(req) {
+  if (Buffer.isBuffer(req.body)) {
+    const text = req.body.toString('utf8').trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (typeof req.body === 'string') {
+    const text = req.body.trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+
+  return {};
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({
@@ -195,7 +217,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const payload = typeof req.body === 'object' && req.body ? req.body : {};
+    const payload = parseBody(req);
     const out = await handleStaffClockQr(payload);
     return res.status(out.status).json(out.body);
   } catch (e) {

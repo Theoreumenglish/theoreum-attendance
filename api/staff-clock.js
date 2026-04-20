@@ -87,3 +87,44 @@ export async function handleStaffClock(payload) {
     monthly: result.monthly || null
   });
 }
+
+function parseBody(req) {
+  if (Buffer.isBuffer(req.body)) {
+    const text = req.body.toString('utf8').trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (typeof req.body === 'string') {
+    const text = req.body.trim();
+    return text ? JSON.parse(text) : {};
+  }
+
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+
+  return {};
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      ok: false,
+      error: { code: 'METHOD_NOT_ALLOWED', message: 'POST만 허용됩니다.' }
+    });
+  }
+
+  try {
+    const payload = parseBody(req);
+    const out = await handleStaffClock(payload);
+    return res.status(out.status).json(out.body);
+  } catch (e) {
+    return res.status(500).json({
+      ok: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: e?.message || 'staff.clock 처리 실패'
+      }
+    });
+  }
+}

@@ -5,17 +5,39 @@ function send(res, status, body) {
   res.send(JSON.stringify(body));
 }
 
+function parseBody(req) {
+  if (Buffer.isBuffer(req.body)) {
+    const text = req.body.toString('utf8').trim();
+    return text ? JSON.parse(text) : {};
+  }
+  if (typeof req.body === 'string') {
+    const text = req.body.trim();
+    return text ? JSON.parse(text) : {};
+  }
+  if (req.body && typeof req.body === 'object') return req.body;
+  return {};
+}
+
+function statusFromOut(out) {
+  if (out?.ok) return 200;
+  const code = String(out?.error?.code || '').trim().toUpperCase();
+  if (code === 'NOT_FOUND') return 404;
+  if (code === 'NOT_ALLOWED') return 403;
+  if (code === 'CONFIG_REQUIRED' || code === 'SERVER_ERROR' || code.startsWith('DB_')) return 500;
+  return 400;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return send(res, 405, { ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'POST만 허용됩니다.' } });
   }
 
   try {
-    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const payload = parseBody(req);
     const args = payload.args && typeof payload.args === 'object' ? payload.args : payload;
     const out = await studentQrSessionFrame(args);
-    return send(res, out.ok ? 200 : 400, out);
+    return send(res, statusFromOut(out), out);
   } catch (e) {
-    return send(res, 500, { ok: false, error: { code: 'SERVER_ERROR', message: e?.message || 'frame 실패' } });
+    return send(res, 400, { ok: false, error: { code: 'BAD_JSON', message: e?.message || 'frame 실패' } });
   }
 }

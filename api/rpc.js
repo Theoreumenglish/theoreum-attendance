@@ -248,15 +248,18 @@ export default async function handler(req, res) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const forwardedArgs = isPlainObject(payload.args) ? { ...payload.args } : {};
+
+    delete forwardedArgs.directSessionToken;
+    delete forwardedArgs.gasSessionToken;
+    forwardedArgs.sessionToken = gasSessionToken;
+
     const upstreamPayload = {
       ...payload,
+      directSessionToken: '',
+      gasSessionToken: '',
       sessionToken: gasSessionToken,
-      args: isPlainObject(payload.args)
-        ? {
-            ...payload.args,
-            sessionToken: payload.args.sessionToken || gasSessionToken
-          }
-        : payload.args
+      args: forwardedArgs
     };
 
     const upstream = await fetch(gasUrl, {
