@@ -44,12 +44,12 @@ export default async function handler(req, res) {
 
   try {
     const args = payload.args && typeof payload.args === 'object' ? payload.args : payload;
-    const out = await someLibFn(args);
+    const out = await studentQrSessionStart(args);
     return send(res, statusFromOut(out), out);
-  } catch (e) {
-    return send(res, 500, {
-      ok: false,
-      error: { code: 'SERVER_ERROR', message: e?.message || '처리 실패' }
-    });
-  }
+    } catch (e) {
+      return send(res, 500, {
+        ok: false,
+        error: { code: 'SERVER_ERROR', message: e?.message || 'session-start 실패' }
+      });
+    }
 }
