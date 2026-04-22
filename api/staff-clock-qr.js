@@ -10,6 +10,14 @@ function normalizeAction(input) {
   return ALLOWED_ACTIONS.has(s) ? s : '';
 }
 
+function normalizeStaffId(input) {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9._-]/g, '')
+    .slice(0, 40);
+}
 
 function normalizeRole(input) {
   return String(input || '').trim().toLowerCase();

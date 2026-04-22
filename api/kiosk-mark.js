@@ -5,9 +5,15 @@ import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
 import { getAttendanceMetaCached } from '../lib/attendance-meta.js';
 
+const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
 const MOVE_DEDUPE_MS = 90000;
+
+function toPositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
 
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
