@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
   try {
     const args = payload.args && typeof payload.args === 'object' ? payload.args : payload;
-    const out = await someLibFn(args);
+    const out = await staffQrVerify(args);
     return send(res, statusFromOut(out), out);
   } catch (e) {
     return send(res, 500, {

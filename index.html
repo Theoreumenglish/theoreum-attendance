@@ -1853,9 +1853,10 @@
 				setTimeout(() => input.focus(), 50);
 			},
 
-			setAction(action) {
-        Kiosk.closeStaffQuick();
-        Kiosk.action = action;
+		setAction(action) {
+			Kiosk.closeStaffQuick();
+			Kiosk.resetPendingMark();
+			Kiosk.action = action;
 
         ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
           const btn = document.getElementById('btn' + x);
