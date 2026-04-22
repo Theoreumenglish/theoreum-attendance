@@ -1235,18 +1235,14 @@
 		const $ = (sel, root = document) => root.querySelector(sel);
 
 		function safeFocus(el, delay = 0) {
-		const run = () => {
-			if (!el) return;
-			if (!document.contains(el)) return;
-			if (typeof el.focus !== 'function') return;
-			try { el.focus(); } catch (_) {}
-		};
-
-		if (delay > 0) {
-			setTimeout(run, delay);
-		} else {
-			run();
-		}
+			const run = () => {
+				if (!el) return;
+				if (!document.contains(el)) return;
+				if (typeof el.focus !== 'function') return;
+				try { el.focus(); } catch (_) {}
+			};
+			if (delay > 0) setTimeout(run, delay);
+			else run();
 		}
     window.addEventListener('error', (e) => {
       const v = document.getElementById('viewPort');
@@ -1311,7 +1307,6 @@
 
 		const App = {
 			sess: localStorage.getItem('ATT_SESS') || '',
-			gasSess: localStorage.getItem('ATT_GAS_SESS') || '',
 			pending: 0,
 			currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
 			meta: null,
@@ -1324,17 +1319,11 @@
 
 					const controller = new AbortController();
 					const timeoutMs =
-					(op === 'kiosk.mark' || op === 'staff.clock.qr') ? 8000 : 15000;
+					(op === 'kiosk.mark' || op === 'staff.clock.qr') ? 20000 : 15000;
 					const timer = setTimeout(() => controller.abort(), timeoutMs);
 
 					try {
-					const payload = {
-						op,
-						args,
-						sessionToken: App.sess,
-						gasSessionToken: App.gasSess,
-						...extra
-					};
+					const payload = { op, args, sessionToken: App.sess, ...extra };
 
 					const res = await fetch('/api/rpc', {
 						method: 'POST',
@@ -1360,41 +1349,13 @@
               return;
             }
 
-            const out = json || {
+            resolve(json || {
               ok: false,
               error: {
                 code: 'EMPTY_RESPONSE',
                 message: '빈 응답입니다.'
               }
-            };
-
-            const authCode = String((out && out.error && out.error.code) || '').trim().toUpperCase();
-            const shouldResetStaffSession =
-              App.currentView === 'staff' &&
-              op !== 'auth.login' &&
-              op !== 'auth.me' &&
-              (
-                authCode === 'AUTH_REQUIRED' ||
-                authCode === 'SESSION_EXPIRED' ||
-                authCode === 'INVALID_SESSION'
-              );
-
-            if (shouldResetStaffSession) {
-              App.sess = '';
-              App.gasSess = '';
-              localStorage.removeItem('ATT_SESS');
-              localStorage.removeItem('ATT_GAS_SESS');
-              App.setWho('guest');
-
-              const logoutBtn = $('#btnLogout');
-              if (logoutBtn) logoutBtn.classList.add('hidden');
-
-              UI.render('tpl-login');
-              Auth.initLogin();
-              UI.toast(false, '세션이 만료되어 다시 로그인해주세요.');
-            }
-
-            resolve(out);
+            });
           } catch (err) {
 			const aborted = err && err.name === 'AbortError';
 			resolve({
@@ -1414,9 +1375,16 @@
         });
       },
 
-			kickNotifyWorker() {
-				// 보안상 worker key는 브라우저에 두지 않는다.
-				// 즉시 발송은 서버 내부 drain, 누락/실패 복구는 cron worker가 담당한다.
+			kickNotifyWorker(limit = 5) {
+				try {
+					fetch('/api/attendance-notify-worker', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json; charset=utf-8' },
+					body: JSON.stringify({ limit }),
+					cache: 'no-store',
+					keepalive: true
+					}).catch(() => {});
+				} catch (_) {}
 			},
 
 			setWho(text) {
@@ -1429,17 +1397,9 @@
 				if (ping.ok) {
 					App.meta = ping.data || {};
 					UI.setMeta(App.meta);
-					UI.setKioskFloor(App.meta && App.meta.kiosk_floor ? App.meta.kiosk_floor : '5F');
 				} else {
-					App.meta = {
-						safe: {
-							mode: 'Y',
-							message: (ping.error && ping.error.message) ? ping.error.message : '운영 메타 조회 실패'
-						},
-						kiosk_floor: (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F'
-					};
-					UI.setMeta(App.meta);
-					UI.setKioskFloor(App.meta.kiosk_floor || '5F');
+					App.meta = null;
+					UI.setMeta(null);
 				}
 			},
 
@@ -1570,22 +1530,6 @@
 				if (text) text.textContent = isSafe ? 'Maintenance' : 'Online';
 			},
 
-			setKioskFloor(floor) {
-				const floorPill = $('#floorPill');
-				if (!floorPill) return;
-
-				const normalized = String(floor || '5F').trim() || '5F';
-				floorPill.textContent = normalized;
-
-				if (normalized.includes('7')) {
-					floorPill.style.background = '#fff7ed';
-					floorPill.style.color = '#d97706';
-				} else {
-					floorPill.style.background = 'rgba(79, 70, 229, 0.1)';
-					floorPill.style.color = 'var(--pri)';
-				}
-			},
-
 			maskName(name) {
 				if (!name) return '';
 				if (name.length <= 2) return name.charAt(0) + '*';
@@ -1704,12 +1648,10 @@
 
 			// 수정 형태
       async goKiosk() {
-        if (App.currentView === 'staff' && (App.sess || App.gasSess)) {
+        if (App.currentView === 'staff' && App.sess) {
           await App.rpc('auth.logout', {});
           App.sess = '';
-          App.gasSess = '';
           localStorage.removeItem('ATT_SESS');
-          localStorage.removeItem('ATT_GAS_SESS');
         }
 
         App.currentView = 'kiosk';
@@ -1728,7 +1670,7 @@
         Router.setNav('staff');
 
         const me = await App.rpc('auth.me');
-        if (me.ok && me.data && me.data.loggedIn && App.gasSess) {
+        if (me.ok && me.data && me.data.loggedIn) {
           UI.render('tpl-staff');
           App.setWho(me.data.name + ' (' + me.data.role + ')');
           $('#btnLogout').classList.remove('hidden');
@@ -1736,19 +1678,10 @@
           return;
         }
 
-        App.sess = '';
-        App.gasSess = '';
-        localStorage.removeItem('ATT_SESS');
-        localStorage.removeItem('ATT_GAS_SESS');
-
         App.setWho('guest');
         $('#btnLogout').classList.add('hidden');
         UI.render('tpl-login');
         Auth.initLogin();
-
-        if (me.ok && me.data && me.data.loggedIn && !App.gasSess) {
-          UI.toast(false, '운영 세션이 없어 다시 로그인해야 합니다.');
-        }
       }
 		};
 
@@ -1761,6 +1694,15 @@
       staffQuickOpen: false,
       staffQuickAction: 'IN',
       _staffLongPressTimer: null,
+      pendingKioskTraceId: '',
+      pendingKioskAction: '',
+      pendingKioskInput: '',
+
+      resetPendingMark() {
+        Kiosk.pendingKioskTraceId = '';
+        Kiosk.pendingKioskAction = '';
+        Kiosk.pendingKioskInput = '';
+      },
 
 			init() {
 				const floor = (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F';
@@ -1860,7 +1802,7 @@
 				Kiosk.focusTimer = setInterval(() => {
 					const el = $('#kInput');
 					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && document.activeElement !== el) {
-						el.focus();
+						safeFocus(el);
 					}
 				}, 1000);
 
@@ -1869,43 +1811,34 @@
 			},
 
 			setAction(action) {
-			Kiosk.closeStaffQuick();
-			Kiosk.resetPendingMark();
-			Kiosk.action = action;
+        Kiosk.closeStaffQuick();
+        Kiosk.action = action;
 
-			['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
-				const btn = document.getElementById('btn' + x);
-				if (btn) btn.classList.toggle('on', x === action);
-			});
+        ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
+          const btn = document.getElementById('btn' + x);
+          if (btn) btn.classList.toggle('on', x === action);
+        });
 
-			const input = $('#kInput');
-			const msg = $('#kMsg');
-			const dbg = $('#kDbg');
+        const input = $('#kInput');
+        const msg = $('#kMsg');
+        const dbg = $('#kDbg');
+        input.value = '';
+        UI.clearMsg(msg);
+        dbg.style.display = 'none';
+        dbg.textContent = '';
+        input.blur();
 
-			if (input) {
-				input.value = '';
-				try { input.blur(); } catch (_) {}
-			}
+        if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
+          input.placeholder = Kiosk.getInputPlaceholder();
+          input.setAttribute('inputmode', 'text');
+        } else {
+          input.placeholder = Kiosk.getInputPlaceholder();
+          input.setAttribute('inputmode', 'numeric');
+        }
 
-			if (msg) UI.clearMsg(msg);
+        safeFocus(input, 50);
+      },
 
-			if (dbg) {
-				dbg.style.display = 'none';
-				dbg.textContent = '';
-			}
-
-			if (input) {
-				if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
-				input.placeholder = Kiosk.getInputPlaceholder();
-				input.setAttribute('inputmode', 'text');
-				} else {
-				input.placeholder = Kiosk.getInputPlaceholder();
-				input.setAttribute('inputmode', 'numeric');
-				}
-
-				safeFocus(input, 50);
-			}
-			},
 			normalizeScanText(v) {
 				const map = {
 					'ㅂ':'q','ㅈ':'w','ㄷ':'e','ㄱ':'r','ㅅ':'t','ㅛ':'y','ㅕ':'u','ㅑ':'i','ㅐ':'o','ㅔ':'p',
@@ -2027,7 +1960,8 @@
 				'OUTING_ACTIVE': '외출 중입니다. 먼저 복귀 처리하세요.',
 				'NEED_PIN': '예외학생은 데스크 PIN 승인이 필요합니다.',
 				'NOT_EXCEPTION': '예외 등록된 학생만 학번으로 등/하원할 수 있습니다.',
-				'NO_QR_ID': '학생 QR ID가 등록되어 있지 않습니다. 데스크에 문의하세요.'
+				'NO_QR_ID': '학생 QR ID가 등록되어 있지 않습니다. 데스크에 문의하세요.',
+				'RPC_TIMEOUT': '처리 확인 중입니다. 바로 다시 스캔하지 말고 잠시 기다려주세요.'
 			};
 				return map[code] || defaultMsg || '처리 실패';
 			},
@@ -2064,9 +1998,7 @@
             input.value = '';
             UI.clearMsg(msg);
 
-            setTimeout(() => {
-              input.focus();
-            }, 50);
+            safeFocus(input, 50);
 
             return;
           }
@@ -2077,16 +2009,6 @@
             dbg.style.display = 'block';
             UI.beep(false);
             UI.flashScreen(false);
-            return;
-          }
-
-          if (Kiosk.staffQuickOpen && !isStaffQr) {
-            UI.showModal(false, '직원 모드', '직원 모드에서는 직원 전용 QR만 스캔할 수 있습니다.');
-            dbg.textContent = 'STAFF_QR_ONLY_IN_STAFF_MODE';
-            dbg.style.display = 'block';
-            UI.beep(false);
-            UI.flashScreen(false);
-            input.value = '';
             return;
           }
 
@@ -2144,36 +2066,48 @@
             (($('#floorPill') && $('#floorPill').textContent) || '5F')
           ).trim();
 
+          const normalizedInputForTrace = String(val || '').trim();
+          const samePendingRequest =
+            !!Kiosk.pendingKioskTraceId &&
+            Kiosk.pendingKioskAction === Kiosk.action &&
+            Kiosk.pendingKioskInput === normalizedInputForTrace;
+
+          const traceId = samePendingRequest
+            ? Kiosk.pendingKioskTraceId
+            : ('web-kiosk-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+
+          Kiosk.pendingKioskTraceId = traceId;
+          Kiosk.pendingKioskAction = Kiosk.action;
+          Kiosk.pendingKioskInput = normalizedInputForTrace;
+
           const r = await App.rpc('kiosk.mark', {
             action: Kiosk.action,
             input: val,
             kiosk_floor: kioskFloor
+          }, {
+            traceId
           });
 
           if (r.ok && r.data && r.data.duplicate) {
-            UI.toast(false, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '중복 입력');
+            Kiosk.resetPendingMark();
+            UI.toast(true, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '직전 요청이 이미 처리되었습니다.');
             return;
           }
 
 			if (r.ok) {
-				if (
-					!((r.data && r.data.alreadyDone) || false) &&
-					(Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
-				) {
-					// notify worker는 서버 내부에서 처리한다.
-				}
-
 				const ui = (r.data && r.data.ui) ? r.data.ui : {};
 				const sid = ui.message ? (ui.message.match(/\((.*?)\)/)?.[1] || val) : val;
 				const rawName = ui.message ? (ui.message.split(' ')[0] || '') : '';
 				const maskedName = UI.maskName(rawName);
             if (r.data && r.data.alreadyDone) {
+              Kiosk.resetPendingMark();
               UI.showModal(false, ui.title || '이미 처리됨', maskedName + ' (' + sid + ')');
               UI.beep(false);
               UI.flashScreen(false);
               return;
             }
 
+            Kiosk.resetPendingMark();
             UI.showModal(true, ui.title || '완료', maskedName + ' (' + sid + ')');
             UI.beep(true);
             UI.flashScreen(true);
@@ -2193,6 +2127,10 @@
 						Voice.speak('예외학생입니다. 데스크에 문의해주세요.');
 						UI.flashScreen(false);
 						return;
+					}
+
+					if (!r.error || r.error.code !== 'RPC_TIMEOUT') {
+						Kiosk.resetPendingMark();
 					}
 
 					const errMsg = Kiosk.getErrorMessage(r.error ? r.error.code : '', r.error ? r.error.message : '');
@@ -2243,17 +2181,17 @@
 
 			const input = $('#kInput');
 			const activeTag = document.activeElement && document.activeElement.tagName
-			? document.activeElement.tagName
-			: '';
+				? document.activeElement.tagName
+				: '';
 
 			if (!input || activeTag === 'BUTTON') return;
 
 			if (document.activeElement !== input) {
-			safeFocus(input);
-			if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-				input.value += e.key;
-				e.preventDefault();
-			}
+				safeFocus(input);
+				if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+					input.value += e.key;
+					e.preventDefault();
+				}
 			}
 		});
 
@@ -2282,9 +2220,7 @@
 				const r = await App.rpc('auth.login', { staff_id: id, password: pw });
 				if (r.ok && r.data && r.data.loggedIn) {
 					App.sess = r.data.sessionToken || '';
-					App.gasSess = r.data.gasSessionToken || '';
 					localStorage.setItem('ATT_SESS', App.sess);
-					localStorage.setItem('ATT_GAS_SESS', App.gasSess);
 					Router.goStaff();
 					return;
 				}
@@ -2295,9 +2231,7 @@
 			async logout() {
 				await App.rpc('auth.logout', {});
 				App.sess = '';
-				App.gasSess = '';
 				localStorage.removeItem('ATT_SESS');
-				localStorage.removeItem('ATT_GAS_SESS');
 				Router.goStaff();
 			}
 		};
@@ -2336,7 +2270,7 @@
         $('#btnFlushCache').addEventListener('click', StaffUI.flushCache);
         $('#btnGenSchedule').addEventListener('click', StaffUI.generateSchedule);
         $('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
-				$('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
+        $('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
         $('#corrLogBox').addEventListener('click', async (e) => {
 					const btn = e.target.closest('[data-source-trace]');
 					if (!btn) return;
@@ -2347,18 +2281,6 @@
 					await StaffUI.openSourceTrace(sourceTraceId);
 				});
 
-        const btnTraceClose = $('#btnTraceClose');
-        if (btnTraceClose) btnTraceClose.onclick = StaffUI.closeTraceModal;
-
-        const btnTraceCopy = $('#btnTraceCopy');
-        if (btnTraceCopy) btnTraceCopy.onclick = StaffUI.copyTraceModal;
-
-        const traceModal = $('#traceModal');
-        if (traceModal) {
-          traceModal.onclick = (e) => {
-            if (e.target === traceModal) StaffUI.closeTraceModal();
-          };
-        }
 
 				StaffUI.applyRoleView();
 			},
@@ -2409,29 +2331,6 @@
       },
 
       // 수정 형태
-      closeTraceModal() {
-        const modal = $('#traceModal');
-        const body = $('#traceModalBody');
-        if (body) body.textContent = '';
-        if (modal) modal.classList.add('hidden');
-      },
-
-      async copyTraceModal() {
-        const body = $('#traceModalBody');
-        const text = body ? String(body.textContent || '') : '';
-        if (!text) {
-          UI.toast(false, '복사할 내용이 없습니다.');
-          return;
-        }
-
-        try {
-          await navigator.clipboard.writeText(text);
-          UI.toast(true, '원본 로그를 복사했습니다.');
-        } catch (_) {
-          UI.toast(false, '복사에 실패했습니다.');
-        }
-      },
-
       async openSourceTrace(sourceTraceId) {
         const r = await App.rpc('assistant.getLogByTrace', { trace_id: sourceTraceId });
         if (!r.ok) {
@@ -2445,15 +2344,11 @@
           return;
         }
 
-        const modal = $('#traceModal');
-        const body = $('#traceModalBody');
-        if (!modal || !body) {
-          UI.toast(false, '원본 로그 모달을 찾지 못했습니다.');
-          return;
-        }
+        $('#logDate').value = log.yyyymmdd || '';
+        $('#logSid').value = log.student_id || '';
+        await StaffUI.loadLogs();
 
-        body.textContent = JSON.stringify(log, null, 2);
-        modal.classList.remove('hidden');
+        UI.toast(true, '원본 로그를 불러왔습니다: ' + sourceTraceId);
       },
 
 			renderLogsTable(logs) {
