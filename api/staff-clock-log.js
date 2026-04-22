@@ -32,8 +32,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
   }
 
+  const expectedSecret = String(process.env.API_SHARED_SECRET || '').trim();
+  if (!expectedSecret) {
+    return res.status(500).json({
+      ok: false,
+      error: 'CONFIG_REQUIRED',
+      detail: 'API_SHARED_SECRET 누락'
+    });
+  }
+
   const sharedSecret = String(req.headers['x-api-shared-secret'] || '').trim();
-  if (!sharedSecret || sharedSecret !== process.env.API_SHARED_SECRET) {
+  if (!sharedSecret || sharedSecret !== expectedSecret) {
     return res.status(401).json({ ok: false, error: 'UNAUTHORIZED' });
   }
 

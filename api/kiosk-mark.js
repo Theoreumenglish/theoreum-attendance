@@ -1,19 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
-import { enqueueAttendanceNotify, runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
+import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
 import { getAttendanceMetaCached } from '../lib/attendance-meta.js';
 
-const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
 const MOVE_DEDUPE_MS = 90000;
-
-function toPositiveInt(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
 
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
@@ -430,10 +424,13 @@ export async function handleKioskMark(payload) {
     );
   }
 
-  const authoritativeFloor = String(meta.data?.kiosk_floor || '5F').trim();
-  const kioskFloor = normalizeFloor(
-    args.kiosk_floor || args.floor || args.kioskFloor || authoritativeFloor || '5F'
-  );
+  const authoritativeFloor = normalizeFloor(String(meta.data?.kiosk_floor || '5F').trim() || '5F');
+
+  if (!ALLOWED_FLOORS.has(authoritativeFloor)) {
+    return fail(500, 'CONFIG_REQUIRED', '운영 메타의 kiosk_floor 설정이 올바르지 않습니다.');
+  }
+
+  const kioskFloor = authoritativeFloor;
 
   const safeMode = String(meta.data?.safe?.mode || 'N').trim().toUpperCase() === 'Y';
   const safeMessage = String(meta.data?.safe?.message || '').trim();
@@ -730,12 +727,6 @@ export async function handleKioskMark(payload) {
         finalAction,
         traceId
       );
-
-      if (notifyResult && notifyResult.queued && !notifyResult.duplicate) {
-        try {
-          await runAttendanceNotifyWorker({ limit: 1 });
-        } catch (_) {}
-      }
     }
 
     return success({

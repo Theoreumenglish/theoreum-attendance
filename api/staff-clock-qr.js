@@ -2,29 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { writeStaffClockAndRollup } from '../lib/staff-attendance.js';
 import { staffQrVerify } from '../lib/staff-qr-core.js';
 
-const DEFAULT_TIMEOUT_MS = 12000;
 const DEDUPE_SEC = 10;
 const ALLOWED_ACTIONS = new Set(['IN', 'OUT']);
-
-function toPositiveInt(value, fallback, min = 1, max = 60000) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(min, Math.min(max, Math.floor(n)));
-}
 
 function normalizeAction(input) {
   const s = String(input || '').trim().toUpperCase();
   return ALLOWED_ACTIONS.has(s) ? s : '';
 }
 
-function normalizeStaffId(input) {
-  return String(input || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/[^a-z0-9._-]/g, '')
-    .slice(0, 40);
-}
 
 function normalizeRole(input) {
   return String(input || '').trim().toLowerCase();
@@ -34,12 +19,6 @@ function normalizeNote(input) {
   return String(input || '').trim().slice(0, 200);
 }
 
-function stripStaffQrEnvelope(raw) {
-  const s = String(raw || '').trim();
-  if (!s) return '';
-  if (!/^STAFFQR1\./i.test(s)) return '';
-  return s.replace(/^STAFFQR1\./i, '');
-}
 
 function buildTraceId(payload) {
   const candidates = [
@@ -127,8 +106,13 @@ export async function handleStaffClockQr(payload) {
   const verified = await staffQrVerify({
     qrText,
     consume: 'Y',
-    shared_secret: String(process.env.STAFF_QR_VERIFY_SHARED_SECRET || '').trim()
-    });
+    shared_secret: String(
+      process.env.STAFF_QR_VERIFY_SHARED_SECRET ||
+      process.env.STAFF_QR_SHARED_SECRET ||
+      process.env.VERIFY_SHARED_SECRET ||
+      ''
+    ).trim()
+  });
   if (!verified.ok) {
     const raw = verified.error || {};
     const mapped = mapVerifyErrorCode(raw.code, raw.message);

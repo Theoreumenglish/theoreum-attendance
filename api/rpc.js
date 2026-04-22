@@ -56,6 +56,18 @@ function resolveTimeoutMs(rawValue) {
   return Math.min(parsed, 120000);
 }
 
+function authLoginGasSyncMode() {
+  return String(process.env.AUTH_LOGIN_GAS_SYNC_MODE || 'BEST_EFFORT')
+    .trim()
+    .toUpperCase();
+}
+
+function shortTimeout(ms, fallback) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.max(300, Math.min(5000, Math.floor(n)));
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return send(res, 405, {
@@ -140,35 +152,59 @@ export default async function handler(req, res) {
     }
 
     const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
-    if (gasUrl) {
-      const gasLogin = await proxyRpcToGas('auth.login', payload.args || {}, '');
+    const syncMode = authLoginGasSyncMode();
+    let gasSessionToken = '';
+
+    if (gasUrl && syncMode !== 'OFF') {
+      const softTimeoutMs = shortTimeout(process.env.AUTH_LOGIN_GAS_SYNC_TIMEOUT_MS, 1200);
+
+      const gasLogin = await Promise.race([
+        proxyRpcToGas('auth.login', payload.args || {}, ''),
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              status: 504,
+              body: {
+                ok: false,
+                error: {
+                  code: 'GAS_AUTH_SYNC_TIMEOUT',
+                  message: 'GAS 세션 동기화 시간 초과'
+                }
+              }
+            });
+          }, softTimeoutMs);
+        })
+      ]);
 
       if (
-        !gasLogin.body ||
-        gasLogin.body.ok !== true ||
-        !gasLogin.body.data ||
-        !gasLogin.body.data.sessionToken
+        gasLogin &&
+        gasLogin.body &&
+        gasLogin.body.ok === true &&
+        gasLogin.body.data &&
+        gasLogin.body.data.sessionToken
       ) {
+        gasSessionToken = gasLogin.body.data.sessionToken;
+      } else if (syncMode === 'REQUIRED') {
         try {
           await authLogoutDirect(result.body?.data?.sessionToken || '');
         } catch (_) {}
 
-        return send(res, gasLogin.status || 502, {
+        return send(res, gasLogin?.status || 502, {
           ok: false,
           error: {
             code: 'GAS_AUTH_SYNC_FAILED',
             message:
-              (gasLogin.body && gasLogin.body.error && gasLogin.body.error.message) ||
+              (gasLogin?.body && gasLogin.body.error && gasLogin.body.error.message) ||
               'GAS 세션 동기화에 실패했습니다. 다시 시도해주세요.'
           }
         });
       }
-
-      result.body.data = {
-        ...(result.body.data || {}),
-        gasSessionToken: gasLogin.body.data.sessionToken
-      };
     }
+
+    result.body.data = {
+      ...(result.body.data || {}),
+      gasSessionToken
+    };
 
     return send(res, result.status, result.body);
   }
@@ -252,6 +288,7 @@ export default async function handler(req, res) {
 
     delete forwardedArgs.directSessionToken;
     delete forwardedArgs.gasSessionToken;
+    delete forwardedArgs.sessionToken;
     forwardedArgs.sessionToken = gasSessionToken;
 
     const upstreamPayload = {
