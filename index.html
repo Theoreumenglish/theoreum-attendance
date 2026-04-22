@@ -1814,6 +1814,8 @@
 				$('#btnOUTING').addEventListener('click', () => Kiosk.setAction('OUTING'));
 
 				const input = $('#kInput');
+				if (!input) return;
+
 				input.setAttribute('autocapitalize', 'off');
 				input.setAttribute('autocorrect', 'off');
 				input.setAttribute('spellcheck', 'false');
@@ -2080,6 +2082,8 @@
 					const isQr = /^QR1\./i.test(val);
 					const isStaffQr = /^STAFFQR1\./i.test(val);
 					const isExceptionId = digits.length === 4;
+
+					if (!val) return;
 
 					const hasNonAscii = /[^\x20-\x7E]/.test(val);
 					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
