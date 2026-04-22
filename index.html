@@ -1307,6 +1307,7 @@
 
 		const App = {
 			sess: localStorage.getItem('ATT_SESS') || '',
+			gasSess: localStorage.getItem('ATT_GAS_SESS') || '',
 			pending: 0,
 			currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
 			meta: null,
@@ -1319,72 +1320,99 @@
 
 					const controller = new AbortController();
 					const timeoutMs =
-					(op === 'kiosk.mark' || op === 'staff.clock.qr') ? 20000 : 15000;
+						(op === 'kiosk.mark' || op === 'staff.clock.qr') ? 20000 : 15000;
 					const timer = setTimeout(() => controller.abort(), timeoutMs);
 
 					try {
-					const payload = { op, args, sessionToken: App.sess, ...extra };
+						const payload = {
+							op,
+							args,
+							sessionToken: App.sess,
+							gasSessionToken: App.gasSess,
+							...extra
+						};
 
-					const res = await fetch('/api/rpc', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(payload),
-						cache: 'no-store',
-						signal: controller.signal
-					});
+						const res = await fetch('/api/rpc', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(payload),
+							cache: 'no-store',
+							signal: controller.signal
+						});
 
-            const text = await res.text();
-            let json = null;
+						const text = await res.text();
+						let json = null;
 
-            try {
-              json = text ? JSON.parse(text) : null;
-            } catch (e) {
-              resolve({
-                ok: false,
-                error: {
-                  code: 'BAD_JSON',
-                  message: '서버 응답을 해석할 수 없습니다.'
-                }
-              });
-              return;
-            }
+						try {
+							json = text ? JSON.parse(text) : null;
+						} catch (e) {
+							resolve({
+								ok: false,
+								error: {
+									code: 'BAD_JSON',
+									message: '서버 응답을 해석할 수 없습니다.'
+								}
+							});
+							return;
+						}
 
-            resolve(json || {
-              ok: false,
-              error: {
-                code: 'EMPTY_RESPONSE',
-                message: '빈 응답입니다.'
-              }
-            });
-          } catch (err) {
-			const aborted = err && err.name === 'AbortError';
-			resolve({
-				ok: false,
-				error: {
-				code: aborted ? 'RPC_TIMEOUT' : 'RPC_FAIL',
-				message: aborted
-					? '요청 시간이 초과되었습니다. 다시 시도해주세요.'
-					: ((err && err.message) ? err.message : '서버 연결 실패')
-				}
-			});
-			} finally {
-			clearTimeout(timer);
-			App.pending = Math.max(0, App.pending - 1);
-			if (App.pending === 0) UI.busy(false);
-			}
-        });
-      },
+						const out = json || {
+							ok: false,
+							error: {
+								code: 'EMPTY_RESPONSE',
+								message: '빈 응답입니다.'
+							}
+						};
 
-			kickNotifyWorker(limit = 5) {
-				try {
-					fetch('/api/attendance-notify-worker', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json; charset=utf-8' },
-					body: JSON.stringify({ limit }),
-					cache: 'no-store',
-					keepalive: true
-					}).catch(() => {});
-				} catch (_) {}
+						const authCode = String((out && out.error && out.error.code) || '').trim().toUpperCase();
+						const shouldResetStaffSession =
+							App.currentView === 'staff' &&
+							op !== 'auth.login' &&
+							op !== 'auth.me' &&
+							(
+								authCode === 'AUTH_REQUIRED' ||
+								authCode === 'SESSION_EXPIRED' ||
+								authCode === 'INVALID_SESSION'
+							);
+
+						if (shouldResetStaffSession) {
+							App.sess = '';
+							App.gasSess = '';
+							localStorage.removeItem('ATT_SESS');
+							localStorage.removeItem('ATT_GAS_SESS');
+							App.setWho('guest');
+
+							const logoutBtn = $('#btnLogout');
+							if (logoutBtn) logoutBtn.classList.add('hidden');
+
+							UI.render('tpl-login');
+							Auth.initLogin();
+							UI.toast(false, '세션이 만료되어 다시 로그인해주세요.');
+						}
+
+						resolve(out);
+					} catch (err) {
+						const aborted = err && err.name === 'AbortError';
+						resolve({
+							ok: false,
+							error: {
+								code: aborted ? 'RPC_TIMEOUT' : 'RPC_FAIL',
+								message: aborted
+									? '요청 시간이 초과되었습니다. 다시 시도해주세요.'
+									: ((err && err.message) ? err.message : '서버 연결 실패')
+							}
+						});
+					} finally {
+						clearTimeout(timer);
+						App.pending = Math.max(0, App.pending - 1);
+						if (App.pending === 0) UI.busy(false);
+					}
+				});
+			},
+
+			kickNotifyWorker() {
+				// 브라우저에서 직접 worker를 깨우지 않는다.
+				// 서버 큐/크론이 후속 처리를 담당한다.
 			},
 
 			setWho(text) {
@@ -1394,12 +1422,21 @@
 
 			async refreshMeta() {
 				const ping = await App.rpc('meta.ping');
+
 				if (ping.ok) {
 					App.meta = ping.data || {};
 					UI.setMeta(App.meta);
+					UI.setKioskFloor(App.meta && App.meta.kiosk_floor ? App.meta.kiosk_floor : '5F');
 				} else {
-					App.meta = null;
-					UI.setMeta(null);
+					App.meta = {
+						safe: {
+							mode: 'Y',
+							message: (ping.error && ping.error.message) ? ping.error.message : '운영 메타 조회 실패'
+						},
+						kiosk_floor: (App.meta && App.meta.kiosk_floor) ? App.meta.kiosk_floor : '5F'
+					};
+					UI.setMeta(App.meta);
+					UI.setKioskFloor(App.meta.kiosk_floor || '5F');
 				}
 			},
 
@@ -1411,13 +1448,15 @@
 				App._booted = true;
 
 				Router.bindTopbar();
-				$('#btnLogout').addEventListener('click', Auth.logout);
+
+				const logoutBtn = $('#btnLogout');
+				if (logoutBtn) logoutBtn.addEventListener('click', Auth.logout);
 
 				if (App.currentView === 'staff') await Router.goStaff();
 				else await Router.goKiosk();
 
 				App.refreshMeta().catch(() => {});
-				}
+			}
 		};
 
 		const Voice = {
@@ -1528,6 +1567,22 @@
 						: '0 0 0 4px rgba(16, 185, 129, 0.15)';
 				}
 				if (text) text.textContent = isSafe ? 'Maintenance' : 'Online';
+			},
+
+			setKioskFloor(floor) {
+				const floorPill = $('#floorPill');
+				if (!floorPill) return;
+
+				const normalized = String(floor || '5F').trim() || '5F';
+				floorPill.textContent = normalized;
+
+				if (normalized.includes('7')) {
+					floorPill.style.background = '#fff7ed';
+					floorPill.style.color = '#d97706';
+				} else {
+					floorPill.style.background = 'rgba(79, 70, 229, 0.1)';
+					floorPill.style.color = 'var(--pri)';
+				}
 			},
 
 			maskName(name) {
@@ -1648,17 +1703,21 @@
 
 			// 수정 형태
       async goKiosk() {
-        if (App.currentView === 'staff' && App.sess) {
+        if (App.currentView === 'staff' && (App.sess || App.gasSess)) {
           await App.rpc('auth.logout', {});
           App.sess = '';
+          App.gasSess = '';
           localStorage.removeItem('ATT_SESS');
+          localStorage.removeItem('ATT_GAS_SESS');
         }
 
         App.currentView = 'kiosk';
         localStorage.setItem('ATT_LAST_VIEW', 'kiosk');
         Router.setNav('kiosk');
         App.setWho('guest');
-        $('#btnLogout').classList.add('hidden');
+
+        const logoutBtn = $('#btnLogout');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
 
         UI.render('tpl-kiosk');
         Kiosk.init();
@@ -1673,13 +1732,24 @@
         if (me.ok && me.data && me.data.loggedIn) {
           UI.render('tpl-staff');
           App.setWho(me.data.name + ' (' + me.data.role + ')');
-          $('#btnLogout').classList.remove('hidden');
+
+          const logoutBtn = $('#btnLogout');
+          if (logoutBtn) logoutBtn.classList.remove('hidden');
+
           StaffUI.init(me.data);
           return;
         }
 
+        App.sess = '';
+        App.gasSess = '';
+        localStorage.removeItem('ATT_SESS');
+        localStorage.removeItem('ATT_GAS_SESS');
+
         App.setWho('guest');
-        $('#btnLogout').classList.add('hidden');
+
+        const logoutBtn = $('#btnLogout');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+
         UI.render('tpl-login');
         Auth.initLogin();
       }
@@ -1752,10 +1822,17 @@
 				input.addEventListener('input', () => {
           clearTimeout(Kiosk._idleClearTimer);
           Kiosk._idleClearTimer = setTimeout(() => {
-            input.value = '';
+            if (input && document.contains(input)) {
+              input.value = '';
+            }
+
             UI.clearMsg($('#kMsg'));
-            $('#kDbg').style.display = 'none';
-            $('#kDbg').textContent = '';
+
+            const dbgEl = $('#kDbg');
+            if (dbgEl) {
+              dbgEl.style.display = 'none';
+              dbgEl.textContent = '';
+            }
           }, 10000);
 
           if (Kiosk.staffQuickOpen) {
@@ -1812,6 +1889,7 @@
 
 			setAction(action) {
         Kiosk.closeStaffQuick();
+        Kiosk.resetPendingMark();
         Kiosk.action = action;
 
         ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
@@ -1822,21 +1900,30 @@
         const input = $('#kInput');
         const msg = $('#kMsg');
         const dbg = $('#kDbg');
-        input.value = '';
-        UI.clearMsg(msg);
-        dbg.style.display = 'none';
-        dbg.textContent = '';
-        input.blur();
 
-        if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
-          input.placeholder = Kiosk.getInputPlaceholder();
-          input.setAttribute('inputmode', 'text');
-        } else {
-          input.placeholder = Kiosk.getInputPlaceholder();
-          input.setAttribute('inputmode', 'numeric');
+        if (input) {
+          input.value = '';
+          try { input.blur(); } catch (_) {}
         }
 
-        safeFocus(input, 50);
+        if (msg) UI.clearMsg(msg);
+
+        if (dbg) {
+          dbg.style.display = 'none';
+          dbg.textContent = '';
+        }
+
+        if (input) {
+          if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
+            input.placeholder = Kiosk.getInputPlaceholder();
+            input.setAttribute('inputmode', 'text');
+          } else {
+            input.placeholder = Kiosk.getInputPlaceholder();
+            input.setAttribute('inputmode', 'numeric');
+          }
+
+          safeFocus(input, 50);
+        }
       },
 
 			normalizeScanText(v) {
@@ -1975,6 +2062,14 @@
 					const msg = $('#kMsg');
 					const dbg = $('#kDbg');
 
+					if (!input) return;
+
+					const setDbg = (text = '') => {
+						if (!dbg) return;
+						dbg.textContent = text;
+						dbg.style.display = text ? 'block' : 'none';
+					};
+
 					clearTimeout(Kiosk._idleClearTimer);
 
 					const val = (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
@@ -1982,138 +2077,144 @@
 						: (input.value || '').trim();
 
 					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
-          const isQr = /^QR1\./i.test(val);
-          const isStaffQr = /^STAFFQR1\./i.test(val);
-          const isExceptionId = digits.length === 4;
+					const isQr = /^QR1\./i.test(val);
+					const isStaffQr = /^STAFFQR1\./i.test(val);
+					const isExceptionId = digits.length === 4;
 
-          const hasNonAscii = /[^\x20-\x7E]/.test(val);
-          if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
-            UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
-            dbg.textContent = 'NON_ASCII_INPUT';
-            dbg.style.display = 'block';
-            UI.beep(false);
-            Voice.speak('한영 키를 확인해주세요.');
-            UI.flashScreen(false);
+					const hasNonAscii = /[^\x20-\x7E]/.test(val);
+					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
+						UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
+						setDbg('NON_ASCII_INPUT');
+						UI.beep(false);
+						Voice.speak('한영 키를 확인해주세요.');
+						UI.flashScreen(false);
 
-            input.value = '';
-            UI.clearMsg(msg);
+						input.value = '';
+						UI.clearMsg(msg);
+						safeFocus(input, 50);
+						return;
+					}
 
-            safeFocus(input, 50);
+					if (isStaffQr && !Kiosk.staffQuickOpen) {
+						UI.showModal(false, '직원 QR 감지', '직원 처리는 층 표시를 길게 눌러 직원 모드를 연 뒤 진행하세요.');
+						setDbg('STAFF_QUICK_MODE_REQUIRED');
+						UI.beep(false);
+						UI.flashScreen(false);
+						return;
+					}
 
-            return;
-          }
+					if (Kiosk.staffQuickOpen && !isStaffQr) {
+						UI.showModal(false, '직원 모드', '직원 모드에서는 직원 전용 QR만 스캔할 수 있습니다.');
+						setDbg('STAFF_QR_ONLY_IN_STAFF_MODE');
+						UI.beep(false);
+						UI.flashScreen(false);
+						input.value = '';
+						safeFocus(input, 50);
+						return;
+					}
 
-          if (isStaffQr && !Kiosk.staffQuickOpen) {
-            UI.showModal(false, '직원 QR 감지', '직원 처리는 층 표시를 길게 눌러 직원 모드를 연 뒤 진행하세요.');
-            dbg.textContent = 'STAFF_QUICK_MODE_REQUIRED';
-            dbg.style.display = 'block';
-            UI.beep(false);
-            UI.flashScreen(false);
-            return;
-          }
+					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isExceptionId) {
+						UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
+						setDbg('QR_OR_EXCEPTION_ID_REQUIRED');
+						UI.beep(false);
+						Voice.speak('입력 방식을 확인해주세요.');
+						UI.flashScreen(false);
+						return;
+					}
 
-          if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isExceptionId) {
-            UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
-            dbg.textContent = 'QR_OR_EXCEPTION_ID_REQUIRED';
-            dbg.style.display = 'block';
-            UI.beep(false);
-            Voice.speak('입력 방식을 확인해주세요.');
-            UI.flashScreen(false);
-            return;
-          }
+					if (!val) return;
 
-          if (!val) return;
+					input.value = '';
+					UI.clearMsg(msg);
+					setDbg('');
 
-          input.value = '';
-          UI.clearMsg(msg);
-          dbg.textContent = '';
-          dbg.style.display = 'none';
+					if (isStaffQr) {
+						const staffAction = Kiosk.staffQuickAction || 'IN';
+						const r = await App.rpc('staff.clock.qr', {
+							action: staffAction,
+							qrText: val,
+							note: 'KIOSK_QUICK'
+						});
 
-          if (isStaffQr) {
-            const staffAction = Kiosk.staffQuickAction || 'IN';
-            const r = await App.rpc('staff.clock.qr', {
-              action: staffAction,
-              qrText: val,
-              note: 'KIOSK_QUICK'
-            });
+						if (r.ok) {
+							const name = (r.data && r.data.name) ? r.data.name : '';
+							const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
+							const desc = name ? (name + ' 선생님') : '직원 처리 완료';
 
-            if (r.ok) {
-              const name = (r.data && r.data.name) ? r.data.name : '';
-              const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
-              const desc = name ? (name + ' 선생님') : '직원 처리 완료';
+							UI.showModal(true, title, desc);
+							UI.beep(true);
+							UI.flashScreen(true);
+							if (name) {
+								Voice.speak(name + ' 선생님, ' + (staffAction === 'IN' ? '출근' : '퇴근') + '되었습니다.');
+							}
+							Kiosk.closeStaffQuick();
+							return;
+						}
 
-              UI.showModal(true, title, desc);
-              UI.beep(true);
-              UI.flashScreen(true);
-              if (name) Voice.speak(name + ' 선생님, ' + (staffAction === 'IN' ? '출근' : '퇴근') + '되었습니다.');
-              Kiosk.closeStaffQuick();
-              return;
-            }
+						const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
+						const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_QR_FAIL';
 
-            const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
-            const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_QR_FAIL';
+						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg);
+						setDbg(staffErrCode);
+						UI.beep(false);
+						UI.flashScreen(false);
+						return;
+					}
 
-            UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg);
-            dbg.textContent = staffErrCode;
-            dbg.style.display = 'block';
-            UI.beep(false);
-            UI.flashScreen(false);
-            return;
-          }
+					const kioskFloor = String(
+						(App.meta && App.meta.kiosk_floor) ||
+						(($('#floorPill') && $('#floorPill').textContent) || '5F')
+					).trim();
 
-          const kioskFloor = String(
-            (App.meta && App.meta.kiosk_floor) ||
-            (($('#floorPill') && $('#floorPill').textContent) || '5F')
-          ).trim();
+					const normalizedInputForTrace = String(val || '').trim();
+					const samePendingRequest =
+						!!Kiosk.pendingKioskTraceId &&
+						Kiosk.pendingKioskAction === Kiosk.action &&
+						Kiosk.pendingKioskInput === normalizedInputForTrace;
 
-          const normalizedInputForTrace = String(val || '').trim();
-          const samePendingRequest =
-            !!Kiosk.pendingKioskTraceId &&
-            Kiosk.pendingKioskAction === Kiosk.action &&
-            Kiosk.pendingKioskInput === normalizedInputForTrace;
+					const traceId = samePendingRequest
+						? Kiosk.pendingKioskTraceId
+						: ('web-kiosk-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
 
-          const traceId = samePendingRequest
-            ? Kiosk.pendingKioskTraceId
-            : ('web-kiosk-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+					Kiosk.pendingKioskTraceId = traceId;
+					Kiosk.pendingKioskAction = Kiosk.action;
+					Kiosk.pendingKioskInput = normalizedInputForTrace;
 
-          Kiosk.pendingKioskTraceId = traceId;
-          Kiosk.pendingKioskAction = Kiosk.action;
-          Kiosk.pendingKioskInput = normalizedInputForTrace;
+					const r = await App.rpc('kiosk.mark', {
+						action: Kiosk.action,
+						input: val,
+						kiosk_floor: kioskFloor
+					}, {
+						traceId
+					});
 
-          const r = await App.rpc('kiosk.mark', {
-            action: Kiosk.action,
-            input: val,
-            kiosk_floor: kioskFloor
-          }, {
-            traceId
-          });
+					if (r.ok && r.data && r.data.duplicate) {
+						Kiosk.resetPendingMark();
+						UI.toast(true, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '직전 요청이 이미 처리되었습니다.');
+						return;
+					}
 
-          if (r.ok && r.data && r.data.duplicate) {
-            Kiosk.resetPendingMark();
-            UI.toast(true, (r.data.ui && r.data.ui.message) ? r.data.ui.message : '직전 요청이 이미 처리되었습니다.');
-            return;
-          }
+					if (r.ok) {
+						const ui = (r.data && r.data.ui) ? r.data.ui : {};
+						const sid = ui.message ? (ui.message.match(/\((.*?)\)/)?.[1] || val) : val;
+						const rawName = ui.message ? (ui.message.split(' ')[0] || '') : '';
+						const maskedName = UI.maskName(rawName);
 
-			if (r.ok) {
-				const ui = (r.data && r.data.ui) ? r.data.ui : {};
-				const sid = ui.message ? (ui.message.match(/\((.*?)\)/)?.[1] || val) : val;
-				const rawName = ui.message ? (ui.message.split(' ')[0] || '') : '';
-				const maskedName = UI.maskName(rawName);
-            if (r.data && r.data.alreadyDone) {
-              Kiosk.resetPendingMark();
-              UI.showModal(false, ui.title || '이미 처리됨', maskedName + ' (' + sid + ')');
-              UI.beep(false);
-              UI.flashScreen(false);
-              return;
-            }
+						if (r.data && r.data.alreadyDone) {
+							Kiosk.resetPendingMark();
+							UI.showModal(false, ui.title || '이미 처리됨', maskedName + ' (' + sid + ')');
+							UI.beep(false);
+							UI.flashScreen(false);
+							return;
+						}
 
-            Kiosk.resetPendingMark();
-            UI.showModal(true, ui.title || '완료', maskedName + ' (' + sid + ')');
-            UI.beep(true);
-            UI.flashScreen(true);
-            if (rawName) Voice.speak(rawName + ' 학생, ' + (ui.title || '처리') + '되었습니다.');
-            return;
-          }
+						Kiosk.resetPendingMark();
+						UI.showModal(true, ui.title || '완료', maskedName + ' (' + sid + ')');
+						UI.beep(true);
+						UI.flashScreen(true);
+						if (rawName) Voice.speak(rawName + ' 학생, ' + (ui.title || '처리') + '되었습니다.');
+						return;
+					}
 
 					if (r.error && r.error.code === 'NEED_PIN') {
 						const d = r.error.detail || {};
@@ -2121,8 +2222,7 @@
 						const nm = d.student_name || '';
 
 						UI.showModal(false, '예외 학생입니다', '데스크에서 학번 [' + sid + '] PIN 승인을 요청하세요.');
-						dbg.textContent = 'NEED_PIN · ' + sid + ' ' + nm + ' · ' + (r.error.traceId || '');
-						dbg.style.display = 'block';
+						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 						UI.beep(false);
 						Voice.speak('예외학생입니다. 데스크에 문의해주세요.');
 						UI.flashScreen(false);
@@ -2135,8 +2235,7 @@
 
 					const errMsg = Kiosk.getErrorMessage(r.error ? r.error.code : '', r.error ? r.error.message : '');
 					UI.showModal(false, '처리 실패', errMsg);
-					dbg.textContent = ((r.error && r.error.code) ? r.error.code : 'ERROR') + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : '');
-					dbg.style.display = 'block';
+					setDbg(((r.error && r.error.code) ? r.error.code : 'ERROR') + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 					UI.beep(false);
 					Voice.speak('다시 한번 시도해주세요.');
 					UI.flashScreen(false);
@@ -2197,14 +2296,17 @@
 
 		const Auth = {
 			initLogin() {
-        $('#btnDoLogin').addEventListener('click', Auth.login);
+				const btn = $('#btnDoLogin');
+				if (btn) btn.addEventListener('click', Auth.login);
 
 				const enterLogin = e => { if (e.key === 'Enter') Auth.login(); };
-				$('#loginId').addEventListener('keydown', enterLogin);
-				$('#loginPw').addEventListener('keydown', enterLogin);
+				const loginId = $('#loginId');
+				const loginPw = $('#loginPw');
 
-				const first = $('#loginId');
-				if (first) safeFocus(first, 50);
+				if (loginId) loginId.addEventListener('keydown', enterLogin);
+				if (loginPw) loginPw.addEventListener('keydown', enterLogin);
+
+				if (loginId) safeFocus(loginId, 50);
 			},
 
 			async login() {
@@ -2220,7 +2322,11 @@
 				const r = await App.rpc('auth.login', { staff_id: id, password: pw });
 				if (r.ok && r.data && r.data.loggedIn) {
 					App.sess = r.data.sessionToken || '';
+					App.gasSess = r.data.gasSessionToken || '';
+
 					localStorage.setItem('ATT_SESS', App.sess);
+					localStorage.setItem('ATT_GAS_SESS', App.gasSess);
+
 					Router.goStaff();
 					return;
 				}
@@ -2231,7 +2337,9 @@
 			async logout() {
 				await App.rpc('auth.logout', {});
 				App.sess = '';
+				App.gasSess = '';
 				localStorage.removeItem('ATT_SESS');
+				localStorage.removeItem('ATT_GAS_SESS');
 				Router.goStaff();
 			}
 		};
