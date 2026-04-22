@@ -1233,6 +1233,21 @@
 		}
 
 		const $ = (sel, root = document) => root.querySelector(sel);
+
+		function safeFocus(el, delay = 0) {
+		const run = () => {
+			if (!el) return;
+			if (!document.contains(el)) return;
+			if (typeof el.focus !== 'function') return;
+			try { el.focus(); } catch (_) {}
+		};
+
+		if (delay > 0) {
+			setTimeout(run, delay);
+		} else {
+			run();
+		}
+		}
     window.addEventListener('error', (e) => {
       const v = document.getElementById('viewPort');
       if (v) {
@@ -1850,39 +1865,47 @@
 				}, 1000);
 
 				Kiosk.setAction('CHECK_IN');
-				setTimeout(() => input.focus(), 50);
+				safeFocus(input, 50);
 			},
 
-		setAction(action) {
+			setAction(action) {
 			Kiosk.closeStaffQuick();
 			Kiosk.resetPendingMark();
 			Kiosk.action = action;
 
-        ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
-          const btn = document.getElementById('btn' + x);
-          if (btn) btn.classList.toggle('on', x === action);
-        });
+			['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].forEach(x => {
+				const btn = document.getElementById('btn' + x);
+				if (btn) btn.classList.toggle('on', x === action);
+			});
 
-        const input = $('#kInput');
-        const msg = $('#kMsg');
-        const dbg = $('#kDbg');
-        input.value = '';
-        UI.clearMsg(msg);
-        dbg.style.display = 'none';
-        dbg.textContent = '';
-        input.blur();
+			const input = $('#kInput');
+			const msg = $('#kMsg');
+			const dbg = $('#kDbg');
 
-        if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
-          input.placeholder = Kiosk.getInputPlaceholder();
-          input.setAttribute('inputmode', 'text');
-        } else {
-          input.placeholder = Kiosk.getInputPlaceholder();
-          input.setAttribute('inputmode', 'numeric');
-        }
+			if (input) {
+				input.value = '';
+				try { input.blur(); } catch (_) {}
+			}
 
-        setTimeout(() => input.focus(), 50);
-      },
+			if (msg) UI.clearMsg(msg);
 
+			if (dbg) {
+				dbg.style.display = 'none';
+				dbg.textContent = '';
+			}
+
+			if (input) {
+				if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
+				input.placeholder = Kiosk.getInputPlaceholder();
+				input.setAttribute('inputmode', 'text');
+				} else {
+				input.placeholder = Kiosk.getInputPlaceholder();
+				input.setAttribute('inputmode', 'numeric');
+				}
+
+				safeFocus(input, 50);
+			}
+			},
 			normalizeScanText(v) {
 				const map = {
 					'ㅂ':'q','ㅈ':'w','ㄷ':'e','ㄱ':'r','ㅅ':'t','ㅛ':'y','ㅕ':'u','ㅑ':'i','ㅐ':'o','ㅔ':'p',
@@ -1921,7 +1944,7 @@
           input.value = '';
           input.setAttribute('inputmode', 'text');
           input.placeholder = Kiosk.getInputPlaceholder();
-          setTimeout(() => input.focus(), 50);
+          safeFocus(input, 50);
         }
 
         UI.clearMsg($('#kMsg'));
@@ -1949,7 +1972,7 @@
             (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') ? 'text' : 'numeric'
           );
           input.placeholder = Kiosk.getInputPlaceholder();
-          setTimeout(() => input.focus(), 50);
+          safeFocus(input, 50);
         }
       },
 
@@ -1986,7 +2009,7 @@
 					input.disabled = false;
 					input.style.opacity = '1';
 					input.placeholder = Kiosk.getInputPlaceholder();
-					setTimeout(() => input.focus(), 50);
+					safeFocus(input, 50);
 				}
 			},
 
@@ -2219,14 +2242,18 @@
 			}
 
 			const input = $('#kInput');
-			if (!input || document.activeElement.tagName === 'BUTTON') return;
+			const activeTag = document.activeElement && document.activeElement.tagName
+			? document.activeElement.tagName
+			: '';
+
+			if (!input || activeTag === 'BUTTON') return;
 
 			if (document.activeElement !== input) {
-				input.focus();
-				if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-					input.value += e.key;
-					e.preventDefault();
-				}
+			safeFocus(input);
+			if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+				input.value += e.key;
+				e.preventDefault();
+			}
 			}
 		});
 
@@ -2239,7 +2266,7 @@
 				$('#loginPw').addEventListener('keydown', enterLogin);
 
 				const first = $('#loginId');
-				if (first) setTimeout(() => first.focus(), 50);
+				if (first) safeFocus(first, 50);
 			},
 
 			async login() {
