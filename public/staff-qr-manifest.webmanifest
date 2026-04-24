@@ -3,7 +3,7 @@
   "name": "더오름 직원 QR 발급기",
   "short_name": "직원QR",
   "start_url": "/staff-qr.html",
-  "scope": "/",
+  "scope": "/staff-qr.html",
   "display": "standalone",
   "background_color": "#f5f6fa",
   "theme_color": "#4f46e5",

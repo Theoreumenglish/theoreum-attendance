@@ -1,4 +1,4 @@
-const CACHE = 'theoreum-attendance-shell-v18';
+const CACHE = 'theoreum-attendance-shell-v19';
 const SHELL = [
   '/',
   '/manifest.webmanifest',
