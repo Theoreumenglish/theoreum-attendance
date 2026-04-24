@@ -5,15 +5,9 @@ import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
 import { getAttendanceMetaCached } from '../lib/attendance-meta.js';
 
-const DEFAULT_TIMEOUT_MS = 25000;
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
 const MOVE_DEDUPE_MS = 90000;
-
-function toPositiveInt(value, fallback) {
-  const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-}
 
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
@@ -90,73 +84,6 @@ function getVerifySharedSecret() {
     process.env.VERIFY_SHARED_SECRET ||
     ''
   ).trim();
-}
-
-async function proxyToGas(payload, gasUrl) {
-  const controller = new AbortController();
-  const timeoutMs = toPositiveInt(process.env.GAS_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const upstream = await fetch(gasUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(payload),
-      redirect: 'follow',
-      signal: controller.signal,
-      cache: 'no-store'
-    });
-
-    const text = await upstream.text();
-
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch (e) {
-      return {
-        status: 502,
-        body: {
-          ok: false,
-          error: {
-            code: 'UPSTREAM_BAD_JSON',
-            message: 'GAS 응답 JSON 파싱 실패',
-            detail: {
-              status: upstream.status,
-              preview: String(text || '').slice(0, 400)
-            }
-          }
-        }
-      };
-    }
-
-    return {
-      status: upstream.ok ? 200 : upstream.status,
-      body: data || {
-        ok: false,
-        error: {
-          code: 'EMPTY_RESPONSE',
-          message: 'GAS 응답이 비어 있습니다.'
-        }
-      }
-    };
-  } catch (e) {
-    const aborted = e && e.name === 'AbortError';
-    return {
-      status: aborted ? 504 : 502,
-      body: {
-        ok: false,
-        error: {
-          code: aborted ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_FETCH_FAIL',
-          message: aborted ? 'GAS 응답 시간 초과' : (e?.message || 'GAS 요청 실패')
-        }
-      }
-    };
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 async function findStudent(supabase, sid) {
@@ -414,7 +341,6 @@ function success(body) {
 }
 
 export async function handleKioskMark(payload) {
-  const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
   const args = pickArgs(payload);
 
   const requestedAction = normalizeAction(args.action || args.type);
@@ -450,7 +376,6 @@ export async function handleKioskMark(payload) {
   }
 
   if (!ALLOWED_ACTIONS.has(requestedAction)) {
-    if (gasUrl) return await proxyToGas(payload, gasUrl);
     return fail(400, 'BAD_ACTION', '지원하지 않는 action 입니다.');
   }
 
@@ -543,7 +468,11 @@ export async function handleKioskMark(payload) {
 
       const approved = await hasValidPinApproval(sid);
       if (!approved) {
-        return fail(400, 'NEED_PIN', '예외학생은 데스크 PIN 승인이 필요합니다.');
+        return fail(400, 'NEED_PIN', '예외학생은 데스크 PIN 승인이 필요합니다.', {
+          needPin: true,
+          student_id: sid,
+          student_name: student.student_name || ''
+        });
       }
     }
 

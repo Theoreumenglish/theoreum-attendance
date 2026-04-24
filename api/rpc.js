@@ -267,6 +267,16 @@ export default async function handler(req, res) {
   }
 
   if (op === 'teacher.setException') {
+    if (!gasSessionToken) {
+      return send(res, 503, {
+        ok: false,
+        error: {
+          code: 'GAS_SESSION_REQUIRED',
+          message: 'GAS 세션이 준비되지 않았습니다. 다시 로그인 후 시도해주세요.'
+        }
+      });
+    }
+
     const result = await teacherSetExceptionHybrid(payload.args || {}, gasSessionToken);
     return send(res, result.status, result.body);
   }
@@ -276,6 +286,16 @@ export default async function handler(req, res) {
     return send(res, 500, {
       ok: false,
       error: { code: 'CONFIG_REQUIRED', message: 'Vercel 환경변수 GAS_WEBAPP_URL이 없습니다.' }
+    });
+  }
+
+  if (!gasSessionToken) {
+    return send(res, 401, {
+      ok: false,
+      error: {
+        code: 'AUTH_REQUIRED',
+        message: 'GAS 세션이 없어 해당 기능을 실행할 수 없습니다. 다시 로그인해주세요.'
+      }
     });
   }
 

@@ -38,9 +38,13 @@ function readLimit(req, body) {
   return normalizeLimit(body?.limit);
 }
 
+function getWorkerKey() {
+  return String(process.env.NOTIFY_WORKER_KEY || '').trim();
+}
+
 function isWorkerAuthorized(req, body) {
-  const expected = String(process.env.NOTIFY_WORKER_KEY || '').trim();
-  if (!expected) return true;
+  const expected = getWorkerKey();
+  if (!expected) return false;
 
   const fromHeader = String(
     req?.headers?.['x-worker-key'] ||
@@ -73,6 +77,16 @@ export default async function handler(req, res) {
       error: {
         code: 'BAD_JSON',
         message: '요청 JSON 형식이 올바르지 않습니다.'
+      }
+    });
+  }
+
+  if (!getWorkerKey()) {
+    return send(res, 500, {
+      ok: false,
+      error: {
+        code: 'CONFIG_REQUIRED',
+        message: 'NOTIFY_WORKER_KEY가 설정되지 않았습니다.'
       }
     });
   }
