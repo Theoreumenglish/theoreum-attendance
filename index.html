@@ -1721,9 +1721,7 @@
         localStorage.setItem('ATT_LAST_VIEW', 'kiosk');
         Router.setNav('kiosk');
         App.setWho('guest');
-
-        const logoutBtn = $('#btnLogout');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
+        $('#btnLogout').classList.add('hidden');
 
         UI.render('tpl-kiosk');
         Kiosk.init();
@@ -1738,10 +1736,7 @@
         if (me.ok && me.data && me.data.loggedIn) {
           UI.render('tpl-staff');
           App.setWho(me.data.name + ' (' + me.data.role + ')');
-
-          const logoutBtn = $('#btnLogout');
-          if (logoutBtn) logoutBtn.classList.remove('hidden');
-
+          $('#btnLogout').classList.remove('hidden');
           StaffUI.init(me.data);
           return;
         }
@@ -1750,10 +1745,7 @@
         localStorage.removeItem('ATT_SESS');
 
         App.setWho('guest');
-
-        const logoutBtn = $('#btnLogout');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
-
+        $('#btnLogout').classList.add('hidden');
         UI.render('tpl-login');
         Auth.initLogin();
       }
@@ -2331,7 +2323,6 @@
 				if (r.ok && r.data && r.data.loggedIn) {
 					App.sess = r.data.sessionToken || '';
 					localStorage.setItem('ATT_SESS', App.sess);
-
 					Router.goStaff();
 					return;
 				}
@@ -2356,9 +2347,9 @@
 				$('#staffRolePill').textContent = me.role || 'staff';
 
 				$('#btnApprovePin').addEventListener('click', StaffUI.approvePin);
-        $('#btnLoadLogs').addEventListener('click', StaffUI.loadLogs);
-        $('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
-        $('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
+				$('#btnLoadLogs').addEventListener('click', StaffUI.loadLogs);
+				$('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
+				$('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
 
 				StaffUI.applyRoleView();
 			},
@@ -2386,7 +2377,6 @@
 			applyRoleView() {
         const role = String((StaffUI.me && StaffUI.me.role) || '').toLowerCase();
         const assistantPlus = ['assistant', 'staff', 'teacher', 'admin', 'owner'].includes(role);
-        const teacherPlus = ['teacher', 'admin', 'owner'].includes(role);
         const adminPlus = ['admin', 'owner'].includes(role);
 
         StaffUI.setRoleSectionVisible('.assistantOnly', assistantPlus);
@@ -2412,34 +2402,28 @@
           'btnFloor5',
           'btnFloor7',
           'btnFlushCache',
-          'btnGenSchedule'
+          'btnGenSchedule',
+          'btnTraceCopy',
+          'btnTraceClose'
         ].forEach((id) => StaffUI.hideBlockByChildId(id));
 
         if (!assistantPlus) {
-          ['btnLoadLogs', 'btnApprovePin', 'btnLoadCorrLogs'].forEach(id => {
+          ['btnLoadLogs', 'btnApprovePin'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) { el.disabled = true; el.style.opacity = '.45'; }
-          });
-        }
-
-        if (!teacherPlus) {
-          ['btnSetExY', 'btnSetExN'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) { el.disabled = true; el.style.opacity = '.45'; }
+            if (el) {
+              el.disabled = true;
+              el.style.opacity = '.45';
+            }
           });
         }
 
         if (!adminPlus) {
-          [
-            'btnSafeOff', 'btnSafeOn', 'btnInstallAbsent', 'btnInstallDaily',
-            'btnFloor5', 'btnFloor7', 'btnFlushCache', 'btnRunAbsent',
-            'btnGenSchedule', 'btnDiag', 'btnCheckCentral', 'btnTestNcp',
-            'btnLoadStaffMonth', 'btnLoadStaffMonthDetail',
-            'btnAbList', 'btnAbUpsert', 'btnAbRemove',
-            'btnManualAttendance'
-          ].forEach(id => {
+          ['btnLoadStaffMonth', 'btnLoadStaffMonthDetail'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) { el.disabled = true; el.style.opacity = '.45'; }
+            if (el) {
+              el.disabled = true;
+              el.style.opacity = '.45';
+            }
           });
         }
       },
