@@ -859,18 +859,6 @@
 		<p class="modal-desc" id="fmDesc">상세 설명</p>
 	</div>
 
-  <div id="traceModal" class="hidden" style="position:fixed; inset:0; z-index:10003; background:rgba(15,23,42,.62); backdrop-filter:blur(8px);">
-    <div style="max-width:980px; margin:48px auto; background:var(--card); color:var(--text); border-radius:24px; box-shadow:var(--shadow-huge); padding:28px;">
-      <div class="row" style="margin-bottom:16px;">
-        <div style="font-size:24px; font-weight:900;">원본 출결 로그</div>
-        <div class="sp"></div>
-        <button class="btn btn-ghost" id="btnTraceCopy" type="button">복사</button>
-        <button class="btn btn-bad" id="btnTraceClose" type="button">닫기</button>
-      </div>
-      <pre id="traceModalBody" class="mono" style="height:420px; overflow:auto; white-space:pre-wrap; margin:0;"></pre>
-    </div>
-  </div>
-
 	<header class="topbar">
 		<div class="wrap row">
 			<div class="brand" id="brandLogoContainer">
@@ -1066,35 +1054,6 @@
                   </thead>
                   <tbody id="logBoxBody">
                     <tr><td colspan="9">조회 결과가 없습니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div class="section section-tight">
-            <div class="sectionTitle">정정 로그 조회</div>
-            <div class="row" style="margin-top:20px;">
-              <input class="inp" id="corrDate" placeholder="YYYYMMDD" style="flex:1;">
-              <input class="inp" id="corrSid" placeholder="학번 (선택)" style="flex:1;">
-              <button class="btn btn-pri" id="btnLoadCorrLogs" type="button">조회</button>
-            </div>
-            <div class="logTableWrap" id="corrLogBox" style="margin-top:16px;">
-              <div class="logScroll">
-                <table class="logTable">
-                  <thead>
-                    <tr>
-                      <th>시간</th>
-                      <th>학번</th>
-                      <th>정정 액션</th>
-                      <th>사유</th>
-                      <th>담당자</th>
-                      <th>원본 trace</th>
-                      <th>원본 열기</th>
-                    </tr>
-                  </thead>
-                  <tbody id="corrLogBoxBody">
-                    <tr><td colspan="7">조회 결과가 없습니다.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -2429,142 +2388,6 @@
       },
 
       // 수정 형태
-      async openSourceTrace(sourceTraceId) {
-        const r = await App.rpc('assistant.getLogByTrace', { trace_id: sourceTraceId });
-        if (!r.ok) {
-          UI.toast(false, (r.error && r.error.message) ? r.error.message : '원본 로그 조회 실패');
-          return;
-        }
-
-        const log = r.data || {};
-        if (!log.trace_id) {
-          UI.toast(false, '원본 로그를 찾지 못했습니다.');
-          return;
-        }
-
-        $('#logDate').value = log.yyyymmdd || '';
-        $('#logSid').value = log.student_id || '';
-        await StaffUI.loadLogs();
-
-        UI.toast(true, '원본 로그를 불러왔습니다: ' + sourceTraceId);
-      },
-
-			renderLogsTable(logs) {
-        const body = $('#logBoxBody');
-        if (!body) return;
-
-        if (!logs || !logs.length) {
-          body.innerHTML = '<tr><td colspan="9">조회 결과가 없습니다.</td></tr>';
-          return;
-        }
-
-        body.innerHTML = logs.map(x => `
-          <tr>
-            <td>${x.ts || ''}</td>
-            <td>${x.student_id || ''}</td>
-            <td>${x.action_type || ''}</td>
-            <td>${x.kiosk_floor || ''}</td>
-            <td>${x.result || ''}</td>
-            <td class="wrap">${x.qr_id || ''}</td>
-            <td class="wrap">${[x.input_mode || '', x.exception === 'Y' ? 'EX' : ''].filter(Boolean).join(' / ')}</td>
-            <td class="wrap">${x.deny_reason || ''}</td>
-            <td class="wrap">${x.trace_id || ''}</td>
-          </tr>
-        `).join('');
-      },
-
-			renderCorrectionTable(logs) {
-				const body = $('#corrLogBoxBody');
-				if (!body) return;
-
-				if (!logs || !logs.length) {
-					body.innerHTML = '<tr><td colspan="7">조회 결과가 없습니다.</td></tr>';
-					return;
-				}
-
-				body.innerHTML = logs.map(x => `
-					<tr>
-						<td>${x.ts || ''}</td>
-						<td>${x.student_id || ''}</td>
-						<td>${x.corrected_action || ''}</td>
-						<td class="wrap">${x.reason || ''}</td>
-						<td>${x.actor || ''}</td>
-						<td class="wrap">${x.source_trace_id || ''}</td>
-						<td>${x.source_trace_id ? `<button type="button" class="traceBtn" data-source-trace="${x.source_trace_id}">원본 열기</button>` : ''}</td>
-					</tr>
-				`).join('');
-			},
-
-			async approvePin() {
-				const sid = UI.padSid(($('#pinSid').value || '').trim());
-				const pin = ($('#staffPinInput').value || '').trim();
-				if (!sid || !pin) {
-					UI.toast(false, '학번과 PIN을 입력하세요.');
-					return;
-				}
-
-				const r = await App.rpc('kiosk.approvePin', { student_id: sid, pin });
-				if (!r.ok) {
-					UI.toast(false, (r.error && r.error.message) ? r.error.message : 'PIN 승인 실패');
-					return;
-				}
-
-				$('#staffPinInput').value = '';
-				UI.toast(true, 'PIN 승인 완료: ' + sid + ' (유효시간 ' + (r.data.ttlSec || 0) + '초)');
-			},
-
-			async loadLogs() {
-        const yyyymmdd = ($('#logDate').value || '').trim();
-        const student_id = ($('#logSid').value || '').trim();
-        const body = $('#logBoxBody');
-
-        if (body) {
-          body.innerHTML = '<tr><td colspan="9">조회 중...</td></tr>';
-        }
-
-        const r = await App.rpc('assistant.getLogs', {
-          yyyymmdd,
-          student_id,
-          limit: 200
-        });
-
-        if (!r.ok) {
-          if (body) {
-            body.innerHTML = `<tr><td colspan="9">${(r.error && r.error.message) ? r.error.message : '조회 실패'}</td></tr>`;
-          }
-          return;
-        }
-
-        const logs = (r.data && r.data.logs) ? r.data.logs : [];
-        StaffUI.renderLogsTable(logs);
-      },
-
-			async loadCorrectionLogs() {
-        const yyyymmdd = ($('#corrDate').value || '').trim();
-        const student_id = ($('#corrSid').value || '').trim();
-        const body = $('#corrLogBoxBody');
-
-        if (body) {
-          body.innerHTML = '<tr><td colspan="7">조회 중...</td></tr>';
-        }
-
-        const r = await App.rpc('assistant.getCorrectionLogs', {
-          yyyymmdd,
-          student_id,
-          limit: 200
-        });
-
-        if (!r.ok) {
-          if (body) {
-            body.innerHTML = `<tr><td colspan="7">${(r.error && r.error.message) ? r.error.message : '조회 실패'}</td></tr>`;
-          }
-          return;
-        }
-
-        const logs = (r.data && r.data.logs) ? r.data.logs : [];
-        StaffUI.renderCorrectionTable(logs);
-      },
-
 			async diag() {
 				const box = $('#diagBox');
 				box.innerHTML = '<div style="color:var(--sub); text-align:center;">진단 중...</div>';
@@ -2657,7 +2480,7 @@
         }
 
         box.innerHTML = `
-          <div style="font-weight:900; margin-bottom:10px;">월: ${yyyymm || ''}</div>
+          <div style="font-weight:900; margin-bottom:10px;">월: ${escapeHtml(yyyymm || '')}</div>
           <div class="logScroll" style="max-height:220px;">
             <table class="logTable">
               <thead>
@@ -2673,12 +2496,12 @@
               <tbody>
                 ${items.map(x => `
                   <tr>
-                    <td>${x.staff_id || ''}</td>
-                    <td>${x.name || ''}</td>
-                    <td>${x.role || ''}</td>
-                    <td>${x.total_hours || ''}</td>
-                    <td>${x.work_days || ''}</td>
-                    <td>${x.missing_days || ''}</td>
+                    <td>${escapeHtml(x.staff_id || '')}</td>
+                    <td>${escapeHtml(x.name || '')}</td>
+                    <td>${escapeHtml(x.role || '')}</td>
+                    <td>${escapeHtml(x.total_hours || '')}</td>
+                    <td>${escapeHtml(x.work_days || '')}</td>
+                    <td>${escapeHtml(x.missing_days || '')}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -2697,7 +2520,7 @@
         }
 
         box.innerHTML = `
-          <div style="font-weight:900; margin-bottom:10px;">직원: ${staffId || ''} / 월: ${yyyymm || ''}</div>
+          <div style="font-weight:900; margin-bottom:10px;">직원: ${escapeHtml(staffId || '')} / 월: ${escapeHtml(yyyymm || '')}</div>
           <div class="logScroll" style="max-height:220px;">
             <table class="logTable">
               <thead>
@@ -2712,11 +2535,11 @@
               <tbody>
                 ${items.map(x => `
                   <tr>
-                    <td>${x.yyyymmdd || ''}</td>
-                    <td>${x.first_in_ts || ''}</td>
-                    <td>${x.last_out_ts || ''}</td>
-                    <td>${x.worked_hours || ''}</td>
-                    <td>${x.status || ''}</td>
+                    <td>${escapeHtml(x.yyyymmdd || '')}</td>
+                    <td>${escapeHtml(x.first_in_ts || '')}</td>
+                    <td>${escapeHtml(x.last_out_ts || '')}</td>
+                    <td>${escapeHtml(x.worked_hours || '')}</td>
+                    <td>${escapeHtml(x.status || '')}</td>
                   </tr>
                 `).join('')}
               </tbody>

@@ -439,7 +439,7 @@
   </div>
 
   <script>
-    const APP_VERSION = 'student-qr-vercel-v18';
+    const APP_VERSION = 'student-qr-vercel-v19';
     const API = {
       sessionStart: '/api/student-qr/session-start',
       frame: '/api/student-qr/frame',
@@ -595,22 +595,15 @@
         throw new Error('QR 라이브러리를 불러오지 못했습니다.');
       }
 
-      if (!State.qr) {
-        State.qr = new QRCode(box, {
-          text: '',
-          width: dynamicSize,
-          height: dynamicSize,
-          colorDark: "#0f172a",
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.M
-        });
-      }
-
-      State.qr._applyOptions({
+      box.innerHTML = '';
+      State.qr = new QRCode(box, {
+        text: text,
         width: dynamicSize,
-        height: dynamicSize
+        height: dynamicSize,
+        colorDark: "#0f172a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
       });
-      State.qr.makeCode(text);
     }
 
     function redrawCurrentQr(){
