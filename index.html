@@ -1244,32 +1244,35 @@
 			if (delay > 0) setTimeout(run, delay);
 			else run();
 		}
-    window.addEventListener('error', (e) => {
-      const v = document.getElementById('viewPort');
-      if (v) {
-        v.innerHTML = `
-          <div style="max-width:900px;width:100%;margin:40px auto;background:#fff1f2;border:2px solid #fecdd3;
-                      color:#881337;border-radius:24px;padding:28px;font-weight:800;line-height:1.6;">
-            <div style="font-size:28px;margin-bottom:12px;">화면 초기화 오류</div>
-            <div style="font-size:16px;white-space:pre-wrap;">${String(e.message || '알 수 없는 오류')}</div>
-          </div>
-        `;
-      }
-    });
+    function renderFatalBootError(title, message) {
+		const v = document.getElementById('viewPort');
+		if (!v) return;
 
-    window.addEventListener('unhandledrejection', (e) => {
-      const v = document.getElementById('viewPort');
-      const msg = e && e.reason ? (e.reason.message || String(e.reason)) : 'Promise 오류';
-      if (v) {
-        v.innerHTML = `
-          <div style="max-width:900px;width:100%;margin:40px auto;background:#fff1f2;border:2px solid #fecdd3;
-                      color:#881337;border-radius:24px;padding:28px;font-weight:800;line-height:1.6;">
-            <div style="font-size:28px;margin-bottom:12px;">비동기 초기화 오류</div>
-            <div style="font-size:16px;white-space:pre-wrap;">${String(msg)}</div>
-          </div>
-        `;
-      }
-    });
+		const bootSkeleton = document.getElementById('bootSkeleton');
+		const stillBooting = !!bootSkeleton && document.contains(bootSkeleton);
+
+		if (!stillBooting) {
+			console.error('[NON_FATAL_UI_ERROR]', title, message);
+			return;
+		}
+
+		v.innerHTML = `
+			<div style="max-width:900px;width:100%;margin:40px auto;background:#fff1f2;border:2px solid #fecdd3;
+						color:#881337;border-radius:24px;padding:28px;font-weight:800;line-height:1.6;">
+			<div style="font-size:28px;margin-bottom:12px;">${title}</div>
+			<div style="font-size:16px;white-space:pre-wrap;">${String(message || '알 수 없는 오류')}</div>
+			</div>
+		`;
+	}
+
+	window.addEventListener('error', (e) => {
+		renderFatalBootError('화면 초기화 오류', e && e.message ? e.message : '알 수 없는 오류');
+	});
+
+	window.addEventListener('unhandledrejection', (e) => {
+		const msg = e && e.reason ? (e.reason.message || String(e.reason)) : 'Promise 오류';
+		renderFatalBootError('비동기 초기화 오류', msg);
+	});
 
     window.__logoFail = function(img) {
       try {
@@ -2395,6 +2398,9 @@
 
 
 				StaffUI.applyRoleView();
+				if (!App.gasSess) {
+					UI.toast(false, 'GAS 세션이 준비되지 않아 일부 관리자 기능이 비활성화되었습니다.');
+				}
 			},
 
       setRoleSectionVisible(selector, visible) {
@@ -2403,11 +2409,44 @@
         });
       },
 
+	  setDisabledById(id, disabled) {
+		const el = document.getElementById(id);
+		if (!el) return;
+		el.disabled = !!disabled;
+		el.style.opacity = disabled ? '.45' : '';
+	},
+
 			applyRoleView() {
         const role = String((StaffUI.me && StaffUI.me.role) || '').toLowerCase();
         const assistantPlus = ['assistant', 'staff', 'teacher', 'admin', 'owner'].includes(role);
         const teacherPlus = ['teacher', 'admin', 'owner'].includes(role);
         const adminPlus = ['admin', 'owner'].includes(role);
+
+		const gasReady = !!App.gasSess;
+
+		[
+		'btnLoadCorrLogs',
+		'btnSetExY',
+		'btnSetExN',
+		'btnAbList',
+		'btnAbUpsert',
+		'btnAbRemove',
+		'btnManualAttendance',
+		'btnDiag',
+		'btnCheckCentral',
+		'btnTestNcp',
+		'btnSafeOff',
+		'btnSafeOn',
+		'btnInstallAbsent',
+		'btnInstallDaily',
+		'btnRunAbsent',
+		'btnFloor5',
+		'btnFloor7',
+		'btnFlushCache',
+		'btnGenSchedule'
+		].forEach((id) => {
+		StaffUI.setDisabledById(id, !gasReady || document.getElementById(id)?.disabled);
+		});
 
         StaffUI.setRoleSectionVisible('.assistantOnly', assistantPlus);
         StaffUI.setRoleSectionVisible('.teacherOnly', teacherPlus);

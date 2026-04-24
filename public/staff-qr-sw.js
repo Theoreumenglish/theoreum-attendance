@@ -1,47 +1,82 @@
-const VERSION = 'staff-qr-vercel-v2';
-const CACHE_NAME = 'staff-qr-' + VERSION;
-const ASSETS = [
+const VERSION = 'staff-qr-vercel-v3';
+const CACHE_NAME = 'theoreum-staff-qr-' + VERSION;
+
+const SHELL_URLS = [
   '/staff-qr.html',
   '/staff-qr-manifest.webmanifest',
   '/student-qr-lib.js',
+  '/theoreum-banner.png',
   '/icon-192.png',
   '/icon-512.png',
-  '/icon-apple-180.png',
-  '/theoreum-banner.png'
+  '/icon-apple-180.png'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+
+    const results = await Promise.allSettled(
+      SHELL_URLS.map(async (url) => {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res || !res.ok || res.type === 'opaque') {
+          throw new Error('CACHE_INSTALL_FAIL: ' + url + ' [' + (res ? res.status : 'NO_RESPONSE') + ']');
+        }
+        await cache.put(url, res.clone());
+      })
+    );
+
+    const failed = results
+      .filter(x => x.status === 'rejected')
+      .map(x => String(x.reason && x.reason.message ? x.reason.message : x.reason || 'unknown'));
+
+    if (failed.length) {
+      console.warn('[STAFF_QR_SW_INSTALL_PARTIAL_FAIL]', failed);
+    }
+
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME)
-          .map((k) => caches.delete(k))
-      )
-    )
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve()))
+      ))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+  if (event.request.method !== 'GET') return;
 
-  if (req.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
   if (url.pathname.startsWith('/api/staff-qr/')) {
-    event.respondWith(fetch(req));
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/staff-qr.html'))
+    );
     return;
   }
 
   event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req))
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+
+      return fetch(event.request)
+        .then((res) => {
+          if (!res || !res.ok || res.type === 'opaque') return res;
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(event.request));
+    })
   );
 });
