@@ -111,15 +111,21 @@ export async function handleStaffClockQr(payload) {
     return fail(400, 'INVALID_INPUT', '허용되지 않는 action 입니다.');
   }
 
+  const verifySharedSecret = String(
+    process.env.STAFF_QR_VERIFY_SHARED_SECRET ||
+    process.env.STAFF_QR_SHARED_SECRET ||
+    process.env.VERIFY_SHARED_SECRET ||
+    ''
+  ).trim();
+
+  if (!verifySharedSecret) {
+    return fail(500, 'CONFIG_REQUIRED', '직원 QR 검증 secret이 설정되지 않았습니다.');
+  }
+
   const verified = await staffQrVerify({
     qrText,
     consume: 'Y',
-    shared_secret: String(
-      process.env.STAFF_QR_VERIFY_SHARED_SECRET ||
-      process.env.STAFF_QR_SHARED_SECRET ||
-      process.env.VERIFY_SHARED_SECRET ||
-      ''
-    ).trim()
+    shared_secret: verifySharedSecret
   });
   if (!verified.ok) {
     const raw = verified.error || {};

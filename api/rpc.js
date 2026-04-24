@@ -156,7 +156,7 @@ export default async function handler(req, res) {
     let gasSessionToken = '';
 
     if (gasUrl && syncMode !== 'OFF') {
-      const softTimeoutMs = shortTimeout(process.env.AUTH_LOGIN_GAS_SYNC_TIMEOUT_MS, 1200);
+      const softTimeoutMs = shortTimeout(process.env.AUTH_LOGIN_GAS_SYNC_TIMEOUT_MS, 3000);
 
       const gasLogin = await Promise.race([
         proxyRpcToGas('auth.login', payload.args || {}, ''),
