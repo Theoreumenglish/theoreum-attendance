@@ -1310,7 +1310,6 @@
 
 		const App = {
 			sess: localStorage.getItem('ATT_SESS') || '',
-			gasSess: localStorage.getItem('ATT_GAS_SESS') || '',
 			pending: 0,
 			currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
 			meta: null,
@@ -1331,7 +1330,6 @@
 							op,
 							args,
 							sessionToken: App.sess,
-							gasSessionToken: App.gasSess,
 							...extra
 						};
 
@@ -1706,12 +1704,10 @@
 
 			// 수정 형태
       async goKiosk() {
-        if (App.currentView === 'staff' && (App.sess || App.gasSess)) {
+        if (App.currentView === 'staff' && App.sess) {
           await App.rpc('auth.logout', {});
           App.sess = '';
-          App.gasSess = '';
           localStorage.removeItem('ATT_SESS');
-          localStorage.removeItem('ATT_GAS_SESS');
         }
 
         App.currentView = 'kiosk';
@@ -1744,9 +1740,7 @@
         }
 
         App.sess = '';
-        App.gasSess = '';
         localStorage.removeItem('ATT_SESS');
-        localStorage.removeItem('ATT_GAS_SESS');
 
         App.setWho('guest');
 
@@ -2329,10 +2323,7 @@
 				const r = await App.rpc('auth.login', { staff_id: id, password: pw });
 				if (r.ok && r.data && r.data.loggedIn) {
 					App.sess = r.data.sessionToken || '';
-					App.gasSess = r.data.gasSessionToken || '';
-
 					localStorage.setItem('ATT_SESS', App.sess);
-					localStorage.setItem('ATT_GAS_SESS', App.gasSess);
 
 					Router.goStaff();
 					return;
@@ -2344,9 +2335,7 @@
 			async logout() {
 				await App.rpc('auth.logout', {});
 				App.sess = '';
-				App.gasSess = '';
 				localStorage.removeItem('ATT_SESS');
-				localStorage.removeItem('ATT_GAS_SESS');
 				Router.goStaff();
 			}
 		};
@@ -2360,47 +2349,11 @@
 				$('#staffRolePill').textContent = me.role || 'staff';
 
 				$('#btnApprovePin').addEventListener('click', StaffUI.approvePin);
-
         $('#btnLoadLogs').addEventListener('click', StaffUI.loadLogs);
-        $('#btnLoadCorrLogs').addEventListener('click', StaffUI.loadCorrectionLogs);
-				$('#btnDiag').addEventListener('click', StaffUI.diag);
-				$('#btnCheckCentral').addEventListener('click', StaffUI.checkCentral);
-        $('#btnTestNcp').addEventListener('click', StaffUI.testNcp);
-
-				$('#btnSetExY').addEventListener('click', () => StaffUI.setException('Y'));
-				$('#btnSetExN').addEventListener('click', () => StaffUI.setException('N'));
-
-				$('#btnAbList').addEventListener('click', StaffUI.abList);
-				$('#btnAbUpsert').addEventListener('click', StaffUI.abUpsert);
-				$('#btnAbRemove').addEventListener('click', StaffUI.abRemove);
-        $('#btnManualAttendance').addEventListener('click', StaffUI.manualAttendance);
-
-				$('#btnSafeOff').addEventListener('click', () => StaffUI.toggleSafe('N'));
-				$('#btnSafeOn').addEventListener('click', () => StaffUI.toggleSafe('Y'));
-				$('#btnInstallAbsent').addEventListener('click', StaffUI.installAbsentTrigger);
-				$('#btnInstallDaily').addEventListener('click', StaffUI.installDailyTrigger);
-				$('#btnRunAbsent').addEventListener('click', StaffUI.runAbsentNow);
-				$('#btnFloor5').addEventListener('click', () => StaffUI.setFloor('5F'));
-				$('#btnFloor7').addEventListener('click', () => StaffUI.setFloor('7F'));
-        $('#btnFlushCache').addEventListener('click', StaffUI.flushCache);
-        $('#btnGenSchedule').addEventListener('click', StaffUI.generateSchedule);
         $('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
         $('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
-        $('#corrLogBox').addEventListener('click', async (e) => {
-					const btn = e.target.closest('[data-source-trace]');
-					if (!btn) return;
-
-					const sourceTraceId = String(btn.getAttribute('data-source-trace') || '').trim();
-					if (!sourceTraceId) return;
-
-					await StaffUI.openSourceTrace(sourceTraceId);
-				});
-
 
 				StaffUI.applyRoleView();
-				if (!App.gasSess) {
-					UI.toast(false, 'GAS 세션이 준비되지 않아 일부 관리자 기능이 비활성화되었습니다.');
-				}
 			},
 
       setRoleSectionVisible(selector, visible) {
@@ -2416,41 +2369,44 @@
 		el.style.opacity = disabled ? '.45' : '';
 	},
 
+		hideBlockByChildId(id) {
+		const el = document.getElementById(id);
+		if (!el) return;
+		const block = el.closest('.section, .foldCard, .card');
+		if (block) block.style.display = 'none';
+	},
+
 			applyRoleView() {
         const role = String((StaffUI.me && StaffUI.me.role) || '').toLowerCase();
         const assistantPlus = ['assistant', 'staff', 'teacher', 'admin', 'owner'].includes(role);
         const teacherPlus = ['teacher', 'admin', 'owner'].includes(role);
         const adminPlus = ['admin', 'owner'].includes(role);
 
-		const gasReady = !!App.gasSess;
-
-		[
-		'btnLoadCorrLogs',
-		'btnSetExY',
-		'btnSetExN',
-		'btnAbList',
-		'btnAbUpsert',
-		'btnAbRemove',
-		'btnManualAttendance',
-		'btnDiag',
-		'btnCheckCentral',
-		'btnTestNcp',
-		'btnSafeOff',
-		'btnSafeOn',
-		'btnInstallAbsent',
-		'btnInstallDaily',
-		'btnRunAbsent',
-		'btnFloor5',
-		'btnFloor7',
-		'btnFlushCache',
-		'btnGenSchedule'
-		].forEach((id) => {
-		StaffUI.setDisabledById(id, !gasReady || document.getElementById(id)?.disabled);
-		});
-
         StaffUI.setRoleSectionVisible('.assistantOnly', assistantPlus);
-        StaffUI.setRoleSectionVisible('.teacherOnly', teacherPlus);
+        StaffUI.setRoleSectionVisible('.teacherOnly', false);
         StaffUI.setRoleSectionVisible('.adminOnly', adminPlus);
+
+        [
+          'btnLoadCorrLogs',
+          'btnSetExY',
+          'btnSetExN',
+          'btnAbList',
+          'btnAbUpsert',
+          'btnAbRemove',
+          'btnManualAttendance',
+          'btnDiag',
+          'btnCheckCentral',
+          'btnTestNcp',
+          'btnSafeOff',
+          'btnSafeOn',
+          'btnInstallAbsent',
+          'btnInstallDaily',
+          'btnRunAbsent',
+          'btnFloor5',
+          'btnFloor7',
+          'btnFlushCache',
+          'btnGenSchedule'
+        ].forEach((id) => StaffUI.hideBlockByChildId(id));
 
         if (!assistantPlus) {
           ['btnLoadLogs', 'btnApprovePin', 'btnLoadCorrLogs'].forEach(id => {
