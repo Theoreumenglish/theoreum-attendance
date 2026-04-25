@@ -20,7 +20,13 @@ function normalizeStaffId(input) {
 }
 
 function normalizeRole(input) {
-  return String(input || '').trim().toLowerCase();
+  const v = String(input || '').trim().toLowerCase();
+  if (!v) return 'assistant';
+  if (['assistant', 'staff', '조교'].includes(v)) return 'assistant';
+  if (['teacher', '강사'].includes(v)) return 'teacher';
+  if (['admin', '관리자'].includes(v)) return 'admin';
+  if (['owner', '오너', '원장'].includes(v)) return 'owner';
+  return v;
 }
 
 function normalizeNote(input) {

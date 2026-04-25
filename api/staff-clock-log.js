@@ -27,6 +27,10 @@ function normalizeInputMode(input) {
   return ALLOWED_INPUT_MODES.has(s) ? s : 'MANUAL';
 }
 
+function normalizeNote(input) {
+  return String(input || '').trim().slice(0, 200);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
@@ -61,35 +65,43 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'BAD_BODY' });
   }
 
-  const result = await writeStaffClockAndRollup(
-    {
-      ts: body.ts,
-      staff_id: body.staff_id,
-      name: body.name,
-      role: body.role,
-      action: body.action,
-      note: body.note,
-      trace_id: body.trace_id,
-      input_mode: normalizeInputMode(body.input_mode)
-    },
-    {
-      recentDedupeSec: 0
-    }
-  );
+  try {
+    const result = await writeStaffClockAndRollup(
+      {
+        ts: body.ts,
+        staff_id: body.staff_id,
+        name: body.name,
+        role: body.role,
+        action: body.action,
+        note: normalizeNote(body.note),
+        trace_id: body.trace_id,
+        input_mode: normalizeInputMode(body.input_mode)
+      },
+      {
+        recentDedupeSec: 0
+      }
+    );
 
-  if (!result.ok) {
-    return res.status(result.status || 500).json({
+    if (!result.ok) {
+      return res.status(result.status || 500).json({
+        ok: false,
+        error: result.error || 'SERVER_ERROR',
+        detail: result.detail || ''
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      duplicate: !!result.duplicate,
+      record: result.record || null,
+      daily: result.daily || null,
+      monthly: result.monthly || null
+    });
+  } catch (e) {
+    return res.status(500).json({
       ok: false,
-      error: result.error || 'SERVER_ERROR',
-      detail: result.detail || ''
+      error: 'SERVER_ERROR',
+      detail: e?.message || String(e)
     });
   }
-
-  return res.status(200).json({
-    ok: true,
-    duplicate: !!result.duplicate,
-    record: result.record || null,
-    daily: result.daily || null,
-    monthly: result.monthly || null
-  });
 }

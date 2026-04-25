@@ -13,6 +13,9 @@ function normalizeInputMode(input) {
   return ['WEB', 'QR', 'MANUAL'].includes(s) ? s : 'WEB';
 }
 
+function normalizeNote(input) {
+  return String(input || '').trim().slice(0, 200);
+}
 function fail(status, code, message, detail = {}) {
   return {
     status,
@@ -33,7 +36,7 @@ export async function handleStaffClock(payload) {
     ? payload.args
     : (payload && typeof payload === 'object' ? payload : {});
   const action = normalizeAction(args.action || args.type);
-  const note = String(args.note || '').trim();
+  const note = normalizeNote(args.note || '');
   const inputMode = normalizeInputMode(args.input_mode || 'WEB');
   const sessionToken = String(args.sessionToken || payload?.sessionToken || '').trim();
   const traceId = String(

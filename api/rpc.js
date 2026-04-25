@@ -4,6 +4,15 @@ import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
+import { verifyAdminPinByStaffId } from './_admin-pin.js';
+import {
+  readRuntimeMeta,
+  writeRuntimeConfig,
+  invalidateRuntimeMetaCache,
+  appendRuntimeConfigAudit,
+  normalizeFloor,
+  normalizeYn
+} from './_runtime-meta.js';
 import {
   assistantGetLogsDirect,
   assistantGetLogByTraceDirect,
@@ -12,10 +21,6 @@ import {
 } from '../lib/rpc-direct-read.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
-const RUNTIME_META_CACHE_TTL_MS = 3000;
-
-let runtimeMetaCache = null;
-let runtimeMetaCacheExp = 0;
 
 function send(res, status, body) {
   res.status(status);
@@ -79,112 +84,6 @@ function hasRoleAtLeast(role, need) {
   return roleLevel(role) >= roleLevel(need);
 }
 
-function normalizeFloor(raw) {
-  const text = String(raw || '').trim().toUpperCase();
-  if (text === '5층') return '5F';
-  if (text === '7층') return '7F';
-  if (text === '5F' || text === '7F') return text;
-  return '';
-}
-
-function normalizeYn(raw, fallback = 'N') {
-  const text = String(raw == null ? fallback : raw).trim().toUpperCase();
-  return text === 'Y' ? 'Y' : 'N';
-}
-
-function buildEnvMeta() {
-  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F') || '5F';
-  const safeMode = normalizeYn(process.env.SAFE_MODE_DEFAULT || 'N');
-
-  return {
-    version: 'vercel-direct',
-    tz: 'Asia/Seoul',
-    kiosk_floor: kioskFloor,
-    safe: {
-      mode: safeMode,
-      message: String(process.env.SAFE_MODE_MESSAGE || '').trim()
-    },
-    props_missing: [],
-    staff_mode: '',
-    disabled_ops: [],
-    logo_url_set: false,
-    logo_url_normalized: '',
-    source: 'env'
-  };
-}
-
-function isMissingRuntimeConfigTable(error) {
-  const message = String(error?.message || '').toLowerCase();
-  const details = String(error?.details || '').toLowerCase();
-
-  return (
-    (message.includes('runtime_config') && message.includes('does not exist')) ||
-    (details.includes('runtime_config') && details.includes('does not exist'))
-  );
-}
-
-function applyRuntimeRowsToMeta(rows, baseMeta) {
-  const next = {
-    ...baseMeta,
-    safe: { ...(baseMeta.safe || {}) },
-    source: 'runtime_config'
-  };
-
-  for (const row of rows || []) {
-    const key = String(row?.key || '').trim();
-    const value = isPlainObject(row?.value_json) ? row.value_json : {};
-
-    if (key === 'kiosk_floor') {
-      const floor = normalizeFloor(value.value || value.kiosk_floor || '');
-      if (floor) next.kiosk_floor = floor;
-      continue;
-    }
-
-    if (key === 'safe_mode') {
-      next.safe.mode = normalizeYn(value.mode || value.value || next.safe.mode || 'N');
-      next.safe.message = String(value.message || '').trim();
-    }
-  }
-
-  return next;
-}
-
-async function readRuntimeMeta(force = false) {
-  const now = Date.now();
-  if (!force && runtimeMetaCache && now < runtimeMetaCacheExp) {
-    return { ok: true, data: runtimeMetaCache };
-  }
-
-  const envMeta = buildEnvMeta();
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from('runtime_config')
-    .select('key, value_json')
-    .in('key', ['kiosk_floor', 'safe_mode']);
-
-  if (error) {
-    if (isMissingRuntimeConfigTable(error)) {
-      runtimeMetaCache = envMeta;
-      runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
-      return { ok: true, data: envMeta };
-    }
-
-    return {
-      ok: false,
-      error: {
-        code: 'DB_SELECT_FAILED',
-        message: error.message || 'runtime_config 조회 실패'
-      }
-    };
-  }
-
-  const merged = applyRuntimeRowsToMeta(data || [], envMeta);
-  runtimeMetaCache = merged;
-  runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
-  return { ok: true, data: merged };
-}
-
 function invalidateRuntimeMetaCache() {
   runtimeMetaCache = null;
   runtimeMetaCacheExp = 0;
@@ -227,14 +126,40 @@ async function requireRole(sessionToken, needRole) {
   return { ok: true, me };
 }
 
-async function upsertRuntimeConfig(supabase, row) {
-  const { data, error } = await supabase
-    .from('runtime_config')
-    .upsert([row], { onConflict: 'key' })
-    .select('key, value_json, updated_at, updated_by')
-    .single();
+function pickAdminPin(args = {}) {
+  return String(
+    args.pin ||
+    args.admin_pin ||
+    args.adminPin ||
+    args.confirm_pin ||
+    ''
+  ).trim();
+}
 
-  return { data, error };
+function normalizeComparableValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function teacherOwnsStudent(me, studentRow) {
+  const studentOwners = [
+    studentRow?.teacher_value,
+    studentRow?.teacher,
+    studentRow?.teacher_id,
+    studentRow?.teacher_name
+  ]
+    .map(normalizeComparableValue)
+    .filter(Boolean);
+
+  if (!studentOwners.length) return false;
+
+  const mine = [
+    me?.staff_id,
+    me?.name
+  ]
+    .map(normalizeComparableValue)
+    .filter(Boolean);
+
+  return studentOwners.some(v => mine.includes(v));
 }
 
 async function adminGetRuntimeConfigDirect(sessionToken) {
@@ -257,22 +182,42 @@ async function adminSetKioskFloorDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
 
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(401, pinCheck.error.code || 'AUTH_FAILED', pinCheck.error.message || '관리자 PIN 확인 실패');
+  }
+
   const kioskFloor = normalizeFloor(args.kiosk_floor || args.floor || args.kioskFloor || '');
   if (!kioskFloor || !['5F', '7F'].includes(kioskFloor)) {
     return fail(400, 'INVALID_INPUT', 'kiosk_floor는 5F 또는 7F여야 합니다.');
   }
 
-  const supabase = getSupabaseAdmin();
-  const { error } = await upsertRuntimeConfig(supabase, {
-    key: 'kiosk_floor',
-    value_json: { value: kioskFloor },
-    updated_at: new Date().toISOString(),
-    updated_by: auth.me.staff_id
-  });
+  const beforeMeta = await readRuntimeMeta(true);
+  if (!beforeMeta.ok) {
+    return fail(
+      500,
+      beforeMeta.error.code || 'DB_SELECT_FAILED',
+      beforeMeta.error.message || 'runtime_config 조회 실패'
+    );
+  }
+
+  const { error } = await writeRuntimeConfig(
+    'kiosk_floor',
+    { value: kioskFloor },
+    auth.me.staff_id
+  );
 
   if (error) {
     return fail(500, 'DB_UPSERT_FAILED', error.message || 'runtime_config kiosk_floor 저장 실패');
   }
+
+  await appendRuntimeConfigAudit({
+    key: 'kiosk_floor',
+    before_json: { value: beforeMeta.data?.kiosk_floor || '' },
+    after_json: { value: kioskFloor },
+    changed_by: auth.me.staff_id
+  });
 
   invalidateRuntimeMetaCache();
 
@@ -292,23 +237,40 @@ async function adminSetSafeModeDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
 
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(401, pinCheck.error.code || 'AUTH_FAILED', pinCheck.error.message || '관리자 PIN 확인 실패');
+  }
+
   const mode = normalizeYn(args.mode || args.safe_mode || args.safeMode || 'N');
   const message = String(args.message || args.safe_message || '').trim().slice(0, 200);
 
-  const supabase = getSupabaseAdmin();
-  const { error } = await upsertRuntimeConfig(supabase, {
-    key: 'safe_mode',
-    value_json: {
-      mode,
-      message
-    },
-    updated_at: new Date().toISOString(),
-    updated_by: auth.me.staff_id
-  });
+  const beforeMeta = await readRuntimeMeta(true);
+  if (!beforeMeta.ok) {
+    return fail(
+      500,
+      beforeMeta.error.code || 'DB_SELECT_FAILED',
+      beforeMeta.error.message || 'runtime_config 조회 실패'
+    );
+  }
+
+  const { error } = await writeRuntimeConfig(
+    'safe_mode',
+    { mode, message },
+    auth.me.staff_id
+  );
 
   if (error) {
     return fail(500, 'DB_UPSERT_FAILED', error.message || 'runtime_config safe_mode 저장 실패');
   }
+
+  await appendRuntimeConfigAudit({
+    key: 'safe_mode',
+    before_json: beforeMeta.data?.safe || {},
+    after_json: { mode, message },
+    changed_by: auth.me.staff_id
+  });
 
   invalidateRuntimeMetaCache();
 
@@ -343,7 +305,7 @@ async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
 
   const { data: found, error: readErr } = await supabase
     .from('students')
-    .select('student_id, student_name, is_exception, exception_note')
+    .select('*')
     .eq('student_id', sid)
     .maybeSingle();
 
@@ -353,6 +315,10 @@ async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
 
   if (!found) {
     return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+  }
+
+  if (normalizeRole(auth.me.role) === 'teacher' && !teacherOwnsStudent(auth.me, found)) {
+    return fail(403, 'NO_PERMISSION', '담당 학생만 예외 설정을 변경할 수 있습니다.');
   }
 
   const { data: patched, error: updateErr } = await supabase

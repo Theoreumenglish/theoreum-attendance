@@ -3,14 +3,11 @@ import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
 import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
+import { readRuntimeMeta, normalizeFloor, normalizeYn } from './_runtime-meta.js';
 
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
 const MOVE_DEDUPE_MS = 90000;
-const RUNTIME_META_CACHE_TTL_MS = 3000;
-
-let runtimeMetaCache = null;
-let runtimeMetaCacheExp = 0;
 
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
@@ -41,96 +38,6 @@ function normalizeAction(input) {
   return text;
 }
 
-function normalizeYn(raw, fallback = 'N') {
-  const text = String(raw == null ? fallback : raw).trim().toUpperCase();
-  return text === 'Y' ? 'Y' : 'N';
-}
-
-function buildEnvMeta() {
-  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F') || '5F';
-  const safeMode = normalizeYn(process.env.SAFE_MODE_DEFAULT || 'N');
-
-  return {
-    kiosk_floor: kioskFloor,
-    safe: {
-      mode: safeMode,
-      message: String(process.env.SAFE_MODE_MESSAGE || '').trim()
-    },
-    source: 'env'
-  };
-}
-
-function isMissingRuntimeConfigTable(error) {
-  const message = String(error?.message || '').toLowerCase();
-  const details = String(error?.details || '').toLowerCase();
-
-  return (
-    (message.includes('runtime_config') && message.includes('does not exist')) ||
-    (details.includes('runtime_config') && details.includes('does not exist'))
-  );
-}
-
-function applyRuntimeRowsToMeta(rows, baseMeta) {
-  const next = {
-    ...baseMeta,
-    safe: { ...(baseMeta.safe || {}) },
-    source: 'runtime_config'
-  };
-
-  for (const row of rows || []) {
-    const key = String(row?.key || '').trim();
-    const value = row?.value_json && typeof row.value_json === 'object' ? row.value_json : {};
-
-    if (key === 'kiosk_floor') {
-      const floor = normalizeFloor(value.value || value.kiosk_floor || '');
-      if (floor) next.kiosk_floor = floor;
-      continue;
-    }
-
-    if (key === 'safe_mode') {
-      next.safe.mode = normalizeYn(value.mode || value.value || next.safe.mode || 'N');
-      next.safe.message = String(value.message || '').trim();
-    }
-  }
-
-  return next;
-}
-
-async function readRuntimeMeta(force = false) {
-  const now = Date.now();
-  if (!force && runtimeMetaCache && now < runtimeMetaCacheExp) {
-    return { ok: true, data: runtimeMetaCache };
-  }
-
-  const envMeta = buildEnvMeta();
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from('runtime_config')
-    .select('key, value_json')
-    .in('key', ['kiosk_floor', 'safe_mode']);
-
-  if (error) {
-    if (isMissingRuntimeConfigTable(error)) {
-      runtimeMetaCache = envMeta;
-      runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
-      return { ok: true, data: envMeta };
-    }
-
-    return {
-      ok: false,
-      error: {
-        code: 'DB_SELECT_FAILED',
-        message: error.message || 'runtime_config 조회 실패'
-      }
-    };
-  }
-
-  const merged = applyRuntimeRowsToMeta(data || [], envMeta);
-  runtimeMetaCache = merged;
-  runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
-  return { ok: true, data: merged };
-}
 
 function formatYmdKst(date = new Date()) {
   const kstMs = date.getTime() + (9 * 60 * 60 * 1000);
