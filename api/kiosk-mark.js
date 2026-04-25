@@ -3,7 +3,6 @@ import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
 import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
 import { hasValidPinApproval } from '../lib/staff-auth.js';
-import { getAttendanceMetaCached } from '../lib/attendance-meta.js';
 
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
@@ -37,14 +36,25 @@ function normalizeAction(input) {
   return text;
 }
 
+function readDirectMeta() {
+  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F');
+  const safeMode =
+    String(process.env.SAFE_MODE_DEFAULT || 'N').trim().toUpperCase() === 'Y'
+      ? 'Y'
+      : 'N';
+
+  return {
+    kiosk_floor: kioskFloor,
+    safe: {
+      mode: safeMode,
+      message: String(process.env.SAFE_MODE_MESSAGE || '').trim()
+    }
+  };
+}
+
 function formatYmdKst(date = new Date()) {
-  const text = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-  return text.replace(/-/g, '');
+  const kstMs = date.getTime() + (9 * 60 * 60 * 1000);
+  return new Date(kstMs).toISOString().slice(0, 10).replace(/-/g, '');
 }
 
 function buildRecordId() {
@@ -347,25 +357,17 @@ export async function handleKioskMark(payload) {
   const input = String(args.input || '').trim();
   const traceId = buildTraceId(payload);
 
-  const meta = await getAttendanceMetaCached();
-  if (!meta.ok) {
-    return fail(
-      503,
-      'META_UNAVAILABLE',
-      '운영 상태를 확인할 수 없습니다. 데스크에 문의하세요.'
-    );
-  }
+  const meta = readDirectMeta();
 
-  const authoritativeFloor = normalizeFloor(String(meta.data?.kiosk_floor || '5F').trim() || '5F');
-
+  const authoritativeFloor = normalizeFloor(String(meta.kiosk_floor || '5F').trim() || '5F');
   if (!ALLOWED_FLOORS.has(authoritativeFloor)) {
-    return fail(500, 'CONFIG_REQUIRED', '운영 메타의 kiosk_floor 설정이 올바르지 않습니다.');
+    return fail(500, 'CONFIG_REQUIRED', 'KIOSK_FLOOR 설정이 올바르지 않습니다.');
   }
 
   const kioskFloor = authoritativeFloor;
 
-  const safeMode = String(meta.data?.safe?.mode || 'N').trim().toUpperCase() === 'Y';
-  const safeMessage = String(meta.data?.safe?.message || '').trim();
+  const safeMode = String(meta.safe?.mode || 'N').trim().toUpperCase() === 'Y';
+  const safeMessage = String(meta.safe?.message || '').trim();
 
   if (safeMode) {
     return fail(503, 'SAFE_MODE', safeMessage || '현재 점검 모드입니다. 데스크에 문의하세요.');

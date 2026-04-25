@@ -2,10 +2,7 @@ import { handleKioskMark } from './kiosk-mark.js';
 import { handleStaffClockQr } from './staff-clock-qr.js';
 import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
-import { getAttendanceMetaCached } from '../lib/attendance-meta.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
-import { proxyRpcToGas } from '../lib/gas-rpc-proxy.js';
-import { teacherSetExceptionHybrid } from '../lib/rpc-hybrid-write.js';
 import {
   assistantGetLogsDirect,
   assistantGetLogByTraceDirect,
@@ -13,7 +10,6 @@ import {
   adminGetStaffDailyDetailDirect
 } from '../lib/rpc-direct-read.js';
 
-const DEFAULT_TIMEOUT_MS = 25000;
 const MAX_BODY_BYTES = 64 * 1024;
 
 function send(res, status, body) {
@@ -50,22 +46,35 @@ async function readBody(req) {
   return {};
 }
 
-function resolveTimeoutMs(rawValue) {
-  const parsed = Number(rawValue);
-  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_TIMEOUT_MS;
-  return Math.min(parsed, 120000);
+function normalizeDirectFloor(raw) {
+  const text = String(raw || '').trim().toUpperCase();
+  if (text === '5층') return '5F';
+  if (text === '7층') return '7F';
+  if (text === '5F' || text === '7F') return text;
+  return '5F';
 }
 
-function authLoginGasSyncMode() {
-  return String(process.env.AUTH_LOGIN_GAS_SYNC_MODE || 'BEST_EFFORT')
-    .trim()
-    .toUpperCase();
-}
+function readDirectMeta() {
+  const kioskFloor = normalizeDirectFloor(process.env.KIOSK_FLOOR || '5F');
+  const safeMode =
+    String(process.env.SAFE_MODE_DEFAULT || 'N').trim().toUpperCase() === 'Y'
+      ? 'Y'
+      : 'N';
 
-function shortTimeout(ms, fallback) {
-  const n = Number(ms);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.max(300, Math.min(5000, Math.floor(n)));
+  return {
+    version: 'vercel-direct',
+    tz: 'Asia/Seoul',
+    kiosk_floor: kioskFloor,
+    safe: {
+      mode: safeMode,
+      message: String(process.env.SAFE_MODE_MESSAGE || '').trim()
+    },
+    props_missing: [],
+    staff_mode: '',
+    disabled_ops: [],
+    logo_url_set: false,
+    logo_url_normalized: ''
+  };
 }
 
 export default async function handler(req, res) {
@@ -132,80 +141,14 @@ export default async function handler(req, res) {
     '';
 
   if (op === 'meta.ping') {
-    const meta = await getAttendanceMetaCached();
-    if (!meta.ok) {
-      return send(res, 503, {
-        ok: false,
-        error: {
-          code: meta.error?.code || 'META_UNAVAILABLE',
-          message: meta.error?.message || '운영 메타 정보를 읽지 못했습니다.'
-        }
-      });
-    }
-    return send(res, 200, { ok: true, data: meta.data });
+    return send(res, 200, {
+      ok: true,
+      data: readDirectMeta()
+    });
   }
 
   if (op === 'auth.login') {
     const result = await authLoginDirect(payload.args || {});
-    if (!result.body || result.body.ok !== true) {
-      return send(res, result.status, result.body);
-    }
-
-    const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
-    const syncMode = authLoginGasSyncMode();
-    let gasSessionToken = '';
-
-    if (gasUrl && syncMode !== 'OFF') {
-      const softTimeoutMs = shortTimeout(process.env.AUTH_LOGIN_GAS_SYNC_TIMEOUT_MS, 3000);
-
-      const gasLogin = await Promise.race([
-        proxyRpcToGas('auth.login', payload.args || {}, ''),
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              status: 504,
-              body: {
-                ok: false,
-                error: {
-                  code: 'GAS_AUTH_SYNC_TIMEOUT',
-                  message: 'GAS 세션 동기화 시간 초과'
-                }
-              }
-            });
-          }, softTimeoutMs);
-        })
-      ]);
-
-      if (
-        gasLogin &&
-        gasLogin.body &&
-        gasLogin.body.ok === true &&
-        gasLogin.body.data &&
-        gasLogin.body.data.sessionToken
-      ) {
-        gasSessionToken = gasLogin.body.data.sessionToken;
-      } else if (syncMode === 'REQUIRED') {
-        try {
-          await authLogoutDirect(result.body?.data?.sessionToken || '');
-        } catch (_) {}
-
-        return send(res, gasLogin?.status || 502, {
-          ok: false,
-          error: {
-            code: 'GAS_AUTH_SYNC_FAILED',
-            message:
-              (gasLogin?.body && gasLogin.body.error && gasLogin.body.error.message) ||
-              'GAS 세션 동기화에 실패했습니다. 다시 시도해주세요.'
-          }
-        });
-      }
-    }
-
-    result.body.data = {
-      ...(result.body.data || {}),
-      gasSessionToken
-    };
-
     return send(res, result.status, result.body);
   }
 
@@ -216,13 +159,6 @@ export default async function handler(req, res) {
 
   if (op === 'auth.logout') {
     const result = await authLogoutDirect(directSessionToken);
-
-    if (gasSessionToken) {
-      try {
-        await proxyRpcToGas('auth.logout', {}, gasSessionToken);
-      } catch (_) {}
-    }
-
     return send(res, result.status, result.body);
   }
 
@@ -267,107 +203,19 @@ export default async function handler(req, res) {
   }
 
   if (op === 'teacher.setException') {
-    if (!gasSessionToken) {
-      return send(res, 503, {
-        ok: false,
-        error: {
-          code: 'GAS_SESSION_REQUIRED',
-          message: 'GAS 세션이 준비되지 않았습니다. 다시 로그인 후 시도해주세요.'
-        }
-      });
-    }
-
-    const result = await teacherSetExceptionHybrid(payload.args || {}, gasSessionToken);
-    return send(res, result.status, result.body);
-  }
-
-  const gasUrl = String(process.env.GAS_WEBAPP_URL || '').trim();
-  if (!gasUrl) {
-    return send(res, 500, {
-      ok: false,
-      error: { code: 'CONFIG_REQUIRED', message: 'Vercel 환경변수 GAS_WEBAPP_URL이 없습니다.' }
-    });
-  }
-
-  if (!gasSessionToken) {
-    return send(res, 401, {
+    return send(res, 501, {
       ok: false,
       error: {
-        code: 'AUTH_REQUIRED',
-        message: 'GAS 세션이 없어 해당 기능을 실행할 수 없습니다. 다시 로그인해주세요.'
+        code: 'DIRECT_ONLY_UNSUPPORTED',
+        message: 'teacher.setException 는 아직 direct 구현 전입니다.'
       }
     });
   }
 
-  const controller = new AbortController();
-  const timeoutMs = resolveTimeoutMs(process.env.GAS_TIMEOUT_MS);
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const forwardedArgs = isPlainObject(payload.args) ? { ...payload.args } : {};
-
-    delete forwardedArgs.directSessionToken;
-    delete forwardedArgs.gasSessionToken;
-    delete forwardedArgs.sessionToken;
-    forwardedArgs.sessionToken = gasSessionToken;
-
-    const upstreamPayload = {
-      ...payload,
-      directSessionToken: '',
-      gasSessionToken: '',
-      sessionToken: gasSessionToken,
-      args: forwardedArgs
-    };
-
-    const upstream = await fetch(gasUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        Accept: 'application/json'
-      },
-      body: JSON.stringify(upstreamPayload),
-      redirect: 'follow',
-      signal: controller.signal,
-      cache: 'no-store'
-    });
-
-    const text = await upstream.text();
-    let data = null;
-
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch (_) {
-      return send(res, 502, {
-        ok: false,
-        error: {
-          code: 'UPSTREAM_BAD_JSON',
-          message: 'GAS 응답 JSON 파싱 실패',
-          detail: {
-            status: upstream.status,
-            preview: String(text || '').slice(0, 400)
-          }
-        }
-      });
+  return send(res, 400, {
+    ok: false,
+    error: {
+      code: 'BAD_OP',
+      message: '지원하지 않는 op 입니다: ' + op
     }
-
-    return send(
-      res,
-      upstream.ok ? 200 : upstream.status,
-      data || {
-        ok: false,
-        error: { code: 'EMPTY_RESPONSE', message: 'GAS 응답이 비어 있습니다.' }
-      }
-    );
-  } catch (e) {
-    const aborted = e && e.name === 'AbortError';
-    return send(res, aborted ? 504 : 502, {
-      ok: false,
-      error: {
-        code: aborted ? 'UPSTREAM_TIMEOUT' : 'UPSTREAM_FETCH_FAIL',
-        message: aborted ? 'GAS 응답 시간 초과' : (e?.message || 'GAS 요청 실패')
-      }
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-}
+  });
