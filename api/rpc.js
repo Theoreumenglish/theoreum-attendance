@@ -3,6 +3,7 @@ import { handleStaffClockQr } from './staff-clock-qr.js';
 import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
+import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import {
   assistantGetLogsDirect,
   assistantGetLogByTraceDirect,
@@ -46,7 +47,35 @@ async function readBody(req) {
   return {};
 }
 
-function normalizeDirectFloor(raw) {
+function normalizeStudentId(raw) {
+  const digits = String(raw || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  return digits.slice(-4).padStart(4, '0');
+}
+
+function normalizeRole(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return 'assistant';
+  if (['assistant', 'staff', '조교'].includes(v)) return 'assistant';
+  if (['teacher', '강사'].includes(v)) return 'teacher';
+  if (['admin', '관리자'].includes(v)) return 'admin';
+  if (['owner', '오너', '원장'].includes(v)) return 'owner';
+  return v;
+}
+
+function roleLevel(role) {
+  const r = normalizeRole(role);
+  if (r === 'assistant') return 1;
+  if (r === 'teacher') return 2;
+  if (r === 'admin' || r === 'owner') return 4;
+  return 0;
+}
+
+function hasRoleAtLeast(role, need) {
+  return roleLevel(role) >= roleLevel(need);
+}
+
+function normalizeFloor(raw) {
   const text = String(raw || '').trim().toUpperCase();
   if (text === '5층') return '5F';
   if (text === '7층') return '7F';
@@ -55,7 +84,7 @@ function normalizeDirectFloor(raw) {
 }
 
 function readDirectMeta() {
-  const kioskFloor = normalizeDirectFloor(process.env.KIOSK_FLOOR || '5F');
+  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F');
   const safeMode =
     String(process.env.SAFE_MODE_DEFAULT || 'N').trim().toUpperCase() === 'Y'
       ? 'Y'
@@ -75,6 +104,88 @@ function readDirectMeta() {
     logo_url_set: false,
     logo_url_normalized: ''
   };
+}
+
+function fail(status, code, message, detail = {}) {
+  return {
+    status,
+    body: {
+      ok: false,
+      error: { code, message, detail }
+    }
+  };
+}
+
+function success(data) {
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      data
+    }
+  };
+}
+
+async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
+  const me = await authMeDirect(String(sessionToken || '').trim(), { touch: true });
+
+  if (!me.loggedIn) {
+    return fail(401, 'AUTH_REQUIRED', '로그인이 필요합니다.');
+  }
+
+  if (!hasRoleAtLeast(me.role, 'teacher')) {
+    return fail(403, 'NO_PERMISSION', '강사 이상 권한이 필요합니다.');
+  }
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const yn =
+    String(args.is_exception || args.isException || 'N').trim().toUpperCase() === 'Y'
+      ? 'Y'
+      : 'N';
+  const note = String(args.exception_note || args.note || '').trim().slice(0, 200);
+
+  if (!sid) {
+    return fail(400, 'INVALID_INPUT', '학번 4자리가 필요합니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: found, error: readErr } = await supabase
+    .from('students')
+    .select('student_id, student_name, is_exception, exception_note')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (readErr) {
+    return fail(500, 'DB_SELECT_FAILED', readErr.message || 'students 조회 실패');
+  }
+
+  if (!found) {
+    return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+  }
+
+  const { data: patched, error: updateErr } = await supabase
+    .from('students')
+    .update({
+      is_exception: yn,
+      exception_note: yn === 'Y' ? note : ''
+    })
+    .eq('student_id', sid)
+    .select('student_id, student_name, is_exception, exception_note')
+    .maybeSingle();
+
+  if (updateErr) {
+    return fail(500, 'DB_UPDATE_FAILED', updateErr.message || 'students update 실패');
+  }
+
+  return success({
+    student_id: sid,
+    student_name: String(patched?.student_name || found.student_name || '').trim(),
+    is_exception: String(patched?.is_exception || yn).trim().toUpperCase(),
+    exception_note: String(patched?.exception_note || '').trim(),
+    updated_by: me.staff_id,
+    updated_role: me.role
+  });
 }
 
 export default async function handler(req, res) {
@@ -99,7 +210,7 @@ export default async function handler(req, res) {
   let payload = {};
   try {
     payload = await readBody(req);
-  } catch (e) {
+  } catch (_) {
     return send(res, 400, {
       ok: false,
       error: { code: 'BAD_JSON', message: '요청 JSON 형식이 올바르지 않습니다.' }
@@ -133,11 +244,6 @@ export default async function handler(req, res) {
     payload.directSessionToken ||
     (payload.args && payload.args.sessionToken) ||
     payload.sessionToken ||
-    '';
-
-  const gasSessionToken =
-    (payload.args && payload.args.gasSessionToken) ||
-    payload.gasSessionToken ||
     '';
 
   if (op === 'meta.ping') {
@@ -203,13 +309,8 @@ export default async function handler(req, res) {
   }
 
   if (op === 'teacher.setException') {
-    return send(res, 501, {
-      ok: false,
-      error: {
-        code: 'DIRECT_ONLY_UNSUPPORTED',
-        message: 'teacher.setException 는 아직 direct 구현 전입니다.'
-      }
-    });
+    const result = await teacherSetExceptionDirect(payload.args || {}, directSessionToken);
+    return send(res, result.status, result.body);
   }
 
   return send(res, 400, {
@@ -219,3 +320,4 @@ export default async function handler(req, res) {
       message: '지원하지 않는 op 입니다: ' + op
     }
   });
+}

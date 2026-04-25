@@ -392,8 +392,6 @@ export async function handleKioskMark(payload) {
   const isQr = isStudentQrText(input);
   const sidFromIdInput = normalizeStudentId(input);
 
-  // 예외학생 학번 등·하원도 direct 처리
-
   if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && !sidFromIdInput) {
     return fail(400, 'QR_REQUIRED', '등/하원은 전용 QR 또는 예외학생 학번 승인 경로만 사용할 수 있습니다.');
   }
@@ -487,8 +485,8 @@ export async function handleKioskMark(payload) {
 
     let finalAction = requestedAction;
     let title = '';
-    let message = `${student.student_name || verifiedStudentName} (${student.student_id})`;
-    let metaJson = {
+    const message = `${student.student_name || verifiedStudentName} (${student.student_id})`;
+    const metaJson = {
       actor: '__VERCEL__',
       source: 'supabase-direct',
       input_mode: inputMode
@@ -720,7 +718,7 @@ export default async function handler(req, res) {
   let payload = {};
   try {
     payload = parseBody(req);
-  } catch (e) {
+  } catch (_) {
     return res.status(400).json({
       ok: false,
       error: {
