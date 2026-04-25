@@ -7,6 +7,10 @@ import { hasValidPinApproval } from '../lib/staff-auth.js';
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
 const ALLOWED_FLOORS = new Set(['5F', '7F']);
 const MOVE_DEDUPE_MS = 90000;
+const RUNTIME_META_CACHE_TTL_MS = 3000;
+
+let runtimeMetaCache = null;
+let runtimeMetaCacheExp = 0;
 
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
@@ -24,7 +28,8 @@ function normalizeFloor(input) {
   const text = String(input || '').trim().toUpperCase();
   if (text === '5층') return '5F';
   if (text === '7층') return '7F';
-  return text;
+  if (text === '5F' || text === '7F') return text;
+  return '';
 }
 
 function normalizeAction(input) {
@@ -36,20 +41,95 @@ function normalizeAction(input) {
   return text;
 }
 
-function readDirectMeta() {
-  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F');
-  const safeMode =
-    String(process.env.SAFE_MODE_DEFAULT || 'N').trim().toUpperCase() === 'Y'
-      ? 'Y'
-      : 'N';
+function normalizeYn(raw, fallback = 'N') {
+  const text = String(raw == null ? fallback : raw).trim().toUpperCase();
+  return text === 'Y' ? 'Y' : 'N';
+}
+
+function buildEnvMeta() {
+  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F') || '5F';
+  const safeMode = normalizeYn(process.env.SAFE_MODE_DEFAULT || 'N');
 
   return {
     kiosk_floor: kioskFloor,
     safe: {
       mode: safeMode,
       message: String(process.env.SAFE_MODE_MESSAGE || '').trim()
-    }
+    },
+    source: 'env'
   };
+}
+
+function isMissingRuntimeConfigTable(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+
+  return (
+    (message.includes('runtime_config') && message.includes('does not exist')) ||
+    (details.includes('runtime_config') && details.includes('does not exist'))
+  );
+}
+
+function applyRuntimeRowsToMeta(rows, baseMeta) {
+  const next = {
+    ...baseMeta,
+    safe: { ...(baseMeta.safe || {}) },
+    source: 'runtime_config'
+  };
+
+  for (const row of rows || []) {
+    const key = String(row?.key || '').trim();
+    const value = row?.value_json && typeof row.value_json === 'object' ? row.value_json : {};
+
+    if (key === 'kiosk_floor') {
+      const floor = normalizeFloor(value.value || value.kiosk_floor || '');
+      if (floor) next.kiosk_floor = floor;
+      continue;
+    }
+
+    if (key === 'safe_mode') {
+      next.safe.mode = normalizeYn(value.mode || value.value || next.safe.mode || 'N');
+      next.safe.message = String(value.message || '').trim();
+    }
+  }
+
+  return next;
+}
+
+async function readRuntimeMeta(force = false) {
+  const now = Date.now();
+  if (!force && runtimeMetaCache && now < runtimeMetaCacheExp) {
+    return { ok: true, data: runtimeMetaCache };
+  }
+
+  const envMeta = buildEnvMeta();
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('runtime_config')
+    .select('key, value_json')
+    .in('key', ['kiosk_floor', 'safe_mode']);
+
+  if (error) {
+    if (isMissingRuntimeConfigTable(error)) {
+      runtimeMetaCache = envMeta;
+      runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
+      return { ok: true, data: envMeta };
+    }
+
+    return {
+      ok: false,
+      error: {
+        code: 'DB_SELECT_FAILED',
+        message: error.message || 'runtime_config 조회 실패'
+      }
+    };
+  }
+
+  const merged = applyRuntimeRowsToMeta(data || [], envMeta);
+  runtimeMetaCache = merged;
+  runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
+  return { ok: true, data: merged };
 }
 
 function formatYmdKst(date = new Date()) {
@@ -357,17 +437,23 @@ export async function handleKioskMark(payload) {
   const input = String(args.input || '').trim();
   const traceId = buildTraceId(payload);
 
-  const meta = readDirectMeta();
+  const meta = await readRuntimeMeta();
+  if (!meta.ok) {
+    return fail(
+      503,
+      'META_UNAVAILABLE',
+      meta.error?.message || '운영 상태를 확인할 수 없습니다.'
+    );
+  }
 
-  const authoritativeFloor = normalizeFloor(String(meta.kiosk_floor || '5F').trim() || '5F');
+  const authoritativeFloor = normalizeFloor(String(meta.data?.kiosk_floor || '5F').trim()) || '5F';
   if (!ALLOWED_FLOORS.has(authoritativeFloor)) {
-    return fail(500, 'CONFIG_REQUIRED', 'KIOSK_FLOOR 설정이 올바르지 않습니다.');
+    return fail(500, 'CONFIG_REQUIRED', 'runtime_config 또는 KIOSK_FLOOR 설정이 올바르지 않습니다.');
   }
 
   const kioskFloor = authoritativeFloor;
-
-  const safeMode = String(meta.safe?.mode || 'N').trim().toUpperCase() === 'Y';
-  const safeMessage = String(meta.safe?.message || '').trim();
+  const safeMode = normalizeYn(meta.data?.safe?.mode || 'N') === 'Y';
+  const safeMessage = String(meta.data?.safe?.message || '').trim();
 
   if (safeMode) {
     return fail(503, 'SAFE_MODE', safeMessage || '현재 점검 모드입니다. 데스크에 문의하세요.');

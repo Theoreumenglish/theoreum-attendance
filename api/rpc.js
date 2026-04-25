@@ -12,6 +12,10 @@ import {
 } from '../lib/rpc-direct-read.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
+const RUNTIME_META_CACHE_TTL_MS = 3000;
+
+let runtimeMetaCache = null;
+let runtimeMetaCacheExp = 0;
 
 function send(res, status, body) {
   res.status(status);
@@ -80,15 +84,17 @@ function normalizeFloor(raw) {
   if (text === '5층') return '5F';
   if (text === '7층') return '7F';
   if (text === '5F' || text === '7F') return text;
-  return '5F';
+  return '';
 }
 
-function readDirectMeta() {
-  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F');
-  const safeMode =
-    String(process.env.SAFE_MODE_DEFAULT || 'N').trim().toUpperCase() === 'Y'
-      ? 'Y'
-      : 'N';
+function normalizeYn(raw, fallback = 'N') {
+  const text = String(raw == null ? fallback : raw).trim().toUpperCase();
+  return text === 'Y' ? 'Y' : 'N';
+}
+
+function buildEnvMeta() {
+  const kioskFloor = normalizeFloor(process.env.KIOSK_FLOOR || '5F') || '5F';
+  const safeMode = normalizeYn(process.env.SAFE_MODE_DEFAULT || 'N');
 
   return {
     version: 'vercel-direct',
@@ -102,8 +108,86 @@ function readDirectMeta() {
     staff_mode: '',
     disabled_ops: [],
     logo_url_set: false,
-    logo_url_normalized: ''
+    logo_url_normalized: '',
+    source: 'env'
   };
+}
+
+function isMissingRuntimeConfigTable(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+
+  return (
+    (message.includes('runtime_config') && message.includes('does not exist')) ||
+    (details.includes('runtime_config') && details.includes('does not exist'))
+  );
+}
+
+function applyRuntimeRowsToMeta(rows, baseMeta) {
+  const next = {
+    ...baseMeta,
+    safe: { ...(baseMeta.safe || {}) },
+    source: 'runtime_config'
+  };
+
+  for (const row of rows || []) {
+    const key = String(row?.key || '').trim();
+    const value = isPlainObject(row?.value_json) ? row.value_json : {};
+
+    if (key === 'kiosk_floor') {
+      const floor = normalizeFloor(value.value || value.kiosk_floor || '');
+      if (floor) next.kiosk_floor = floor;
+      continue;
+    }
+
+    if (key === 'safe_mode') {
+      next.safe.mode = normalizeYn(value.mode || value.value || next.safe.mode || 'N');
+      next.safe.message = String(value.message || '').trim();
+    }
+  }
+
+  return next;
+}
+
+async function readRuntimeMeta(force = false) {
+  const now = Date.now();
+  if (!force && runtimeMetaCache && now < runtimeMetaCacheExp) {
+    return { ok: true, data: runtimeMetaCache };
+  }
+
+  const envMeta = buildEnvMeta();
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('runtime_config')
+    .select('key, value_json')
+    .in('key', ['kiosk_floor', 'safe_mode']);
+
+  if (error) {
+    if (isMissingRuntimeConfigTable(error)) {
+      runtimeMetaCache = envMeta;
+      runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
+      return { ok: true, data: envMeta };
+    }
+
+    return {
+      ok: false,
+      error: {
+        code: 'DB_SELECT_FAILED',
+        message: error.message || 'runtime_config 조회 실패'
+      }
+    };
+  }
+
+  const merged = applyRuntimeRowsToMeta(data || [], envMeta);
+  runtimeMetaCache = merged;
+  runtimeMetaCacheExp = now + RUNTIME_META_CACHE_TTL_MS;
+  return { ok: true, data: merged };
+}
+
+function invalidateRuntimeMetaCache() {
+  runtimeMetaCache = null;
+  runtimeMetaCacheExp = 0;
 }
 
 function fail(status, code, message, detail = {}) {
@@ -126,16 +210,123 @@ function success(data) {
   };
 }
 
-async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
+async function requireRole(sessionToken, needRole) {
   const me = await authMeDirect(String(sessionToken || '').trim(), { touch: true });
 
   if (!me.loggedIn) {
-    return fail(401, 'AUTH_REQUIRED', '로그인이 필요합니다.');
+    return { ok: false, out: fail(401, 'AUTH_REQUIRED', '로그인이 필요합니다.') };
   }
 
-  if (!hasRoleAtLeast(me.role, 'teacher')) {
-    return fail(403, 'NO_PERMISSION', '강사 이상 권한이 필요합니다.');
+  if (!hasRoleAtLeast(me.role, needRole)) {
+    return {
+      ok: false,
+      out: fail(403, 'NO_PERMISSION', `${needRole} 이상 권한이 필요합니다.`)
+    };
   }
+
+  return { ok: true, me };
+}
+
+async function upsertRuntimeConfig(supabase, row) {
+  const { data, error } = await supabase
+    .from('runtime_config')
+    .upsert([row], { onConflict: 'key' })
+    .select('key, value_json, updated_at, updated_by')
+    .single();
+
+  return { data, error };
+}
+
+async function adminGetRuntimeConfigDirect(sessionToken) {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const meta = await readRuntimeMeta(true);
+  if (!meta.ok) {
+    return fail(
+      500,
+      meta.error.code || 'DB_SELECT_FAILED',
+      meta.error.message || 'runtime_config 조회 실패'
+    );
+  }
+
+  return success(meta.data);
+}
+
+async function adminSetKioskFloorDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const kioskFloor = normalizeFloor(args.kiosk_floor || args.floor || args.kioskFloor || '');
+  if (!kioskFloor || !['5F', '7F'].includes(kioskFloor)) {
+    return fail(400, 'INVALID_INPUT', 'kiosk_floor는 5F 또는 7F여야 합니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await upsertRuntimeConfig(supabase, {
+    key: 'kiosk_floor',
+    value_json: { value: kioskFloor },
+    updated_at: new Date().toISOString(),
+    updated_by: auth.me.staff_id
+  });
+
+  if (error) {
+    return fail(500, 'DB_UPSERT_FAILED', error.message || 'runtime_config kiosk_floor 저장 실패');
+  }
+
+  invalidateRuntimeMetaCache();
+
+  const meta = await readRuntimeMeta(true);
+  if (!meta.ok) {
+    return fail(
+      500,
+      meta.error.code || 'DB_SELECT_FAILED',
+      meta.error.message || 'runtime_config 조회 실패'
+    );
+  }
+
+  return success(meta.data);
+}
+
+async function adminSetSafeModeDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const mode = normalizeYn(args.mode || args.safe_mode || args.safeMode || 'N');
+  const message = String(args.message || args.safe_message || '').trim().slice(0, 200);
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await upsertRuntimeConfig(supabase, {
+    key: 'safe_mode',
+    value_json: {
+      mode,
+      message
+    },
+    updated_at: new Date().toISOString(),
+    updated_by: auth.me.staff_id
+  });
+
+  if (error) {
+    return fail(500, 'DB_UPSERT_FAILED', error.message || 'runtime_config safe_mode 저장 실패');
+  }
+
+  invalidateRuntimeMetaCache();
+
+  const meta = await readRuntimeMeta(true);
+  if (!meta.ok) {
+    return fail(
+      500,
+      meta.error.code || 'DB_SELECT_FAILED',
+      meta.error.message || 'runtime_config 조회 실패'
+    );
+  }
+
+  return success(meta.data);
+}
+
+async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
 
   const sid = normalizeStudentId(args.student_id || args.sid || '');
   const yn =
@@ -183,8 +374,8 @@ async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
     student_name: String(patched?.student_name || found.student_name || '').trim(),
     is_exception: String(patched?.is_exception || yn).trim().toUpperCase(),
     exception_note: String(patched?.exception_note || '').trim(),
-    updated_by: me.staff_id,
-    updated_role: me.role
+    updated_by: auth.me.staff_id,
+    updated_role: auth.me.role
   });
 }
 
@@ -239,18 +430,23 @@ export default async function handler(req, res) {
     });
   }
 
-  const directSessionToken =
-    (payload.args && payload.args.directSessionToken) ||
-    payload.directSessionToken ||
+  const sessionToken =
     (payload.args && payload.args.sessionToken) ||
     payload.sessionToken ||
     '';
 
   if (op === 'meta.ping') {
-    return send(res, 200, {
-      ok: true,
-      data: readDirectMeta()
-    });
+    const meta = await readRuntimeMeta();
+    if (!meta.ok) {
+      return send(res, 503, {
+        ok: false,
+        error: {
+          code: meta.error.code || 'DB_SELECT_FAILED',
+          message: meta.error.message || '운영 메타 정보를 읽지 못했습니다.'
+        }
+      });
+    }
+    return send(res, 200, { ok: true, data: meta.data });
   }
 
   if (op === 'auth.login') {
@@ -259,12 +455,12 @@ export default async function handler(req, res) {
   }
 
   if (op === 'auth.me') {
-    const me = await authMeDirect(directSessionToken, { touch: true });
+    const me = await authMeDirect(sessionToken, { touch: true });
     return send(res, 200, { ok: true, data: me });
   }
 
   if (op === 'auth.logout') {
-    const result = await authLogoutDirect(directSessionToken);
+    const result = await authLogoutDirect(sessionToken);
     return send(res, result.status, result.body);
   }
 
@@ -289,27 +485,42 @@ export default async function handler(req, res) {
   }
 
   if (op === 'assistant.getLogs') {
-    const result = await assistantGetLogsDirect(payload.args || {}, directSessionToken);
+    const result = await assistantGetLogsDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
   if (op === 'assistant.getLogByTrace') {
-    const result = await assistantGetLogByTraceDirect(payload.args || {}, directSessionToken);
+    const result = await assistantGetLogByTraceDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
   if (op === 'admin.getStaffMonthlySummary') {
-    const result = await adminGetStaffMonthlySummaryDirect(payload.args || {}, directSessionToken);
+    const result = await adminGetStaffMonthlySummaryDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
   if (op === 'admin.getStaffDailyDetail') {
-    const result = await adminGetStaffDailyDetailDirect(payload.args || {}, directSessionToken);
+    const result = await adminGetStaffDailyDetailDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.getRuntimeConfig') {
+    const result = await adminGetRuntimeConfigDirect(sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.setKioskFloor') {
+    const result = await adminSetKioskFloorDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.setSafeMode') {
+    const result = await adminSetSafeModeDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
   if (op === 'teacher.setException') {
-    const result = await teacherSetExceptionDirect(payload.args || {}, directSessionToken);
+    const result = await teacherSetExceptionDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
