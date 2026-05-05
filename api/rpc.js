@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { handleKioskMark } from './kiosk-mark.js';
 import { handleStaffClockQr } from './staff-clock-qr.js';
 import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
+import { sendNcpTestMessageDirect } from '../lib/attendance-notify.js';
 import { verifyAdminPinByStaffId } from './_admin-pin.js';
 import {
   readRuntimeMeta,
@@ -372,6 +374,483 @@ async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
     updated_role: auth.me.role
   });
 }
+function envReady(name) {
+  return !!String(process.env[name] || '').trim();
+}
+
+function kstYmd(date = new Date()) {
+  const text = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
+
+  return text.replace(/-/g, '');
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function isStrictYmd(value) {
+  return /^\d{8}$/.test(String(value || '').trim());
+}
+
+function normalizeActionType(raw) {
+  const action = String(raw || '').trim().toUpperCase();
+  const allowed = new Set([
+    'CHECK_IN',
+    'CHECK_OUT',
+    'MOVE',
+    'OUTING_OUT',
+    'OUTING_BACK',
+    'MANUAL_CHECK_IN',
+    'MANUAL_CHECK_OUT'
+  ]);
+
+  return allowed.has(action) ? action : '';
+}
+
+async function metaDiagDirect(sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const meta = await readRuntimeMeta(true);
+  if (!meta.ok) {
+    return fail(
+      500,
+      meta.error.code || 'DB_SELECT_FAILED',
+      meta.error.message || '운영 메타 정보를 읽지 못했습니다.'
+    );
+  }
+
+  return success({
+    version: 'vercel-direct',
+    pepperReady: envReady('AUTH_PEPPER') || envReady('SYS_PEPPER'),
+    supabaseReady: envReady('SUPABASE_URL') && envReady('SUPABASE_SERVICE_ROLE_KEY'),
+    verifySecretSet: envReady('VERIFY_SHARED_SECRET') || envReady('QR_VERIFY_SHARED_SECRET'),
+    staffQrVerifySecretSet: envReady('STAFF_QR_VERIFY_SHARED_SECRET'),
+    attendanceTemplateSet: envReady('TPL_ATTENDANCE'),
+    alimtalkServiceSet: envReady('NCP_ALIMTALK_SERVICE_ID'),
+    smsServiceSet: envReady('NCP_SMS_SERVICE_ID'),
+    plusFriendSet: envReady('NCP_PLUS_FRIEND_ID'),
+    fromNumberSet: envReady('NCP_SENS_FROM') || envReady('NCP_CALLER'),
+    kioskFloor: meta.data?.kiosk_floor || '',
+    safe: meta.data?.safe || {},
+    runtimeSource: meta.data?.source || ''
+  });
+}
+
+async function checkTableReadable(supabase, tableName, selectExpr = '*') {
+  const { count, error } = await supabase
+    .from(tableName)
+    .select(selectExpr, { head: true, count: 'exact' });
+
+  return {
+    name: tableName,
+    ok: !error,
+    count: typeof count === 'number' ? count : null,
+    message: error ? (error.message || '조회 실패') : ''
+  };
+}
+
+async function metaCheckCentralDirect(sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const tableNames = [
+    'students',
+    'staff',
+    'staff_sessions',
+    'classes',
+    'class_students',
+    'class_schedule',
+    'absence_excuses',
+    'attendance_logs',
+    'staff_clock_logs',
+    'staff_daily',
+    'staff_monthly',
+    'runtime_config',
+    'runtime_config_audit',
+    'kiosk_pin_approvals',
+    'kiosk_pin_attempts',
+    'attendance_notify_queue'
+  ];
+
+  const checks = [];
+  for (const tableName of tableNames) {
+    checks.push(await checkTableReadable(supabase, tableName));
+  }
+
+  return success({
+    ok: checks.every(x => x.ok),
+    checked_at: nowIso(),
+    checks
+  });
+}
+
+async function metaLogoErrorDirect(args = {}) {
+  console.warn('[LOGO_ERROR]', {
+    src: String(args.src || '').slice(0, 300),
+    currentView: String(args.currentView || '').slice(0, 50),
+    userAgent: String(args.userAgent || '').slice(0, 300)
+  });
+
+  return success({
+    recorded: false,
+    reason: 'SERVER_LOG_ONLY'
+  });
+}
+
+async function adminTestNcpDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const phone = String(args.phone || args.to || '').replace(/[^0-9]/g, '');
+  if (!phone) {
+    return fail(400, 'INVALID_INPUT', '테스트 번호가 필요합니다.');
+  }
+
+  const result = await sendNcpTestMessageDirect(phone, 'ADMIN_NCP_TEST');
+
+  return success({
+    ...result,
+    tested_by: auth.me.staff_id
+  });
+}
+
+async function adminFlushCacheDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  invalidateRuntimeMetaCache();
+
+  return success({
+    ok: true,
+    flushed: ['runtime_meta'],
+    flushed_at: nowIso()
+  });
+}
+
+function notImplementedDirect(message) {
+  return fail(501, 'NOT_IMPLEMENTED_DIRECT', message);
+}
+
+async function assertAbsenceExcuseTarget(supabase, classId, yyyymmdd, studentId) {
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select('student_id, status')
+    .eq('student_id', studentId)
+    .maybeSingle();
+
+  if (studentErr) {
+    return fail(500, 'DB_SELECT_FAILED', studentErr.message || 'students 조회 실패');
+  }
+
+  if (!student) {
+    return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+  }
+
+  const { data: relation, error: relationErr } = await supabase
+    .from('class_students')
+    .select('class_id, student_id')
+    .eq('class_id', classId)
+    .eq('student_id', studentId)
+    .maybeSingle();
+
+  if (relationErr) {
+    return fail(500, 'DB_SELECT_FAILED', relationErr.message || 'class_students 조회 실패');
+  }
+
+  if (!relation) {
+    return fail(400, 'INVALID_INPUT', '해당 학생은 이 반에 배정되어 있지 않습니다.');
+  }
+
+  const { data: schedule, error: scheduleErr } = await supabase
+    .from('class_schedule')
+    .select('class_id, yyyymmdd, status')
+    .eq('class_id', classId)
+    .eq('yyyymmdd', yyyymmdd)
+    .maybeSingle();
+
+  if (scheduleErr) {
+    return fail(500, 'DB_SELECT_FAILED', scheduleErr.message || 'class_schedule 조회 실패');
+  }
+
+  if (!schedule) {
+    return fail(404, 'NOT_FOUND', '해당 날짜의 스케줄이 없습니다. 중앙DB replica sync를 먼저 확인하세요.');
+  }
+
+  const status = String(schedule.status || '').trim().toUpperCase();
+  if (status !== 'SCHEDULED') {
+    return fail(400, 'INVALID_INPUT', '휴강일 또는 비수업일에는 미등원 예외를 등록할 수 없습니다.');
+  }
+
+  return null;
+}
+
+async function assistantListAbsenceExcusesDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const classId = String(args.class_id || '').trim();
+  const sid = args.student_id ? normalizeStudentId(args.student_id) : '';
+
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from('absence_excuses')
+    .select('*')
+    .order('yyyymmdd', { ascending: false })
+    .limit(300);
+
+  if (yyyymmdd) query = query.eq('yyyymmdd', yyyymmdd);
+  if (classId) query = query.eq('class_id', classId);
+  if (sid) query = query.eq('student_id', sid);
+
+  const { data, error } = await query;
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || 'absence_excuses 조회 실패');
+  }
+
+  return success({
+    count: Array.isArray(data) ? data.length : 0,
+    items: data || []
+  });
+}
+
+async function assistantAddAbsenceExcuseDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const classId = String(args.class_id || '').trim();
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const reason = String(args.reason || '').trim().slice(0, 300);
+  const untilMin = Number(args.until_min || args.untilMin || 0);
+
+  if (!classId || classId === '*') {
+    return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  }
+
+  if (!isStrictYmd(yyyymmdd)) {
+    return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
+  }
+
+  if (!sid) {
+    return fail(400, 'INVALID_INPUT', '학번 4자리가 필요합니다.');
+  }
+
+  const today = kstYmd(new Date());
+  if (yyyymmdd < today) {
+    return fail(403, 'NO_PERMISSION', '과거 날짜에는 미등원 예외를 등록할 수 없습니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const targetError = await assertAbsenceExcuseTarget(supabase, classId, yyyymmdd, sid);
+  if (targetError) return targetError;
+
+  const untilTs = Number.isFinite(untilMin) && untilMin > 0
+    ? new Date(Date.now() + Math.floor(untilMin) * 60 * 1000).toISOString()
+    : new Date(
+        Number(yyyymmdd.slice(0, 4)),
+        Number(yyyymmdd.slice(4, 6)) - 1,
+        Number(yyyymmdd.slice(6, 8)),
+        23,
+        59,
+        59
+      ).toISOString();
+
+  const now = nowIso();
+
+  const { data: existing, error: existingErr } = await supabase
+    .from('absence_excuses')
+    .select('excuse_id')
+    .eq('class_id', classId)
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('student_id', sid)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingErr) {
+    return fail(500, 'DB_SELECT_FAILED', existingErr.message || 'absence_excuses 기존 데이터 조회 실패');
+  }
+
+  if (existing?.excuse_id) {
+    const { data, error } = await supabase
+      .from('absence_excuses')
+      .update({
+        reason,
+        until_ts: untilTs,
+        updated_at: now,
+        updated_by: auth.me.staff_id
+      })
+      .eq('excuse_id', existing.excuse_id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      return fail(500, 'DB_UPDATE_FAILED', error.message || 'absence_excuses update 실패');
+    }
+
+    return success({
+      item: data,
+      updated: true
+    });
+  }
+
+  const row = {
+    excuse_id: randomUUID(),
+    class_id: classId,
+    yyyymmdd,
+    student_id: sid,
+    reason,
+    until_ts: untilTs,
+    created_at: now,
+    created_by: auth.me.staff_id,
+    updated_at: now,
+    updated_by: auth.me.staff_id
+  };
+
+  const { data, error } = await supabase
+    .from('absence_excuses')
+    .insert([row])
+    .select('*')
+    .single();
+
+  if (error) {
+    return fail(500, 'DB_INSERT_FAILED', error.message || 'absence_excuses insert 실패');
+  }
+
+  return success({
+    item: data,
+    updated: false
+  });
+}
+
+async function assistantRemoveAbsenceExcuseDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const classId = String(args.class_id || '').trim();
+  const sid = args.student_id ? normalizeStudentId(args.student_id) : '';
+
+  if (!classId || !yyyymmdd || !sid) {
+    return fail(400, 'INVALID_INPUT', 'class_id / yyyymmdd / student_id가 모두 필요합니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from('absence_excuses')
+    .delete({ count: 'exact' })
+    .eq('class_id', classId)
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('student_id', sid);
+
+  if (error) {
+    return fail(500, 'DB_DELETE_FAILED', error.message || 'absence_excuses delete 실패');
+  }
+
+  return success({
+    removed: typeof count === 'number' ? count : 0
+  });
+}
+
+async function assistantManualAttendanceDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args) || String(args.pin || '').trim();
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '직원 PIN 확인 실패'
+    );
+  }
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const action = normalizeActionType(args.action_type || args.action || '');
+  const reason = String(args.reason || '').trim().slice(0, 500);
+  const sourceTraceId = String(args.source_trace_id || args.sourceTraceId || '').trim();
+
+  if (!sid) return fail(400, 'INVALID_INPUT', '학번 4자리가 필요합니다.');
+  if (!action) return fail(400, 'INVALID_INPUT', '허용되지 않는 action_type입니다.');
+  if (!reason) return fail(400, 'INVALID_INPUT', '정정 사유가 필요합니다.');
+  if (!sourceTraceId) return fail(400, 'INVALID_INPUT', '원본 trace_id가 필요합니다.');
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select('student_id, student_name, qr_id')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (studentErr) {
+    return fail(500, 'DB_SELECT_FAILED', studentErr.message || 'students 조회 실패');
+  }
+
+  if (!student) {
+    return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+  }
+
+  const meta = await readRuntimeMeta();
+  const kioskFloor = meta.ok && meta.data?.kiosk_floor ? meta.data.kiosk_floor : '5F';
+  const traceId = 'MANUAL_' + randomUUID();
+  const now = new Date();
+
+  const record = {
+    record_id: 'M' + Date.now().toString(36) + randomUUID().replace(/-/g, '').slice(0, 6),
+    ts: now.toISOString(),
+    yyyymmdd: kstYmd(now),
+    student_id: sid,
+    action_type: action,
+    kiosk_floor: kioskFloor,
+    meta_json: {
+      input_mode: 'MANUAL',
+      correction: 'Y',
+      reason,
+      source_trace_id: sourceTraceId,
+      actor: auth.me.staff_id,
+      actor_role: auth.me.role
+    },
+    result: 'OK',
+    deny_reason: '',
+    qr_id: String(student.qr_id || ''),
+    trace_id: traceId
+  };
+
+  const { data, error } = await supabase
+    .from('attendance_logs')
+    .insert([record])
+    .select('*')
+    .single();
+
+  if (error) {
+    return fail(500, 'DB_INSERT_FAILED', error.message || 'attendance_logs 수동 정정 insert 실패');
+  }
+
+  return success({
+    record: data,
+    student,
+    trace_id: traceId
+  });
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -498,6 +977,71 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'meta.diag') {
+    const result = await metaDiagDirect(sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'meta.checkCentral') {
+    const result = await metaCheckCentralDirect(sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'meta.logoError') {
+    const result = await metaLogoErrorDirect(payload.args || {});
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.testNcp') {
+    const result = await adminTestNcpDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.flushCache') {
+    const result = await adminFlushCacheDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.listAbsenceExcuses') {
+    const result = await assistantListAbsenceExcusesDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.addAbsenceExcuse') {
+    const result = await assistantAddAbsenceExcuseDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.removeAbsenceExcuse') {
+    const result = await assistantRemoveAbsenceExcuseDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.manualAttendance') {
+    const result = await assistantManualAttendanceDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'absent.installTrigger') {
+    const result = notImplementedDirect('GAS 트리거 설치는 Vercel 운영본에서 사용하지 않습니다. Vercel Cron으로 설정해야 합니다.');
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.installDailyTrigger') {
+    const result = notImplementedDirect('GAS 데일리 트리거 설치는 Vercel 운영본에서 사용하지 않습니다. Vercel Cron으로 설정해야 합니다.');
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.generateSchedule') {
+    const result = notImplementedDirect('스케줄 재생성은 중앙DB SSOT → Supabase replica sync worker 구현 후 활성화해야 합니다.');
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'absent.runNow') {
+    const result = notImplementedDirect('미등원 감지는 CLASS_SCHEDULE/ABSENCE_EXCUSES 기반 direct worker 구현 후 활성화해야 합니다.');
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'admin.getRuntimeConfig') {
     const result = await adminGetRuntimeConfigDirect(sessionToken);
     return send(res, result.status, result.body);
@@ -508,6 +1052,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'admin.toggleSafe') {
+    const result = await adminSetSafeModeDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+  
   if (op === 'admin.setSafeMode') {
     const result = await adminSetSafeModeDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
