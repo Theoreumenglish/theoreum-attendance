@@ -31,6 +31,16 @@ function normalizeNote(input) {
   return String(input || '').trim().slice(0, 200);
 }
 
+function normalizeRole(input) {
+  const v = String(input || '').trim().toLowerCase();
+  if (!v) return 'assistant';
+  if (['assistant', 'staff', '조교'].includes(v)) return 'assistant';
+  if (['teacher', '강사'].includes(v)) return 'teacher';
+  if (['admin', '관리자'].includes(v)) return 'admin';
+  if (['owner', '오너', '원장'].includes(v)) return 'owner';
+  return v;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
@@ -71,7 +81,7 @@ export default async function handler(req, res) {
         ts: body.ts,
         staff_id: body.staff_id,
         name: body.name,
-        role: body.role,
+        role: normalizeRole(body.role),
         action: body.action,
         note: normalizeNote(body.note),
         trace_id: body.trace_id,

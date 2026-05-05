@@ -21,14 +21,6 @@ function isStudentQrText(input) {
   return /^QR1\./i.test(String(input || '').trim());
 }
 
-function normalizeFloor(input) {
-  const text = String(input || '').trim().toUpperCase();
-  if (text === '5층') return '5F';
-  if (text === '7층') return '7F';
-  if (text === '5F' || text === '7F') return text;
-  return '';
-}
-
 function normalizeAction(input) {
   const text = String(input || '').trim().toUpperCase();
   if (text === 'IN' || text === 'CHECKIN' || text === 'CHECK_IN') return 'CHECK_IN';
@@ -316,10 +308,22 @@ function mapQrVerifyError(err) {
 }
 
 async function verifyStudentQrDirect(qrText) {
+  const sharedSecret = getVerifySharedSecret();
+
+  if (!sharedSecret) {
+    return {
+      ok: false,
+      error: {
+        code: 'CONFIG_REQUIRED',
+        message: '학생 QR 검증 secret이 설정되지 않았습니다.'
+      }
+    };
+  }
+
   return await studentQrVerify({
     qrText,
     consume: 'Y',
-    shared_secret: getVerifySharedSecret()
+    shared_secret: sharedSecret
   });
 }
 

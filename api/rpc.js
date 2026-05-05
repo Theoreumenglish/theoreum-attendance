@@ -84,11 +84,6 @@ function hasRoleAtLeast(role, need) {
   return roleLevel(role) >= roleLevel(need);
 }
 
-function invalidateRuntimeMetaCache() {
-  runtimeMetaCache = null;
-  runtimeMetaCacheExp = 0;
-}
-
 function fail(status, code, message, detail = {}) {
   return {
     status,
@@ -140,6 +135,20 @@ function normalizeComparableValue(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function expandComparableValues(value) {
+  if (Array.isArray(value)) {
+    return value.map(normalizeComparableValue).filter(Boolean);
+  }
+
+  const text = String(value || '').trim();
+  if (!text) return [];
+
+  return text
+    .split(/[\/,|;]/)
+    .map(normalizeComparableValue)
+    .filter(Boolean);
+}
+
 function teacherOwnsStudent(me, studentRow) {
   const studentOwners = [
     studentRow?.teacher_value,
@@ -147,7 +156,7 @@ function teacherOwnsStudent(me, studentRow) {
     studentRow?.teacher_id,
     studentRow?.teacher_name
   ]
-    .map(normalizeComparableValue)
+    .flatMap(expandComparableValues)
     .filter(Boolean);
 
   if (!studentOwners.length) return false;
@@ -156,7 +165,7 @@ function teacherOwnsStudent(me, studentRow) {
     me?.staff_id,
     me?.name
   ]
-    .map(normalizeComparableValue)
+    .flatMap(expandComparableValues)
     .filter(Boolean);
 
   return studentOwners.some(v => mine.includes(v));
@@ -212,14 +221,22 @@ async function adminSetKioskFloorDirect(args = {}, sessionToken = '') {
     return fail(500, 'DB_UPSERT_FAILED', error.message || 'runtime_config kiosk_floor 저장 실패');
   }
 
-  await appendRuntimeConfigAudit({
+  const audit = await appendRuntimeConfigAudit({
     key: 'kiosk_floor',
     before_json: { value: beforeMeta.data?.kiosk_floor || '' },
     after_json: { value: kioskFloor },
     changed_by: auth.me.staff_id
   });
 
-  invalidateRuntimeMetaCache();
+  if (!audit.ok) {
+    await writeRuntimeConfig(
+      'kiosk_floor',
+      { value: beforeMeta.data?.kiosk_floor || '5F' },
+      auth.me.staff_id
+    );
+
+    return fail(500, 'DB_AUDIT_FAILED', audit.error?.message || 'runtime_config_audit 저장 실패');
+  }
 
   const meta = await readRuntimeMeta(true);
   if (!meta.ok) {
@@ -265,14 +282,25 @@ async function adminSetSafeModeDirect(args = {}, sessionToken = '') {
     return fail(500, 'DB_UPSERT_FAILED', error.message || 'runtime_config safe_mode 저장 실패');
   }
 
-  await appendRuntimeConfigAudit({
+  const audit = await appendRuntimeConfigAudit({
     key: 'safe_mode',
     before_json: beforeMeta.data?.safe || {},
     after_json: { mode, message },
     changed_by: auth.me.staff_id
   });
 
-  invalidateRuntimeMetaCache();
+  if (!audit.ok) {
+    await writeRuntimeConfig(
+      'safe_mode',
+      {
+        mode: beforeMeta.data?.safe?.mode || 'N',
+        message: beforeMeta.data?.safe?.message || ''
+      },
+      auth.me.staff_id
+    );
+
+    return fail(500, 'DB_AUDIT_FAILED', audit.error?.message || 'runtime_config_audit 저장 실패');
+  }
 
   const meta = await readRuntimeMeta(true);
   if (!meta.ok) {
