@@ -2466,7 +2466,8 @@
 					<b>[서버 버전]</b> ${escapeHtml(d.version || '')}<br>
 					<b>[Pepper]</b> ${d.pepperReady ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[Supabase]</b> ${d.supabaseReady ? '✅ 설정됨' : '❌ 미설정'}<br>
-					<b>[학생 QR Secret]</b> ${d.verifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[학생 QR Verify Secret]</b> ${d.studentQrVerifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[학생 QR HMAC Secret]</b> ${d.studentQrHmacSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[직원 QR Secret]</b> ${d.staffQrVerifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[출결 템플릿]</b> ${d.attendanceTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
