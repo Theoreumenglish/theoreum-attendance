@@ -2300,94 +2300,158 @@
 		const StaffUI = {
 			me: null,
 
-			init(me) {
-				StaffUI.me = me;
-				$('#staffHeadText').textContent = me.name + '님 접속중';
-				$('#staffRolePill').textContent = me.role || 'staff';
+			bindClick(id, handler) {
+				const el = document.getElementById(id);
+				if (!el) return;
+				el.onclick = handler;
+			},
 
-				$('#btnApprovePin').addEventListener('click', StaffUI.approvePin);
-				$('#btnLoadLogs').addEventListener('click', StaffUI.loadLogs);
-				$('#btnLoadStaffMonth').addEventListener('click', StaffUI.loadStaffMonthSummary);
-				$('#btnLoadStaffMonthDetail').addEventListener('click', StaffUI.loadStaffMonthDetail);
+			init(me) {
+				StaffUI.me = me || {};
+
+				const head = $('#staffHeadText');
+				const rolePill = $('#staffRolePill');
+				if (head) head.textContent = (StaffUI.me.name || StaffUI.me.staff_id || '직원') + '님 접속중';
+				if (rolePill) rolePill.textContent = StaffUI.me.role || 'staff';
+
+				StaffUI.bindClick('btnApprovePin', StaffUI.approvePin);
+				StaffUI.bindClick('btnLoadLogs', StaffUI.loadLogs);
+				StaffUI.bindClick('btnLoadStaffMonth', StaffUI.loadStaffMonthSummary);
+				StaffUI.bindClick('btnLoadStaffMonthDetail', StaffUI.loadStaffMonthDetail);
+				StaffUI.bindClick('btnSetExY', () => StaffUI.setException('Y'));
+				StaffUI.bindClick('btnSetExN', () => StaffUI.setException('N'));
+				StaffUI.bindClick('btnAbList', StaffUI.abList);
+				StaffUI.bindClick('btnAbUpsert', StaffUI.abUpsert);
+				StaffUI.bindClick('btnAbRemove', StaffUI.abRemove);
+				StaffUI.bindClick('btnManualAttendance', StaffUI.manualAttendance);
+				StaffUI.bindClick('btnDiag', StaffUI.diag);
+				StaffUI.bindClick('btnCheckCentral', StaffUI.checkCentral);
+				StaffUI.bindClick('btnTestNcp', StaffUI.testNcp);
+				StaffUI.bindClick('btnSafeOff', () => StaffUI.toggleSafe('N'));
+				StaffUI.bindClick('btnSafeOn', () => StaffUI.toggleSafe('Y'));
+				StaffUI.bindClick('btnInstallAbsent', StaffUI.installAbsentTrigger);
+				StaffUI.bindClick('btnInstallDaily', StaffUI.installDailyTrigger);
+				StaffUI.bindClick('btnRunAbsent', StaffUI.runAbsentNow);
+				StaffUI.bindClick('btnFloor5', () => StaffUI.setFloor('5F'));
+				StaffUI.bindClick('btnFloor7', () => StaffUI.setFloor('7F'));
+				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
+				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
+
+				const today = UI.ymd();
+				const logDate = $('#logDate');
+				const abDate = $('#abDate');
+				const staffMonth = $('#staffMonthYyyymm');
+				if (logDate && !logDate.value) logDate.value = today;
+				if (abDate && !abDate.value) abDate.value = today;
+				if (staffMonth && !staffMonth.value) staffMonth.value = today.slice(0, 6);
 
 				StaffUI.applyRoleView();
 			},
 
-      setRoleSectionVisible(selector, visible) {
-        document.querySelectorAll(selector).forEach(el => {
-          el.classList.toggle('hiddenByRole', !visible);
-        });
-      },
+			setRoleSectionVisible(selector, visible) {
+				document.querySelectorAll(selector).forEach(el => {
+					el.classList.toggle('hiddenByRole', !visible);
+				});
+			},
 
-	  setDisabledById(id, disabled) {
-		const el = document.getElementById(id);
-		if (!el) return;
-		el.disabled = !!disabled;
-		el.style.opacity = disabled ? '.45' : '';
-	},
-
-		hideBlockByChildId(id) {
-		const el = document.getElementById(id);
-		if (!el) return;
-		const block = el.closest('.section, .foldCard, .card');
-		if (block) block.style.display = 'none';
-	},
+			setDisabledById(id, disabled) {
+				const el = document.getElementById(id);
+				if (!el) return;
+				el.disabled = !!disabled;
+				el.style.opacity = disabled ? '.45' : '';
+			},
 
 			applyRoleView() {
-        const role = String((StaffUI.me && StaffUI.me.role) || '').toLowerCase();
-        const assistantPlus = ['assistant', 'staff', 'teacher', 'admin', 'owner'].includes(role);
-        const adminPlus = ['admin', 'owner'].includes(role);
+				const role = String((StaffUI.me && StaffUI.me.role) || '').toLowerCase();
+				const assistantPlus = ['assistant', 'staff', 'teacher', 'admin', 'owner'].includes(role);
+				const teacherPlus = ['teacher', 'admin', 'owner'].includes(role);
+				const adminPlus = ['admin', 'owner'].includes(role);
 
-        StaffUI.setRoleSectionVisible('.assistantOnly', assistantPlus);
-        StaffUI.setRoleSectionVisible('.teacherOnly', false);
-        StaffUI.setRoleSectionVisible('.adminOnly', adminPlus);
+				StaffUI.setRoleSectionVisible('.assistantOnly', assistantPlus);
+				StaffUI.setRoleSectionVisible('.teacherOnly', teacherPlus);
+				StaffUI.setRoleSectionVisible('.adminOnly', adminPlus);
 
-        [
-          'btnLoadCorrLogs',
-          'btnSetExY',
-          'btnSetExN',
-          'btnAbList',
-          'btnAbUpsert',
-          'btnAbRemove',
-          'btnManualAttendance',
-          'btnDiag',
-          'btnCheckCentral',
-          'btnTestNcp',
-          'btnSafeOff',
-          'btnSafeOn',
-          'btnInstallAbsent',
-          'btnInstallDaily',
-          'btnRunAbsent',
-          'btnFloor5',
-          'btnFloor7',
-          'btnFlushCache',
-          'btnGenSchedule',
-          'btnTraceCopy',
-          'btnTraceClose'
-        ].forEach((id) => StaffUI.hideBlockByChildId(id));
+				['btnLoadLogs', 'btnApprovePin'].forEach(id => StaffUI.setDisabledById(id, !assistantPlus));
+				['btnSetExY', 'btnSetExN'].forEach(id => StaffUI.setDisabledById(id, !teacherPlus));
+				[
+					'btnLoadStaffMonth',
+					'btnLoadStaffMonthDetail',
+					'btnAbList',
+					'btnAbUpsert',
+					'btnAbRemove',
+					'btnManualAttendance',
+					'btnDiag',
+					'btnCheckCentral',
+					'btnTestNcp',
+					'btnSafeOff',
+					'btnSafeOn',
+					'btnInstallAbsent',
+					'btnInstallDaily',
+					'btnRunAbsent',
+					'btnFloor5',
+					'btnFloor7',
+					'btnFlushCache',
+					'btnGenSchedule'
+				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
+			},
 
-        if (!assistantPlus) {
-          ['btnLoadLogs', 'btnApprovePin'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-              el.disabled = true;
-              el.style.opacity = '.45';
-            }
-          });
-        }
+			async approvePin() {
+				const student_id = ($('#pinSid').value || '').trim();
+				const pin = ($('#staffPinInput').value || '').trim();
+				const box = $('#pinMsg');
 
-        if (!adminPlus) {
-          ['btnLoadStaffMonth', 'btnLoadStaffMonthDetail'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-              el.disabled = true;
-              el.style.opacity = '.45';
-            }
-          });
-        }
-      },
+				if (!student_id || !pin) {
+					UI.showMsg(box, false, '학번과 PIN을 입력하세요.');
+					return;
+				}
 
-      // 수정 형태
+				const r = await App.rpc('kiosk.approvePin', { student_id, pin });
+				if (r.ok) {
+					UI.showMsg(box, true, '승인 완료: ' + UI.padSid(student_id));
+					const pinInput = $('#staffPinInput');
+					if (pinInput) pinInput.value = '';
+					return;
+				}
+
+				UI.showMsg(box, false, (r.error && r.error.message) ? r.error.message : '승인 실패');
+			},
+
+			async loadLogs() {
+				const yyyymmdd = ($('#logDate').value || '').trim() || UI.ymd();
+				const student_id = ($('#logSid').value || '').trim();
+				const tbody = $('#logBoxBody');
+
+				if (tbody) tbody.innerHTML = '<tr><td colspan="9">조회 중...</td></tr>';
+
+				const r = await App.rpc('assistant.getLogs', { yyyymmdd, student_id, limit: 300 });
+				if (!r.ok) {
+					if (tbody) tbody.innerHTML = '<tr><td colspan="9">' + escapeHtml((r.error && r.error.message) ? r.error.message : '조회 실패') + '</td></tr>';
+					return;
+				}
+
+				const logs = (r.data && Array.isArray(r.data.logs)) ? r.data.logs : [];
+				if (!logs.length) {
+					if (tbody) tbody.innerHTML = '<tr><td colspan="9">조회 결과가 없습니다.</td></tr>';
+					return;
+				}
+
+				if (tbody) {
+					tbody.innerHTML = logs.map(row => `
+						<tr>
+							<td>${escapeHtml(row.ts || '')}</td>
+							<td>${escapeHtml(row.student_id || '')}</td>
+							<td>${escapeHtml(row.action_type || '')}</td>
+							<td>${escapeHtml(row.kiosk_floor || '')}</td>
+							<td>${escapeHtml(row.result || '')}</td>
+							<td>${escapeHtml(row.qr_id || '')}</td>
+							<td>${escapeHtml([row.input_mode || '', row.exception || ''].filter(Boolean).join('/'))}</td>
+							<td>${escapeHtml(row.deny_reason || '')}</td>
+							<td>${escapeHtml(row.trace_id || '')}</td>
+						</tr>
+					`).join('');
+				}
+			},
+
 			async diag() {
 				const box = $('#diagBox');
 				box.innerHTML = '<div style="color:var(--sub); text-align:center;">진단 중...</div>';
@@ -2396,38 +2460,37 @@
 					box.innerHTML = `<div style="color:var(--bad);">${r.error?.message || '진단 실패'}</div>`;
 					return;
 				}
+
 				const d = r.data;
 				box.innerHTML = `
-          <b>[서버 버전]</b> ${d.version}<br>
-          <b>[Pepper]</b> ${d.pepperReady ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[QR 검증 URL]</b> ${d.verifyUrlSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[QR 검증 Secret]</b> ${d.verifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[출결 템플릿]</b> ${d.attendanceTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[미등원 템플릿]</b> ${d.classAbsentTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[플러스친구]</b> ${d.plusFriendSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[발신번호]</b> ${d.fromNumberSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-          <b>[직원 QR URL]</b> ${d.staffQrVerifyUrlSet ? '✅ 설정됨' : '⚪ 미사용'}<br>
-          <b>[직원 QR Secret]</b> ${d.staffQrVerifySecretSet ? '✅ 설정됨' : '⚪ 미사용'}<br>
-          <b>[STAFF_DAILY]</b> ${d.staffDailySheetReady ? '✅ 준비됨' : '❌ 없음'}<br>
-          <b>[STAFF_MONTHLY]</b> ${d.staffMonthlySheetReady ? '✅ 준비됨' : '❌ 없음'}<br>
-          <b>[키오스크 층수]</b> ${d.kioskFloor}<br>
-          <b>[미등원 stage]</b> ${(d.absentStages || []).join(' / ')}
-        `;
+					<b>[서버 버전]</b> ${escapeHtml(d.version || '')}<br>
+					<b>[Pepper]</b> ${d.pepperReady ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[Supabase]</b> ${d.supabaseReady ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[학생 QR Secret]</b> ${d.verifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[직원 QR Secret]</b> ${d.staffQrVerifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[출결 템플릿]</b> ${d.attendanceTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[플러스친구]</b> ${d.plusFriendSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[발신번호]</b> ${d.fromNumberSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[키오스크 층수]</b> ${escapeHtml(d.kioskFloor || '')}<br>
+					<b>[운영 메타 source]</b> ${escapeHtml(d.runtimeSource || '')}
+				`;
 			},
 
 			async checkCentral() {
 				const box = $('#diagBox');
-				box.innerHTML = '<div style="color:var(--sub); text-align:center;">중앙DB 구조 스캔 중...</div>';
+				box.innerHTML = '<div style="color:var(--sub); text-align:center;">Supabase 구조 스캔 중...</div>';
 				const r = await App.rpc('meta.checkCentral', {});
 				if (!r.ok) {
 					box.innerHTML = `<div style="color:var(--bad);">${r.error?.message || '스캔 실패'}</div>`;
 					return;
 				}
+
 				const checks = (r.data.checks || []).map(c => {
-					return `[${c.ok ? '✅' : '❌'}] ${c.name} ${c.ok ? '' : `(${c.message})`}`;
+					return `[${c.ok ? '✅' : '❌'}] ${escapeHtml(c.name)} ${c.ok ? '' : `(${escapeHtml(c.message || '')})`}`;
 				}).join('<br>');
+
 				box.innerHTML = `<div style="margin-bottom:8px; font-weight:800;">데이터베이스 연결 상태: ${r.data.ok ? '<span style="color:var(--ok)">정상</span>' : '<span style="color:var(--bad)">오류 발생</span>'}</div>${checks}`;
 			},
 
@@ -2441,7 +2504,6 @@
 				}
 
 				box.textContent = 'NCP 테스트 중...';
-
 				const r = await App.rpc('admin.testNcp', { phone });
 
 				if (!r.ok) {
@@ -2456,152 +2518,140 @@
 
 				const d = r.data || {};
 				box.textContent =
-          'NCP 테스트 결과\n\n' +
-          'to: ' + (d.to || '') + '\n' +
-          'tested_at: ' + (d.tested_at || '') + '\n' +
-          'used_template: ' + (d.used_template || '') + '\n' +
-          'used_failover: ' + (!!d.used_failover) + '\n' +
-          'final_channel: ' + (d.final_channel || '') + '\n' +
-          'alimtalk.ok: ' + !!(d.alimtalk && d.alimtalk.ok) + '\n' +
-          'alimtalk.error: ' + ((d.alimtalk && d.alimtalk.error) || '') + '\n' +
-          'alimtalk.code: ' + ((d.alimtalk && d.alimtalk.code) || '') + '\n' +
-          'sms.ok: ' + !!(d.sms && d.sms.ok) + '\n' +
-          'sms.error: ' + ((d.sms && d.sms.error) || '');
+					'NCP 테스트 결과\n\n' +
+					'to: ' + (d.to || '') + '\n' +
+					'tested_at: ' + (d.tested_at || '') + '\n' +
+					'final_channel: ' + (d.final_channel || '') + '\n' +
+					'ok: ' + !!d.ok + '\n' +
+					'error: ' + (d.error || '');
 				UI.toast(true, '테스트 메시지 발송: ' + (d.final_channel || '성공'));
 			},
 
-      renderStaffMonthSummary(items, yyyymm) {
-        const box = $('#staffMonthBox');
-        if (!box) return;
+			renderStaffMonthSummary(items, yyyymm) {
+				const box = $('#staffMonthBox');
+				if (!box) return;
 
-        if (!items || !items.length) {
-          box.innerHTML = '조회된 월 집계가 없습니다.';
-          return;
-        }
+				if (!items || !items.length) {
+					box.innerHTML = '조회된 월 집계가 없습니다.';
+					return;
+				}
 
-        box.innerHTML = `
-          <div style="font-weight:900; margin-bottom:10px;">월: ${escapeHtml(yyyymm || '')}</div>
-          <div class="logScroll" style="max-height:220px;">
-            <table class="logTable">
-              <thead>
-                <tr>
-                  <th>staff_id</th>
-                  <th>이름</th>
-                  <th>역할</th>
-                  <th>총시간</th>
-                  <th>근무일수</th>
-                  <th>누락일수</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.map(x => `
-                  <tr>
-                    <td>${escapeHtml(x.staff_id || '')}</td>
-                    <td>${escapeHtml(x.name || '')}</td>
-                    <td>${escapeHtml(x.role || '')}</td>
-                    <td>${escapeHtml(x.total_hours || '')}</td>
-                    <td>${escapeHtml(x.work_days || '')}</td>
-                    <td>${escapeHtml(x.missing_days || '')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-      },
+				box.innerHTML = `
+					<div style="font-weight:900; margin-bottom:10px;">월: ${escapeHtml(yyyymm || '')}</div>
+					<div class="logScroll" style="max-height:220px;">
+						<table class="logTable">
+							<thead>
+								<tr>
+									<th>staff_id</th>
+									<th>이름</th>
+									<th>역할</th>
+									<th>총시간</th>
+									<th>근무일수</th>
+									<th>누락일수</th>
+								</tr>
+							</thead>
+							<tbody>
+								${items.map(x => `
+									<tr>
+										<td>${escapeHtml(x.staff_id || '')}</td>
+										<td>${escapeHtml(x.name || '')}</td>
+										<td>${escapeHtml(x.role || '')}</td>
+										<td>${escapeHtml(x.total_hours || '')}</td>
+										<td>${escapeHtml(x.work_days || '')}</td>
+										<td>${escapeHtml(x.missing_days || '')}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
+					</div>
+				`;
+			},
 
-      renderStaffMonthDetail(items, staffId, yyyymm) {
-        const box = $('#staffMonthBox');
-        if (!box) return;
+			renderStaffMonthDetail(items, staffId, yyyymm) {
+				const box = $('#staffMonthBox');
+				if (!box) return;
 
-        if (!items || !items.length) {
-          box.innerHTML = '조회된 일별 집계가 없습니다.';
-          return;
-        }
+				if (!items || !items.length) {
+					box.innerHTML = '조회된 일별 집계가 없습니다.';
+					return;
+				}
 
-        box.innerHTML = `
-          <div style="font-weight:900; margin-bottom:10px;">직원: ${escapeHtml(staffId || '')} / 월: ${escapeHtml(yyyymm || '')}</div>
-          <div class="logScroll" style="max-height:220px;">
-            <table class="logTable">
-              <thead>
-                <tr>
-                  <th>날짜</th>
-                  <th>첫 출근</th>
-                  <th>마지막 퇴근</th>
-                  <th>근무시간</th>
-                  <th>상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.map(x => `
-                  <tr>
-                    <td>${escapeHtml(x.yyyymmdd || '')}</td>
-                    <td>${escapeHtml(x.first_in_ts || '')}</td>
-                    <td>${escapeHtml(x.last_out_ts || '')}</td>
-                    <td>${escapeHtml(x.worked_hours || '')}</td>
-                    <td>${escapeHtml(x.status || '')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-      },
+				box.innerHTML = `
+					<div style="font-weight:900; margin-bottom:10px;">직원: ${escapeHtml(staffId || '')} / 월: ${escapeHtml(yyyymm || '')}</div>
+					<div class="logScroll" style="max-height:220px;">
+						<table class="logTable">
+							<thead>
+								<tr>
+									<th>날짜</th>
+									<th>첫 출근</th>
+									<th>마지막 퇴근</th>
+									<th>근무시간</th>
+									<th>상태</th>
+								</tr>
+							</thead>
+							<tbody>
+								${items.map(x => `
+									<tr>
+										<td>${escapeHtml(x.yyyymmdd || '')}</td>
+										<td>${escapeHtml(x.first_in_ts || '')}</td>
+										<td>${escapeHtml(x.last_out_ts || '')}</td>
+										<td>${escapeHtml(x.worked_hours || '')}</td>
+										<td>${escapeHtml(x.status || '')}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
+					</div>
+				`;
+			},
 
-      async loadStaffMonthSummary() {
-        const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
-        const box = $('#staffMonthBox');
+			async loadStaffMonthSummary() {
+				const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
+				const box = $('#staffMonthBox');
 
-        box.textContent = '조회 중...';
-        const r = await App.rpc('admin.getStaffMonthlySummary', { yyyymm });
+				box.textContent = '조회 중...';
+				const r = await App.rpc('admin.getStaffMonthlySummary', { yyyymm });
 
-        if (!r.ok) {
-          box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
-          return;
-        }
+				if (!r.ok) {
+					box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+					return;
+				}
 
-        const items = (r.data && r.data.items) ? r.data.items : [];
-        if (!items.length) {
-          box.textContent = '조회된 월 집계가 없습니다.';
-          return;
-        }
+				const items = (r.data && r.data.items) ? r.data.items : [];
+				if (!items.length) {
+					box.textContent = '조회된 월 집계가 없습니다.';
+					return;
+				}
 
-        StaffUI.renderStaffMonthSummary(
-          items,
-          r.data && r.data.yyyymm ? r.data.yyyymm : ''
-        );
-      },
+				StaffUI.renderStaffMonthSummary(items, r.data && r.data.yyyymm ? r.data.yyyymm : '');
+			},
 
-      async loadStaffMonthDetail() {
-        const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
-        const staff_id = ($('#staffMonthDetailId').value || '').trim();
-        const box = $('#staffMonthBox');
+			async loadStaffMonthDetail() {
+				const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
+				const staff_id = ($('#staffMonthDetailId').value || '').trim();
+				const box = $('#staffMonthBox');
 
-        if (!staff_id) {
-          UI.toast(false, 'staff_id를 입력하세요.');
-          return;
-        }
+				if (!staff_id) {
+					UI.toast(false, 'staff_id를 입력하세요.');
+					return;
+				}
 
-        box.textContent = '조회 중...';
-        const r = await App.rpc('admin.getStaffDailyDetail', { yyyymm, staff_id });
+				box.textContent = '조회 중...';
+				const r = await App.rpc('admin.getStaffDailyDetail', { yyyymm, staff_id });
 
-        if (!r.ok) {
-          box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
-          return;
-        }
+				if (!r.ok) {
+					box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+					return;
+				}
 
-        const items = (r.data && r.data.items) ? r.data.items : [];
-        if (!items.length) {
-          box.textContent = '조회된 일별 집계가 없습니다.';
-          return;
-        }
+				const items = (r.data && r.data.items) ? r.data.items : [];
+				if (!items.length) {
+					box.textContent = '조회된 일별 집계가 없습니다.';
+					return;
+				}
 
-        StaffUI.renderStaffMonthDetail(
-          items,
-          staff_id,
-          r.data && r.data.yyyymm ? r.data.yyyymm : ''
-        );
-      },
+				StaffUI.renderStaffMonthDetail(items, staff_id, r.data && r.data.yyyymm ? r.data.yyyymm : '');
+			},
 
 			async setException(yn) {
 				const student_id = ($('#exSid').value || '').trim();
@@ -2617,8 +2667,8 @@
 
 			async abList() {
 				const yyyymmdd = ($('#abDate').value || '').trim();
-        const class_id = ($('#abClassId').value || '').trim();
-        const student_id = ($('#abSid').value || '').trim();
+				const class_id = ($('#abClassId').value || '').trim();
+				const student_id = ($('#abSid').value || '').trim();
 				const box = $('#abBox');
 
 				box.textContent = '조회 중...';
@@ -2628,10 +2678,10 @@
 
 			async abUpsert() {
 				const yyyymmdd = ($('#abDate').value || '').trim();
-        const class_id = ($('#abClassId').value || '').trim();
-        const student_id = ($('#abSid').value || '').trim();
-        const reason = ($('#abReason').value || '').trim();
-        const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
+				const class_id = ($('#abClassId').value || '').trim();
+				const student_id = ($('#abSid').value || '').trim();
+				const reason = ($('#abReason').value || '').trim();
+				const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
 
 				if (!yyyymmdd || !student_id) {
 					UI.toast(false, '날짜와 학번은 필수입니다.');
@@ -2639,181 +2689,151 @@
 				}
 
 				const r = await App.rpc('assistant.addAbsenceExcuse', {
-          yyyymmdd,
-          class_id,
-          student_id,
-          reason,
-          until_min: untilMin || 0
-        });
+					yyyymmdd,
+					class_id,
+					student_id,
+					reason,
+					until_min: untilMin || 0
+				});
 				UI.toast(!!r.ok, r.ok ? '결석 예외 저장 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
 			},
 
 			async abRemove() {
 				const yyyymmdd = ($('#abDate').value || '').trim();
-        const class_id = ($('#abClassId').value || '').trim();
-        const student_id = ($('#abSid').value || '').trim();
+				const class_id = ($('#abClassId').value || '').trim();
+				const student_id = ($('#abSid').value || '').trim();
 
 				if (!yyyymmdd && !student_id) {
 					UI.toast(false, '날짜 또는 학번 조건이 필요합니다.');
 					return;
 				}
 
-        if (!confirm('정말 진행할까요?')) return;
+				if (!confirm('정말 진행할까요?')) return;
 
 				const r = await App.rpc('assistant.removeAbsenceExcuse', { yyyymmdd, class_id, student_id });
 				UI.toast(!!r.ok, r.ok ? '결석 예외 삭제 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
 			},
 
 			async toggleSafe(mode) {
-        const safeMsgEl = $('#safeMsg');
-        const message = safeMsgEl ? (safeMsgEl.value || '').trim() : '';
-        const pin = prompt('[보안 확인] 안전 모드를 변경하려면 관리자 PIN을 입력하세요.');
-        if (!pin) return;
+				const safeMsgEl = $('#safeMsg');
+				const message = safeMsgEl ? (safeMsgEl.value || '').trim() : '';
+				const pin = prompt('[보안 확인] 안전 모드를 변경하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
 
-        const r = await App.rpc('admin.toggleSafe', { mode, message, pin });
-        if (!r.ok) {
-          UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
-          return;
-        }
+				const r = await App.rpc('admin.setSafeMode', { mode, message, pin });
+				if (!r.ok) {
+					UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+					return;
+				}
 
-        await App.refreshMeta();
-        UI.toast(true, mode === 'Y' ? '점검 모드가 켜졌습니다.' : '온라인 상태로 복구되었습니다.');
-      },
+				await App.refreshMeta();
+				UI.toast(true, mode === 'Y' ? '점검 모드가 켜졌습니다.' : '온라인 상태로 복구되었습니다.');
+			},
 
 			async installAbsentTrigger() {
-        const pin = prompt('[보안 확인] 미등원 트리거를 설치하려면 관리자 PIN을 입력하세요.');
-        if (!pin) return;
-
-        const r = await App.rpc('absent.installTrigger', { pin });
-        UI.toast(
-          !!r.ok,
-          r.ok ? ((r.data && r.data.message) ? r.data.message : '설치 완료')
-              : ((r.error && r.error.message) ? r.error.message : '실패')
-        );
-      },
+				UI.toast(false, 'Vercel cron 설정으로 처리해야 합니다. GAS 트리거 설치는 사용하지 않습니다.');
+			},
 
 			async installDailyTrigger() {
-        const pin = prompt('[보안 확인] 데일리 트리거를 설치하려면 관리자 PIN을 입력하세요.');
-        if (!pin) return;
-
-        const r = await App.rpc('admin.installDailyTrigger', { pin });
-        UI.toast(
-          !!r.ok,
-          r.ok ? ((r.data && r.data.message) ? r.data.message : '설치 완료')
-              : ((r.error && r.error.message) ? r.error.message : '실패')
-        );
-      },
+				UI.toast(false, 'Vercel cron 설정으로 처리해야 합니다. GAS 트리거 설치는 사용하지 않습니다.');
+			},
 
 			async runAbsentNow() {
-        const pin = prompt('[보안 확인] 미등원 즉시 감지를 실행하려면 관리자 PIN을 입력하세요.');
-        if (!pin) return;
+				const pin = prompt('[보안 확인] 미등원 즉시 감지를 실행하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
 
-        const r = await App.rpc('absent.runNow', { pin });
-        if (!r.ok) {
-          UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
-          return;
-        }
-        UI.toast(true, '감지: ' + (r.data.candidates || 0) + '명 · 알림 전송: ' + (r.data.sentCount || 0) + '건');
-      },
+				const r = await App.rpc('absent.runNow', { pin });
+				if (!r.ok) {
+					UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+					return;
+				}
+				UI.toast(true, '감지: ' + (r.data.candidates || 0) + '명 · 알림 전송: ' + (r.data.sentCount || 0) + '건');
+			},
 
 			async setFloor(floor) {
-        const pin = prompt('[보안 확인] 키오스크 층을 변경하려면 관리자 PIN을 입력하세요.');
-        if (!pin) return;
+				const pin = prompt('[보안 확인] 키오스크 층을 변경하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
 
-        const r = await App.rpc('admin.setKioskFloor', { kiosk_floor: floor, pin });
-        if (!r.ok) {
-          UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
-          return;
-        }
+				const r = await App.rpc('admin.setKioskFloor', { kiosk_floor: floor, pin });
+				if (!r.ok) {
+					UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+					return;
+				}
 
-        if (App.meta) App.meta.kiosk_floor = floor;
-        UI.toast(true, '현재 기기가 ' + floor + ' 키오스크로 지정되었습니다.');
+				if (App.meta) App.meta.kiosk_floor = floor;
+				UI.toast(true, '현재 기기가 ' + floor + ' 키오스크로 지정되었습니다.');
 
-        const floorPill = $('#floorPill');
-        if (floorPill) {
-          floorPill.textContent = floor;
-          if (floor.includes('7')) {
-            floorPill.style.background = '#fff7ed';
-            floorPill.style.color = '#d97706';
-          } else {
-            floorPill.style.background = 'rgba(79, 70, 229, 0.1)';
-            floorPill.style.color = 'var(--pri)';
-          }
-        }
-      },
+				const floorPill = $('#floorPill');
+				if (floorPill) {
+					floorPill.textContent = floor;
+					if (floor.includes('7')) {
+						floorPill.style.background = '#fff7ed';
+						floorPill.style.color = '#d97706';
+					} else {
+						floorPill.style.background = 'rgba(79, 70, 229, 0.1)';
+						floorPill.style.color = 'var(--pri)';
+					}
+				}
+			},
 
 			async flushCache() {
-                const pin = prompt('[보안 확인] 캐시를 비우시려면 관리자 PIN을 입력하세요.');
-                if (!pin) return;
+				const pin = prompt('[보안 확인] 캐시를 비우시려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
 				const r = await App.rpc('admin.flushCache', { pin });
 				UI.toast(!!r.ok, r.ok ? '캐시를 비웠습니다.' : ((r.error && r.error.message) ? r.error.message : '실패'));
 			},
 
 			async generateSchedule() {
-                const pin = prompt('[보안 확인] 42일치 스케줄을 재생성하려면 관리자 PIN을 입력하세요.');
-                if (!pin) return;
-				const r = await App.rpc('admin.generateSchedule', { days: 42, pin });
-				UI.toast(!!r.ok, r.ok ? (r.data.message || '완료') : ((r.error && r.error.message) ? r.error.message : '실패'));
+				UI.toast(false, '중앙DB → Supabase replica sync/스케줄 생성 worker 구현 후 활성화해야 합니다.');
 			},
 
-      async manualAttendance() {
-        const student_id = ($('#manSid').value || '').trim();
-        const action_type = ($('#manAction').value || '').trim();
-        const reason = ($('#manReason').value || '').trim();
-        const source_trace_id = ($('#manSourceTrace').value || '').trim();
+			async manualAttendance() {
+				const student_id = ($('#manSid').value || '').trim();
+				const action_type = ($('#manAction').value || '').trim();
+				const reason = ($('#manReason').value || '').trim();
+				const source_trace_id = ($('#manSourceTrace').value || '').trim();
 
-        if (!student_id || !reason || !source_trace_id) {
-          UI.toast(false, '학번, 정정 사유, 그리고 오류 원본 trace_id 입력이 모두 필수입니다.');
-          return;
-        }
+				if (!student_id || !reason || !source_trace_id) {
+					UI.toast(false, '학번, 정정 사유, 그리고 오류 원본 trace_id 입력이 모두 필수입니다.');
+					return;
+				}
 
-        const pin = prompt(`[${student_id}] 학생의 출결을 [${action_type}]으로 강제 정정합니다.\n진행하시려면 본인(직원)의 PIN 번호를 입력하세요.`);
-        if (pin == null) {
-          UI.toast(false, '수동 정정이 취소되었습니다.');
-          return;
-        }
+				const pin = prompt(`[${student_id}] 학생의 출결을 [${action_type}]으로 강제 정정합니다.\n진행하시려면 본인(직원)의 PIN 번호를 입력하세요.`);
+				if (pin == null) {
+					UI.toast(false, '수동 정정이 취소되었습니다.');
+					return;
+				}
 
-        const btn = $('#btnManualAttendance');
-        if (!btn || btn.disabled) return;
+				const btn = $('#btnManualAttendance');
+				if (!btn || btn.disabled) return;
 
-        const oldText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = '처리 중...';
+				const oldText = btn.textContent;
+				btn.disabled = true;
+				btn.textContent = '처리 중...';
 
-        try {
-          const r = await App.rpc('assistant.manualAttendance', {
-            pin,
-            student_id,
-            action_type,
-            reason,
-            source_trace_id
-          });
+				try {
+					const r = await App.rpc('assistant.manualAttendance', {
+						pin,
+						student_id,
+						action_type,
+						reason,
+						source_trace_id
+					});
 
-          if (r.ok) {
-            UI.toast(true, '수동 정정 저장 완료');
-            $('#manSid').value = '';
-            $('#manReason').value = '';
-            $('#manSourceTrace').value = '';
-          } else {
-            UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
-          }
-        } finally {
-          btn.disabled = false;
-          btn.textContent = oldText;
-        }
-      },
-
-		};
-
-		window.addEventListener('offline', () => {
-			$('#offlineLock').classList.add('show');
-			const input = $('#kInput');
-			if (input) {
-				input.disabled = true;
-				input.blur();
+					if (r.ok) {
+						UI.toast(true, '수동 정정 저장 완료');
+						$('#manSid').value = '';
+						$('#manReason').value = '';
+						$('#manSourceTrace').value = '';
+					} else {
+						UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+					}
+				} finally {
+					btn.disabled = false;
+					btn.textContent = oldText;
+				}
 			}
-			UI.setMeta({ safe: { mode: 'Y', message: '오프라인' } });
-		});
+		};
 
 		window.addEventListener('online', async () => {
       $('#offlineLock').classList.remove('show');
