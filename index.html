@@ -2470,6 +2470,11 @@
 					<b>[학생 QR HMAC Secret]</b> ${d.studentQrHmacSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[직원 QR Secret]</b> ${d.staffQrVerifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[출결 템플릿]</b> ${d.attendanceTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[미등원 템플릿]</b> ${d.classAbsentTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[미등원 학부모 알림]</b> ${d.absentNotifyParentsOn ? '✅ ON' : '⚪ OFF'}<br>
+					<b>[Cron Secret]</b> ${d.cronSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[미등원 stage]</b> ${escapeHtml(d.absentStageMinutes || '10,30')}분<br>
+					<b>[Cron worker limit]</b> ${escapeHtml(d.absentCronWorkerLimit || '20')}<br>
 					<b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[플러스친구]</b> ${d.plusFriendSet ? '✅ 설정됨' : '❌ 미설정'}<br>
