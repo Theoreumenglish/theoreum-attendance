@@ -6,7 +6,11 @@ import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { sendNcpTestMessageDirect } from '../lib/attendance-notify.js';
-import { runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
+import {
+  runAttendanceNotifyWorker,
+  listAttendanceNotifyQueueDirect,
+  retryAttendanceNotifyQueueDirect
+} from '../lib/attendance-notify-queue.js';
 import { runAbsenceDetectionDirect } from '../lib/absent-direct.js';
 import { verifyAdminPinByStaffId } from './_admin-pin.js';
 import {
@@ -527,6 +531,62 @@ async function adminTestNcpDirect(args = {}, sessionToken = '') {
   return success({
     ...result,
     tested_by: auth.me.staff_id
+  });
+}
+
+async function adminListNotifyQueueDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const result = await listAttendanceNotifyQueueDirect({
+    status: args.status || '',
+    action_prefix: args.action_prefix || args.actionPrefix || '',
+    limit: args.limit || 100
+  });
+
+  if (!result.ok) {
+    return fail(
+      500,
+      result.error?.code || 'QUEUE_READ_FAILED',
+      result.error?.message || '알림 queue 조회 실패'
+    );
+  }
+
+  return success(result.data || {});
+}
+
+async function adminRetryNotifyQueueDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  const result = await retryAttendanceNotifyQueueDirect({
+    status: args.status || 'FAILED',
+    action_prefix: args.action_prefix || args.actionPrefix || '',
+    limit: args.limit || 50,
+    reset_attempts: args.reset_attempts || args.resetAttempts || 'N'
+  });
+
+  if (!result.ok) {
+    return fail(
+      500,
+      result.error?.code || 'QUEUE_RETRY_FAILED',
+      result.error?.message || '알림 queue 재처리 실패'
+    );
+  }
+
+  return success({
+    ...(result.data || {}),
+    run_by: auth.me.staff_id
   });
 }
 
@@ -1055,6 +1115,16 @@ export default async function handler(req, res) {
 
   if (op === 'admin.testNcp') {
     const result = await adminTestNcpDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.listNotifyQueue') {
+    const result = await adminListNotifyQueueDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.retryNotifyQueue') {
+    const result = await adminRetryNotifyQueueDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

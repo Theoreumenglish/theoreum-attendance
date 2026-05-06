@@ -1172,6 +1172,8 @@
                 </div>
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-pri" id="btnRunAbsent" type="button">미등원 즉시 실행</button>
+					<button class="btn btn-ghost" id="btnQueueList" type="button">실패 알림 조회</button>
+					<button class="btn btn-bad" id="btnQueueRetry" type="button">실패 알림 재처리</button>
                   <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
                   <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
@@ -2334,6 +2336,8 @@
 				StaffUI.bindClick('btnRunAbsent', StaffUI.runAbsentNow);
 				StaffUI.bindClick('btnFloor5', () => StaffUI.setFloor('5F'));
 				StaffUI.bindClick('btnFloor7', () => StaffUI.setFloor('7F'));
+				StaffUI.bindClick('btnQueueList', StaffUI.queueList);
+				StaffUI.bindClick('btnQueueRetry', StaffUI.queueRetry);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
 
@@ -2390,6 +2394,8 @@
 					'btnRunAbsent',
 					'btnFloor5',
 					'btnFloor7',
+					'btnQueueList',
+					'btnQueueRetry',
 					'btnFlushCache',
 					'btnGenSchedule'
 				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
@@ -2780,6 +2786,102 @@
 						floorPill.style.color = 'var(--pri)';
 					}
 				}
+			},
+			async queueList() {
+				const box = $('#diagBox');
+				if (!box) return;
+
+				box.textContent = '알림 queue 조회 중...';
+
+				const r = await App.rpc('admin.listNotifyQueue', {
+					status: 'FAILED',
+					action_prefix: 'ABSENT',
+					limit: 100
+				});
+
+				if (!r.ok) {
+					box.textContent = (r.error && r.error.message) ? r.error.message : 'queue 조회 실패';
+					UI.toast(false, 'queue 조회 실패');
+					return;
+				}
+
+				const data = r.data || {};
+				const items = Array.isArray(data.items) ? data.items : [];
+
+				if (!items.length) {
+					box.textContent = 'FAILED 상태의 미등원 알림 queue가 없습니다.';
+					UI.toast(true, '실패 queue 없음');
+					return;
+				}
+
+				box.innerHTML = `
+					<div style="font-weight:900; margin-bottom:10px;">FAILED 미등원 알림 queue: ${items.length}건</div>
+					<div class="logScroll" style="max-height:260px;">
+						<table class="logTable">
+							<thead>
+								<tr>
+									<th>created_at</th>
+									<th>student_id</th>
+									<th>action</th>
+									<th>attempts</th>
+									<th>error</th>
+									<th>trace_id</th>
+								</tr>
+							</thead>
+							<tbody>
+								${items.map(x => `
+									<tr>
+										<td>${escapeHtml(x.created_at || '')}</td>
+										<td>${escapeHtml(x.student_id || '')}</td>
+										<td>${escapeHtml(x.action_type || '')}</td>
+										<td>${escapeHtml(x.attempts || '')}</td>
+										<td class="wrap">${escapeHtml(x.last_error || '')}</td>
+										<td class="wrap">${escapeHtml(x.trace_id || '')}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
+					</div>
+				`;
+
+				UI.toast(true, 'queue 조회 완료');
+			},
+
+			async queueRetry() {
+				const pin = prompt('[보안 확인] FAILED 미등원 알림 queue를 재처리하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
+
+				const box = $('#diagBox');
+				if (box) box.textContent = 'FAILED 미등원 알림 queue 재처리 중...';
+
+				const r = await App.rpc('admin.retryNotifyQueue', {
+					pin,
+					status: 'FAILED',
+					action_prefix: 'ABSENT',
+					limit: 50,
+					reset_attempts: 'N'
+				});
+
+				if (!r.ok) {
+					if (box) box.textContent = (r.error && r.error.message) ? r.error.message : 'queue 재처리 실패';
+					UI.toast(false, 'queue 재처리 실패');
+					return;
+				}
+
+				const d = r.data || {};
+				const worker = d.worker && d.worker.data ? d.worker.data : {};
+
+				if (box) {
+					box.textContent =
+						'알림 queue 재처리 결과\n\n' +
+						'selected: ' + (d.selected || 0) + '\n' +
+						'reset: ' + (d.reset || 0) + '\n' +
+						'worker.done: ' + (worker.done || 0) + '\n' +
+						'worker.failed: ' + (worker.failed || 0) + '\n' +
+						'worker.requeued: ' + (worker.requeued || 0);
+				}
+
+				UI.toast(true, 'queue 재처리 완료');
 			},
 
 			async flushCache() {
