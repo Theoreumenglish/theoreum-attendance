@@ -6,6 +6,8 @@ import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { sendNcpTestMessageDirect } from '../lib/attendance-notify.js';
+import { runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
+import { runAbsenceDetectionDirect } from '../lib/absent-direct.js';
 import { verifyAdminPinByStaffId } from './_admin-pin.js';
 import {
   readRuntimeMeta,
@@ -550,6 +552,58 @@ function notImplementedDirect(message) {
   return fail(501, 'NOT_IMPLEMENTED_DIRECT', message);
 }
 
+async function absentRunNowDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  const detection = await runAbsenceDetectionDirect({
+    yyyymmdd: args.yyyymmdd || args.ymd || '',
+    now: args.now || '',
+    stages: args.stages || '',
+    dry_run: args.dry_run || args.dryRun || 'N'
+  });
+
+  if (!detection.ok) {
+    return fail(
+      500,
+      detection.error?.code || 'ABSENT_RUN_FAILED',
+      detection.error?.message || '미등원 감지 실패'
+    );
+  }
+
+  const data = detection.data || {};
+  const shouldProcessQueue =
+    String(args.process_queue || args.processQueue || 'Y').trim().toUpperCase() === 'Y' &&
+    String(args.dry_run || args.dryRun || 'N').trim().toUpperCase() !== 'Y' &&
+    Number(data.queuedCount || 0) > 0;
+
+  let workerOut = null;
+  if (shouldProcessQueue) {
+    workerOut = await runAttendanceNotifyWorker({
+      limit: Math.max(1, Math.min(20, Number(data.queuedCount || 1)))
+    });
+  }
+
+  const workerData = workerOut && workerOut.ok ? (workerOut.data || {}) : null;
+
+  return success({
+    ...data,
+    sentCount: workerData ? Number(workerData.done || 0) : Number(data.sentCount || 0),
+    notifyWorker: workerOut || null,
+    run_by: auth.me.staff_id
+  });
+}
+
 async function assertAbsenceExcuseTarget(supabase, classId, yyyymmdd, studentId) {
   const { data: student, error: studentErr } = await supabase
     .from('students')
@@ -1040,7 +1094,7 @@ export default async function handler(req, res) {
   }
 
   if (op === 'absent.runNow') {
-    const result = notImplementedDirect('미등원 감지는 CLASS_SCHEDULE/ABSENCE_EXCUSES 기반 direct worker 구현 후 활성화해야 합니다.');
+    const result = await absentRunNowDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
