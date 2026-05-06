@@ -455,6 +455,21 @@ async function metaDiagDirect(sessionToken = '') {
   });
 }
 
+function formatSupabaseCheckError(error) {
+  if (!error) return '';
+
+  const parts = [
+    error.code,
+    error.message,
+    error.details,
+    error.hint
+  ]
+    .map(x => String(x || '').trim())
+    .filter(Boolean);
+
+  return parts.length ? parts.join(' / ') : '조회 실패';
+}
+
 async function checkTableReadable(supabase, tableName, selectExpr = '*') {
   const { count, error } = await supabase
     .from(tableName)
@@ -464,7 +479,8 @@ async function checkTableReadable(supabase, tableName, selectExpr = '*') {
     name: tableName,
     ok: !error,
     count: typeof count === 'number' ? count : null,
-    message: error ? (error.message || '조회 실패') : ''
+    columns: selectExpr,
+    message: error ? formatSupabaseCheckError(error) : ''
   };
 }
 
@@ -484,7 +500,7 @@ async function metaCheckCentralDirect(sessionToken = '') {
     },
     {
       name: 'staff_sessions',
-      columns: 'session_token, staff_id, expires_at, created_at, last_seen_at, revoked_at'
+      columns: 'session_token_hash, staff_id, expires_at, created_at, last_seen_at, revoked_at'
     },
     {
       name: 'classes',
@@ -532,7 +548,7 @@ async function metaCheckCentralDirect(sessionToken = '') {
     },
     {
       name: 'kiosk_pin_attempts',
-      columns: 'staff_id, student_id, attempted_at, ok'
+      columns: 'staff_id, student_id, fail_count, locked_until, updated_at'
     },
     {
       name: 'attendance_notify_queue',
