@@ -473,28 +473,92 @@ async function metaCheckCentralDirect(sessionToken = '') {
   if (!auth.ok) return auth.out;
 
   const supabase = getSupabaseAdmin();
-  const tableNames = [
-    'students',
-    'staff',
-    'staff_sessions',
-    'classes',
-    'class_students',
-    'class_schedule',
-    'absence_excuses',
-    'attendance_logs',
-    'staff_clock_logs',
-    'staff_daily',
-    'staff_monthly',
-    'runtime_config',
-    'runtime_config_audit',
-    'kiosk_pin_approvals',
-    'kiosk_pin_attempts',
-    'attendance_notify_queue'
+  const tableChecks = [
+    {
+      name: 'students',
+      columns: 'student_id, student_name, school, grade, parent_phone, status, qr_id, is_exception'
+    },
+    {
+      name: 'staff',
+      columns: 'staff_id, name, role, revoked, status, pw_hash, pw_salt, pin_hash, pin_salt'
+    },
+    {
+      name: 'staff_sessions',
+      columns: 'session_token, staff_id, expires_at, created_at, last_seen_at, revoked_at'
+    },
+    {
+      name: 'classes',
+      columns: 'class_id, name, teacher, start, end, status'
+    },
+    {
+      name: 'class_students',
+      columns: 'class_id, student_id'
+    },
+    {
+      name: 'class_schedule',
+      columns: 'yyyymmdd, class_id, class_name, teacher, start, end, status'
+    },
+    {
+      name: 'absence_excuses',
+      columns: 'excuse_id, class_id, yyyymmdd, student_id, reason, until_ts, created_at, created_by, updated_at, updated_by'
+    },
+    {
+      name: 'attendance_logs',
+      columns: 'record_id, ts, yyyymmdd, student_id, action_type, kiosk_floor, meta_json, result, deny_reason, qr_id, trace_id'
+    },
+    {
+      name: 'staff_clock_logs',
+      columns: 'ts, staff_id, name, role, action, input_mode, note, trace_id'
+    },
+    {
+      name: 'staff_daily',
+      columns: 'yyyymmdd, staff_id, name, role, first_in_ts, last_out_ts, worked_minutes, worked_hours, pair_count, status, note, updated_at'
+    },
+    {
+      name: 'staff_monthly',
+      columns: 'yyyymm, staff_id, name, role, total_minutes, total_hours, work_days, missing_days, updated_at'
+    },
+    {
+      name: 'runtime_config',
+      columns: 'key, value_json, updated_at, updated_by'
+    },
+    {
+      name: 'runtime_config_audit',
+      columns: 'audit_id, key, before_json, after_json, changed_by, changed_at'
+    },
+    {
+      name: 'kiosk_pin_approvals',
+      columns: 'student_id, approved_by, approved_at, expires_at'
+    },
+    {
+      name: 'kiosk_pin_attempts',
+      columns: 'staff_id, student_id, attempted_at, ok'
+    },
+    {
+      name: 'attendance_notify_queue',
+      columns: 'queue_id, trace_id, student_id, action_type, parent_phone, school, grade, student_name, occurred_at, status, attempts, sent_channel, last_error, claimed_at, processed_at, created_at'
+    },
+    {
+      name: 'student_qr_sessions',
+      columns: 'token, student_id, public_session_id, exp_ms, anchor_ms, student_name'
+    },
+    {
+      name: 'student_qr_nonces',
+      columns: 'nonce, student_id, public_session_id, exp_ms, used'
+    },
+    {
+      name: 'staff_qr_sessions',
+      columns: 'token, staff_id, public_session_id, exp_ms'
+    },
+    {
+      name: 'staff_qr_nonces',
+      columns: 'nonce, staff_id, public_session_id, exp_ms, used'
+    }
   ];
 
   const checks = [];
-  for (const tableName of tableNames) {
-    checks.push(await checkTableReadable(supabase, tableName));
+  for (const item of tableChecks) {
+    checks.push(await checkTableReadable(supabase, item.name, item.columns));
   }
 
   return success({
@@ -573,7 +637,8 @@ async function adminRetryNotifyQueueDirect(args = {}, sessionToken = '') {
     status: args.status || 'FAILED',
     action_prefix: args.action_prefix || args.actionPrefix || '',
     limit: args.limit || 50,
-    reset_attempts: args.reset_attempts || args.resetAttempts || 'N'
+    reset_attempts: args.reset_attempts || args.resetAttempts || 'N',
+    worker_limit: args.worker_limit || args.workerLimit || 20
   });
 
   if (!result.ok) {
