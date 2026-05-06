@@ -2474,6 +2474,9 @@
 					<b>[Supabase]</b> ${d.supabaseReady ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[학생 QR Verify Secret]</b> ${d.studentQrVerifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[학생 QR HMAC Secret]</b> ${d.studentQrHmacSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[학생 QR 회전]</b> ${escapeHtml(d.studentQrFrameStepMs || '4000')}ms<br>
+					<b>[학생 QR 유예]</b> ${escapeHtml(d.studentQrGraceMs || '12000')}ms<br>
+					<b>[학생 QR 세션]</b> ${escapeHtml(d.studentQrSessionTtlSec || '90')}초<br>
 					<b>[직원 QR Secret]</b> ${d.staffQrVerifySecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[출결 템플릿]</b> ${d.attendanceTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[미등원 템플릿]</b> ${d.classAbsentTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
