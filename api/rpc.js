@@ -568,6 +568,10 @@ async function metaCheckCentralDirect(sessionToken = '') {
       columns: 'run_id, created_at, source, status, run_by, yyyymmdd, started_at, finished_at, scheduled_class_count, candidate_count, queued_count, duplicate_count, failed_count, sent_count, worker_done, worker_failed, worker_requeued, detail_json, error'
     },
     {
+      name: 'replica_sync_status',
+      columns: 'sync_key, synced_at, status, trace_id, counts_json, error, updated_at'
+    },
+    {
       name: 'student_qr_sessions',
       columns: 'token, student_id, public_session_id, exp_ms, anchor_ms, student_name'
     },
