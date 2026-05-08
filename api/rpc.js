@@ -474,7 +474,9 @@ function formatSupabaseCheckError(error) {
   return parts.length ? parts.join(' / ') : '조회 실패';
 }
 
-async function checkTableReadable(supabase, tableName, selectExpr = '*') {
+async function checkTableReadable(supabase, tableName, selectExpr = '*', options = {}) {
+  const required = options.required !== false;
+
   const { data, error } = await supabase
     .from(tableName)
     .select(selectExpr)
@@ -483,6 +485,7 @@ async function checkTableReadable(supabase, tableName, selectExpr = '*') {
   return {
     name: tableName,
     ok: !error,
+    required,
     count: Array.isArray(data) ? data.length : null,
     columns: selectExpr,
     message: error ? formatSupabaseCheckError(error) : ''
@@ -509,6 +512,7 @@ async function metaCheckCentralDirect(sessionToken = '') {
     },
     {
       name: 'classes',
+      required: false,
       columns: 'class_id, name, teacher, start, end, status'
     },
     {
@@ -583,11 +587,15 @@ async function metaCheckCentralDirect(sessionToken = '') {
 
   const checks = [];
   for (const item of tableChecks) {
-    checks.push(await checkTableReadable(supabase, item.name, item.columns));
+    checks.push(await checkTableReadable(supabase, item.name, item.columns, {
+      required: item.required !== false
+    }));
   }
 
+  const allRequiredOk = checks.every(x => x.ok || x.required === false);
+
   return success({
-    ok: checks.every(x => x.ok),
+    ok: allRequiredOk,
     checked_at: nowIso(),
     checks
   });

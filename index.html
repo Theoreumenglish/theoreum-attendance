@@ -2503,7 +2503,11 @@
 				}
 
 				const checks = (r.data.checks || []).map(c => {
-					return `[${c.ok ? '✅' : '❌'}] ${escapeHtml(c.name)} ${c.ok ? '' : `(${escapeHtml(c.message || '')})`}`;
+					const required = c.required !== false;
+					const mark = c.ok ? '✅' : (required ? '❌' : '⚪');
+					const label = required ? escapeHtml(c.name) : escapeHtml(c.name + ' · optional');
+					const message = c.ok ? '' : `(${escapeHtml(c.message || '조회 실패')})`;
+					return `[${mark}] ${label} ${message}`;
 				}).join('<br>');
 
 				box.innerHTML = `<div style="margin-bottom:8px; font-weight:800;">데이터베이스 연결 상태: ${r.data.ok ? '<span style="color:var(--ok)">정상</span>' : '<span style="color:var(--bad)">오류 발생</span>'}</div>${checks}`;
