@@ -192,7 +192,6 @@ async function adminGetRuntimeConfigDirect(sessionToken) {
       meta.error.message || 'runtime_config 조회 실패'
     );
   }
-  const centralReplica = await readCentralReplicaDiag();
   return success(meta.data);
 }
 
@@ -518,6 +517,8 @@ async function metaDiagDirect(sessionToken = '') {
       meta.error.message || '운영 메타 정보를 읽지 못했습니다.'
     );
   }
+
+  const centralReplica = await readCentralReplicaDiag();
 
   return success({
     version: 'vercel-direct',
