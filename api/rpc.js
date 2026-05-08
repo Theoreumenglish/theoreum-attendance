@@ -628,6 +628,10 @@ async function metaCheckCentralDirect(sessionToken = '') {
       columns: 'record_id, ts, yyyymmdd, student_id, action_type, kiosk_floor, meta_json, result, deny_reason, qr_id, trace_id'
     },
     {
+      name: 'today_student_state',
+      columns: 'yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type, last_action_ts, last_move_ts, last_move_floor, last_check_in_ts, last_check_out_ts, updated_at, meta_json'
+    },
+    {
       name: 'staff_clock_logs',
       columns: 'ts, staff_id, name, role, action, input_mode, note, trace_id'
     },

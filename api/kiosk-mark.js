@@ -200,6 +200,165 @@ function buildTodayState(logs) {
   return state;
 }
 
+function isoToMs(value) {
+  const ms = Date.parse(String(value || ''));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function stateFromRow(row) {
+  if (!row) return null;
+
+  return {
+    checkedIn: row.checked_in === true,
+    checkedOut: row.checked_out === true,
+    outingActive: row.outing_active === true,
+    lastActionType: String(row.last_action_type || '').trim().toUpperCase(),
+    lastActionTs: isoToMs(row.last_action_ts),
+    lastMoveTs: isoToMs(row.last_move_ts),
+    lastMoveFloor: String(row.last_move_floor || '').trim().toUpperCase(),
+    lastCheckInTs: isoToMs(row.last_check_in_ts),
+    lastCheckOutTs: isoToMs(row.last_check_out_ts)
+  };
+}
+
+async function getTodayStateRow(supabase, sid, yyyymmdd) {
+  const { data, error } = await supabase
+    .from('today_student_state')
+    .select(
+      'yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type, last_action_ts, last_move_ts, last_move_floor, last_check_in_ts, last_check_out_ts'
+    )
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  return { data, error };
+}
+
+async function loadCurrentTodayState(supabase, sid, yyyymmdd) {
+  const stateRow = await getTodayStateRow(supabase, sid, yyyymmdd);
+
+  if (!stateRow.error && stateRow.data) {
+    return {
+      state: stateFromRow(stateRow.data),
+      source: 'today_student_state',
+      error: null
+    };
+  }
+
+  const { data: todayLogs, error: logsErr } = await getTodayLogs(supabase, sid, yyyymmdd);
+  if (logsErr) {
+    return {
+      state: null,
+      source: stateRow.error ? 'state_error_then_logs_error' : 'logs_error',
+      error: logsErr
+    };
+  }
+
+  return {
+    state: buildTodayState(todayLogs),
+    source: stateRow.error ? 'logs_fallback_after_state_error' : 'logs_fallback',
+    error: null
+  };
+}
+
+function applyActionToTodayState(currentState, finalAction, kioskFloor, now) {
+  const nowMs = now.getTime();
+  const action = String(finalAction || '').trim().toUpperCase();
+
+  const next = {
+    checkedIn: !!currentState?.checkedIn,
+    checkedOut: !!currentState?.checkedOut,
+    outingActive: !!currentState?.outingActive,
+    lastActionType: action,
+    lastActionTs: nowMs,
+    lastMoveTs: Number(currentState?.lastMoveTs || 0),
+    lastMoveFloor: String(currentState?.lastMoveFloor || '').trim().toUpperCase(),
+    lastCheckInTs: Number(currentState?.lastCheckInTs || 0),
+    lastCheckOutTs: Number(currentState?.lastCheckOutTs || 0)
+  };
+
+  if (action === 'CHECK_IN') {
+    next.checkedIn = true;
+    next.checkedOut = false;
+    next.outingActive = false;
+    next.lastCheckInTs = nowMs;
+  }
+
+  if (action === 'CHECK_OUT') {
+    next.checkedOut = true;
+    next.outingActive = false;
+    next.lastCheckOutTs = nowMs;
+  }
+
+  if (action === 'MOVE') {
+    next.lastMoveTs = nowMs;
+    next.lastMoveFloor = String(kioskFloor || '').trim().toUpperCase();
+  }
+
+  if (action === 'OUTING_OUT') {
+    next.outingActive = true;
+  }
+
+  if (action === 'OUTING_BACK') {
+    next.outingActive = false;
+  }
+
+  return next;
+}
+
+function msToIso(ms) {
+  return ms > 0 ? new Date(ms).toISOString() : null;
+}
+
+async function upsertTodayStateAfterAction({
+  supabase,
+  yyyymmdd,
+  sid,
+  currentState,
+  finalAction,
+  kioskFloor,
+  now,
+  stateSource
+}) {
+  const next = applyActionToTodayState(currentState, finalAction, kioskFloor, now);
+
+  const row = {
+    yyyymmdd,
+    student_id: sid,
+    checked_in: next.checkedIn,
+    checked_out: next.checkedOut,
+    outing_active: next.outingActive,
+    last_action_type: next.lastActionType,
+    last_action_ts: msToIso(next.lastActionTs),
+    last_move_ts: msToIso(next.lastMoveTs),
+    last_move_floor: next.lastMoveFloor,
+    last_check_in_ts: msToIso(next.lastCheckInTs),
+    last_check_out_ts: msToIso(next.lastCheckOutTs),
+    updated_at: now.toISOString(),
+    meta_json: {
+      source: 'kiosk-mark',
+      state_source: stateSource || '',
+      kiosk_floor: kioskFloor || ''
+    }
+  };
+
+  const { error } = await supabase
+    .from('today_student_state')
+    .upsert([row], { onConflict: 'yyyymmdd,student_id' });
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message || 'today_student_state upsert 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    state: next
+  };
+}
+
 function mapQrVerifyError(err) {
   const code = String(err?.code || '').trim();
   const message = String(err?.message || '').trim();
@@ -473,12 +632,23 @@ export async function handleKioskMark(payload) {
       }
     }
 
-    const { data: todayLogs, error: logsErr } = await getTodayLogs(supabase, sid, yyyymmdd);
-    if (logsErr) {
-      return fail(500, 'DB_SELECT_FAILED', logsErr.message || '오늘 출결 조회 실패');
+    const stateOut = await loadCurrentTodayState(supabase, sid, yyyymmdd);
+    if (stateOut.error) {
+      return fail(500, 'DB_SELECT_FAILED', stateOut.error.message || '오늘 출결 상태 조회 실패');
     }
 
-    const state = buildTodayState(todayLogs);
+    const state = stateOut.state || {
+      checkedIn: false,
+      checkedOut: false,
+      outingActive: false,
+      lastActionType: '',
+      lastActionTs: 0,
+      lastMoveTs: 0,
+      lastMoveFloor: '',
+      lastCheckInTs: 0,
+      lastCheckOutTs: 0
+    };
+    const stateSource = stateOut.source || 'unknown';
 
     let finalAction = requestedAction;
     let title = '';
@@ -486,7 +656,8 @@ export async function handleKioskMark(payload) {
     const metaJson = {
       actor: '__VERCEL__',
       source: 'supabase-direct',
-      input_mode: inputMode
+      input_mode: inputMode,
+      state_source: stateSource
     };
 
     if (inputMode === 'EXCEPTION_ID') {
@@ -649,6 +820,17 @@ export async function handleKioskMark(payload) {
       error: '',
       reason: 'NOT_ATTENDANCE_ACTION'
     };
+  
+    const stateWrite = await upsertTodayStateAfterAction({
+      supabase,
+      yyyymmdd,
+      sid,
+      currentState: state,
+      finalAction,
+      kioskFloor,
+      now,
+      stateSource
+    });
 
     if (finalAction === 'CHECK_IN' || finalAction === 'CHECK_OUT') {
       notifyResult = await enqueueAttendanceNotify(
@@ -673,6 +855,11 @@ export async function handleKioskMark(payload) {
           student_name: student.student_name || verifiedStudentName || ''
         },
         notify: notifyResult,
+        state: {
+          source: stateSource,
+          write_ok: !!stateWrite.ok,
+          error: stateWrite.ok ? '' : String(stateWrite.error || '')
+        },
         ui: {
           title,
           message
