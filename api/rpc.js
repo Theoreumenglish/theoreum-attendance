@@ -192,7 +192,7 @@ async function adminGetRuntimeConfigDirect(sessionToken) {
       meta.error.message || 'runtime_config 조회 실패'
     );
   }
-
+  const centralReplica = await readCentralReplicaDiag();
   return success(meta.data);
 }
 
@@ -385,6 +385,93 @@ function envReady(name) {
   return !!String(process.env[name] || '').trim();
 }
 
+function toPositiveIntBounded(value, fallback, min = 1, max = 10080) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+function minutesSinceIso(isoText) {
+  const ms = Date.parse(String(isoText || '').trim());
+  if (!Number.isFinite(ms)) return null;
+  return Math.floor((Date.now() - ms) / 60000);
+}
+
+async function readCentralReplicaDiag() {
+  const maxStaleMin = toPositiveIntBounded(
+    process.env.CENTRAL_REPLICA_MAX_STALE_MIN,
+    1560,
+    10,
+    10080
+  );
+
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('replica_sync_status')
+      .select('sync_key, synced_at, status, trace_id, error, updated_at')
+      .eq('sync_key', 'central_db')
+      .maybeSingle();
+
+    if (error) {
+      return {
+        ok: false,
+        exists: false,
+        status: 'ERROR',
+        syncedAt: '',
+        ageMin: null,
+        maxStaleMin,
+        stale: true,
+        traceId: '',
+        error: error.message || 'replica_sync_status 조회 실패'
+      };
+    }
+
+    if (!data) {
+      return {
+        ok: false,
+        exists: false,
+        status: 'MISSING',
+        syncedAt: '',
+        ageMin: null,
+        maxStaleMin,
+        stale: true,
+        traceId: '',
+        error: '중앙DB sync 상태 기록이 없습니다.'
+      };
+    }
+
+    const status = String(data.status || '').trim().toUpperCase();
+    const ageMin = minutesSinceIso(data.synced_at);
+    const stale = ageMin == null || ageMin > maxStaleMin;
+    const ok = status === 'OK' && !stale;
+
+    return {
+      ok,
+      exists: true,
+      status,
+      syncedAt: String(data.synced_at || ''),
+      ageMin,
+      maxStaleMin,
+      stale,
+      traceId: String(data.trace_id || ''),
+      error: String(data.error || '')
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      exists: false,
+      status: 'ERROR',
+      syncedAt: '',
+      ageMin: null,
+      maxStaleMin,
+      stale: true,
+      traceId: '',
+      error: e?.message || '중앙DB sync 상태 확인 실패'
+    };
+  }
+}
+
 function kstYmd(date = new Date()) {
   const text = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
@@ -449,6 +536,14 @@ async function metaDiagDirect(sessionToken = '') {
     cronSecretSet: envReady('CRON_SECRET'),
     absentStageMinutes: String(process.env.ABSENT_STAGE_MINUTES || '10,30').trim(),
     absentCronWorkerLimit: String(process.env.ABSENT_CRON_WORKER_LIMIT || '20').trim(),
+    centralReplicaOk: !!centralReplica.ok,
+    centralReplicaStatus: centralReplica.status || '',
+    centralReplicaSyncedAt: centralReplica.syncedAt || '',
+    centralReplicaAgeMin: centralReplica.ageMin == null ? '' : String(centralReplica.ageMin),
+    centralReplicaMaxStaleMin: String(centralReplica.maxStaleMin || ''),
+    centralReplicaStale: !!centralReplica.stale,
+    centralReplicaTraceId: centralReplica.traceId || '',
+    centralReplicaError: centralReplica.error || '',
     alimtalkServiceSet: envReady('NCP_ALIMTALK_SERVICE_ID'),
     smsServiceSet: envReady('NCP_SMS_SERVICE_ID'),
     plusFriendSet: envReady('NCP_PLUS_FRIEND_ID'),

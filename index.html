@@ -2484,6 +2484,11 @@
 					<b>[Cron Secret]</b> ${d.cronSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[미등원 stage]</b> ${escapeHtml(d.absentStageMinutes || '10,30')}분<br>
 					<b>[Cron worker limit]</b> ${escapeHtml(d.absentCronWorkerLimit || '20')}<br>
+					<b>[중앙DB Sync]</b> ${d.centralReplicaOk ? '✅ 정상' : '❌ 확인 필요'}<br>
+					<b>[중앙DB Sync 상태]</b> ${escapeHtml(d.centralReplicaStatus || '')}<br>
+					<b>[중앙DB Sync 시각]</b> ${escapeHtml(d.centralReplicaSyncedAt || '')}<br>
+					<b>[중앙DB Sync 경과]</b> ${escapeHtml(d.centralReplicaAgeMin || '')}분 / 허용 ${escapeHtml(d.centralReplicaMaxStaleMin || '')}분<br>
+					${d.centralReplicaError ? `<b>[중앙DB Sync 오류]</b> ${escapeHtml(d.centralReplicaError || '')}<br>` : ''}
 					<b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[플러스친구]</b> ${d.plusFriendSet ? '✅ 설정됨' : '❌ 미설정'}<br>
