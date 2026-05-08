@@ -1,5 +1,6 @@
 import { runAbsenceDetectionDirect } from '../lib/absent-direct.js';
 import { runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
+import { recordAbsenceRunDirect } from '../lib/absence-run-audit.js';
 
 function sendJson(res, status, body) {
   res.status(status);
@@ -81,14 +82,33 @@ export default async function handler(req, res) {
     });
 
     if (!detection.ok) {
+      const finishedAt = new Date();
+      const errorMessage = detection.error?.message || '미등원 감지 실패';
+
+      const audit = await recordAbsenceRunDirect({
+        source: 'CRON',
+        status: 'FAILED',
+        run_by: '__CRON__',
+        detection: {},
+        worker: null,
+        error: errorMessage,
+        started_at: startedAt.toISOString(),
+        finished_at: finishedAt.toISOString(),
+        meta: {
+          stage: 'DETECTION',
+          workerLimit
+        }
+      });
+
       return sendJson(res, 500, {
         ok: false,
         error: {
           code: detection.error?.code || 'ABSENT_DETECTION_FAILED',
-          message: detection.error?.message || '미등원 감지 실패'
+          message: errorMessage
         },
+        audit,
         started_at: startedAt.toISOString(),
-        finished_at: new Date().toISOString()
+        finished_at: finishedAt.toISOString()
       });
     }
 
@@ -97,17 +117,50 @@ export default async function handler(req, res) {
     });
 
     if (!worker.ok) {
+      const finishedAt = new Date();
+      const errorMessage = worker.error?.message || '알림 queue worker 실패';
+
+      const audit = await recordAbsenceRunDirect({
+        source: 'CRON',
+        status: 'FAILED',
+        run_by: '__CRON__',
+        detection: detection.data || {},
+        worker,
+        error: errorMessage,
+        started_at: startedAt.toISOString(),
+        finished_at: finishedAt.toISOString(),
+        meta: {
+          stage: 'WORKER',
+          workerLimit
+        }
+      });
+
       return sendJson(res, 500, {
         ok: false,
         error: {
           code: worker.error?.code || 'NOTIFY_WORKER_FAILED',
-          message: worker.error?.message || '알림 queue worker 실패'
+          message: errorMessage
         },
         detection: detection.data || null,
+        audit,
         started_at: startedAt.toISOString(),
-        finished_at: new Date().toISOString()
+        finished_at: finishedAt.toISOString()
       });
     }
+
+    const finishedAt = new Date();
+    const audit = await recordAbsenceRunDirect({
+      source: 'CRON',
+      status: 'OK',
+      run_by: '__CRON__',
+      detection: detection.data || {},
+      worker,
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+      meta: {
+        workerLimit
+      }
+    });
 
     return sendJson(res, 200, {
       ok: true,
@@ -115,19 +168,39 @@ export default async function handler(req, res) {
         detection: detection.data || {},
         worker: worker.data || {},
         worker_limit: workerLimit,
+        audit,
         started_at: startedAt.toISOString(),
-        finished_at: new Date().toISOString()
+        finished_at: finishedAt.toISOString()
       }
     });
   } catch (e) {
+    const finishedAt = new Date();
+    const errorMessage = e?.message || 'cron 실행 중 오류';
+
+    const audit = await recordAbsenceRunDirect({
+      source: 'CRON',
+      status: 'ERROR',
+      run_by: '__CRON__',
+      detection: {},
+      worker: null,
+      error: errorMessage,
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+      meta: {
+        stage: 'THROWN',
+        workerLimit
+      }
+    });
+
     return sendJson(res, 500, {
       ok: false,
       error: {
         code: 'SERVER_ERROR',
-        message: e?.message || 'cron 실행 중 오류'
+        message: errorMessage
       },
+      audit,
       started_at: startedAt.toISOString(),
-      finished_at: new Date().toISOString()
+      finished_at: finishedAt.toISOString()
     });
   }
 }

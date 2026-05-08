@@ -12,6 +12,7 @@ import {
   retryAttendanceNotifyQueueDirect
 } from '../lib/attendance-notify-queue.js';
 import { runAbsenceDetectionDirect } from '../lib/absent-direct.js';
+import { recordAbsenceRunDirect } from '../lib/absence-run-audit.js';
 import { verifyAdminPinByStaffId } from './_admin-pin.js';
 import {
   readRuntimeMeta,
@@ -558,6 +559,10 @@ async function metaCheckCentralDirect(sessionToken = '') {
       columns: 'queue_id, trace_id, student_id, action_type, parent_phone, school, grade, student_name, occurred_at, status, attempts, sent_channel, last_error, claimed_at, processed_at, created_at'
     },
     {
+      name: 'absence_detection_runs',
+      columns: 'run_id, created_at, source, status, run_by, yyyymmdd, started_at, finished_at, scheduled_class_count, candidate_count, queued_count, duplicate_count, failed_count, sent_count, worker_done, worker_failed, worker_requeued, detail_json, error'
+    },
+    {
       name: 'student_qr_sessions',
       columns: 'token, student_id, public_session_id, exp_ms, anchor_ms, student_name'
     },
@@ -715,6 +720,8 @@ async function absentRunNowDirect(args = {}, sessionToken = '') {
     );
   }
 
+  const startedAt = new Date();
+
   const detection = await runAbsenceDetectionDirect({
     yyyymmdd: args.yyyymmdd || args.ymd || '',
     now: args.now || '',
@@ -723,17 +730,36 @@ async function absentRunNowDirect(args = {}, sessionToken = '') {
   });
 
   if (!detection.ok) {
+    const finishedAt = new Date();
+    const errorMessage = detection.error?.message || '미등원 감지 실패';
+
+    await recordAbsenceRunDirect({
+      source: 'MANUAL',
+      status: 'FAILED',
+      run_by: auth.me.staff_id,
+      detection: {},
+      worker: null,
+      error: errorMessage,
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+      meta: {
+        stage: 'DETECTION'
+      }
+    });
+
     return fail(
       500,
       detection.error?.code || 'ABSENT_RUN_FAILED',
-      detection.error?.message || '미등원 감지 실패'
+      errorMessage
     );
   }
 
   const data = detection.data || {};
+  const dryRun = String(args.dry_run || args.dryRun || 'N').trim().toUpperCase() === 'Y';
+
   const shouldProcessQueue =
     String(args.process_queue || args.processQueue || 'Y').trim().toUpperCase() === 'Y' &&
-    String(args.dry_run || args.dryRun || 'N').trim().toUpperCase() !== 'Y' &&
+    !dryRun &&
     Number(data.queuedCount || 0) > 0;
 
   let workerOut = null;
@@ -744,11 +770,29 @@ async function absentRunNowDirect(args = {}, sessionToken = '') {
   }
 
   const workerData = workerOut && workerOut.ok ? (workerOut.data || {}) : null;
+  const finishedAt = new Date();
+  const sentCount = workerData ? Number(workerData.done || 0) : Number(data.sentCount || 0);
+
+  const audit = await recordAbsenceRunDirect({
+    source: dryRun ? 'MANUAL_DRY_RUN' : 'MANUAL',
+    status: workerOut && !workerOut.ok ? 'FAILED' : 'OK',
+    run_by: auth.me.staff_id,
+    detection: data,
+    worker: workerOut,
+    sentCount,
+    error: workerOut && !workerOut.ok ? (workerOut.error?.message || '알림 queue worker 실패') : '',
+    started_at: startedAt.toISOString(),
+    finished_at: finishedAt.toISOString(),
+    meta: {
+      processQueue: shouldProcessQueue
+    }
+  });
 
   return success({
     ...data,
-    sentCount: workerData ? Number(workerData.done || 0) : Number(data.sentCount || 0),
+    sentCount,
     notifyWorker: workerOut || null,
+    audit,
     run_by: auth.me.staff_id
   });
 }
