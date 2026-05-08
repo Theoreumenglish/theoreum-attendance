@@ -475,14 +475,15 @@ function formatSupabaseCheckError(error) {
 }
 
 async function checkTableReadable(supabase, tableName, selectExpr = '*') {
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from(tableName)
-    .select(selectExpr, { head: true, count: 'exact' });
+    .select(selectExpr)
+    .limit(1);
 
   return {
     name: tableName,
     ok: !error,
-    count: typeof count === 'number' ? count : null,
+    count: Array.isArray(data) ? data.length : null,
     columns: selectExpr,
     message: error ? formatSupabaseCheckError(error) : ''
   };
