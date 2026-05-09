@@ -68,6 +68,172 @@ function isDuplicateKeyError(error) {
   );
 }
 
+function actionForState(raw) {
+  const action = String(raw || '').trim().toUpperCase();
+
+  if (action === 'MANUAL_CHECK_IN') return 'CHECK_IN';
+  if (action === 'MANUAL_CHECK_OUT') return 'CHECK_OUT';
+
+  return action;
+}
+
+function isoToMs(value) {
+  const ms = Date.parse(String(value || ''));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function msToIso(ms) {
+  return ms > 0 ? new Date(ms).toISOString() : null;
+}
+
+function emptyTodayState() {
+  return {
+    checkedIn: false,
+    checkedOut: false,
+    outingActive: false,
+    lastActionType: '',
+    lastActionTs: 0,
+    lastMoveTs: 0,
+    lastMoveFloor: '',
+    lastCheckInTs: 0,
+    lastCheckOutTs: 0
+  };
+}
+
+function stateFromRow(row) {
+  if (!row) return emptyTodayState();
+
+  return {
+    checkedIn: row.checked_in === true,
+    checkedOut: row.checked_out === true,
+    outingActive: row.outing_active === true,
+    lastActionType: String(row.last_action_type || '').trim().toUpperCase(),
+    lastActionTs: isoToMs(row.last_action_ts),
+    lastMoveTs: isoToMs(row.last_move_ts),
+    lastMoveFloor: String(row.last_move_floor || '').trim().toUpperCase(),
+    lastCheckInTs: isoToMs(row.last_check_in_ts),
+    lastCheckOutTs: isoToMs(row.last_check_out_ts)
+  };
+}
+
+function applyLogToState(currentState, record) {
+  const action = actionForState(record.action_type);
+  const rawAction = String(record.action_type || '').trim().toUpperCase();
+  const tsMs = isoToMs(record.ts);
+
+  const next = {
+    checkedIn: !!currentState?.checkedIn,
+    checkedOut: !!currentState?.checkedOut,
+    outingActive: !!currentState?.outingActive,
+    lastActionType: rawAction || action,
+    lastActionTs: tsMs,
+    lastMoveTs: Number(currentState?.lastMoveTs || 0),
+    lastMoveFloor: String(currentState?.lastMoveFloor || '').trim().toUpperCase(),
+    lastCheckInTs: Number(currentState?.lastCheckInTs || 0),
+    lastCheckOutTs: Number(currentState?.lastCheckOutTs || 0)
+  };
+
+  if (action === 'CHECK_IN') {
+    next.checkedIn = true;
+    next.checkedOut = false;
+    next.outingActive = false;
+    next.lastCheckInTs = tsMs;
+  }
+
+  if (action === 'CHECK_OUT') {
+    next.checkedOut = true;
+    next.outingActive = false;
+    next.lastCheckOutTs = tsMs;
+  }
+
+  if (action === 'MOVE') {
+    next.lastMoveTs = tsMs;
+    next.lastMoveFloor = String(record.kiosk_floor || '').trim().toUpperCase();
+  }
+
+  if (action === 'OUTING_OUT') {
+    next.outingActive = true;
+  }
+
+  if (action === 'OUTING_BACK') {
+    next.outingActive = false;
+  }
+
+  return next;
+}
+
+async function upsertTodayStateForAttendanceLog(supabase, record) {
+  if (record.result !== 'OK') {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'RESULT_NOT_OK'
+    };
+  }
+
+  const action = actionForState(record.action_type);
+  if (!['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING_OUT', 'OUTING_BACK'].includes(action)) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'STATE_ACTION_NOT_REQUIRED'
+    };
+  }
+
+  const { data: stateRow, error: readErr } = await supabase
+    .from('today_student_state')
+    .select(
+      'yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type, last_action_ts, last_move_ts, last_move_floor, last_check_in_ts, last_check_out_ts'
+    )
+    .eq('yyyymmdd', record.yyyymmdd)
+    .eq('student_id', record.student_id)
+    .maybeSingle();
+
+  if (readErr) {
+    return {
+      ok: false,
+      error: readErr.message || 'today_student_state 조회 실패'
+    };
+  }
+
+  const next = applyLogToState(stateFromRow(stateRow), record);
+  const row = {
+    yyyymmdd: record.yyyymmdd,
+    student_id: record.student_id,
+    checked_in: next.checkedIn,
+    checked_out: next.checkedOut,
+    outing_active: next.outingActive,
+    last_action_type: next.lastActionType,
+    last_action_ts: msToIso(next.lastActionTs),
+    last_move_ts: msToIso(next.lastMoveTs),
+    last_move_floor: next.lastMoveFloor,
+    last_check_in_ts: msToIso(next.lastCheckInTs),
+    last_check_out_ts: msToIso(next.lastCheckOutTs),
+    updated_at: new Date().toISOString(),
+    meta_json: {
+      source: 'api.attendance-log',
+      trace_id: record.trace_id,
+      record_id: record.record_id
+    }
+  };
+
+  const { error } = await supabase
+    .from('today_student_state')
+    .upsert([row], { onConflict: 'yyyymmdd,student_id' });
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message || 'today_student_state upsert 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    skipped: false
+  };
+}
+
 function buildSupabase() {
   try {
     return {
@@ -184,10 +350,19 @@ export default async function handler(req, res) {
     }
 
     if (existing) {
+      const stateWrite = await upsertTodayStateForAttendanceLog(supabase, existing);
+
       return res.status(200).json({
         ok: true,
         duplicate: true,
-        record: existing
+        record: existing,
+        state: {
+          write_ok: !!stateWrite.ok,
+          skipped: !!stateWrite.skipped,
+          reason: stateWrite.reason || '',
+          error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+          warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_DUPLICATE_BUT_STATE_WRITE_FAILED'
+        }
       });
     }
 
@@ -207,11 +382,20 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (!dupReadError && dup) {
-          return res.status(200).json({
-            ok: true,
-            duplicate: true,
-            record: dup
-          });
+        const stateWrite = await upsertTodayStateForAttendanceLog(supabase, dup);
+
+        return res.status(200).json({
+          ok: true,
+          duplicate: true,
+          record: dup,
+          state: {
+            write_ok: !!stateWrite.ok,
+            skipped: !!stateWrite.skipped,
+            reason: stateWrite.reason || '',
+            error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+            warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_DUPLICATE_BUT_STATE_WRITE_FAILED'
+          }
+        });
         }
       }
 

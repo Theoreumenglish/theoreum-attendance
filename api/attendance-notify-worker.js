@@ -103,7 +103,10 @@ export default async function handler(req, res) {
 
   try {
     const limit = readLimit(req, body);
-    const out = await runAttendanceNotifyWorker({ limit });
+    const out = await runAttendanceNotifyWorker({
+      limit,
+      source: 'API_WORKER'
+    });
     return send(res, out.ok ? 200 : 500, out);
   } catch (e) {
     return send(res, 500, {

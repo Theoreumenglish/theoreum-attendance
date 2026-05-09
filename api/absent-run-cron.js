@@ -113,7 +113,8 @@ export default async function handler(req, res) {
     }
 
     const worker = await runAttendanceNotifyWorker({
-      limit: workerLimit
+      limit: workerLimit,
+      source: 'CRON'
     });
 
     if (!worker.ok) {

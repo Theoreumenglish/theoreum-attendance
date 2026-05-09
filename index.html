@@ -1172,6 +1172,7 @@
                 </div>
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-pri" id="btnRunAbsent" type="button">미등원 즉시 실행</button>
+                  <button class="btn btn-ghost" id="btnRunAbsentDry" type="button">미등원 모의 감지</button>
 					<button class="btn btn-ghost" id="btnQueueList" type="button">실패 알림 조회</button>
 					<button class="btn btn-bad" id="btnQueueRetry" type="button">실패 알림 재처리</button>
 					<button class="btn btn-ghost" id="btnRebuildState" type="button">오늘 상태 재빌드</button>
@@ -2337,6 +2338,7 @@
 				StaffUI.bindClick('btnInstallAbsent', StaffUI.installAbsentTrigger);
 				StaffUI.bindClick('btnInstallDaily', StaffUI.installDailyTrigger);
 				StaffUI.bindClick('btnRunAbsent', StaffUI.runAbsentNow);
+				StaffUI.bindClick('btnRunAbsentDry', StaffUI.runAbsentDry);
 				StaffUI.bindClick('btnFloor5', () => StaffUI.setFloor('5F'));
 				StaffUI.bindClick('btnFloor7', () => StaffUI.setFloor('7F'));
 				StaffUI.bindClick('btnQueueList', StaffUI.queueList);
@@ -2398,6 +2400,7 @@
 					'btnInstallAbsent',
 					'btnInstallDaily',
 					'btnRunAbsent',
+					'btnRunAbsentDry',
 					'btnFloor5',
 					'btnFloor7',
 					'btnQueueList',
@@ -2772,15 +2775,87 @@
 			},
 
 			async runAbsentNow() {
-				const pin = prompt('[보안 확인] 미등원 즉시 감지를 실행하려면 관리자 PIN을 입력하세요.');
+				const pin = prompt('[보안 확인] 미등원 즉시 감지를 실행하려면 관리자 PIN을 입력하세요.\n실제 학부모 알림톡/문자가 발송될 수 있습니다.');
 				if (!pin) return;
 
-				const r = await App.rpc('absent.runNow', { pin });
-				if (!r.ok) {
-					UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
+				if (!confirm('실제 미등원 감지를 실행합니다.\n대상이 있으면 학부모 알림톡/문자가 발송될 수 있습니다.\n계속할까요?')) {
 					return;
 				}
-				UI.toast(true, '감지: ' + (r.data.candidates || 0) + '명 · 알림 전송: ' + (r.data.sentCount || 0) + '건');
+
+				const box = $('#diagBox');
+				if (box) box.textContent = '미등원 즉시 감지 실행 중...';
+
+				const r = await App.rpc('absent.runNow', {
+					pin,
+					dry_run: 'N',
+					process_queue: 'Y'
+				});
+
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : '미등원 즉시 감지 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				const d = r.data || {};
+				const worker = d.notifyWorker && d.notifyWorker.data ? d.notifyWorker.data : {};
+
+				if (box) {
+					box.textContent =
+						'미등원 즉시 감지 결과\n\n' +
+						'실제 발송: 가능\n' +
+						'상태 기준: ' + (d.presentStateSource || '') + '\n' +
+						'예정 수업: ' + (d.scheduledClassCount || 0) + '개\n' +
+						'감지 후보: ' + (d.candidateCount || d.candidates || 0) + '명\n' +
+						'queue 등록: ' + (d.queuedCount || 0) + '건\n' +
+						'중복 제외: ' + (d.duplicateCount || 0) + '건\n' +
+						'후보 생성 실패: ' + (d.failedCount || 0) + '건\n' +
+						'worker scanned: ' + (worker.scanned || 0) + '\n' +
+						'worker done: ' + (worker.done || 0) + '\n' +
+						'worker failed: ' + (worker.failed || 0) + '\n' +
+						'worker requeued: ' + (worker.requeued || 0) + '\n' +
+						'알림 전송: ' + (d.sentCount || worker.done || 0) + '건';
+				}
+
+				UI.toast(true, '감지: ' + (d.candidateCount || d.candidates || 0) + '명 · 알림 전송: ' + (d.sentCount || worker.done || 0) + '건');
+			},
+
+			async runAbsentDry() {
+				const pin = prompt('[보안 확인] 미등원 모의 감지를 실행하려면 관리자 PIN을 입력하세요.\n실제 문자/알림톡은 발송되지 않습니다.');
+				if (!pin) return;
+
+				const box = $('#diagBox');
+				if (box) box.textContent = '미등원 모의 감지 실행 중...';
+
+				const r = await App.rpc('absent.runNow', {
+					pin,
+					dry_run: 'Y',
+					process_queue: 'N'
+				});
+
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : '미등원 모의 감지 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				const d = r.data || {};
+				if (box) {
+					box.textContent =
+						'미등원 모의 감지 결과\n\n' +
+						'실제 발송: 없음\n' +
+						'상태 기준: ' + (d.presentStateSource || '') + '\n' +
+						'예정 수업: ' + (d.scheduledClassCount || 0) + '개\n' +
+						'감지 후보: ' + (d.candidateCount || d.candidates || 0) + '명\n' +
+						'queue 등록: ' + (d.queuedCount || 0) + '건\n' +
+						'중복 제외: ' + (d.duplicateCount || 0) + '건\n' +
+						'후보 생성 실패: ' + (d.failedCount || 0) + '건\n' +
+						'알림 전송: ' + (d.sentCount || 0) + '건';
+				}
+
+				UI.toast(true, '미등원 모의 감지 완료');
 			},
 
 			async setFloor(floor) {

@@ -1341,7 +1341,8 @@ async function absentRunNowDirect(args = {}, sessionToken = '') {
   let workerOut = null;
   if (shouldProcessQueue) {
     workerOut = await runAttendanceNotifyWorker({
-      limit: Math.max(1, Math.min(20, Number(data.queuedCount || 1)))
+      limit: Math.max(1, Math.min(20, Number(data.queuedCount || 1))),
+      source: 'MANUAL_ABSENT_RUN'
     });
   }
 

@@ -21,7 +21,15 @@ $excludeFiles = @(
   ".env",
   ".env.local",
   ".env.development.local",
-  ".env.production.local"
+  ".env.production.local",
+  ".env.preview.local",
+  ".DS_Store",
+  "Thumbs.db"
+)
+
+$excludeExtensions = @(
+  ".zip",
+  ".log"
 )
 
 $temp = Join-Path $env:TEMP ("theoreum_release_" + $stamp)
@@ -38,6 +46,10 @@ Get-ChildItem -Path $root -Force | ForEach-Object {
   }
 
   if (!$_.PSIsContainer -and ($excludeFiles -contains $name)) {
+    return
+  }
+
+  if (!$_.PSIsContainer -and ($excludeExtensions -contains $_.Extension.ToLower())) {
     return
   }
 
