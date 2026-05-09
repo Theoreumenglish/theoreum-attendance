@@ -192,7 +192,7 @@ async function upsertTodayStateForAttendanceLog(supabase, record) {
   const { data: stateRow, error: readErr } = await supabase
     .from('today_student_state')
     .select(
-      'yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type, last_action_ts, last_move_ts, last_move_floor, last_check_in_ts, last_check_out_ts'
+      'yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type, last_action_ts, last_move_ts, last_move_floor, last_check_in_ts, last_check_out_ts, meta_json'
     )
     .eq('yyyymmdd', record.yyyymmdd)
     .eq('student_id', record.student_id)
@@ -206,6 +206,22 @@ async function upsertTodayStateForAttendanceLog(supabase, record) {
   }
 
   const currentState = stateFromRow(stateRow);
+  const stateMeta = stateRow?.meta_json && typeof stateRow.meta_json === 'object'
+    ? stateRow.meta_json
+    : {};
+
+  if (
+    rawAction === 'OUTING' &&
+    String(stateMeta.trace_id || '').trim() === String(record.trace_id || '').trim() &&
+    String(stateMeta.raw_action_type || '').trim().toUpperCase() === 'OUTING'
+  ) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'DUPLICATE_OUTING_ALREADY_APPLIED'
+    };
+  }
+
   const normalizedRecord = {
     ...record,
     action_type:
@@ -250,6 +266,48 @@ async function upsertTodayStateForAttendanceLog(supabase, record) {
   return {
     ok: true,
     skipped: false
+  };
+}
+
+async function normalizeRecordForPersistence(supabase, record) {
+  const rawAction = String(record.action_type || '').trim().toUpperCase();
+  if (rawAction !== 'OUTING') {
+    return {
+      ok: true,
+      record
+    };
+  }
+
+  const { data: stateRow, error } = await supabase
+    .from('today_student_state')
+    .select('outing_active')
+    .eq('yyyymmdd', record.yyyymmdd)
+    .eq('student_id', record.student_id)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message || 'today_student_state 조회 실패'
+    };
+  }
+
+  const finalAction = stateRow?.outing_active === true ? 'OUTING_BACK' : 'OUTING_OUT';
+  const meta = record.meta_json && typeof record.meta_json === 'object'
+    ? { ...record.meta_json }
+    : {};
+
+  return {
+    ok: true,
+    record: {
+      ...record,
+      action_type: finalAction,
+      meta_json: {
+        ...meta,
+        raw_action_type: rawAction,
+        outing: finalAction === 'OUTING_BACK' ? 'RETURN' : 'START'
+      }
+    }
   };
 }
 
@@ -313,7 +371,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'BAD_TRACE_ID' });
   }
 
-  const record = {
+  let record = {
     record_id: String(body.record_id || randomUUID()).trim(),
     ts,
     yyyymmdd: String(body.yyyymmdd || '').trim(),
@@ -352,6 +410,17 @@ export default async function handler(req, res) {
     return res.status(500).json(envError);
   }
 
+
+  const normalizedRecord = await normalizeRecordForPersistence(supabase, record);
+  if (!normalizedRecord.ok) {
+    return res.status(500).json({
+      ok: false,
+      error: 'STATE_PREPARE_FAILED',
+      detail: normalizedRecord.error || '출결 상태 계산 실패'
+    });
+  }
+
+  record = normalizedRecord.record;
   try {
     const { data: existing, error: existingError } = await supabase
       .from('attendance_logs')

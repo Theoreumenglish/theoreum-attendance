@@ -1017,6 +1017,11 @@ async function metaCheckCentralDirect(sessionToken = '') {
       columns: 'class_id, name, teacher, start, end, status'
     },
     {
+      name: 'staff_snapshot',
+      required: false,
+      columns: 'staff_id, name, role, revoked, status, pw_hash, pw_salt, pin_hash, pin_salt'
+    },
+    {
       name: 'class_students',
       columns: 'class_id, student_id'
     },

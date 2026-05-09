@@ -51,7 +51,7 @@ Get-ChildItem -Path $root -Force | ForEach-Object {
 
   if (!$_.PSIsContainer -and ($name -like ".env*")) {
     return
-    }
+  }
 
   if (!$_.PSIsContainer -and ($excludeExtensions -contains $_.Extension.ToLower())) {
     return
