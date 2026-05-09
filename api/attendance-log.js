@@ -469,22 +469,22 @@ export default async function handler(req, res) {
           .limit(1)
           .maybeSingle();
 
-    if (!dupReadError && dup) {
-      const stateWrite = await upsertTodayStateForAttendanceLog(supabase, dup);
+        if (!dupReadError && dup) {
+          const stateWrite = await upsertTodayStateForAttendanceLog(supabase, dup);
 
-      return res.status(200).json({
-        ok: true,
-        duplicate: true,
-        record: dup,
-        state: {
-          write_ok: !!stateWrite.ok,
-          skipped: !!stateWrite.skipped,
-          reason: stateWrite.reason || '',
-          error: stateWrite.ok ? '' : String(stateWrite.error || ''),
-          warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_DUPLICATE_BUT_STATE_WRITE_FAILED'
+          return res.status(200).json({
+            ok: true,
+            duplicate: true,
+            record: dup,
+            state: {
+              write_ok: !!stateWrite.ok,
+              skipped: !!stateWrite.skipped,
+              reason: stateWrite.reason || '',
+              error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+              warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_DUPLICATE_BUT_STATE_WRITE_FAILED'
+            }
+          });
         }
-      });
-    }
       }
 
       return res.status(500).json({

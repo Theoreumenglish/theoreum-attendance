@@ -23,6 +23,21 @@ function normalizeRevoked(raw) {
   return ['y', 'yes', '1', 'true', 'revoked', '중지', '해지', '퇴사'].includes(v) ? 'Y' : 'N';
 }
 
+function isMissingTableError(tableName, error) {
+  const table = String(tableName || '').toLowerCase();
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+
+  return (
+    code === 'PGRST205' ||
+    message.includes('could not find the table') ||
+    message.includes(table + "'") ||
+    message.includes(table + '"') ||
+    details.includes(table)
+  );
+}
+
 function getPepper() {
   const pepper = String(
     process.env.AUTH_PEPPER ||
@@ -56,8 +71,21 @@ async function readStaffPinRecord(supabase, staffId) {
     .eq('staff_id', sid)
     .maybeSingle();
 
-  if (snapErr) return { data: null, error: snapErr };
-  if (snap) return { data: snap, error: null };
+  if (!snapErr && snap) {
+    return {
+      data: snap,
+      error: null,
+      source: 'staff_snapshot'
+    };
+  }
+
+  if (snapErr && !isMissingTableError('staff_snapshot', snapErr)) {
+    return {
+      data: null,
+      error: snapErr,
+      source: 'staff_snapshot'
+    };
+  }
 
   const { data: staff, error: staffErr } = await supabase
     .from('staff')
@@ -65,7 +93,11 @@ async function readStaffPinRecord(supabase, staffId) {
     .eq('staff_id', sid)
     .maybeSingle();
 
-  return { data: staff || null, error: staffErr };
+  return {
+    data: staff || null,
+    error: staffErr || null,
+    source: staff ? 'staff' : 'none'
+  };
 }
 
 export async function verifyAdminPinByStaffId(staffId, pin) {
