@@ -1180,6 +1180,7 @@
 					<button class="btn btn-ghost" id="btnNotifyWorkerRuns" type="button">알림 worker 이력</button>
                   <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
                   <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
+                  <button class="btn btn-ghost" id="btnCleanupQr" type="button">QR 만료 정리</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
                   <button class="btn btn-sky" id="btnGenSchedule" type="button">스케줄 재생성</button>
                 </div>
@@ -2346,6 +2347,7 @@
 				StaffUI.bindClick('btnAbsenceRuns', StaffUI.absenceRuns);
 				StaffUI.bindClick('btnNotifyWorkerRuns', StaffUI.notifyWorkerRuns);
 				StaffUI.bindClick('btnRebuildState', StaffUI.rebuildTodayState);
+				StaffUI.bindClick('btnCleanupQr', StaffUI.cleanupQrExpired);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
 
@@ -2408,6 +2410,7 @@
 					'btnRebuildState',
 					'btnAbsenceRuns',
 					'btnNotifyWorkerRuns',
+					'btnCleanupQr',
 					'btnFlushCache',
 					'btnGenSchedule'
 				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
@@ -3141,6 +3144,39 @@
 				UI.toast(true, '알림 worker 이력 조회 완료');
 			},
 
+			async cleanupQrExpired() {
+				const pin = prompt('[보안 확인] 만료된 학생/직원 QR 세션과 nonce를 정리하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
+
+				const box = $('#diagBox');
+				if (box) box.textContent = 'QR 만료 데이터 정리 중...';
+
+				const r = await App.rpc('admin.cleanupQrExpired', {
+					pin
+				});
+
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : 'QR 만료 정리 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				const d = r.data || {};
+				const items = Array.isArray(d.items) ? d.items : [];
+
+				if (box) {
+					box.textContent =
+						'QR 만료 데이터 정리 완료\n\n' +
+						'total_deleted: ' + (d.total_deleted || 0) + '\n\n' +
+						items.map(x => {
+							return x.table + ': ' + (x.deleted || 0) + '개 삭제';
+						}).join('\n');
+				}
+
+				UI.toast(true, 'QR 만료 정리 완료');
+			},
+			
 			async flushCache() {
 				const pin = prompt('[보안 확인] 캐시를 비우시려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;

@@ -38,9 +38,7 @@ if ($ignoredStatus) {
 }
 
 Write-Host "Running syntax checks..."
-Get-ChildItem -Path api,lib,public -Recurse -Filter *.js | ForEach-Object {
-  node --check $_.FullName
-}
+npm run check
 
 Write-Host "Running build..."
 npm run build

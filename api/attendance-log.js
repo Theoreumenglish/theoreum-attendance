@@ -410,16 +410,6 @@ export default async function handler(req, res) {
     return res.status(500).json(envError);
   }
 
-
-  const normalizedRecord = await normalizeRecordForPersistence(supabase, record);
-  if (!normalizedRecord.ok) {
-    return res.status(500).json({
-      ok: false,
-      error: 'STATE_PREPARE_FAILED',
-      detail: normalizedRecord.error || '출결 상태 계산 실패'
-    });
-  }
-
   record = normalizedRecord.record;
   try {
     const { data: existing, error: existingError } = await supabase
@@ -453,6 +443,17 @@ export default async function handler(req, res) {
         }
       });
     }
+
+    const normalizedRecord = await normalizeRecordForPersistence(supabase, record);
+    if (!normalizedRecord.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: 'STATE_PREPARE_FAILED',
+        detail: normalizedRecord.error || '출결 상태 계산 실패'
+      });
+    }
+
+    record = normalizedRecord.record;
 
     const { data, error } = await supabase
       .from('attendance_logs')

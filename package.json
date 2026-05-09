@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "node --check api/rpc.js && node --check api/kiosk-mark.js && node --check api/attendance-log.js && node --check api/absent-run-cron.js && node --check lib/absent-direct.js && node --check lib/attendance-notify-queue.js && node --check lib/staff-auth.js && node --check lib/staff-attendance.js && node --check lib/staff-qr-core.js && node --check lib/student-qr-core.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

@@ -1203,6 +1203,70 @@ async function adminListNotifyWorkerRunsDirect(args = {}, sessionToken = '') {
   });
 }
 
+async function deleteExpiredQrRows(supabase, tableName, selectExpr, nowMs) {
+  const { data, error } = await supabase
+    .from(tableName)
+    .delete()
+    .lt('exp_ms', nowMs)
+    .select(selectExpr);
+
+  if (error) {
+    return {
+      ok: false,
+      table: tableName,
+      deleted: 0,
+      error: error.message || tableName + ' 만료 row 삭제 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    table: tableName,
+    deleted: Array.isArray(data) ? data.length : 0,
+    error: ''
+  };
+}
+
+async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  const supabase = getSupabaseAdmin();
+  const nowMs = Date.now();
+
+  const results = [];
+  results.push(await deleteExpiredQrRows(supabase, 'student_qr_nonces', 'nonce', nowMs));
+  results.push(await deleteExpiredQrRows(supabase, 'student_qr_sessions', 'token', nowMs));
+  results.push(await deleteExpiredQrRows(supabase, 'staff_qr_nonces', 'nonce', nowMs));
+  results.push(await deleteExpiredQrRows(supabase, 'staff_qr_sessions', 'token', nowMs));
+
+  const failed = results.filter(x => !x.ok);
+  if (failed.length) {
+    return fail(
+      500,
+      'QR_CLEANUP_PARTIAL_FAILED',
+      failed.map(x => x.table + ': ' + x.error).join(' / ')
+    );
+  }
+
+  return success({
+    cleaned_at: nowIso(),
+    run_by: auth.me.staff_id,
+    total_deleted: results.reduce((sum, x) => sum + Number(x.deleted || 0), 0),
+    items: results
+  });
+}
+
 async function adminListNotifyQueueDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -1890,6 +1954,11 @@ export default async function handler(req, res) {
 
   if (op === 'admin.retryNotifyQueue') {
     const result = await adminRetryNotifyQueueDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.cleanupQrExpired') {
+    const result = await adminCleanupQrExpiredDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
