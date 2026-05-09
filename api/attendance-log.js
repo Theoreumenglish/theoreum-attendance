@@ -409,8 +409,7 @@ export default async function handler(req, res) {
   if (envError) {
     return res.status(500).json(envError);
   }
-
-  record = normalizedRecord.record;
+  
   try {
     const { data: existing, error: existingError } = await supabase
       .from('attendance_logs')
