@@ -359,6 +359,60 @@ async function upsertTodayStateAfterAction({
   };
 }
 
+async function upsertTodayStateFromExistingRecord(supabase, record, stateSource = 'duplicate_trace') {
+  const sid = normalizeStudentId(record?.student_id);
+  const yyyymmdd = String(record?.yyyymmdd || '').trim();
+  const action = String(record?.action_type || '').trim().toUpperCase();
+  const kioskFloor = String(record?.kiosk_floor || '').trim().toUpperCase();
+  const ts = new Date(record?.ts || new Date().toISOString());
+
+  if (!sid || !/^\d{8}$/.test(yyyymmdd) || Number.isNaN(ts.getTime())) {
+    return {
+      ok: false,
+      error: '기존 출결 record의 student_id / yyyymmdd / ts가 올바르지 않습니다.'
+    };
+  }
+
+  if (!['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING_OUT', 'OUTING_BACK'].includes(action)) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: 'STATE_ACTION_NOT_REQUIRED'
+    };
+  }
+
+  const stateOut = await loadCurrentTodayState(supabase, sid, yyyymmdd);
+  if (stateOut.error) {
+    return {
+      ok: false,
+      error: stateOut.error.message || '기존 출결 상태 조회 실패'
+    };
+  }
+
+  const currentState = stateOut.state || {
+    checkedIn: false,
+    checkedOut: false,
+    outingActive: false,
+    lastActionType: '',
+    lastActionTs: 0,
+    lastMoveTs: 0,
+    lastMoveFloor: '',
+    lastCheckInTs: 0,
+    lastCheckOutTs: 0
+  };
+
+  return upsertTodayStateAfterAction({
+    supabase,
+    yyyymmdd,
+    sid,
+    currentState,
+    finalAction: action,
+    kioskFloor,
+    now: ts,
+    stateSource
+  });
+}
+
 function mapQrVerifyError(err) {
   const code = String(err?.code || '').trim();
   const message = String(err?.message || '').trim();
@@ -567,12 +621,25 @@ export async function handleKioskMark(payload) {
       return fail(500, 'DB_SELECT_FAILED', traceErr.message || 'attendance_logs trace 조회 실패');
     }
     if (existingTrace) {
+      const stateWrite = await upsertTodayStateFromExistingRecord(
+        supabase,
+        existingTrace,
+        'duplicate_trace'
+      );
+
       return success({
         ok: true,
         data: {
           duplicate: true,
           alreadyDone: false,
           source: 'supabase-direct',
+          state: {
+            write_ok: !!stateWrite.ok,
+            skipped: !!stateWrite.skipped,
+            reason: stateWrite.reason || '',
+            error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+            warning: stateWrite.ok ? '' : 'DUPLICATE_TRACE_STATE_WRITE_FAILED'
+          },
           ui: {
             title: '중복 입력',
             message: '이미 처리된 요청입니다.'
@@ -792,12 +859,25 @@ export async function handleKioskMark(payload) {
       if (isDuplicateKeyError(insertErr)) {
         const { data: dupAfterRace, error: dupReadErr } = await findExistingTrace(supabase, traceId);
         if (!dupReadErr && dupAfterRace) {
+          const stateWrite = await upsertTodayStateFromExistingRecord(
+            supabase,
+            dupAfterRace,
+            'duplicate_race'
+          );
+
           return success({
             ok: true,
             data: {
               duplicate: true,
               alreadyDone: false,
               source: 'supabase-direct',
+              state: {
+                write_ok: !!stateWrite.ok,
+                skipped: !!stateWrite.skipped,
+                reason: stateWrite.reason || '',
+                error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+                warning: stateWrite.ok ? '' : 'DUPLICATE_RACE_STATE_WRITE_FAILED'
+              },
               ui: {
                 title: '중복 입력',
                 message: '이미 처리된 요청입니다.'

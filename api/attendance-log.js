@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 const ALLOWED_ACTIONS = new Set([
   'CHECK_IN',
   'CHECK_OUT',
+  'MANUAL_CHECK_IN',
+  'MANUAL_CHECK_OUT',
   'MOVE',
   'OUTING',
   'OUTING_OUT',
@@ -117,8 +119,13 @@ function stateFromRow(row) {
 }
 
 function applyLogToState(currentState, record) {
-  const action = actionForState(record.action_type);
   const rawAction = String(record.action_type || '').trim().toUpperCase();
+  let action = actionForState(rawAction);
+
+  if (rawAction === 'OUTING') {
+    action = currentState?.outingActive ? 'OUTING_BACK' : 'OUTING_OUT';
+  }
+
   const tsMs = isoToMs(record.ts);
 
   const next = {
@@ -171,8 +178,10 @@ async function upsertTodayStateForAttendanceLog(supabase, record) {
     };
   }
 
-  const action = actionForState(record.action_type);
-  if (!['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING_OUT', 'OUTING_BACK'].includes(action)) {
+  const rawAction = String(record.action_type || '').trim().toUpperCase();
+  const baseAction = actionForState(rawAction);
+
+  if (!['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING', 'OUTING_OUT', 'OUTING_BACK'].includes(baseAction)) {
     return {
       ok: true,
       skipped: true,
@@ -196,10 +205,19 @@ async function upsertTodayStateForAttendanceLog(supabase, record) {
     };
   }
 
-  const next = applyLogToState(stateFromRow(stateRow), record);
+  const currentState = stateFromRow(stateRow);
+  const normalizedRecord = {
+    ...record,
+    action_type:
+      rawAction === 'OUTING'
+        ? (currentState.outingActive ? 'OUTING_BACK' : 'OUTING_OUT')
+        : record.action_type
+  };
+
+  const next = applyLogToState(currentState, normalizedRecord);
   const row = {
-    yyyymmdd: record.yyyymmdd,
-    student_id: record.student_id,
+    yyyymmdd: normalizedRecord.yyyymmdd,
+    student_id: normalizedRecord.student_id,
     checked_in: next.checkedIn,
     checked_out: next.checkedOut,
     outing_active: next.outingActive,
@@ -212,8 +230,9 @@ async function upsertTodayStateForAttendanceLog(supabase, record) {
     updated_at: new Date().toISOString(),
     meta_json: {
       source: 'api.attendance-log',
-      trace_id: record.trace_id,
-      record_id: record.record_id
+      trace_id: normalizedRecord.trace_id,
+      record_id: normalizedRecord.record_id,
+      raw_action_type: rawAction
     }
   };
 
@@ -381,22 +400,22 @@ export default async function handler(req, res) {
           .limit(1)
           .maybeSingle();
 
-        if (!dupReadError && dup) {
-        const stateWrite = await upsertTodayStateForAttendanceLog(supabase, dup);
+    if (!dupReadError && dup) {
+      const stateWrite = await upsertTodayStateForAttendanceLog(supabase, dup);
 
-        return res.status(200).json({
-          ok: true,
-          duplicate: true,
-          record: dup,
-          state: {
-            write_ok: !!stateWrite.ok,
-            skipped: !!stateWrite.skipped,
-            reason: stateWrite.reason || '',
-            error: stateWrite.ok ? '' : String(stateWrite.error || ''),
-            warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_DUPLICATE_BUT_STATE_WRITE_FAILED'
-          }
-        });
+      return res.status(200).json({
+        ok: true,
+        duplicate: true,
+        record: dup,
+        state: {
+          write_ok: !!stateWrite.ok,
+          skipped: !!stateWrite.skipped,
+          reason: stateWrite.reason || '',
+          error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+          warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_DUPLICATE_BUT_STATE_WRITE_FAILED'
         }
+      });
+    }
       }
 
       return res.status(500).json({
@@ -406,7 +425,20 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json({ ok: true, record: data });
+    const stateWrite = await upsertTodayStateForAttendanceLog(supabase, data);
+
+    return res.status(200).json({
+      ok: true,
+      duplicate: false,
+      record: data,
+      state: {
+        write_ok: !!stateWrite.ok,
+        skipped: !!stateWrite.skipped,
+        reason: stateWrite.reason || '',
+        error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+        warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_SAVED_BUT_STATE_WRITE_FAILED'
+      }
+    });
   } catch (e) {
     return res.status(500).json({
       ok: false,
