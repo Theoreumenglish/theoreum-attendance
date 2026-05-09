@@ -765,6 +765,15 @@ function rebuildStateAction(raw) {
   return action;
 }
 
+function rebuildStateAction(raw) {
+  const action = String(raw || '').trim().toUpperCase();
+
+  if (action === 'MANUAL_CHECK_IN') return 'CHECK_IN';
+  if (action === 'MANUAL_CHECK_OUT') return 'CHECK_OUT';
+
+  return action;
+}
+
 function rebuildStateFromLogRows(rows) {
   const byStudent = new Map();
 
@@ -1137,6 +1146,37 @@ async function adminTestNcpDirect(args = {}, sessionToken = '') {
   return success({
     ...result,
     tested_by: auth.me.staff_id
+  });
+}
+
+async function adminListAbsenceRunsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const limit = Math.max(1, Math.min(100, Number(args.limit || 30)));
+  const source = String(args.source || '').trim().toUpperCase();
+  const status = String(args.status || '').trim().toUpperCase();
+
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from('absence_detection_runs')
+    .select(
+      'run_id, created_at, source, status, run_by, yyyymmdd, scheduled_class_count, candidate_count, queued_count, duplicate_count, failed_count, sent_count, worker_done, worker_failed, worker_requeued, error'
+    )
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (source) query = query.eq('source', source);
+  if (status) query = query.eq('status', status);
+
+  const { data, error } = await query;
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || 'absence_detection_runs 조회 실패');
+  }
+
+  return success({
+    count: Array.isArray(data) ? data.length : 0,
+    items: data || []
   });
 }
 
@@ -1804,11 +1844,16 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'admin.listAbsenceRuns') {
+    const result = await adminListAbsenceRunsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'admin.listNotifyQueue') {
     const result = await adminListNotifyQueueDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
-  
+
   if (op === 'admin.rebuildTodayState') {
     const result = await adminRebuildTodayStateDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
