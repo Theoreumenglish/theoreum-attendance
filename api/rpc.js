@@ -505,6 +505,259 @@ function normalizeActionType(raw) {
   return allowed.has(action) ? action : '';
 }
 
+function manualStateAction(raw) {
+  const action = String(raw || '').trim().toUpperCase();
+
+  if (action === 'MANUAL_CHECK_IN') return 'CHECK_IN';
+  if (action === 'MANUAL_CHECK_OUT') return 'CHECK_OUT';
+
+  return action;
+}
+
+function manualStateIsoToMs(value) {
+  const ms = Date.parse(String(value || ''));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function manualStateMsToIso(ms) {
+  return ms > 0 ? new Date(ms).toISOString() : null;
+}
+
+function emptyManualTodayState() {
+  return {
+    checkedIn: false,
+    checkedOut: false,
+    outingActive: false,
+    lastActionType: '',
+    lastActionTs: 0,
+    lastMoveTs: 0,
+    lastMoveFloor: '',
+    lastCheckInTs: 0,
+    lastCheckOutTs: 0
+  };
+}
+
+function manualTodayStateFromRow(row) {
+  if (!row) return emptyManualTodayState();
+
+  return {
+    checkedIn: row.checked_in === true,
+    checkedOut: row.checked_out === true,
+    outingActive: row.outing_active === true,
+    lastActionType: String(row.last_action_type || '').trim().toUpperCase(),
+    lastActionTs: manualStateIsoToMs(row.last_action_ts),
+    lastMoveTs: manualStateIsoToMs(row.last_move_ts),
+    lastMoveFloor: String(row.last_move_floor || '').trim().toUpperCase(),
+    lastCheckInTs: manualStateIsoToMs(row.last_check_in_ts),
+    lastCheckOutTs: manualStateIsoToMs(row.last_check_out_ts)
+  };
+}
+
+function buildManualTodayStateFromLogs(rows, nowMs = Date.now()) {
+  const state = emptyManualTodayState();
+  const logs = Array.isArray(rows) ? rows.slice() : [];
+
+  logs.sort((a, b) => {
+    const ams = manualStateIsoToMs(a.ts);
+    const bms = manualStateIsoToMs(b.ts);
+    return ams - bms;
+  });
+
+  for (const row of logs) {
+    const tsMs = manualStateIsoToMs(row.ts);
+    if (!tsMs || tsMs > nowMs) continue;
+
+    const rawAction = String(row.action_type || '').trim().toUpperCase();
+    const action = manualStateAction(rawAction);
+
+    state.lastActionType = rawAction || action || state.lastActionType;
+    state.lastActionTs = tsMs;
+
+    if (action === 'CHECK_IN') {
+      state.checkedIn = true;
+      state.checkedOut = false;
+      state.outingActive = false;
+      state.lastCheckInTs = tsMs;
+      continue;
+    }
+
+    if (action === 'CHECK_OUT') {
+      state.checkedOut = true;
+      state.outingActive = false;
+      state.lastCheckOutTs = tsMs;
+      continue;
+    }
+
+    if (action === 'MOVE') {
+      state.lastMoveTs = tsMs;
+      state.lastMoveFloor = String(row.kiosk_floor || '').trim().toUpperCase();
+      continue;
+    }
+
+    if (action === 'OUTING_OUT') {
+      state.outingActive = true;
+      continue;
+    }
+
+    if (action === 'OUTING_BACK') {
+      state.outingActive = false;
+    }
+  }
+
+  return state;
+}
+
+function applyManualActionToTodayState(currentState, rawAction, kioskFloor, now) {
+  const nowMs = now.getTime();
+  const action = manualStateAction(rawAction);
+  const raw = String(rawAction || '').trim().toUpperCase();
+
+  const next = {
+    checkedIn: !!currentState?.checkedIn,
+    checkedOut: !!currentState?.checkedOut,
+    outingActive: !!currentState?.outingActive,
+    lastActionType: raw || action,
+    lastActionTs: nowMs,
+    lastMoveTs: Number(currentState?.lastMoveTs || 0),
+    lastMoveFloor: String(currentState?.lastMoveFloor || '').trim().toUpperCase(),
+    lastCheckInTs: Number(currentState?.lastCheckInTs || 0),
+    lastCheckOutTs: Number(currentState?.lastCheckOutTs || 0)
+  };
+
+  if (action === 'CHECK_IN') {
+    next.checkedIn = true;
+    next.checkedOut = false;
+    next.outingActive = false;
+    next.lastCheckInTs = nowMs;
+  }
+
+  if (action === 'CHECK_OUT') {
+    next.checkedOut = true;
+    next.outingActive = false;
+    next.lastCheckOutTs = nowMs;
+  }
+
+  if (action === 'MOVE') {
+    next.lastMoveTs = nowMs;
+    next.lastMoveFloor = String(kioskFloor || '').trim().toUpperCase();
+  }
+
+  if (action === 'OUTING_OUT') {
+    next.outingActive = true;
+  }
+
+  if (action === 'OUTING_BACK') {
+    next.outingActive = false;
+  }
+
+  return next;
+}
+
+async function loadManualTodayState(supabase, sid, yyyymmdd) {
+  const { data: stateRow, error: stateErr } = await supabase
+    .from('today_student_state')
+    .select(
+      'yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type, last_action_ts, last_move_ts, last_move_floor, last_check_in_ts, last_check_out_ts'
+    )
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (!stateErr && stateRow) {
+    return {
+      ok: true,
+      state: manualTodayStateFromRow(stateRow),
+      source: 'today_student_state'
+    };
+  }
+
+  const { data: logs, error: logsErr } = await supabase
+    .from('attendance_logs')
+    .select('ts, action_type, kiosk_floor, result')
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('student_id', sid)
+    .eq('result', 'OK')
+    .in('action_type', [
+      'CHECK_IN',
+      'CHECK_OUT',
+      'MOVE',
+      'OUTING_OUT',
+      'OUTING_BACK',
+      'MANUAL_CHECK_IN',
+      'MANUAL_CHECK_OUT'
+    ])
+    .order('ts', { ascending: true });
+
+  if (logsErr) {
+    return {
+      ok: false,
+      state: emptyManualTodayState(),
+      source: stateErr ? 'state_error_then_logs_error' : 'logs_error',
+      error: logsErr.message || 'attendance_logs 상태 조회 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    state: buildManualTodayStateFromLogs(logs || []),
+    source: stateErr ? 'logs_fallback_after_state_error' : 'logs_fallback'
+  };
+}
+
+async function upsertManualTodayState({
+  supabase,
+  yyyymmdd,
+  sid,
+  currentState,
+  actionType,
+  kioskFloor,
+  now,
+  actor,
+  reason,
+  sourceTraceId,
+  stateSource
+}) {
+  const next = applyManualActionToTodayState(currentState, actionType, kioskFloor, now);
+
+  const row = {
+    yyyymmdd,
+    student_id: sid,
+    checked_in: next.checkedIn,
+    checked_out: next.checkedOut,
+    outing_active: next.outingActive,
+    last_action_type: next.lastActionType,
+    last_action_ts: manualStateMsToIso(next.lastActionTs),
+    last_move_ts: manualStateMsToIso(next.lastMoveTs),
+    last_move_floor: next.lastMoveFloor,
+    last_check_in_ts: manualStateMsToIso(next.lastCheckInTs),
+    last_check_out_ts: manualStateMsToIso(next.lastCheckOutTs),
+    updated_at: now.toISOString(),
+    meta_json: {
+      source: 'assistant.manualAttendance',
+      state_source: stateSource || '',
+      actor: String(actor || ''),
+      reason: String(reason || '').slice(0, 300),
+      source_trace_id: String(sourceTraceId || '')
+    }
+  };
+
+  const { error } = await supabase
+    .from('today_student_state')
+    .upsert([row], { onConflict: 'yyyymmdd,student_id' });
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.message || 'today_student_state 수동정정 upsert 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    state: next
+  };
+}
+
 async function metaDiagDirect(sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -1207,10 +1460,50 @@ async function assistantManualAttendanceDirect(args = {}, sessionToken = '') {
     return fail(500, 'DB_INSERT_FAILED', error.message || 'attendance_logs 수동 정정 insert 실패');
   }
 
+  const stateOut = await loadManualTodayState(supabase, sid, record.yyyymmdd);
+  let stateWrite = {
+    ok: false,
+    source: stateOut.source || '',
+    error: ''
+  };
+
+  if (stateOut.ok) {
+    const updatedState = await upsertManualTodayState({
+      supabase,
+      yyyymmdd: record.yyyymmdd,
+      sid,
+      currentState: stateOut.state,
+      actionType: action,
+      kioskFloor,
+      now,
+      actor: auth.me.staff_id,
+      reason,
+      sourceTraceId,
+      stateSource: stateOut.source || ''
+    });
+
+    stateWrite = {
+      ok: !!updatedState.ok,
+      source: stateOut.source || '',
+      error: updatedState.ok ? '' : String(updatedState.error || '')
+    };
+  } else {
+    stateWrite = {
+      ok: false,
+      source: stateOut.source || '',
+      error: String(stateOut.error || 'today_student_state 보정 실패')
+    };
+  }
+
   return success({
     record: data,
     student,
-    trace_id: traceId
+    trace_id: traceId,
+    state: {
+      write_ok: !!stateWrite.ok,
+      source: stateWrite.source || '',
+      error: stateWrite.error || ''
+    }
   });
 }
 

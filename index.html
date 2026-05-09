@@ -2941,7 +2941,22 @@
 					});
 
 					if (r.ok) {
-						UI.toast(true, '수동 정정 저장 완료');
+						const state = (r.data && r.data.state) ? r.data.state : {};
+						if (state.write_ok === false) {
+							UI.toast(false, '수동 정정은 저장됐지만 현재 상태 갱신은 실패했습니다.');
+							const diagBox = $('#diagBox');
+							if (diagBox) {
+								diagBox.textContent =
+									'수동 정정 상태 갱신 경고\n\n' +
+									'attendance_logs 저장: OK\n' +
+									'today_student_state 갱신: FAILED\n' +
+									'source: ' + (state.source || '') + '\n' +
+									'error: ' + (state.error || '');
+							}
+						} else {
+							UI.toast(true, '수동 정정 저장 완료');
+						}
+
 						$('#manSid').value = '';
 						$('#manReason').value = '';
 						$('#manSourceTrace').value = '';
