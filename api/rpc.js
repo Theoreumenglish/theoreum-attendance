@@ -765,15 +765,6 @@ function rebuildStateAction(raw) {
   return action;
 }
 
-function rebuildStateAction(raw) {
-  const action = String(raw || '').trim().toUpperCase();
-
-  if (action === 'MANUAL_CHECK_IN') return 'CHECK_IN';
-  if (action === 'MANUAL_CHECK_OUT') return 'CHECK_OUT';
-
-  return action;
-}
-
 function rebuildStateFromLogRows(rows) {
   const byStudent = new Map();
 
@@ -1078,6 +1069,10 @@ async function metaCheckCentralDirect(sessionToken = '') {
       columns: 'queue_id, trace_id, student_id, action_type, parent_phone, school, grade, student_name, occurred_at, status, attempts, sent_channel, last_error, claimed_at, processed_at, created_at'
     },
     {
+      name: 'notify_worker_runs',
+      columns: 'run_id, created_at, source, status, scanned, claimed, done, failed, requeued, skipped, detail_json, error'
+    },
+    {
       name: 'absence_detection_runs',
       columns: 'run_id, created_at, source, status, run_by, yyyymmdd, started_at, finished_at, scheduled_class_count, candidate_count, queued_count, duplicate_count, failed_count, sent_count, worker_done, worker_failed, worker_requeued, detail_json, error'
     },
@@ -1172,6 +1167,29 @@ async function adminListAbsenceRunsDirect(args = {}, sessionToken = '') {
   const { data, error } = await query;
   if (error) {
     return fail(500, 'DB_SELECT_FAILED', error.message || 'absence_detection_runs 조회 실패');
+  }
+
+  return success({
+    count: Array.isArray(data) ? data.length : 0,
+    items: data || []
+  });
+}
+
+async function adminListNotifyWorkerRunsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const limit = Math.max(1, Math.min(100, Number(args.limit || 30)));
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('notify_worker_runs')
+    .select('run_id, created_at, source, status, scanned, claimed, done, failed, requeued, skipped, error')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || 'notify_worker_runs 조회 실패');
   }
 
   return success({
@@ -1849,6 +1867,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'admin.listNotifyWorkerRuns') {
+    const result = await adminListNotifyWorkerRunsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+  
   if (op === 'admin.listNotifyQueue') {
     const result = await adminListNotifyQueueDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);

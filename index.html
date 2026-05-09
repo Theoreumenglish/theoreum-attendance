@@ -1176,6 +1176,7 @@
 					<button class="btn btn-bad" id="btnQueueRetry" type="button">실패 알림 재처리</button>
 					<button class="btn btn-ghost" id="btnRebuildState" type="button">오늘 상태 재빌드</button>
 					<button class="btn btn-ghost" id="btnAbsenceRuns" type="button">미등원 실행 이력</button>
+					<button class="btn btn-ghost" id="btnNotifyWorkerRuns" type="button">알림 worker 이력</button>
                   <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
                   <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
@@ -2341,6 +2342,7 @@
 				StaffUI.bindClick('btnQueueList', StaffUI.queueList);
 				StaffUI.bindClick('btnQueueRetry', StaffUI.queueRetry);
 				StaffUI.bindClick('btnAbsenceRuns', StaffUI.absenceRuns);
+				StaffUI.bindClick('btnNotifyWorkerRuns', StaffUI.notifyWorkerRuns);
 				StaffUI.bindClick('btnRebuildState', StaffUI.rebuildTodayState);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
@@ -2402,6 +2404,7 @@
 					'btnQueueRetry',
 					'btnRebuildState',
 					'btnAbsenceRuns',
+					'btnNotifyWorkerRuns',
 					'btnFlushCache',
 					'btnGenSchedule'
 				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
@@ -2998,6 +3001,69 @@
 				`;
 
 				UI.toast(true, '미등원 이력 조회 완료');
+			},
+
+			async notifyWorkerRuns() {
+				const box = $('#diagBox');
+				if (!box) return;
+
+				box.textContent = '최근 알림 worker 실행 이력 조회 중...';
+
+				const r = await App.rpc('admin.listNotifyWorkerRuns', {
+					limit: 30
+				});
+
+				if (!r.ok) {
+					box.textContent = (r.error && r.error.message) ? r.error.message : '알림 worker 이력 조회 실패';
+					UI.toast(false, 'worker 이력 조회 실패');
+					return;
+				}
+
+				const items = Array.isArray(r.data && r.data.items) ? r.data.items : [];
+
+				if (!items.length) {
+					box.textContent = '최근 알림 worker 실행 이력이 없습니다.';
+					UI.toast(true, 'worker 이력 없음');
+					return;
+				}
+
+				box.innerHTML = `
+					<div style="font-weight:900; margin-bottom:10px;">최근 알림 worker 실행 이력: ${items.length}건</div>
+					<div class="logScroll" style="max-height:280px;">
+						<table class="logTable">
+							<thead>
+								<tr>
+									<th>created_at</th>
+									<th>source</th>
+									<th>status</th>
+									<th>scanned</th>
+									<th>claimed</th>
+									<th>done</th>
+									<th>failed</th>
+									<th>requeued</th>
+									<th>error</th>
+								</tr>
+							</thead>
+							<tbody>
+								${items.map(x => `
+									<tr>
+										<td>${escapeHtml(x.created_at || '')}</td>
+										<td>${escapeHtml(x.source || '')}</td>
+										<td>${escapeHtml(x.status || '')}</td>
+										<td>${escapeHtml(x.scanned || 0)}</td>
+										<td>${escapeHtml(x.claimed || 0)}</td>
+										<td>${escapeHtml(x.done || 0)}</td>
+										<td>${escapeHtml(x.failed || 0)}</td>
+										<td>${escapeHtml(x.requeued || 0)}</td>
+										<td class="wrap">${escapeHtml(x.error || '')}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
+					</div>
+				`;
+
+				UI.toast(true, '알림 worker 이력 조회 완료');
 			},
 
 			async flushCache() {

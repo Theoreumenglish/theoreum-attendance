@@ -858,7 +858,8 @@ export async function handleKioskMark(payload) {
         state: {
           source: stateSource,
           write_ok: !!stateWrite.ok,
-          error: stateWrite.ok ? '' : String(stateWrite.error || '')
+          error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+          warning: stateWrite.ok ? '' : 'ATTENDANCE_LOG_SAVED_BUT_STATE_WRITE_FAILED'
         },
         ui: {
           title,
