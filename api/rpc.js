@@ -758,6 +758,158 @@ async function upsertManualTodayState({
   };
 }
 
+function rebuildStateAction(raw) {
+  const action = String(raw || '').trim().toUpperCase();
+  if (action === 'MANUAL_CHECK_IN') return 'CHECK_IN';
+  if (action === 'MANUAL_CHECK_OUT') return 'CHECK_OUT';
+  return action;
+}
+
+function rebuildStateFromLogRows(rows) {
+  const byStudent = new Map();
+
+  for (const row of rows || []) {
+    const sid = normalizeStudentId(row.student_id);
+    if (!sid) continue;
+
+    if (!byStudent.has(sid)) {
+      byStudent.set(sid, {
+        yyyymmdd: String(row.yyyymmdd || '').trim(),
+        student_id: sid,
+        checked_in: false,
+        checked_out: false,
+        outing_active: false,
+        last_action_type: '',
+        last_action_ts: null,
+        last_move_ts: null,
+        last_move_floor: '',
+        last_check_in_ts: null,
+        last_check_out_ts: null,
+        updated_at: new Date().toISOString(),
+        meta_json: {
+          source: 'admin.rebuildTodayState'
+        }
+      });
+    }
+
+    const state = byStudent.get(sid);
+    const rawAction = String(row.action_type || '').trim().toUpperCase();
+    const action = rebuildStateAction(rawAction);
+    const ts = String(row.ts || '').trim();
+
+    state.last_action_type = rawAction || action;
+    state.last_action_ts = ts || null;
+
+    if (action === 'CHECK_IN') {
+      state.checked_in = true;
+      state.checked_out = false;
+      state.outing_active = false;
+      state.last_check_in_ts = ts || null;
+      continue;
+    }
+
+    if (action === 'CHECK_OUT') {
+      state.checked_out = true;
+      state.outing_active = false;
+      state.last_check_out_ts = ts || null;
+      continue;
+    }
+
+    if (action === 'MOVE') {
+      state.last_move_ts = ts || null;
+      state.last_move_floor = String(row.kiosk_floor || '').trim().toUpperCase();
+      continue;
+    }
+
+    if (action === 'OUTING_OUT') {
+      state.outing_active = true;
+      continue;
+    }
+
+    if (action === 'OUTING_BACK') {
+      state.outing_active = false;
+    }
+  }
+
+  return Array.from(byStudent.values());
+}
+
+async function adminRebuildTodayStateDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || kstYmd(new Date())).trim();
+  if (!isStrictYmd(yyyymmdd)) {
+    return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
+  }
+
+  const sid = args.student_id ? normalizeStudentId(args.student_id) : '';
+  const supabase = getSupabaseAdmin();
+
+  let query = supabase
+    .from('attendance_logs')
+    .select('yyyymmdd, ts, student_id, action_type, kiosk_floor, result')
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('result', 'OK')
+    .in('action_type', [
+      'CHECK_IN',
+      'CHECK_OUT',
+      'MOVE',
+      'OUTING_OUT',
+      'OUTING_BACK',
+      'MANUAL_CHECK_IN',
+      'MANUAL_CHECK_OUT'
+    ])
+    .order('ts', { ascending: true })
+    .limit(5000);
+
+  if (sid) {
+    query = query.eq('student_id', sid);
+  }
+
+  const { data: logs, error: readErr } = await query;
+  if (readErr) {
+    return fail(500, 'DB_SELECT_FAILED', readErr.message || 'attendance_logs 조회 실패');
+  }
+
+  const rows = rebuildStateFromLogRows(logs || []);
+  if (!rows.length) {
+    return success({
+      yyyymmdd,
+      student_id: sid,
+      log_count: Array.isArray(logs) ? logs.length : 0,
+      rebuilt_count: 0
+    });
+  }
+
+  const { data, error } = await supabase
+    .from('today_student_state')
+    .upsert(rows, { onConflict: 'yyyymmdd,student_id' })
+    .select('yyyymmdd, student_id');
+
+  if (error) {
+    return fail(500, 'DB_UPSERT_FAILED', error.message || 'today_student_state 재빌드 실패');
+  }
+
+  return success({
+    yyyymmdd,
+    student_id: sid,
+    log_count: Array.isArray(logs) ? logs.length : 0,
+    rebuilt_count: Array.isArray(data) ? data.length : rows.length,
+    run_by: auth.me.staff_id
+  });
+}
+
 async function metaDiagDirect(sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -1654,6 +1806,11 @@ export default async function handler(req, res) {
 
   if (op === 'admin.listNotifyQueue') {
     const result = await adminListNotifyQueueDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+  
+  if (op === 'admin.rebuildTodayState') {
+    const result = await adminRebuildTodayStateDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

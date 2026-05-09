@@ -1174,6 +1174,7 @@
                   <button class="btn btn-pri" id="btnRunAbsent" type="button">미등원 즉시 실행</button>
 					<button class="btn btn-ghost" id="btnQueueList" type="button">실패 알림 조회</button>
 					<button class="btn btn-bad" id="btnQueueRetry" type="button">실패 알림 재처리</button>
+					<button class="btn btn-ghost" id="btnRebuildState" type="button">오늘 상태 재빌드</button>
                   <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
                   <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
@@ -2338,6 +2339,7 @@
 				StaffUI.bindClick('btnFloor7', () => StaffUI.setFloor('7F'));
 				StaffUI.bindClick('btnQueueList', StaffUI.queueList);
 				StaffUI.bindClick('btnQueueRetry', StaffUI.queueRetry);
+				StaffUI.bindClick('btnRebuildState', StaffUI.rebuildTodayState);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
 
@@ -2396,6 +2398,7 @@
 					'btnFloor7',
 					'btnQueueList',
 					'btnQueueRetry',
+					'btnRebuildState',
 					'btnFlushCache',
 					'btnGenSchedule'
 				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
@@ -2894,6 +2897,41 @@
 				}
 
 				UI.toast(true, 'queue 재처리 완료');
+			},
+
+			async rebuildTodayState() {
+				const pin = prompt('[보안 확인] 오늘 학생 상태 read model을 재빌드하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
+
+				const yyyymmdd = prompt('재빌드할 날짜를 입력하세요. 예: 20260509\n비우면 오늘 날짜로 실행합니다.', '');
+				const studentId = prompt('특정 학생만 재빌드하려면 학번 4자리를 입력하세요.\n전체 재빌드는 비워두세요.', '');
+
+				const box = $('#diagBox');
+				if (box) box.textContent = 'today_student_state 재빌드 중...';
+
+				const r = await App.rpc('admin.rebuildTodayState', {
+					pin,
+					yyyymmdd: yyyymmdd || '',
+					student_id: studentId || ''
+				});
+
+				if (!r.ok) {
+					if (box) box.textContent = (r.error && r.error.message) ? r.error.message : 'today_student_state 재빌드 실패';
+					UI.toast(false, '상태 재빌드 실패');
+					return;
+				}
+
+				const d = r.data || {};
+				if (box) {
+					box.textContent =
+						'today_student_state 재빌드 완료\n\n' +
+						'yyyymmdd: ' + (d.yyyymmdd || '') + '\n' +
+						'student_id: ' + (d.student_id || '전체') + '\n' +
+						'log_count: ' + (d.log_count || 0) + '\n' +
+						'rebuilt_count: ' + (d.rebuilt_count || 0);
+				}
+
+				UI.toast(true, '상태 재빌드 완료');
 			},
 
 			async flushCache() {
