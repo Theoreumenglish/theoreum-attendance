@@ -33,9 +33,11 @@ $excludeExtensions = @(
 )
 
 $temp = Join-Path $env:TEMP ("theoreum_release_" + $stamp)
+
 if (Test-Path $temp) {
   Remove-Item -Recurse -Force $temp
 }
+
 New-Item -ItemType Directory -Path $temp | Out-Null
 
 Get-ChildItem -Path $root -Force | ForEach-Object {
