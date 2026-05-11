@@ -26,6 +26,7 @@ import {
   normalizeFloor,
   normalizeYn
 } from './_runtime-meta.js';
+import { teacherSetExceptionHybrid } from '../lib/rpc-hybrid-write.js';
 import {
   assistantGetLogsDirect,
   assistantGetLogByTraceDirect,
@@ -1172,6 +1173,14 @@ async function metaCheckCentralDirect(sessionToken = '') {
     {
       name: 'class_students',
       columns: 'class_id, student_id'
+    },
+    {
+      name: 'class_exceptions',
+      columns: 'class_id, yyyymmdd, reason, created_at, created_by, updated_at, updated_by'
+    },
+    {
+      name: 'holidays',
+      columns: 'yyyymmdd, name, note, created_at, actor'
     },
     {
       name: 'class_schedule',
@@ -2424,7 +2433,7 @@ export default async function handler(req, res) {
   }
 
   if (op === 'teacher.setException') {
-    const result = await teacherSetExceptionDirect(payload.args || {}, sessionToken);
+    const result = await teacherSetExceptionHybrid(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

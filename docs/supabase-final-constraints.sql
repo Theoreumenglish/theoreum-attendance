@@ -103,3 +103,79 @@ on public.absence_detection_runs(created_at desc);
 
 create index if not exists notify_worker_runs_created_at_idx
 on public.notify_worker_runs(created_at desc);
+
+-- Central DB replica unique constraints
+-- Required for GAS Supabase REST upsert with on_conflict.
+
+create unique index if not exists students_student_id_ux
+on public.students(student_id);
+
+create unique index if not exists staff_staff_id_ux
+on public.staff(staff_id);
+
+create unique index if not exists class_schedule_ymd_class_ux
+on public.class_schedule(yyyymmdd, class_id);
+
+create unique index if not exists class_students_class_student_ux
+on public.class_students(class_id, student_id);
+
+create unique index if not exists class_exceptions_class_ymd_ux
+on public.class_exceptions(class_id, yyyymmdd);
+
+create unique index if not exists absence_excuses_class_ymd_student_ux
+on public.absence_excuses(class_id, yyyymmdd, student_id);
+
+create unique index if not exists holidays_ymd_ux
+on public.holidays(yyyymmdd);
+
+create table if not exists public.classes (
+  class_id text not null,
+  name text not null default '',
+  teacher text not null default '',
+  start text not null default '',
+  "end" text not null default '',
+  days_json text not null default '[]',
+  room text not null default '',
+  alert_delay text not null default '',
+  alert_to text not null default '',
+  status text not null default '',
+  calendar_event_id text not null default '',
+  created_at text not null default '',
+  updated_at text not null default '',
+  synced_at timestamp with time zone
+);
+
+create unique index if not exists classes_class_id_ux
+on public.classes(class_id);
+
+create index if not exists classes_status_idx
+on public.classes(status);
+
+-- Optional central-replica tables used by Central DB GAS sync.
+
+create table if not exists public.class_exceptions (
+  class_id text not null,
+  yyyymmdd text not null,
+  reason text not null default '',
+  created_at text not null default '',
+  created_by text not null default '',
+  updated_at text not null default '',
+  updated_by text not null default '',
+  synced_at timestamp with time zone
+);
+
+create table if not exists public.holidays (
+  yyyymmdd text not null,
+  name text not null default '',
+  note text not null default '',
+  created_at text not null default '',
+  actor text not null default '',
+  synced_at timestamp with time zone
+);
+
+create index if not exists class_exceptions_ymd_idx
+on public.class_exceptions(yyyymmdd);
+
+create index if not exists holidays_ymd_idx
+on public.holidays(yyyymmdd);
+
