@@ -324,6 +324,14 @@
       #pin{ font-size:52px; }
       .btn{ height:80px; font-size:24px; }
     }
+    /* 빈 메시지 박스는 절대 보이지 않게 처리 */
+    .msg:empty {
+      display: none !important;
+      margin-top: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      min-height: 0 !important;
+    }
   </style>
 </head>
 
@@ -380,7 +388,7 @@
       <button id="btnStop" class="btn btnSub" type="button">초기화</button>
     </div>
 
-    <div id="msg" class="msg err"></div>
+    <div id="msg" class="msg"></div>
 
     <div id="qrWrap" class="qrWrap">
       <div class="who" id="who"></div>
