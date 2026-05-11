@@ -21,7 +21,13 @@ Applies to:
 ```js
 try {
   if (req.method !== 'POST') {
-    return send(res, 405, ...);
+    return send(res, 405, {
+      ok: false,
+      error: {
+        code: 'METHOD_NOT_ALLOWED',
+        message: 'POST만 허용됩니다.'
+      }
+    });
   }
 
   const body = await readBody(req);
@@ -36,3 +42,9 @@ try {
     }
   });
 }
+```
+
+5. Do not consume nonce before validating signature and session.
+6. Do not expose secrets in diagnostic responses.
+7. Use server time, not client time, for expiration decisions.
+8. QR cleanup should be available through `admin.cleanupQrExpired`.
