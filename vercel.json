@@ -3,11 +3,11 @@
   "crons": [
     {
       "path": "/api/attendance-notify-worker",
-      "schedule": "* 4-14 * * 1-6"
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/absent-run-cron",
-      "schedule": "*/5 4-14 * * 1-6"
+      "schedule": "*/5 * * * 1-6"
     }
   ]
 }
