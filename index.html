@@ -1182,6 +1182,7 @@
                   <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
                   <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
 				  <button class="btn btn-ghost" id="btnPreviewNotifyPayload" type="button">알림톡 payload 미리보기</button>
+                  <button class="btn btn-ghost" id="btnCleanupQrDry" type="button">운영 만료 모의 정리</button>
                   <button class="btn btn-ghost" id="btnCleanupQr" type="button">운영 만료 정리</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
                   <button class="btn btn-sky" id="btnGenSchedule" type="button">스케줄 재생성</button>
@@ -2351,6 +2352,7 @@
 				StaffUI.bindClick('btnScanStateMismatch', StaffUI.scanTodayStateMismatch);
 				StaffUI.bindClick('btnRebuildState', StaffUI.rebuildTodayState);
 				StaffUI.bindClick('btnPreviewNotifyPayload', StaffUI.previewNotifyPayload);
+				StaffUI.bindClick('btnCleanupQrDry', StaffUI.cleanupQrExpiredDry);
 				StaffUI.bindClick('btnCleanupQr', StaffUI.cleanupQrExpired);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
@@ -2416,6 +2418,7 @@
 					'btnAbsenceRuns',
 					'btnNotifyWorkerRuns',
 					'btnPreviewNotifyPayload',
+					'btnCleanupQrDry',
 					'btnCleanupQr',
 					'btnFlushCache',
 					'btnGenSchedule'
@@ -3231,9 +3234,45 @@
 				UI.toast(true, '알림톡 payload 생성 완료');
 			},
 
+			async cleanupQrExpiredDry() {
+				const pin = prompt('[보안 확인] 운영 만료 모의 정리를 실행하려면 관리자 PIN을 입력하세요.\n실제 삭제는 수행하지 않습니다.');
+				if (!pin) return;
+
+				const box = $('#diagBox');
+				if (box) box.textContent = '운영 만료 데이터 모의 정리 중...';
+
+				const r = await App.rpc('admin.cleanupQrExpired', {
+					pin,
+					dry_run: 'Y'
+				});
+
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : '운영 만료 모의 정리 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				const d = r.data || {};
+
+				if (box) {
+					box.textContent =
+						'운영 만료 모의 정리 완료\n\n' +
+						'실제 삭제: 없음\n' +
+						'audit_keep_days: ' + (d.audit_keep_days || '') + '\n' +
+						'pin_attempt_keep_days: ' + (d.pin_attempt_keep_days || '') + '\n' +
+						'message: ' + (d.message || '');
+				}
+
+				UI.toast(true, '운영 만료 모의 정리 완료');
+			},
+
 			async cleanupQrExpired() {
 				const pin = prompt('[보안 확인] 만료된 QR/세션/오래된 audit 데이터를 정리하려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;
+				if (!confirm('실제 운영 데이터를 삭제합니다.\n만료 QR, 만료 세션, 오래된 audit 일부가 삭제됩니다.\n먼저 모의 정리를 실행한 뒤 진행하는 것을 권장합니다.\n계속할까요?')) {
+					return;
+				}
 
 				const box = $('#diagBox');
 				if (box) box.textContent = '운영 만료 데이터 정리 중...';

@@ -1,5 +1,24 @@
 -- TheOreum Attendance - final constraints and indexes
 -- Run carefully in Supabase SQL Editor.
+-- Pre-check duplicate rows before creating unique indexes.
+
+select trace_id, count(*) as cnt
+from public.attendance_logs
+where trace_id is not null and trace_id <> ''
+group by trace_id
+having count(*) > 1;
+
+select trace_id, action_type, count(*) as cnt
+from public.attendance_notify_queue
+where trace_id is not null and trace_id <> ''
+  and action_type is not null and action_type <> ''
+group by trace_id, action_type
+having count(*) > 1;
+
+select yyyymmdd, student_id, count(*) as cnt
+from public.today_student_state
+group by yyyymmdd, student_id
+having count(*) > 1;
 
 create unique index if not exists attendance_logs_trace_id_ux
 on public.attendance_logs(trace_id)
@@ -9,6 +28,9 @@ create unique index if not exists attendance_notify_queue_trace_action_ux
 on public.attendance_notify_queue(trace_id, action_type)
 where trace_id is not null and trace_id <> ''
   and action_type is not null and action_type <> '';
+
+create unique index if not exists today_student_state_ymd_student_ux
+on public.today_student_state(yyyymmdd, student_id);
 
 create unique index if not exists staff_daily_ymd_staff_ux
 on public.staff_daily(yyyymmdd, staff_id);

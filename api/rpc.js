@@ -1472,7 +1472,13 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
   results.push(await deleteExpiredQrRows(supabase, 'staff_qr_nonces', 'nonce', nowMs));
   results.push(await deleteExpiredQrRows(supabase, 'staff_qr_sessions', 'token', nowMs));
 
-  results.push(await deleteExpiredIsoRows(supabase, 'staff_sessions', 'session_token', 'expires_at', nowText));
+  results.push(await deleteExpiredIsoRows(
+    supabase,
+    'staff_sessions',
+    'session_token_hash, expires_at',
+    'expires_at',
+    nowText
+  ));
   results.push(await deleteExpiredIsoRows(supabase, 'kiosk_pin_approvals', 'student_id, expires_at', 'expires_at', nowText));
 
   results.push(await deleteOldRowsByColumn(
