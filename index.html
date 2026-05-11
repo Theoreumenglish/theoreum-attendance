@@ -1175,12 +1175,14 @@
                   <button class="btn btn-ghost" id="btnRunAbsentDry" type="button">미등원 모의 감지</button>
 					<button class="btn btn-ghost" id="btnQueueList" type="button">실패 알림 조회</button>
 					<button class="btn btn-bad" id="btnQueueRetry" type="button">실패 알림 재처리</button>
+					<button class="btn btn-ghost" id="btnScanStateMismatch" type="button">오늘 상태 불일치 검사</button>
 					<button class="btn btn-ghost" id="btnRebuildState" type="button">오늘 상태 재빌드</button>
 					<button class="btn btn-ghost" id="btnAbsenceRuns" type="button">미등원 실행 이력</button>
 					<button class="btn btn-ghost" id="btnNotifyWorkerRuns" type="button">알림 worker 이력</button>
                   <button class="btn btn-pri" id="btnFloor5" type="button">5F</button>
                   <button class="btn btn-pri" id="btnFloor7" type="button">7F</button>
-                  <button class="btn btn-ghost" id="btnCleanupQr" type="button">QR 만료 정리</button>
+				  <button class="btn btn-ghost" id="btnPreviewNotifyPayload" type="button">알림톡 payload 미리보기</button>
+                  <button class="btn btn-ghost" id="btnCleanupQr" type="button">운영 만료 정리</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
                   <button class="btn btn-sky" id="btnGenSchedule" type="button">스케줄 재생성</button>
                 </div>
@@ -2347,6 +2349,7 @@
 				StaffUI.bindClick('btnAbsenceRuns', StaffUI.absenceRuns);
 				StaffUI.bindClick('btnNotifyWorkerRuns', StaffUI.notifyWorkerRuns);
 				StaffUI.bindClick('btnRebuildState', StaffUI.rebuildTodayState);
+				StaffUI.bindClick('btnPreviewNotifyPayload', StaffUI.previewNotifyPayload);
 				StaffUI.bindClick('btnCleanupQr', StaffUI.cleanupQrExpired);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
@@ -2407,9 +2410,11 @@
 					'btnFloor7',
 					'btnQueueList',
 					'btnQueueRetry',
+					'btnScanStateMismatch',
 					'btnRebuildState',
 					'btnAbsenceRuns',
 					'btnNotifyWorkerRuns',
+					'btnPreviewNotifyPayload',
 					'btnCleanupQr',
 					'btnFlushCache',
 					'btnGenSchedule'
@@ -2503,6 +2508,7 @@
 					<b>[중앙DB Sync 상태]</b> ${escapeHtml(d.centralReplicaStatus || '')}<br>
 					<b>[중앙DB Sync 시각]</b> ${escapeHtml(d.centralReplicaSyncedAt || '')}<br>
 					<b>[중앙DB Sync 경과]</b> ${escapeHtml(d.centralReplicaAgeMin || '')}분 / 허용 ${escapeHtml(d.centralReplicaMaxStaleMin || '')}분<br>
+					<b>[중앙DB Sync counts]</b> ${escapeHtml(JSON.stringify(d.centralReplicaCountsJson || {}))}<br>
 					${d.centralReplicaError ? `<b>[중앙DB Sync 오류]</b> ${escapeHtml(d.centralReplicaError || '')}<br>` : ''}
 					<b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
@@ -2982,6 +2988,57 @@
 
 				UI.toast(true, 'queue 재처리 완료');
 			},
+			async scanTodayStateMismatch() {
+				const yyyymmdd = prompt('검사할 날짜를 입력하세요. 예: 20260509\n비우면 오늘 날짜로 실행합니다.', '');
+
+				const box = $('#diagBox');
+				if (box) box.textContent = 'today_student_state 불일치 검사 중...';
+
+				const r = await App.rpc('admin.scanTodayStateMismatch', {
+					yyyymmdd: yyyymmdd || ''
+				});
+
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : '상태 불일치 검사 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				const d = r.data || {};
+				const items = Array.isArray(d.items) ? d.items : [];
+
+				if (!items.length) {
+					if (box) {
+						box.textContent =
+							'today_student_state 불일치 검사 결과\n\n' +
+							'yyyymmdd: ' + (d.yyyymmdd || '') + '\n' +
+							'log_count: ' + (d.log_count || 0) + '\n' +
+							'expected_student_count: ' + (d.expected_student_count || 0) + '\n' +
+							'actual_state_count: ' + (d.actual_state_count || 0) + '\n' +
+							'mismatch_count: 0\n\n' +
+							'불일치 없음';
+					}
+
+					UI.toast(true, '불일치 없음');
+					return;
+				}
+
+				if (box) {
+					box.textContent =
+						'today_student_state 불일치 검사 결과\n\n' +
+						'yyyymmdd: ' + (d.yyyymmdd || '') + '\n' +
+						'log_count: ' + (d.log_count || 0) + '\n' +
+						'expected_student_count: ' + (d.expected_student_count || 0) + '\n' +
+						'actual_state_count: ' + (d.actual_state_count || 0) + '\n' +
+						'mismatch_count: ' + (d.mismatch_count || 0) + '\n\n' +
+						items.slice(0, 30).map(x => {
+							return x.student_id + ': ' + (x.diffs || []).join(' / ');
+						}).join('\n');
+				}
+
+				UI.toast(false, '상태 불일치 ' + items.length + '건');
+			},
 
 			async rebuildTodayState() {
 				const pin = prompt('[보안 확인] 오늘 학생 상태 read model을 재빌드하려면 관리자 PIN을 입력하세요.');
@@ -3142,6 +3199,35 @@
 				`;
 
 				UI.toast(true, '알림 worker 이력 조회 완료');
+			},
+
+			async previewNotifyPayload() {
+				const pin = prompt('[보안 확인] 알림톡 payload를 미리보려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
+
+				const studentId = prompt('payload를 확인할 학생 학번 4자리를 입력하세요.', '');
+				if (!studentId) return;
+
+				const box = $('#diagBox');
+				if (box) box.textContent = '알림톡 payload 생성 중...';
+
+				const r = await App.rpc('admin.previewNotifyPayload', {
+					pin,
+					student_id: studentId
+				});
+
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : '알림톡 payload 미리보기 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				if (box) {
+					box.textContent = JSON.stringify(r.data || {}, null, 2);
+				}
+
+				UI.toast(true, '알림톡 payload 생성 완료');
 			},
 
 			async cleanupQrExpired() {

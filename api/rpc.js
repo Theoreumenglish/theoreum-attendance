@@ -5,7 +5,11 @@ import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
-import { sendNcpTestMessageDirect } from '../lib/attendance-notify.js';
+import {
+  sendNcpTestMessageDirect,
+  previewAttendanceNotifyPayloadDirect,
+  previewAbsenceNotifyPayloadDirect
+} from '../lib/attendance-notify.js';
 import {
   runAttendanceNotifyWorker,
   listAttendanceNotifyQueueDirect,
@@ -408,7 +412,7 @@ async function readCentralReplicaDiag() {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from('replica_sync_status')
-      .select('sync_key, synced_at, status, trace_id, error, updated_at')
+      .select('sync_key, synced_at, status, trace_id, error, updated_at, counts_json')
       .eq('sync_key', 'central_db')
       .maybeSingle();
 
@@ -454,6 +458,7 @@ async function readCentralReplicaDiag() {
       maxStaleMin,
       stale,
       traceId: String(data.trace_id || ''),
+      countsJson: data.counts_json && typeof data.counts_json === 'object' ? data.counts_json : {},
       error: String(data.error || '')
     };
   } catch (e) {
@@ -910,6 +915,138 @@ async function adminRebuildTodayStateDirect(args = {}, sessionToken = '') {
   });
 }
 
+function boolText(value) {
+  return value === true ? 'Y' : 'N';
+}
+
+function normalizeStateForCompare(row) {
+  return {
+    checked_in: row?.checked_in === true,
+    checked_out: row?.checked_out === true,
+    outing_active: row?.outing_active === true,
+    last_action_type: String(row?.last_action_type || '').trim().toUpperCase()
+  };
+}
+
+function buildStateMismatchItems(expectedRows, actualRows) {
+  const actualMap = new Map();
+
+  for (const row of actualRows || []) {
+    const sid = normalizeStudentId(row.student_id);
+    if (!sid) continue;
+    actualMap.set(sid, row);
+  }
+
+  const items = [];
+
+  for (const expected of expectedRows || []) {
+    const sid = normalizeStudentId(expected.student_id);
+    if (!sid) continue;
+
+    const actual = actualMap.get(sid) || null;
+    const e = normalizeStateForCompare(expected);
+    const a = normalizeStateForCompare(actual);
+
+    const diffs = [];
+
+    if (!actual) {
+      diffs.push('STATE_ROW_MISSING');
+    }
+
+    if (e.checked_in !== a.checked_in) {
+      diffs.push('checked_in expected=' + boolText(e.checked_in) + ' actual=' + boolText(a.checked_in));
+    }
+
+    if (e.checked_out !== a.checked_out) {
+      diffs.push('checked_out expected=' + boolText(e.checked_out) + ' actual=' + boolText(a.checked_out));
+    }
+
+    if (e.outing_active !== a.outing_active) {
+      diffs.push('outing_active expected=' + boolText(e.outing_active) + ' actual=' + boolText(a.outing_active));
+    }
+
+    if (e.last_action_type && e.last_action_type !== a.last_action_type) {
+      diffs.push('last_action_type expected=' + e.last_action_type + ' actual=' + (a.last_action_type || ''));
+    }
+
+    if (diffs.length) {
+      items.push({
+        student_id: sid,
+        expected: e,
+        actual: actual ? a : null,
+        diffs
+      });
+    }
+  }
+
+  return items;
+}
+
+async function adminScanTodayStateMismatchDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || kstYmd(new Date())).trim();
+  if (!isStrictYmd(yyyymmdd)) {
+    return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: logs, error: logErr } = await supabase
+    .from('attendance_logs')
+    .select('yyyymmdd, ts, student_id, action_type, kiosk_floor, result')
+    .eq('yyyymmdd', yyyymmdd)
+    .eq('result', 'OK')
+    .in('action_type', [
+      'CHECK_IN',
+      'CHECK_OUT',
+      'MOVE',
+      'OUTING_OUT',
+      'OUTING_BACK',
+      'MANUAL_CHECK_IN',
+      'MANUAL_CHECK_OUT'
+    ])
+    .order('ts', { ascending: true })
+    .limit(10000);
+
+  if (logErr) {
+    return fail(500, 'DB_SELECT_FAILED', logErr.message || 'attendance_logs 조회 실패');
+  }
+
+  const expectedRows = rebuildStateFromLogRows(logs || []);
+
+  const studentIds = expectedRows
+    .map(row => normalizeStudentId(row.student_id))
+    .filter(Boolean);
+
+  let actualRows = [];
+  if (studentIds.length) {
+    const { data, error } = await supabase
+      .from('today_student_state')
+      .select('yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type')
+      .eq('yyyymmdd', yyyymmdd)
+      .in('student_id', studentIds);
+
+    if (error) {
+      return fail(500, 'DB_SELECT_FAILED', error.message || 'today_student_state 조회 실패');
+    }
+
+    actualRows = data || [];
+  }
+
+  const items = buildStateMismatchItems(expectedRows, actualRows);
+
+  return success({
+    yyyymmdd,
+    log_count: Array.isArray(logs) ? logs.length : 0,
+    expected_student_count: expectedRows.length,
+    actual_state_count: actualRows.length,
+    mismatch_count: items.length,
+    items
+  });
+}
+
 async function metaDiagDirect(sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -949,6 +1086,7 @@ async function metaDiagDirect(sessionToken = '') {
     centralReplicaMaxStaleMin: String(centralReplica.maxStaleMin || ''),
     centralReplicaStale: !!centralReplica.stale,
     centralReplicaTraceId: centralReplica.traceId || '',
+    centralReplicaCountsJson: centralReplica.countsJson || {},
     centralReplicaError: centralReplica.error || '',
     alimtalkServiceSet: envReady('NCP_ALIMTALK_SERVICE_ID'),
     smsServiceSet: envReady('NCP_SMS_SERVICE_ID'),
@@ -1227,6 +1365,63 @@ async function deleteExpiredQrRows(supabase, tableName, selectExpr, nowMs) {
   };
 }
 
+async function deleteExpiredIsoRows(supabase, tableName, selectExpr, columnName, nowIsoText) {
+  const { data, error } = await supabase
+    .from(tableName)
+    .delete()
+    .lt(columnName, nowIsoText)
+    .select(selectExpr);
+
+  if (error) {
+    return {
+      ok: false,
+      table: tableName,
+      deleted: 0,
+      error: error.message || tableName + ' 만료 row 삭제 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    table: tableName,
+    deleted: Array.isArray(data) ? data.length : 0,
+    error: ''
+  };
+}
+
+async function deleteOldRowsByCreatedAt(supabase, tableName, selectExpr, cutoffIso, filter = null) {
+  let query = supabase
+    .from(tableName)
+    .delete()
+    .lt('created_at', cutoffIso);
+
+  if (filter && filter.column && filter.value != null) {
+    query = query.eq(filter.column, filter.value);
+  }
+
+  const { data, error } = await query.select(selectExpr);
+
+  if (error) {
+    return {
+      ok: false,
+      table: tableName,
+      deleted: 0,
+      error: error.message || tableName + ' 오래된 row 삭제 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    table: tableName,
+    deleted: Array.isArray(data) ? data.length : 0,
+    error: ''
+  };
+}
+
+function daysAgoIso(days) {
+  return new Date(Date.now() - (Number(days || 0) * 24 * 60 * 60 * 1000)).toISOString();
+}
+
 async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -1243,27 +1438,103 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
 
   const supabase = getSupabaseAdmin();
   const nowMs = Date.now();
+  const nowText = nowIso();
+
+  const auditKeepDays = Math.max(30, Math.min(365, Number(args.audit_keep_days || 180)));
+  const pinAttemptKeepDays = Math.max(7, Math.min(180, Number(args.pin_attempt_keep_days || 30)));
 
   const results = [];
+
   results.push(await deleteExpiredQrRows(supabase, 'student_qr_nonces', 'nonce', nowMs));
   results.push(await deleteExpiredQrRows(supabase, 'student_qr_sessions', 'token', nowMs));
   results.push(await deleteExpiredQrRows(supabase, 'staff_qr_nonces', 'nonce', nowMs));
   results.push(await deleteExpiredQrRows(supabase, 'staff_qr_sessions', 'token', nowMs));
 
+  results.push(await deleteExpiredIsoRows(supabase, 'staff_sessions', 'session_token', 'expires_at', nowText));
+  results.push(await deleteExpiredIsoRows(supabase, 'kiosk_pin_approvals', 'student_id, expires_at', 'expires_at', nowText));
+
+  results.push(await deleteOldRowsByCreatedAt(
+    supabase,
+    'kiosk_pin_attempts',
+    'created_at',
+    daysAgoIso(pinAttemptKeepDays)
+  ));
+
+  results.push(await deleteOldRowsByCreatedAt(
+    supabase,
+    'attendance_notify_queue',
+    'queue_id, created_at, status',
+    daysAgoIso(auditKeepDays),
+    { column: 'status', value: 'DONE' }
+  ));
+
+  results.push(await deleteOldRowsByCreatedAt(
+    supabase,
+    'notify_worker_runs',
+    'run_id, created_at',
+    daysAgoIso(auditKeepDays)
+  ));
+
+  results.push(await deleteOldRowsByCreatedAt(
+    supabase,
+    'absence_detection_runs',
+    'run_id, created_at',
+    daysAgoIso(auditKeepDays)
+  ));
+
   const failed = results.filter(x => !x.ok);
-  if (failed.length) {
-    return fail(
-      500,
-      'QR_CLEANUP_PARTIAL_FAILED',
-      failed.map(x => x.table + ': ' + x.error).join(' / ')
-    );
-  }
 
   return success({
     cleaned_at: nowIso(),
     run_by: auth.me.staff_id,
     total_deleted: results.reduce((sum, x) => sum + Number(x.deleted || 0), 0),
+    failed_count: failed.length,
+    ok: failed.length === 0,
+    audit_keep_days: auditKeepDays,
+    pin_attempt_keep_days: pinAttemptKeepDays,
     items: results
+  });
+}
+
+async function adminPreviewNotifyPayloadDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  if (!sid) {
+    return fail(400, 'INVALID_INPUT', '학번 4자리가 필요합니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data: student, error } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, parent_phone')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || 'students 조회 실패');
+  }
+
+  if (!student) {
+    return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+  }
+
+  return success({
+    student,
+    attendance_check_in: previewAttendanceNotifyPayloadDirect(student, 'CHECK_IN'),
+    attendance_check_out: previewAttendanceNotifyPayloadDirect(student, 'CHECK_OUT'),
+    absence: previewAbsenceNotifyPayloadDirect(student)
   });
 }
 
@@ -1947,6 +2218,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'admin.scanTodayStateMismatch') {
+    const result = await adminScanTodayStateMismatchDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'admin.rebuildTodayState') {
     const result = await adminRebuildTodayStateDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
@@ -1956,6 +2232,12 @@ export default async function handler(req, res) {
     const result = await adminRetryNotifyQueueDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
+
+  if (op === 'admin.previewNotifyPayload') {
+    const result = await adminPreviewNotifyPayloadDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
 
   if (op === 'admin.cleanupQrExpired') {
     const result = await adminCleanupQrExpiredDirect(payload.args || {}, sessionToken);

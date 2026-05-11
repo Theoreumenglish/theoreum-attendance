@@ -550,11 +550,19 @@ function fail(status, code, message, detail = {}) {
   };
 }
 
+function perfSnapshot(startMs, extra = {}) {
+  return {
+    total_ms: Math.max(0, Date.now() - Number(startMs || Date.now())),
+    ...extra
+  };
+}
+
 function success(body) {
   return { status: 200, body };
 }
 
 export async function handleKioskMark(payload) {
+  const perfStartMs = Date.now();
   const args = pickArgs(payload);
 
   const requestedAction = normalizeAction(args.action || args.type);
@@ -633,6 +641,7 @@ export async function handleKioskMark(payload) {
           duplicate: true,
           alreadyDone: false,
           source: 'supabase-direct',
+          perf: perfSnapshot(perfStartMs, { path: 'duplicate_trace' }),
           state: {
             write_ok: !!stateWrite.ok,
             skipped: !!stateWrite.skipped,
@@ -871,6 +880,7 @@ export async function handleKioskMark(payload) {
               duplicate: true,
               alreadyDone: false,
               source: 'supabase-direct',
+              perf: perfSnapshot(perfStartMs, { path: 'duplicate_race' }),
               state: {
                 write_ok: !!stateWrite.ok,
                 skipped: !!stateWrite.skipped,
@@ -935,6 +945,12 @@ export async function handleKioskMark(payload) {
           student_name: student.student_name || verifiedStudentName || ''
         },
         notify: notifyResult,
+        perf: perfSnapshot(perfStartMs, {
+          path: 'main',
+          action: finalAction,
+          input_mode: inputMode,
+          state_source: stateSource
+        }),
         state: {
           source: stateSource,
           write_ok: !!stateWrite.ok,
