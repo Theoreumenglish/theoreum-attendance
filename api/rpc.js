@@ -1518,6 +1518,8 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
       daysAgoIso(auditKeepDays)
     ));
 
+    const failedPreview = previewItems.filter(x => !x.ok);
+
     return success({
       dry_run: true,
       cleaned_at: nowIso(),
@@ -1525,8 +1527,12 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
       audit_keep_days: auditKeepDays,
       pin_attempt_keep_days: pinAttemptKeepDays,
       total_would_delete: previewItems.reduce((sum, x) => sum + Number(x.count || 0), 0),
+      failed_count: failedPreview.length,
+      ok: failedPreview.length === 0,
       items: previewItems,
-      message: 'dry_run=Y: 실제 삭제는 수행하지 않았습니다.'
+      message: failedPreview.length
+        ? 'dry_run=Y: 일부 테이블 count에 실패했습니다. 실제 삭제 전 오류를 확인하세요.'
+        : 'dry_run=Y: 실제 삭제는 수행하지 않았습니다.'
     });
   }
 

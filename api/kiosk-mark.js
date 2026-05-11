@@ -970,6 +970,10 @@ export async function handleKioskMark(payload) {
   }
 }
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 function parseBody(req) {
   if (Buffer.isBuffer(req.body)) {
     const text = req.body.toString('utf8').trim();
@@ -989,6 +993,8 @@ function parseBody(req) {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
+
   if (req.method !== 'POST') {
     return res.status(405).json({
       ok: false,
