@@ -32,6 +32,12 @@ where trace_id is not null and trace_id <> ''
 create unique index if not exists today_student_state_ymd_student_ux
 on public.today_student_state(yyyymmdd, student_id);
 
+alter table if exists public.replica_sync_status
+add column if not exists counts_json jsonb not null default '{}'::jsonb;
+
+create unique index if not exists replica_sync_status_sync_key_ux
+on public.replica_sync_status(sync_key);
+
 create unique index if not exists staff_daily_ymd_staff_ux
 on public.staff_daily(yyyymmdd, staff_id);
 
