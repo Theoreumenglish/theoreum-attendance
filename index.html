@@ -2516,6 +2516,9 @@
 					${d.centralReplicaError ? `<b>[중앙DB Sync 오류]</b> ${escapeHtml(d.centralReplicaError || '')}<br>` : ''}
 					<b>[알림톡 서비스]</b> ${d.alimtalkServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[SMS 서비스]</b> ${d.smsServiceSet ? '✅ 설정됨' : '❌ 미설정'}<br>
+					<b>[NCP 내부 SMS failover]</b> ${d.ncpSmsFailoverOn ? '✅ ON' : '❌ OFF'}<br>
+					<b>[출결 direct SMS fallback]</b> ${d.attendanceDirectSmsFallbackOn ? '✅ ON' : '❌ OFF'}<br>
+					<b>[미등원 direct SMS fallback]</b> ${d.absenceDirectSmsFallbackOn ? '✅ ON' : '❌ OFF'}<br>
 					<b>[플러스친구]</b> ${d.plusFriendSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[발신번호]</b> ${d.fromNumberSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[키오스크 층수]</b> ${escapeHtml(d.kioskFloor || '')}<br>
