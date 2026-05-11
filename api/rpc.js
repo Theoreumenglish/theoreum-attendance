@@ -930,7 +930,14 @@ function normalizeStateForCompare(row) {
 }
 
 function buildStateMismatchItems(expectedRows, actualRows) {
+  const expectedMap = new Map();
   const actualMap = new Map();
+
+  for (const row of expectedRows || []) {
+    const sid = normalizeStudentId(row.student_id);
+    if (!sid) continue;
+    expectedMap.set(sid, row);
+  }
 
   for (const row of actualRows || []) {
     const sid = normalizeStudentId(row.student_id);
@@ -940,10 +947,7 @@ function buildStateMismatchItems(expectedRows, actualRows) {
 
   const items = [];
 
-  for (const expected of expectedRows || []) {
-    const sid = normalizeStudentId(expected.student_id);
-    if (!sid) continue;
-
+  for (const [sid, expected] of expectedMap.entries()) {
     const actual = actualMap.get(sid) || null;
     const e = normalizeStateForCompare(expected);
     const a = normalizeStateForCompare(actual);
@@ -973,11 +977,25 @@ function buildStateMismatchItems(expectedRows, actualRows) {
     if (diffs.length) {
       items.push({
         student_id: sid,
+        kind: actual ? 'MISMATCH' : 'MISSING_STATE',
         expected: e,
         actual: actual ? a : null,
         diffs
       });
     }
+  }
+
+  for (const [sid, actual] of actualMap.entries()) {
+    if (expectedMap.has(sid)) continue;
+
+    const a = normalizeStateForCompare(actual);
+    items.push({
+      student_id: sid,
+      kind: 'ORPHAN_STATE_ROW',
+      expected: null,
+      actual: a,
+      diffs: ['ORPHAN_STATE_ROW: attendance_logs 원본 없이 today_student_state만 존재']
+    });
   }
 
   return items;
@@ -1017,23 +1035,14 @@ async function adminScanTodayStateMismatchDirect(args = {}, sessionToken = '') {
 
   const expectedRows = rebuildStateFromLogRows(logs || []);
 
-  const studentIds = expectedRows
-    .map(row => normalizeStudentId(row.student_id))
-    .filter(Boolean);
+  const { data: actualRows, error: stateErr } = await supabase
+    .from('today_student_state')
+    .select('yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type')
+    .eq('yyyymmdd', yyyymmdd)
+    .limit(10000);
 
-  let actualRows = [];
-  if (studentIds.length) {
-    const { data, error } = await supabase
-      .from('today_student_state')
-      .select('yyyymmdd, student_id, checked_in, checked_out, outing_active, last_action_type')
-      .eq('yyyymmdd', yyyymmdd)
-      .in('student_id', studentIds);
-
-    if (error) {
-      return fail(500, 'DB_SELECT_FAILED', error.message || 'today_student_state 조회 실패');
-    }
-
-    actualRows = data || [];
+  if (stateErr) {
+    return fail(500, 'DB_SELECT_FAILED', stateErr.message || 'today_student_state 조회 실패');
   }
 
   const items = buildStateMismatchItems(expectedRows, actualRows);
@@ -1042,7 +1051,7 @@ async function adminScanTodayStateMismatchDirect(args = {}, sessionToken = '') {
     yyyymmdd,
     log_count: Array.isArray(logs) ? logs.length : 0,
     expected_student_count: expectedRows.length,
-    actual_state_count: actualRows.length,
+    actual_state_count: Array.isArray(actualRows) ? actualRows.length : 0,
     mismatch_count: items.length,
     items
   });
@@ -1390,11 +1399,11 @@ async function deleteExpiredIsoRows(supabase, tableName, selectExpr, columnName,
   };
 }
 
-async function deleteOldRowsByCreatedAt(supabase, tableName, selectExpr, cutoffIso, filter = null) {
+async function deleteOldRowsByColumn(supabase, tableName, selectExpr, columnName, cutoffIso, filter = null) {
   let query = supabase
     .from(tableName)
     .delete()
-    .lt('created_at', cutoffIso);
+    .lt(columnName, cutoffIso);
 
   if (filter && filter.column && filter.value != null) {
     query = query.eq(filter.column, filter.value);
@@ -1469,7 +1478,7 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
   results.push(await deleteOldRowsByColumn(
     supabase,
     'kiosk_pin_attempts',
-    'created_at, staff_id, ok',
+    'staff_id, student_id, updated_at',
     'updated_at',
     daysAgoIso(pinAttemptKeepDays)
   ));

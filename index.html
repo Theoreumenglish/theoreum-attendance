@@ -3034,7 +3034,7 @@
 						'actual_state_count: ' + (d.actual_state_count || 0) + '\n' +
 						'mismatch_count: ' + (d.mismatch_count || 0) + '\n\n' +
 						items.slice(0, 30).map(x => {
-							return x.student_id + ': ' + (x.diffs || []).join(' / ');
+							return x.student_id + ' [' + (x.kind || '') + ']: ' + (x.diffs || []).join(' / ');
 						}).join('\n');
 				}
 
@@ -3243,7 +3243,7 @@
 				});
 
 				if (!r.ok) {
-					const msg = (r.error && r.error.message) ? r.error.message : 'QR 만료 정리 실패';
+					const msg = (r.error && r.error.message) ? r.error.message : '운영 만료 정리 실패';
 					if (box) box.textContent = msg;
 					UI.toast(false, msg);
 					return;
@@ -3261,7 +3261,7 @@
 						}).join('\n');
 				}
 
-				UI.toast(true, 'QR 만료 정리 완료');
+				UI.toast(true, '운영 만료 정리 완료');
 			},
 			
 			async flushCache() {

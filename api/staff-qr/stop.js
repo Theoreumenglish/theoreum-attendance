@@ -1,7 +1,9 @@
 import { staffQrSessionStop } from '../../lib/staff-qr-core.js';
 
 function send(res, status, body) {
-  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.status(status);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.send(JSON.stringify(body));
 }
 

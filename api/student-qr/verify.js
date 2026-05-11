@@ -1,7 +1,9 @@
 import { studentQrVerify } from '../../lib/student-qr-core.js';
 
 function send(res, status, body) {
-  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.status(status);
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.send(JSON.stringify(body));
 }
 
@@ -46,10 +48,10 @@ export default async function handler(req, res) {
     const args = payload.args && typeof payload.args === 'object' ? payload.args : payload;
     const out = await studentQrVerify(args);
     return send(res, statusFromOut(out), out);
-    } catch (e) {
-      return send(res, 500, {
-        ok: false,
-        error: { code: 'SERVER_ERROR', message: e?.message || 'verify 실패' }
-      });
-    }
+  } catch (e) {
+    return send(res, 500, {
+      ok: false,
+      error: { code: 'SERVER_ERROR', message: e?.message || 'verify 실패' }
+    });
+  }
 }
