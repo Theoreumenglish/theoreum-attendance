@@ -1101,6 +1101,20 @@ async function metaDiagDirect(sessionToken = '') {
     centralReplicaError: centralReplica.error || '',
     alimtalkServiceSet: envReady('NCP_ALIMTALK_SERVICE_ID'),
     smsServiceSet: envReady('NCP_SMS_SERVICE_ID'),
+    ncpSmsFailoverOn:
+      String(process.env.USE_SMS_FAILOVER || 'N').trim().toUpperCase() === 'Y',
+    attendanceDirectSmsFallbackOn:
+      String(
+        process.env.ATT_NOTIFY_SMS_AFTER_ALIM_FAIL ||
+        process.env.USE_SMS_FAILOVER ||
+        'N'
+      ).trim().toUpperCase() === 'Y',
+    absenceDirectSmsFallbackOn:
+      String(
+        process.env.ABSENT_NOTIFY_SMS_AFTER_ALIM_FAIL ||
+        process.env.USE_SMS_FAILOVER ||
+        'N'
+      ).trim().toUpperCase() === 'Y',
     plusFriendSet: envReady('NCP_PLUS_FRIEND_ID'),
     fromNumberSet: envReady('NCP_SENS_FROM') || envReady('NCP_CALLER'),
     kioskFloor: meta.data?.kiosk_floor || '',
