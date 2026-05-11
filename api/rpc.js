@@ -915,6 +915,7 @@ async function adminRebuildTodayStateDirect(args = {}, sessionToken = '') {
   });
 }
 
+
 function boolText(value) {
   return value === true ? 'Y' : 'N';
 }
@@ -1436,12 +1437,24 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
     );
   }
 
+  const dryRun = String(args.dry_run || args.dryRun || 'N').trim().toUpperCase() === 'Y';
   const supabase = getSupabaseAdmin();
   const nowMs = Date.now();
   const nowText = nowIso();
 
   const auditKeepDays = Math.max(30, Math.min(365, Number(args.audit_keep_days || 180)));
   const pinAttemptKeepDays = Math.max(7, Math.min(180, Number(args.pin_attempt_keep_days || 30)));
+
+  if (dryRun) {
+    return success({
+      dry_run: true,
+      cleaned_at: nowIso(),
+      run_by: auth.me.staff_id,
+      audit_keep_days: auditKeepDays,
+      pin_attempt_keep_days: pinAttemptKeepDays,
+      message: 'dry_run=Y: 실제 삭제는 수행하지 않았습니다.'
+    });
+  }
 
   const results = [];
 
@@ -1453,43 +1466,58 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
   results.push(await deleteExpiredIsoRows(supabase, 'staff_sessions', 'session_token', 'expires_at', nowText));
   results.push(await deleteExpiredIsoRows(supabase, 'kiosk_pin_approvals', 'student_id, expires_at', 'expires_at', nowText));
 
-  results.push(await deleteOldRowsByCreatedAt(
+  results.push(await deleteOldRowsByColumn(
     supabase,
     'kiosk_pin_attempts',
-    'created_at',
+    'created_at, staff_id, ok',
+    'updated_at',
     daysAgoIso(pinAttemptKeepDays)
   ));
 
-  results.push(await deleteOldRowsByCreatedAt(
+  results.push(await deleteOldRowsByColumn(
     supabase,
     'attendance_notify_queue',
     'queue_id, created_at, status',
+    'created_at',
     daysAgoIso(auditKeepDays),
     { column: 'status', value: 'DONE' }
   ));
 
-  results.push(await deleteOldRowsByCreatedAt(
+  results.push(await deleteOldRowsByColumn(
     supabase,
     'notify_worker_runs',
     'run_id, created_at',
+    'created_at',
     daysAgoIso(auditKeepDays)
   ));
 
-  results.push(await deleteOldRowsByCreatedAt(
+  results.push(await deleteOldRowsByColumn(
     supabase,
     'absence_detection_runs',
     'run_id, created_at',
+    'created_at',
     daysAgoIso(auditKeepDays)
   ));
 
   const failed = results.filter(x => !x.ok);
+  if (failed.length) {
+    return fail(
+      500,
+      'CLEANUP_PARTIAL_FAILED',
+      '운영 만료 정리 중 일부 테이블에서 실패했습니다.',
+      {
+        failed,
+        items: results
+      }
+    );
+  }
 
   return success({
+    dry_run: false,
     cleaned_at: nowIso(),
     run_by: auth.me.staff_id,
     total_deleted: results.reduce((sum, x) => sum + Number(x.deleted || 0), 0),
-    failed_count: failed.length,
-    ok: failed.length === 0,
+    failed_count: 0,
     audit_keep_days: auditKeepDays,
     pin_attempt_keep_days: pinAttemptKeepDays,
     items: results

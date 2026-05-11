@@ -2348,6 +2348,7 @@
 				StaffUI.bindClick('btnQueueRetry', StaffUI.queueRetry);
 				StaffUI.bindClick('btnAbsenceRuns', StaffUI.absenceRuns);
 				StaffUI.bindClick('btnNotifyWorkerRuns', StaffUI.notifyWorkerRuns);
+				StaffUI.bindClick('btnScanStateMismatch', StaffUI.scanTodayStateMismatch);
 				StaffUI.bindClick('btnRebuildState', StaffUI.rebuildTodayState);
 				StaffUI.bindClick('btnPreviewNotifyPayload', StaffUI.previewNotifyPayload);
 				StaffUI.bindClick('btnCleanupQr', StaffUI.cleanupQrExpired);
@@ -3231,11 +3232,11 @@
 			},
 
 			async cleanupQrExpired() {
-				const pin = prompt('[보안 확인] 만료된 학생/직원 QR 세션과 nonce를 정리하려면 관리자 PIN을 입력하세요.');
+				const pin = prompt('[보안 확인] 만료된 QR/세션/오래된 audit 데이터를 정리하려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;
 
 				const box = $('#diagBox');
-				if (box) box.textContent = 'QR 만료 데이터 정리 중...';
+				if (box) box.textContent = '운영 만료 데이터 정리 중...';
 
 				const r = await App.rpc('admin.cleanupQrExpired', {
 					pin
@@ -3253,7 +3254,7 @@
 
 				if (box) {
 					box.textContent =
-						'QR 만료 데이터 정리 완료\n\n' +
+						'운영 만료 데이터 정리 완료\n\n' +
 						'total_deleted: ' + (d.total_deleted || 0) + '\n\n' +
 						items.map(x => {
 							return x.table + ': ' + (x.deleted || 0) + '개 삭제';
