@@ -45,6 +45,12 @@ create table if not exists public.replica_sync_status (
 alter table if exists public.replica_sync_status
 add column if not exists counts_json jsonb not null default '{}'::jsonb;
 
+alter table if exists public.replica_sync_status
+add column if not exists error text not null default '';
+
+alter table if exists public.replica_sync_status
+add column if not exists updated_at timestamp with time zone;
+
 create unique index if not exists replica_sync_status_sync_key_ux
 on public.replica_sync_status(sync_key);
 
@@ -178,15 +184,6 @@ add column if not exists synced_at timestamp with time zone;
 alter table if exists public.holidays
 add column if not exists synced_at timestamp with time zone;
 
-alter table if exists public.replica_sync_status
-add column if not exists counts_json jsonb not null default '{}'::jsonb;
-
-alter table if exists public.replica_sync_status
-add column if not exists error text not null default '';
-
-alter table if exists public.replica_sync_status
-add column if not exists updated_at timestamp with time zone;
-
 create unique index if not exists students_student_id_ux
 on public.students(student_id);
 
@@ -210,9 +207,6 @@ on public.absence_excuses(class_id, yyyymmdd, student_id);
 
 create unique index if not exists holidays_ymd_ux
 on public.holidays(yyyymmdd);
-
-create unique index if not exists replica_sync_status_sync_key_ux
-on public.replica_sync_status(sync_key);
 
 create index if not exists classes_status_idx
 on public.classes(status);
