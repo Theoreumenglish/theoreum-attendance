@@ -1,10 +1,14 @@
 import { approveKioskPinDirect } from '../lib/staff-auth.js';
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 export async function handleKioskApprovePin(payload) {
   const args =
-  payload?.args && typeof payload.args === 'object'
-    ? payload.args
-    : (payload && typeof payload === 'object' ? payload : {});
+    payload?.args && typeof payload.args === 'object'
+      ? payload.args
+      : (payload && typeof payload === 'object' ? payload : {});
   const traceId = String(
     payload?.traceId ||
     payload?.trace_id ||
@@ -39,6 +43,7 @@ function parseBody(req) {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
   if (req.method !== 'POST') {
     return res.status(405).json({
       ok: false,

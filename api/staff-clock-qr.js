@@ -2,6 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { writeStaffClockAndRollup } from '../lib/staff-attendance.js';
 import { staffQrVerify } from '../lib/staff-qr-core.js';
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 const DEDUPE_SEC = 10;
 const ALLOWED_ACTIONS = new Set(['IN', 'OUT']);
 
@@ -215,6 +219,7 @@ function parseBody(req) {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
   if (req.method !== 'POST') {
     return res.status(405).json({
       ok: false,

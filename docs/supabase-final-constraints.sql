@@ -41,8 +41,20 @@ on public.staff_monthly(yyyymm, staff_id);
 create unique index if not exists student_qr_sessions_token_ux
 on public.student_qr_sessions(token);
 
+alter table if exists public.staff_qr_sessions
+add column if not exists staff_name text not null default '';
+
+alter table if exists public.staff_qr_sessions
+add column if not exists role text not null default '';
+
 create unique index if not exists staff_qr_sessions_token_ux
 on public.staff_qr_sessions(token);
+
+create index if not exists staff_qr_nonces_session_used_exp_idx
+on public.staff_qr_nonces(staff_id, public_session_id, used, exp_ms);
+
+create index if not exists student_qr_nonces_session_used_exp_idx
+on public.student_qr_nonces(student_id, public_session_id, used, exp_ms);
 
 create unique index if not exists student_qr_nonces_nonce_ux
 on public.student_qr_nonces(nonce);

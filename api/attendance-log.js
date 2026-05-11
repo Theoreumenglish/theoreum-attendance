@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 const ALLOWED_ACTIONS = new Set([
   'CHECK_IN',
   'CHECK_OUT',
@@ -328,6 +332,7 @@ function buildSupabase() {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
   }

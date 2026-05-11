@@ -1,5 +1,9 @@
 import { writeStaffClockAndRollup } from '../lib/staff-attendance.js';
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 const ALLOWED_INPUT_MODES = new Set(['QR', 'WEB', 'MANUAL']);
 
 function isPlainObject(value) {
@@ -42,6 +46,7 @@ function normalizeRole(input) {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
   }

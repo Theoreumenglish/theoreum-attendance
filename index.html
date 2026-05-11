@@ -3261,6 +3261,10 @@
 						'실제 삭제: 없음\n' +
 						'audit_keep_days: ' + (d.audit_keep_days || '') + '\n' +
 						'pin_attempt_keep_days: ' + (d.pin_attempt_keep_days || '') + '\n' +
+						'total_would_delete: ' + (d.total_would_delete || 0) + '\n\n' +
+						(Array.isArray(d.items) ? d.items.map(x => {
+						return x.table + ': ' + (x.count || 0) + '개 삭제 예정' + (x.error ? ' / ' + x.error : '');
+						}).join('\n') : '') + '\n\n' +
 						'message: ' + (d.message || '');
 				}
 

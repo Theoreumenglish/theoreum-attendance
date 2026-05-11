@@ -1243,7 +1243,7 @@ async function metaCheckCentralDirect(sessionToken = '') {
     },
     {
       name: 'staff_qr_sessions',
-      columns: 'token, staff_id, public_session_id, exp_ms'
+      columns: 'token, staff_id, public_session_id, exp_ms, staff_name, role'
     },
     {
       name: 'staff_qr_nonces',
@@ -1428,6 +1428,35 @@ async function deleteOldRowsByColumn(supabase, tableName, selectExpr, columnName
   };
 }
 
+async function countRowsByColumn(supabase, tableName, columnName, cutoffValue, filter = null) {
+  let query = supabase
+    .from(tableName)
+    .select('*', { count: 'exact', head: true })
+    .lt(columnName, cutoffValue);
+
+  if (filter && filter.column && filter.value != null) {
+    query = query.eq(filter.column, filter.value);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    return {
+      ok: false,
+      table: tableName,
+      count: 0,
+      error: error.message || tableName + ' count 실패'
+    };
+  }
+
+  return {
+    ok: true,
+    table: tableName,
+    count: Number(count || 0),
+    error: ''
+  };
+}
+
 function daysAgoIso(days) {
   return new Date(Date.now() - (Number(days || 0) * 24 * 60 * 60 * 1000)).toISOString();
 }
@@ -1455,12 +1484,48 @@ async function adminCleanupQrExpiredDirect(args = {}, sessionToken = '') {
   const pinAttemptKeepDays = Math.max(7, Math.min(180, Number(args.pin_attempt_keep_days || 30)));
 
   if (dryRun) {
+    const previewItems = [];
+
+    previewItems.push(await countRowsByColumn(supabase, 'student_qr_nonces', 'exp_ms', nowMs));
+    previewItems.push(await countRowsByColumn(supabase, 'student_qr_sessions', 'exp_ms', nowMs));
+    previewItems.push(await countRowsByColumn(supabase, 'staff_qr_nonces', 'exp_ms', nowMs));
+    previewItems.push(await countRowsByColumn(supabase, 'staff_qr_sessions', 'exp_ms', nowMs));
+    previewItems.push(await countRowsByColumn(supabase, 'staff_sessions', 'expires_at', nowText));
+    previewItems.push(await countRowsByColumn(supabase, 'kiosk_pin_approvals', 'expires_at', nowText));
+    previewItems.push(await countRowsByColumn(
+      supabase,
+      'kiosk_pin_attempts',
+      'updated_at',
+      daysAgoIso(pinAttemptKeepDays)
+    ));
+    previewItems.push(await countRowsByColumn(
+      supabase,
+      'attendance_notify_queue',
+      'created_at',
+      daysAgoIso(auditKeepDays),
+      { column: 'status', value: 'DONE' }
+    ));
+    previewItems.push(await countRowsByColumn(
+      supabase,
+      'notify_worker_runs',
+      'created_at',
+      daysAgoIso(auditKeepDays)
+    ));
+    previewItems.push(await countRowsByColumn(
+      supabase,
+      'absence_detection_runs',
+      'created_at',
+      daysAgoIso(auditKeepDays)
+    ));
+
     return success({
       dry_run: true,
       cleaned_at: nowIso(),
       run_by: auth.me.staff_id,
       audit_keep_days: auditKeepDays,
       pin_attempt_keep_days: pinAttemptKeepDays,
+      total_would_delete: previewItems.reduce((sum, x) => sum + Number(x.count || 0), 0),
+      items: previewItems,
       message: 'dry_run=Y: 실제 삭제는 수행하지 않았습니다.'
     });
   }

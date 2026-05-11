@@ -1,6 +1,10 @@
 import { authMeDirect } from '../lib/staff-auth.js';
 import { writeStaffClockAndRollup } from '../lib/staff-attendance.js';
 
+function setNoStore(res) {
+  res.setHeader('Cache-Control', 'no-store');
+}
+
 const ALLOWED_ACTIONS = new Set(['IN', 'OUT']);
 
 function normalizeAction(input) {
@@ -32,9 +36,9 @@ function success(body) {
 
 export async function handleStaffClock(payload) {
   const args =
-  payload?.args && typeof payload.args === 'object'
-    ? payload.args
-    : (payload && typeof payload === 'object' ? payload : {});
+    payload?.args && typeof payload.args === 'object'
+      ? payload.args
+      : (payload && typeof payload === 'object' ? payload : {});
   const action = normalizeAction(args.action || args.type);
   const note = normalizeNote(args.note || '');
   const inputMode = normalizeInputMode(args.input_mode || 'WEB');
@@ -113,6 +117,7 @@ function parseBody(req) {
 }
 
 export default async function handler(req, res) {
+  setNoStore(res);
   if (req.method !== 'POST') {
     return res.status(405).json({
       ok: false,
