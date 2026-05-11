@@ -43,8 +43,13 @@ function getWorkerKey() {
 }
 
 function isWorkerAuthorized(req, body) {
-  const expected = getWorkerKey();
-  if (!expected) return false;
+  const workerKey = getWorkerKey();
+  const cronSecret = String(process.env.CRON_SECRET || '').trim();
+
+  const authHeader = String(req?.headers?.authorization || '').trim();
+  const bearer = authHeader.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : '';
 
   const fromHeader = String(
     req?.headers?.['x-worker-key'] ||
@@ -53,17 +58,25 @@ function isWorkerAuthorized(req, body) {
   ).trim();
 
   const fromBody = String(body?.worker_key || '').trim();
-  const provided = fromHeader || fromBody;
-  return !!provided && provided === expected;
+  const fromQuery = String(req?.query?.worker_key || '').trim();
+
+  const provided = bearer || fromHeader || fromBody || fromQuery;
+
+  if (!provided) return false;
+
+  if (workerKey && provided === workerKey) return true;
+  if (cronSecret && provided === cronSecret) return true;
+
+  return false;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return send(res, 405, {
       ok: false,
       error: {
         code: 'METHOD_NOT_ALLOWED',
-        message: 'POST만 허용됩니다.'
+        message: 'GET 또는 POST만 허용됩니다.'
       }
     });
   }
@@ -81,12 +94,12 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!getWorkerKey()) {
+  if (!getWorkerKey() && !String(process.env.CRON_SECRET || '').trim()) {
     return send(res, 500, {
       ok: false,
       error: {
         code: 'CONFIG_REQUIRED',
-        message: 'NOTIFY_WORKER_KEY가 설정되지 않았습니다.'
+        message: 'NOTIFY_WORKER_KEY 또는 CRON_SECRET이 설정되지 않았습니다.'
       }
     });
   }
