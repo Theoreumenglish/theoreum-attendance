@@ -104,29 +104,8 @@ on public.absence_detection_runs(created_at desc);
 create index if not exists notify_worker_runs_created_at_idx
 on public.notify_worker_runs(created_at desc);
 
--- Central DB replica unique constraints
+-- Central DB replica tables, columns, constraints, and indexes
 -- Required for GAS Supabase REST upsert with on_conflict.
-
-create unique index if not exists students_student_id_ux
-on public.students(student_id);
-
-create unique index if not exists staff_staff_id_ux
-on public.staff(staff_id);
-
-create unique index if not exists class_schedule_ymd_class_ux
-on public.class_schedule(yyyymmdd, class_id);
-
-create unique index if not exists class_students_class_student_ux
-on public.class_students(class_id, student_id);
-
-create unique index if not exists class_exceptions_class_ymd_ux
-on public.class_exceptions(class_id, yyyymmdd);
-
-create unique index if not exists absence_excuses_class_ymd_student_ux
-on public.absence_excuses(class_id, yyyymmdd, student_id);
-
-create unique index if not exists holidays_ymd_ux
-on public.holidays(yyyymmdd);
 
 create table if not exists public.classes (
   class_id text not null,
@@ -145,13 +124,8 @@ create table if not exists public.classes (
   synced_at timestamp with time zone
 );
 
-create unique index if not exists classes_class_id_ux
-on public.classes(class_id);
-
-create index if not exists classes_status_idx
-on public.classes(status);
-
--- Optional central-replica tables used by Central DB GAS sync.
+alter table if exists public.classes
+add column if not exists synced_at timestamp with time zone;
 
 create table if not exists public.class_exceptions (
   class_id text not null,
@@ -173,9 +147,70 @@ create table if not exists public.holidays (
   synced_at timestamp with time zone
 );
 
+alter table if exists public.students
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.staff
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.class_schedule
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.class_students
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.absence_excuses
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.class_exceptions
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.holidays
+add column if not exists synced_at timestamp with time zone;
+
+alter table if exists public.replica_sync_status
+add column if not exists counts_json jsonb not null default '{}'::jsonb;
+
+alter table if exists public.replica_sync_status
+add column if not exists error text not null default '';
+
+alter table if exists public.replica_sync_status
+add column if not exists updated_at timestamp with time zone;
+
+create unique index if not exists students_student_id_ux
+on public.students(student_id);
+
+create unique index if not exists staff_staff_id_ux
+on public.staff(staff_id);
+
+create unique index if not exists classes_class_id_ux
+on public.classes(class_id);
+
+create unique index if not exists class_schedule_ymd_class_ux
+on public.class_schedule(yyyymmdd, class_id);
+
+create unique index if not exists class_students_class_student_ux
+on public.class_students(class_id, student_id);
+
+create unique index if not exists class_exceptions_class_ymd_ux
+on public.class_exceptions(class_id, yyyymmdd);
+
+create unique index if not exists absence_excuses_class_ymd_student_ux
+on public.absence_excuses(class_id, yyyymmdd, student_id);
+
+create unique index if not exists holidays_ymd_ux
+on public.holidays(yyyymmdd);
+
+create unique index if not exists replica_sync_status_sync_key_ux
+on public.replica_sync_status(sync_key);
+
+create index if not exists classes_status_idx
+on public.classes(status);
+
 create index if not exists class_exceptions_ymd_idx
 on public.class_exceptions(yyyymmdd);
 
 create index if not exists holidays_ymd_idx
 on public.holidays(yyyymmdd);
 
+select pg_notify('pgrst', 'reload schema');

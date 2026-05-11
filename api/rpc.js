@@ -1162,7 +1162,6 @@ async function metaCheckCentralDirect(sessionToken = '') {
     },
     {
       name: 'classes',
-      required: false,
       columns: 'class_id, name, teacher, start, end, status'
     },
     {
