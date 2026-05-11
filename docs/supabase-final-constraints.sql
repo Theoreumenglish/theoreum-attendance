@@ -1,3 +1,8 @@
+-- IMPORTANT:
+-- This file is a final constraints/index/column hardening script.
+-- It assumes the base Supabase tables already exist.
+-- For a completely empty Supabase project, run the base schema creation script first,
+-- then run this file.
 -- TheOreum Attendance - final constraints and indexes
 -- Run carefully in Supabase SQL Editor.
 -- Pre-check duplicate rows before creating unique indexes.
