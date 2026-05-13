@@ -977,6 +977,147 @@
 		.modal-title {
 		letter-spacing: -2px;
 		}
+
+		.staffWorkBoard {
+		margin-top: 18px;
+		padding: 22px;
+		border: 2px solid var(--line);
+		border-radius: 24px;
+		background: rgba(255,255,255,.72);
+		box-shadow: 0 12px 28px rgba(15,23,42,.05);
+		}
+
+		.staffWorkEmpty {
+		padding: 28px 18px;
+		text-align: center;
+		color: var(--sub);
+		font-size: 16px;
+		font-weight: 800;
+		}
+
+		.workBoardTitle {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+		flex-wrap: wrap;
+		margin-bottom: 18px;
+		font-size: 22px;
+		font-weight: 900;
+		color: var(--text);
+		}
+
+		.workBoardSub {
+		color: var(--sub);
+		font-size: 15px;
+		font-weight: 800;
+		}
+
+		.workStatsGrid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 14px;
+		margin-bottom: 18px;
+		}
+
+		.workStatCard {
+		padding: 18px 16px;
+		border: 2px solid var(--line);
+		border-radius: 18px;
+		background: var(--card);
+		}
+
+		.workStatLabel {
+		color: var(--sub);
+		font-size: 14px;
+		font-weight: 900;
+		margin-bottom: 8px;
+		}
+
+		.workStatValue {
+		color: var(--text);
+		font-size: 28px;
+		font-weight: 900;
+		letter-spacing: -0.6px;
+		}
+
+		.workTableWrap {
+		overflow: auto;
+		max-height: 360px;
+		border: 2px solid var(--line);
+		border-radius: 18px;
+		background: var(--card);
+		}
+
+		.workTable {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 14px;
+		}
+
+		.workTable th,
+		.workTable td {
+		padding: 13px 12px;
+		border-bottom: 1px solid var(--line);
+		text-align: left;
+		white-space: nowrap;
+		vertical-align: middle;
+		}
+
+		.workTable th {
+		position: sticky;
+		top: 0;
+		background: var(--bg);
+		z-index: 1;
+		font-weight: 900;
+		color: var(--text);
+		}
+
+		.workChip {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 78px;
+		padding: 7px 10px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 900;
+		}
+
+		.workChip.ok {
+		color: #166534;
+		background: #dcfce7;
+		}
+
+		.workChip.warn {
+		color: #92400e;
+		background: #fef3c7;
+		}
+
+		.workChip.bad {
+		color: #991b1b;
+		background: #fee2e2;
+		}
+
+		.workDetailBtn {
+		border: none;
+		border-radius: 12px;
+		padding: 9px 12px;
+		cursor: pointer;
+		background: rgba(37, 99, 235, .12);
+		color: var(--pri);
+		font-size: 13px;
+		font-weight: 900;
+		}
+
+		.workDetailBtn:hover {
+		background: rgba(37, 99, 235, .18);
+		}
+
+		@media (max-width: 1024px) {
+		.workStatsGrid {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		}
 	</style>
 </head>
 <body>
@@ -1101,7 +1242,7 @@
 			</div>
 
 			<div class="input-wrapper">
-				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="QR 스캔 / 예외학생은 승인 후 학번 입력">
+				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="QR 스캔 / 학번 직접 출결 허용 학생은 승인 후 학번 입력">
         <div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
         <div class="kStaffQuickHead">
           <div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
@@ -1158,7 +1299,7 @@
           </div>
 
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-            <div class="sectionTitle">예외학생 PIN 승인</div>
+            <div class="sectionTitle">학번 직접 출결 PIN 승인</div>
             <div class="row" style="margin-top:20px;">
               <input class="inp" id="pinSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
               <input class="inp" id="staffPinInput" placeholder="PIN" type="password" inputmode="numeric" style="flex:1;">
@@ -1203,24 +1344,59 @@
         </div>
       </div>
 
-      <!-- teacher 이상 -->
-      <div class="card compactCard teacherOnly" style="margin-top:24px;">
-        <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-          <div class="sectionTitle">예외학생 지정</div>
-          <div class="row" style="margin-top:20px;">
-            <input class="inp" id="exSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
-            <input class="inp" id="exNote" placeholder="사유 메모" style="flex:2;">
-            <button class="btn btn-pri" id="btnSetExY" type="button">예외 등록</button>
-            <button class="btn btn-ghost" id="btnSetExN" type="button">예외 해제</button>
-          </div>
-        </div>
-      </div>
+	<!-- 관리자 전용: 상시 학번 직접 출결 허용 -->
+	<div class="card compactCard adminOnly" style="margin-top:24px;">
+	<div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+		<div class="sectionTitle">상시 학번 직접 출결 허용 학생</div>
+		<div class="subText">
+		QR 사용이 어려운 학생에게만 관리자/원장이 허용하는 기능입니다.
+		일반적인 지각·결석 연락 학생은 아래의 “당일 미등원 알림 제외”에서 처리하세요.
+		</div>
+		<div class="row" style="margin-top:20px;">
+		<input class="inp" id="exSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
+		<input class="inp" id="exNote" placeholder="사유 메모" style="flex:2;">
+		<button class="btn btn-pri" id="btnSetExY" type="button">허용 등록</button>
+		<button class="btn btn-ghost" id="btnSetExN" type="button">허용 해제</button>
+		</div>
+	</div>
+	</div>
+
+	<!-- 조교 이상: 당일 미등원 알림 제외 -->
+	<div class="card compactCard assistantOnly" style="margin-top:24px;">
+	<div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+		<div class="sectionTitle">당일 미등원 알림 제외</div>
+		<div class="subText">
+		지각 또는 결석 연락이 온 학생을 해당 반·해당 날짜의
+		미등원 10분/30분 알림 대상에서만 제외합니다.
+		학생의 일반 QR 등원/하원과 등·하원 알림톡은 그대로 정상 작동합니다.
+		</div>
+
+		<div class="row" style="margin-top:16px;">
+		<input class="inp" id="abDate" placeholder="YYYYMMDD" style="flex:1;">
+		<input class="inp" id="abClassId" placeholder="class_id 필수" style="flex:1;">
+		<input class="inp" id="abSid" placeholder="학번 4자리" style="flex:1;">
+		</div>
+
+		<div class="row" style="margin-top:16px;">
+		<input class="inp" id="abReason" placeholder="사유: 지각 연락 / 병원 / 학교 행사 등" style="flex:2;">
+		<input class="inp" id="abUntilMin" placeholder="유효분 선택, 비우면 당일 끝까지" style="flex:1;">
+		</div>
+
+		<div class="row" style="margin-top:16px;">
+		<button class="btn btn-pri" id="btnAbList" type="button">조회</button>
+		<button class="btn btn-pri" id="btnAbUpsert" type="button">등록/수정</button>
+		<button class="btn btn-bad" id="btnAbRemove" type="button">삭제</button>
+		</div>
+
+		<div class="mono" id="abBox" style="margin-top:16px; max-height:220px; overflow:auto; text-align:left;"></div>
+	</div>
+	</div>
 
       <!-- admin 전용 -->
       <div class="card compactCard adminOnly" style="margin-top:24px;">
         <div class="foldCard" style="margin-top:0;">
           <details open>
-            <summary>오늘 운영</summary>
+            <summary>직원 근무시간</summary>
             <div class="foldBody">
               <div class="row" style="margin-top:18px;">
                 <button class="btn btn-pri" id="btnLoadStaffMonth" type="button">월근무 요약 조회</button>
@@ -1230,7 +1406,12 @@
                 <input class="inp" id="staffMonthYyyymm" placeholder="YYYYMM" style="flex:1;">
                 <input class="inp" id="staffMonthDetailId" placeholder="staff_id (상세용)" style="flex:1;">
               </div>
-              <div class="mono" id="staffMonthBox" style="margin-top:16px; max-height:260px; overflow:auto; text-align:left;"></div>
+              <div id="staffMonthBox" class="staffWorkBoard">
+					<div class="staffWorkEmpty">
+						조회할 월을 입력한 뒤 “월근무 요약 조회”를 누르면
+						직원별 총 근무시간과 일자별 근무 내역을 확인할 수 있습니다.
+					</div>
+				</div>
             </div>
           </details>
         </div>
@@ -1240,23 +1421,6 @@
             <summary>출결 관리</summary>
             <div class="foldBody">
               <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
-                <div class="sectionTitle">특정일 결석 예외</div>
-                <div class="row" style="margin-top:16px;">
-                  <input class="inp" id="abDate" placeholder="YYYYMMDD" style="flex:1;">
-                  <input class="inp" id="abClassId" placeholder="class_id (선택)" style="flex:1;">
-                  <input class="inp" id="abSid" placeholder="학번 4자리" style="flex:1;">
-                </div>
-                <div class="row" style="margin-top:16px;">
-                  <input class="inp" id="abReason" placeholder="사유" style="flex:2;">
-                  <input class="inp" id="abUntilMin" placeholder="유효분 (선택)" style="flex:1;">
-                </div>
-                <div class="row" style="margin-top:16px;">
-                  <button class="btn btn-pri" id="btnAbList" type="button">조회</button>
-                  <button class="btn btn-pri" id="btnAbUpsert" type="button">등록/수정</button>
-                  <button class="btn btn-bad" id="btnAbRemove" type="button">삭제</button>
-                </div>
-                <div class="mono" id="abBox" style="margin-top:16px; max-height:220px; overflow:auto; text-align:left;"></div>
-              </div>
 
               <div class="section section-tight">
                 <div class="sectionTitle">수동 정정</div>
@@ -2144,7 +2308,7 @@
 			getErrorMessage(code, defaultMsg) {
 			const map = {
 				'QR_EXPIRED': '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.',
-				'QR_REQUIRED': '등/하원은 QR 스캔 또는 예외학생 승인 후 학번 입력만 가능합니다.',
+				'QR_REQUIRED': '등/하원은 QR 스캔 또는 관리자 허용 학생의 학번 직접 출결만 가능합니다.',
 				'QR_INVALID': '이미 사용했거나 유효하지 않은 QR입니다.',
 				'NOT_FOUND': '등록되지 않은 학생입니다. 데스크에 문의하세요.',
 				'NOT_ACTIVE': '현재 재원 상태가 아닙니다. 데스크에 문의하세요.',
@@ -2153,8 +2317,8 @@
 				'NOT_CHECKED_IN': '아직 등원 처리되지 않았습니다.',
 				'ALREADY_CHECKED_OUT': '이미 하원 처리된 학생입니다.',
 				'OUTING_ACTIVE': '외출 중입니다. 먼저 복귀 처리하세요.',
-				'NEED_PIN': '예외학생은 데스크 PIN 승인이 필요합니다.',
-				'NOT_EXCEPTION': '예외 등록된 학생만 학번으로 등/하원할 수 있습니다.',
+				'NEED_PIN': '학번 직접 출결 학생은 데스크 PIN 승인이 필요합니다.',
+				'NOT_EXCEPTION': '학번 직접 등/하원 허용 학생만 학번으로 처리할 수 있습니다.',
 				'NO_QR_ID': '학생 QR ID가 등록되어 있지 않습니다. 데스크에 문의하세요.',
 				'RPC_TIMEOUT': '처리 확인 중입니다. 바로 다시 스캔하지 말고 잠시 기다려주세요.'
 			};
@@ -2224,7 +2388,11 @@
 					}
 
 					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isExceptionId) {
-						UI.showModal(false, '입력 오류', '등원/하원은 QR 스캔 또는 예외학생 승인 후 학번 4자리만 가능합니다.');
+						UI.showModal(
+							false,
+							'입력 오류',
+							'등원/하원은 QR 스캔 또는 관리자 허용 학생의 학번 직접 출결만 가능합니다.'
+						);
 						setDbg('QR_OR_EXCEPTION_ID_REQUIRED');
 						UI.beep(false);
 						Voice.speak('입력 방식을 확인해주세요.');
@@ -2331,10 +2499,14 @@
 						const sid = d.student_id ? UI.padSid(d.student_id) : '';
 						const nm = d.student_name || '';
 
-						UI.showModal(false, '예외 학생입니다', '데스크에서 학번 [' + sid + '] PIN 승인을 요청하세요.');
+						UI.showModal(
+							false,
+							'학번 직접 출결 승인 필요',
+							'데스크에서 학번 [' + sid + '] PIN 승인을 요청하세요.'
+						);
 						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 						UI.beep(false);
-						Voice.speak('예외학생입니다. 데스크에 문의해주세요.');
+						Voice.speak('학번 직접 출결 승인 대상입니다. 데스크에 문의해주세요.');
 						UI.flashScreen(false);
 						return;
 					}
@@ -2532,14 +2704,18 @@
 				StaffUI.setRoleSectionVisible('.teacherOnly', teacherPlus);
 				StaffUI.setRoleSectionVisible('.adminOnly', adminPlus);
 
-				['btnLoadLogs', 'btnApprovePin'].forEach(id => StaffUI.setDisabledById(id, !assistantPlus));
-				['btnSetExY', 'btnSetExN'].forEach(id => StaffUI.setDisabledById(id, !teacherPlus));
+				[
+					'btnLoadLogs',
+					'btnApprovePin',
+					'btnAbList',
+					'btnAbUpsert',
+					'btnAbRemove'
+					].forEach(id => StaffUI.setDisabledById(id, !assistantPlus));
+
+					['btnSetExY', 'btnSetExN'].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
 				[
 					'btnLoadStaffMonth',
 					'btnLoadStaffMonthDetail',
-					'btnAbList',
-					'btnAbUpsert',
-					'btnAbRemove',
 					'btnManualAttendance',
 					'btnDiag',
 					'btnCheckCentral',
@@ -2720,83 +2896,242 @@
 				UI.toast(true, '테스트 메시지 발송: ' + (d.final_channel || '성공'));
 			},
 
+			formatWorkMonth(yyyymm) {
+				const raw = String(yyyymm || '').trim();
+				if (/^\d{6}$/.test(raw)) {
+					return raw.slice(0, 4) + '년 ' + Number(raw.slice(4, 6)) + '월';
+				}
+				return raw || '-';
+				},
+
+				formatWorkYmd(yyyymmdd) {
+				const raw = String(yyyymmdd || '').trim();
+				if (/^\d{8}$/.test(raw)) {
+					return raw.slice(0, 4) + '.' + raw.slice(4, 6) + '.' + raw.slice(6, 8);
+				}
+				return raw || '-';
+				},
+
+				formatWorkKstHm(raw) {
+				const s = String(raw || '').trim();
+				if (!s) return '-';
+
+				const d = new Date(s);
+				if (Number.isNaN(d.getTime())) return escapeHtml(s);
+
+				try {
+					return new Intl.DateTimeFormat('ko-KR', {
+					timeZone: 'Asia/Seoul',
+					hour: '2-digit',
+					minute: '2-digit',
+					hour12: false
+					}).format(d);
+				} catch (_) {
+					return escapeHtml(s);
+				}
+				},
+
+				formatWorkHours(raw) {
+				const n = Number(raw || 0);
+				if (!Number.isFinite(n)) return '-';
+				return n.toFixed(2) + '시간';
+				},
+
+				formatWorkedLabel(row) {
+				const minutes = Number(row && row.worked_minutes);
+				const hours = Number(row && row.worked_hours);
+
+				if (Number.isFinite(minutes)) {
+					const h = Number.isFinite(hours) ? hours.toFixed(2) : (minutes / 60).toFixed(2);
+					return minutes + '분 (' + h + '시간)';
+				}
+
+				if (Number.isFinite(hours)) {
+					return hours.toFixed(2) + '시간';
+				}
+
+				return '-';
+				},
+
+				workStatusChip(status) {
+				const raw = String(status || '').trim().toUpperCase();
+
+				if (raw === 'OK') {
+					return '<span class="workChip ok">정상</span>';
+				}
+
+				if (raw === 'MISSING_OUT') {
+					return '<span class="workChip bad">퇴근 누락</span>';
+				}
+
+				if (raw === 'MISSING_IN') {
+					return '<span class="workChip bad">출근 누락</span>';
+				}
+
+				if (raw === 'NO_PAIR') {
+					return '<span class="workChip warn">확인 필요</span>';
+				}
+
+				return '<span class="workChip warn">' + escapeHtml(raw || '-') + '</span>';
+				},
+
 			renderStaffMonthSummary(items, yyyymm) {
 				const box = $('#staffMonthBox');
 				if (!box) return;
 
-				if (!items || !items.length) {
-					box.innerHTML = '조회된 월 집계가 없습니다.';
+				const rows = Array.isArray(items) ? items : [];
+
+				if (!rows.length) {
+					box.innerHTML = '<div class="staffWorkEmpty">조회된 월 집계가 없습니다.</div>';
 					return;
 				}
 
+				const staffCount = rows.length;
+				const totalHours = rows.reduce((sum, x) => sum + (Number(x.total_hours || 0) || 0), 0);
+				const totalWorkDays = rows.reduce((sum, x) => sum + (Number(x.work_days || 0) || 0), 0);
+				const totalMissing = rows.reduce((sum, x) => sum + (Number(x.missing_days || 0) || 0), 0);
+
 				box.innerHTML = `
-					<div style="font-weight:900; margin-bottom:10px;">월: ${escapeHtml(yyyymm || '')}</div>
-					<div class="logScroll" style="max-height:220px;">
-						<table class="logTable">
-							<thead>
-								<tr>
-									<th>staff_id</th>
-									<th>이름</th>
-									<th>역할</th>
-									<th>총시간</th>
-									<th>근무일수</th>
-									<th>누락일수</th>
-								</tr>
-							</thead>
-							<tbody>
-								${items.map(x => `
-									<tr>
-										<td>${escapeHtml(x.staff_id || '')}</td>
-										<td>${escapeHtml(x.name || '')}</td>
-										<td>${escapeHtml(x.role || '')}</td>
-										<td>${escapeHtml(x.total_hours || '')}</td>
-										<td>${escapeHtml(x.work_days || '')}</td>
-										<td>${escapeHtml(x.missing_days || '')}</td>
-									</tr>
-								`).join('')}
-							</tbody>
-						</table>
+					<div class="workBoardTitle">
+					${escapeHtml(StaffUI.formatWorkMonth(yyyymm))} 직원 근무 요약
+					<span class="workBoardSub">직원별 월 총 근무시간을 한눈에 확인합니다.</span>
+					</div>
+
+					<div class="workStatsGrid">
+					<div class="workStatCard">
+						<div class="workStatLabel">직원 수</div>
+						<div class="workStatValue">${staffCount}명</div>
+					</div>
+					<div class="workStatCard">
+						<div class="workStatLabel">전체 총 근무시간</div>
+						<div class="workStatValue">${totalHours.toFixed(2)}h</div>
+					</div>
+					<div class="workStatCard">
+						<div class="workStatLabel">총 근무일수</div>
+						<div class="workStatValue">${totalWorkDays}일</div>
+					</div>
+					<div class="workStatCard">
+						<div class="workStatLabel">근태 확인 필요</div>
+						<div class="workStatValue">${totalMissing}일</div>
+					</div>
+					</div>
+
+					<div class="workTableWrap">
+					<table class="workTable">
+						<thead>
+						<tr>
+							<th>직원</th>
+							<th>역할</th>
+							<th>총 근무시간</th>
+							<th>근무일수</th>
+							<th>누락일수</th>
+							<th>일자별 보기</th>
+						</tr>
+						</thead>
+						<tbody>
+						${rows.map(x => `
+							<tr>
+							<td>
+								<strong>${escapeHtml(x.name || '-')}</strong><br>
+								<span style="color:var(--sub); font-weight:800;">${escapeHtml(x.staff_id || '')}</span>
+							</td>
+							<td>${escapeHtml(x.role || '-')}</td>
+							<td>${escapeHtml(StaffUI.formatWorkHours(x.total_hours))}</td>
+							<td>${escapeHtml(String(x.work_days || 0))}일</td>
+							<td>${escapeHtml(String(x.missing_days || 0))}일</td>
+							<td>
+								<button
+								class="workDetailBtn"
+								type="button"
+								data-work-staff-id="${escapeHtml(x.staff_id || '')}">
+								상세 보기
+								</button>
+							</td>
+							</tr>
+						`).join('')}
+						</tbody>
+					</table>
 					</div>
 				`;
-			},
 
-			renderStaffMonthDetail(items, staffId, yyyymm) {
+				box.querySelectorAll('[data-work-staff-id]').forEach(btn => {
+					btn.addEventListener('click', async () => {
+					const staffId = btn.getAttribute('data-work-staff-id') || '';
+					const input = $('#staffMonthDetailId');
+					if (input) input.value = staffId;
+					await StaffUI.loadStaffMonthDetail();
+					});
+				});
+				},
+
+				renderStaffMonthDetail(items, staffId, yyyymm) {
 				const box = $('#staffMonthBox');
 				if (!box) return;
 
-				if (!items || !items.length) {
-					box.innerHTML = '조회된 일별 집계가 없습니다.';
+				const rows = Array.isArray(items) ? items : [];
+
+				if (!rows.length) {
+					box.innerHTML = '<div class="staffWorkEmpty">조회된 일별 집계가 없습니다.</div>';
 					return;
 				}
 
+				const totalHours = rows.reduce((sum, x) => sum + (Number(x.worked_hours || 0) || 0), 0);
+				const okDays = rows.filter(x => String(x.status || '').trim().toUpperCase() === 'OK').length;
+				const issueDays = rows.length - okDays;
+
 				box.innerHTML = `
-					<div style="font-weight:900; margin-bottom:10px;">직원: ${escapeHtml(staffId || '')} / 월: ${escapeHtml(yyyymm || '')}</div>
-					<div class="logScroll" style="max-height:220px;">
-						<table class="logTable">
-							<thead>
-								<tr>
-									<th>날짜</th>
-									<th>첫 출근</th>
-									<th>마지막 퇴근</th>
-									<th>근무시간</th>
-									<th>상태</th>
-								</tr>
-							</thead>
-							<tbody>
-								${items.map(x => `
-									<tr>
-										<td>${escapeHtml(x.yyyymmdd || '')}</td>
-										<td>${escapeHtml(x.first_in_ts || '')}</td>
-										<td>${escapeHtml(x.last_out_ts || '')}</td>
-										<td>${escapeHtml(x.worked_hours || '')}</td>
-										<td>${escapeHtml(x.status || '')}</td>
-									</tr>
-								`).join('')}
-							</tbody>
-						</table>
+					<div class="workBoardTitle">
+					${escapeHtml(staffId || '-')} · ${escapeHtml(StaffUI.formatWorkMonth(yyyymm))}
+					<span class="workBoardSub">일자별 근무 기록</span>
+					</div>
+
+					<div class="workStatsGrid">
+					<div class="workStatCard">
+						<div class="workStatLabel">월 총 근무시간</div>
+						<div class="workStatValue">${totalHours.toFixed(2)}h</div>
+					</div>
+					<div class="workStatCard">
+						<div class="workStatLabel">근무일수</div>
+						<div class="workStatValue">${rows.length}일</div>
+					</div>
+					<div class="workStatCard">
+						<div class="workStatLabel">정상 근무일</div>
+						<div class="workStatValue">${okDays}일</div>
+					</div>
+					<div class="workStatCard">
+						<div class="workStatLabel">확인 필요일</div>
+						<div class="workStatValue">${issueDays}일</div>
+					</div>
+					</div>
+
+					<div class="workTableWrap">
+					<table class="workTable">
+						<thead>
+						<tr>
+							<th>날짜</th>
+							<th>첫 출근</th>
+							<th>마지막 퇴근</th>
+							<th>근무시간</th>
+							<th>출퇴근 묶음</th>
+							<th>상태</th>
+						</tr>
+						</thead>
+						<tbody>
+						${rows.map(x => `
+							<tr>
+							<td>${escapeHtml(StaffUI.formatWorkYmd(x.yyyymmdd))}</td>
+							<td>${escapeHtml(StaffUI.formatWorkKstHm(x.first_in_ts))}</td>
+							<td>${escapeHtml(StaffUI.formatWorkKstHm(x.last_out_ts))}</td>
+							<td>${escapeHtml(StaffUI.formatWorkedLabel(x))}</td>
+							<td>${escapeHtml(String(x.pair_count || 0))}회</td>
+							<td>${StaffUI.workStatusChip(x.status)}</td>
+							</tr>
+						`).join('')}
+						</tbody>
+					</table>
 					</div>
 				`;
-			},
+				},
 
 			async loadStaffMonthSummary() {
 				const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
@@ -2855,7 +3190,16 @@
 				}
 
 				const r = await App.rpc('teacher.setException', { student_id, is_exception: yn, exception_note });
-				UI.toast(!!r.ok, r.ok ? ('저장 완료: ' + UI.padSid(student_id) + ' → ' + yn) : ((r.error && r.error.message) ? r.error.message : '실패'));
+				UI.toast(
+					!!r.ok,
+					r.ok
+						? (
+							yn === 'Y'
+							? '상시 학번 직접 출결 허용 등록 완료: ' + UI.padSid(student_id)
+							: '상시 학번 직접 출결 허용 해제 완료: ' + UI.padSid(student_id)
+						)
+						: ((r.error && r.error.message) ? r.error.message : '실패')
+				);
 			},
 
 			async abList() {
@@ -2876,8 +3220,8 @@
 				const reason = ($('#abReason').value || '').trim();
 				const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
 
-				if (!yyyymmdd || !student_id) {
-					UI.toast(false, '날짜와 학번은 필수입니다.');
+				if (!yyyymmdd || !class_id || !student_id) {
+					UI.toast(false, '날짜, class_id, 학번은 모두 필수입니다.');
 					return;
 				}
 
@@ -2896,8 +3240,8 @@
 				const class_id = ($('#abClassId').value || '').trim();
 				const student_id = ($('#abSid').value || '').trim();
 
-				if (!yyyymmdd && !student_id) {
-					UI.toast(false, '날짜 또는 학번 조건이 필요합니다.');
+				if (!yyyymmdd || !class_id || !student_id) {
+					UI.toast(false, '삭제 시 날짜, class_id, 학번이 모두 필요합니다.');
 					return;
 				}
 

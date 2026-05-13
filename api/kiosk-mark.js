@@ -611,7 +611,11 @@ export async function handleKioskMark(payload) {
   const sidFromIdInput = normalizeStudentId(input);
 
   if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && !sidFromIdInput) {
-    return fail(400, 'QR_REQUIRED', '등/하원은 전용 QR 또는 예외학생 학번 승인 경로만 사용할 수 있습니다.');
+    return fail(
+      400,
+      'QR_REQUIRED',
+      '등/하원은 전용 QR 또는 관리자 허용 학생의 학번 직접 출결만 가능합니다.'
+    );
   }
 
   if ((requestedAction === 'MOVE' || requestedAction === 'OUTING') && !sidFromIdInput) {
@@ -695,12 +699,16 @@ export async function handleKioskMark(payload) {
     if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput) {
       const isException = String(student.is_exception || '').trim().toUpperCase() === 'Y';
       if (!isException) {
-        return fail(400, 'NOT_EXCEPTION', '예외 등록된 학생만 학번으로 등/하원할 수 있습니다.');
+        return fail(
+          400,
+          'NOT_EXCEPTION',
+          '학번 직접 등/하원 허용 학생만 학번으로 처리할 수 있습니다.'
+        );
       }
 
       const approved = await hasValidPinApproval(sid);
       if (!approved) {
-        return fail(400, 'NEED_PIN', '예외학생은 데스크 PIN 승인이 필요합니다.', {
+        return fail(400, 'NEED_PIN', '학번 직접 출결 학생은 데스크 PIN 승인이 필요합니다.', {
           needPin: true,
           student_id: sid,
           student_name: student.student_name || ''

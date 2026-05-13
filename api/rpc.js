@@ -26,7 +26,11 @@ import {
   normalizeFloor,
   normalizeYn
 } from './_runtime-meta.js';
-import { teacherSetExceptionHybrid } from '../lib/rpc-hybrid-write.js';
+import {
+  teacherSetExceptionHybrid,
+  assistantUpsertAbsenceExcuseHybrid,
+  assistantRemoveAbsenceExcuseHybrid
+} from '../lib/rpc-hybrid-write.js';
 import {
   assistantGetLogsDirect,
   assistantGetLogByTraceDirect,
@@ -2391,12 +2395,12 @@ export default async function handler(req, res) {
   }
 
   if (op === 'assistant.addAbsenceExcuse') {
-    const result = await assistantAddAbsenceExcuseDirect(payload.args || {}, sessionToken);
+    const result = await assistantUpsertAbsenceExcuseHybrid(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
   if (op === 'assistant.removeAbsenceExcuse') {
-    const result = await assistantRemoveAbsenceExcuseDirect(payload.args || {}, sessionToken);
+    const result = await assistantRemoveAbsenceExcuseHybrid(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
