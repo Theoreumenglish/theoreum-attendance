@@ -1286,7 +1286,8 @@
   </template>
 
 	<template id="tpl-staff">
-    <div class="staffWrap">
+		<datalist id="staffStudentOptions"></datalist>
+		<div class="staffWrap">
       <div class="staffShell">
         <!-- 왼쪽: 공통 핵심 -->
         <div class="card compactCard">
@@ -1301,7 +1302,7 @@
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
             <div class="sectionTitle">학번 직접 출결 PIN 승인</div>
             <div class="row" style="margin-top:20px;">
-              <input class="inp" id="pinSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
+              <input class="inp" id="pinSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
               <input class="inp" id="staffPinInput" placeholder="PIN" type="password" inputmode="numeric" style="flex:1;">
               <button class="btn btn-pri" id="btnApprovePin" type="button">승인</button>
             </div>
@@ -1314,8 +1315,8 @@
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
             <div class="sectionTitle">출결 로그 조회</div>
             <div class="row" style="margin-top:20px;">
-              <input class="inp" id="logDate" placeholder="YYYYMMDD" style="flex:1;">
-              <input class="inp" id="logSid" placeholder="학번 (선택)" style="flex:1;">
+              <input class="inp" id="logDate" type="date" style="flex:1;">
+              <input class="inp" id="logSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택 (선택)" autocomplete="off" style="flex:1;">
               <button class="btn btn-pri" id="btnLoadLogs" type="button">조회</button>
             </div>
             <div class="logTableWrap" id="logBox" style="margin-top:16px;">
@@ -1324,7 +1325,7 @@
                   <thead>
                     <tr>
                       <th>시간</th>
-                      <th>학번</th>
+                      <th>학생</th>
                       <th>액션</th>
                       <th>층</th>
                       <th>결과</th>
@@ -1353,7 +1354,7 @@
 		일반적인 지각·결석 연락 학생은 아래의 “당일 미등원 알림 제외”에서 처리하세요.
 		</div>
 		<div class="row" style="margin-top:20px;">
-		<input class="inp" id="exSid" placeholder="학번 4자리" inputmode="numeric" style="flex:1;">
+		<input class="inp" id="exSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
 		<input class="inp" id="exNote" placeholder="사유 메모" style="flex:2;">
 		<button class="btn btn-pri" id="btnSetExY" type="button">허용 등록</button>
 		<button class="btn btn-ghost" id="btnSetExN" type="button">허용 해제</button>
@@ -1372,14 +1373,23 @@
 		</div>
 
 		<div class="row" style="margin-top:16px;">
-		<input class="inp" id="abDate" placeholder="YYYYMMDD" style="flex:1;">
-		<input class="inp" id="abClassId" placeholder="class_id 필수" style="flex:1;">
-		<input class="inp" id="abSid" placeholder="학번 4자리" style="flex:1;">
+		<input class="inp" id="abDate" type="date" style="flex:1;">
+		<select class="inp" id="abClassId" style="flex:1;">
+			<option value="">반 선택</option>
+		</select>
+		<input class="inp" id="abSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
 		</div>
 
 		<div class="row" style="margin-top:16px;">
 		<input class="inp" id="abReason" placeholder="사유: 지각 연락 / 병원 / 학교 행사 등" style="flex:2;">
-		<input class="inp" id="abUntilMin" placeholder="유효분 선택, 비우면 당일 끝까지" style="flex:1;">
+		<select class="inp" id="abUntilMin" style="flex:1;">
+			<option value="0">유효시간: 당일 끝까지</option>
+			<option value="30">30분</option>
+			<option value="60">1시간</option>
+			<option value="120">2시간</option>
+			<option value="240">4시간</option>
+			<option value="480">8시간</option>
+		</select>
 		</div>
 
 		<div class="row" style="margin-top:16px;">
@@ -1403,8 +1413,10 @@
                 <button class="btn btn-pri" id="btnLoadStaffMonthDetail" type="button">월근무 상세 조회</button>
               </div>
               <div class="row" style="margin-top:16px;">
-                <input class="inp" id="staffMonthYyyymm" placeholder="YYYYMM" style="flex:1;">
-                <input class="inp" id="staffMonthDetailId" placeholder="staff_id (상세용)" style="flex:1;">
+                <input class="inp" id="staffMonthYyyymm" type="month" style="flex:1;">
+                <select class="inp" id="staffMonthDetailId" style="flex:1;">
+                  <option value="">월근무 요약 조회 후 직원 선택</option>
+                </select>
               </div>
               <div id="staffMonthBox" class="staffWorkBoard">
 					<div class="staffWorkEmpty">
@@ -1425,8 +1437,15 @@
               <div class="section section-tight">
                 <div class="sectionTitle">수동 정정</div>
                 <div class="row" style="margin-top:16px;">
-                  <input class="inp" id="manSid" placeholder="학번 4자리" style="flex:1;">
-                  <input class="inp" id="manAction" placeholder="CHECK_IN / CHECK_OUT / MOVE / OUTING_OUT / OUTING_BACK" style="flex:2;">
+                  <input class="inp" id="manSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
+                  <select class="inp" id="manAction" style="flex:2;">
+                    <option value="">정정 액션 선택</option>
+                    <option value="CHECK_IN">등원 CHECK_IN</option>
+                    <option value="CHECK_OUT">하원 CHECK_OUT</option>
+                    <option value="MOVE">교실 이동 MOVE</option>
+                    <option value="OUTING_OUT">외출 OUTING_OUT</option>
+                    <option value="OUTING_BACK">복귀 OUTING_BACK</option>
+                  </select>
                 </div>
                 <div class="row" style="margin-top:16px;">
                   <input class="inp" id="manReason" placeholder="정정 사유" style="flex:2;">
@@ -1467,10 +1486,15 @@
               <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
                 <div class="sectionTitle">안전 모드 / 트리거 / 캐시 / 스케줄</div>
                 <div class="row" style="margin-top:16px;">
+                <div class="row" style="margin-top:16px;">
                   <input class="inp" id="safeMsg" placeholder="점검 모드 안내 문구 (선택)" style="flex:1;">
                 </div>
                 <div class="row" style="margin-top:16px;">
-                  <button class="btn btn-ghost" id="btnSafeOff" type="button">온라인 전환</button>
+                  <input class="inp" id="stateToolDate" type="date" style="flex:1;">
+                  <input class="inp" id="stateToolStudent" list="staffStudentOptions" placeholder="상태 재빌드 학생 이름 검색 (선택)" autocomplete="off" style="flex:1;">
+                  <input class="inp" id="payloadStudent" list="staffStudentOptions" placeholder="알림 payload 학생 이름 검색" autocomplete="off" style="flex:1;">
+                </div>
+                <div class="row" style="margin-top:16px;">
                   <button class="btn btn-bad" id="btnSafeOn" type="button">점검 모드</button>
                   <button class="btn btn-pri" id="btnInstallAbsent" type="button">미등원 트리거</button>
                   <button class="btn btn-pri" id="btnInstallDaily" type="button">데일리 트리거</button>
@@ -2620,8 +2644,257 @@
 			}
 		};
 
-		const StaffUI = {
+const StaffUI = {
 			me: null,
+			studentSearchTimer: null,
+			studentSearchSeq: 0,
+			studentOptionMap: new Map(),
+
+			ymdToDateInput(yyyymmdd) {
+				const raw = String(yyyymmdd || '').replace(/[^0-9]/g, '');
+				return /^\d{8}$/.test(raw)
+					? raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8)
+					: '';
+			},
+
+			dateInputToYmd(value, fallbackToday) {
+				const raw = String(value || '').trim().replace(/[^0-9]/g, '');
+				if (/^\d{8}$/.test(raw)) return raw;
+				return fallbackToday ? UI.ymd() : '';
+			},
+
+			yyyymmToMonthInput(yyyymm) {
+				const raw = String(yyyymm || '').replace(/[^0-9]/g, '');
+				return /^\d{6}$/.test(raw)
+					? raw.slice(0, 4) + '-' + raw.slice(4, 6)
+					: '';
+			},
+
+			monthInputToYyyymm(value, fallbackCurrent) {
+				const raw = String(value || '').trim().replace(/[^0-9]/g, '');
+				if (/^\d{6}$/.test(raw)) return raw;
+				return fallbackCurrent ? UI.ymd().slice(0, 6) : '';
+			},
+
+			readYmdInput(id, fallbackToday) {
+				const el = document.getElementById(id);
+				return StaffUI.dateInputToYmd(el ? el.value : '', fallbackToday);
+			},
+
+			readYyyymmInput(id, fallbackCurrent) {
+				const el = document.getElementById(id);
+				return StaffUI.monthInputToYyyymm(el ? el.value : '', fallbackCurrent);
+			},
+
+			studentDisplay(studentId, studentName) {
+				const sid = UI.padSid(studentId || '');
+				const name = String(studentName || '').trim();
+				if (name && sid) return name + ' (' + sid + ')';
+				if (name) return name;
+				return sid || '-';
+			},
+
+			renderStudentOptions(items) {
+				const list = $('#staffStudentOptions');
+				if (!list) return;
+
+				const rows = Array.isArray(items) ? items : [];
+				StaffUI.studentOptionMap = new Map();
+
+				list.innerHTML = rows.map(item => {
+					const sid = UI.padSid(item.student_id || '');
+					const name = String(item.student_name || '').trim() || '이름 없음';
+					const schoolGrade = [
+						String(item.school || '').trim(),
+						String(item.grade || '').trim()
+					].filter(Boolean).join(' ');
+					const label = schoolGrade
+						? name + ' (' + sid + ') · ' + schoolGrade
+						: name + ' (' + sid + ')';
+
+					StaffUI.studentOptionMap.set(label, {
+						student_id: sid,
+						student_name: name,
+						label
+					});
+
+					return '<option value="' + escapeHtml(label) + '"></option>';
+				}).join('');
+			},
+
+			async searchStudentOptions(q, seq) {
+				const r = await App.rpc('assistant.searchStudents', {
+					q: String(q || '').trim(),
+					limit: 20
+				});
+
+				if (seq !== StaffUI.studentSearchSeq) return;
+				if (!r.ok) {
+					StaffUI.renderStudentOptions([]);
+					return;
+				}
+
+				const items = Array.isArray(r.data && r.data.items) ? r.data.items : [];
+				StaffUI.renderStudentOptions(items);
+			},
+
+			bindStudentLookup(id) {
+				const el = document.getElementById(id);
+				if (!el) return;
+
+				const run = () => {
+					const q = String(el.value || '').trim();
+					clearTimeout(StaffUI.studentSearchTimer);
+
+					if (!q) {
+						StaffUI.renderStudentOptions([]);
+						return;
+					}
+
+					const seq = ++StaffUI.studentSearchSeq;
+					StaffUI.studentSearchTimer = setTimeout(() => {
+						StaffUI.searchStudentOptions(q, seq);
+					}, 180);
+				};
+
+				el.addEventListener('input', run);
+				el.addEventListener('focus', () => {
+					if (String(el.value || '').trim()) run();
+				});
+			},
+
+			readStudentSelection(id) {
+				const el = document.getElementById(id);
+				const raw = String(el && el.value ? el.value : '').trim();
+				if (!raw) {
+					return { student_id: '', student_name: '', label: '' };
+				}
+
+				const mapped = StaffUI.studentOptionMap.get(raw);
+				if (mapped && mapped.student_id) {
+					return mapped;
+				}
+
+				const match = raw.match(/\((\d{4})\)/);
+				if (match && match[1]) {
+					return {
+						student_id: UI.padSid(match[1]),
+						student_name: raw.split('(')[0].trim(),
+						label: raw
+					};
+				}
+
+				const digitsOnly = raw.replace(/[^0-9]/g, '');
+				if (/^\d{1,4}$/.test(digitsOnly)) {
+					return {
+						student_id: UI.padSid(digitsOnly),
+						student_name: '',
+						label: UI.padSid(digitsOnly)
+					};
+				}
+
+				return { student_id: '', student_name: '', label: raw };
+			},
+
+			async loadClassOptions() {
+				const select = $('#abClassId');
+				if (!select) return;
+
+				const current = String(select.value || '').trim();
+				const r = await App.rpc('assistant.listClassOptions', { limit: 500 });
+				if (!r.ok) return;
+
+				const items = Array.isArray(r.data && r.data.items) ? r.data.items : [];
+				select.innerHTML =
+					'<option value="">반 선택</option>' +
+					items.map(item => {
+						const classId = String(item.class_id || '').trim();
+						const name = String(item.name || '').trim() || '이름 없는 반';
+						const time = [
+							String(item.start || '').trim(),
+							String(item.end || '').trim()
+						].filter(Boolean).join('~');
+						const teacher = String(item.teacher || '').trim();
+						const detail = [
+							time,
+							teacher ? '담당 ' + teacher : '',
+							classId
+						].filter(Boolean).join(' · ');
+
+						return '<option value="' + escapeHtml(classId) + '">' +
+							escapeHtml(name + (detail ? ' (' + detail + ')' : '')) +
+							'</option>';
+					}).join('');
+
+				if (current && items.some(item => String(item.class_id || '').trim() === current)) {
+					select.value = current;
+				}
+			},
+
+			populateStaffMonthDetailOptions(items) {
+				const select = $('#staffMonthDetailId');
+				if (!select) return;
+
+				const current = String(select.value || '').trim();
+				const rows = Array.isArray(items) ? items : [];
+
+				select.innerHTML =
+					'<option value="">직원 선택</option>' +
+					rows.map(item => {
+						const staffId = String(item.staff_id || '').trim();
+						const name = String(item.name || '').trim() || staffId || '직원';
+						return '<option value="' + escapeHtml(staffId) + '">' +
+							escapeHtml(name + ' (' + staffId + ')') +
+							'</option>';
+					}).join('');
+
+				if (current && rows.some(item => String(item.staff_id || '').trim() === current)) {
+					select.value = current;
+				}
+			},
+
+			renderAbsenceExcuseList(items) {
+				const box = $('#abBox');
+				if (!box) return;
+
+				const rows = Array.isArray(items) ? items : [];
+				if (!rows.length) {
+					box.textContent = '조회 결과가 없습니다.';
+					return;
+				}
+
+				box.innerHTML = `
+					<div class="logScroll" style="max-height:240px;">
+						<table class="logTable">
+							<thead>
+								<tr>
+									<th>날짜</th>
+									<th>반</th>
+									<th>학생</th>
+									<th>사유</th>
+									<th>유효</th>
+									<th>수정자</th>
+								</tr>
+							</thead>
+							<tbody>
+								${rows.map(x => `
+									<tr>
+										<td>${escapeHtml(x.yyyymmdd || '')}</td>
+										<td>
+											<strong>${escapeHtml(x.class_name || '-')}</strong><br>
+											<span style="color:var(--sub); font-weight:800;">${escapeHtml(x.class_id || '')}</span>
+										</td>
+										<td>${escapeHtml(StaffUI.studentDisplay(x.student_id, x.student_name))}</td>
+										<td class="wrap">${escapeHtml(x.reason || '')}</td>
+										<td class="wrap">${escapeHtml(x.until_ts || '')}</td>
+										<td>${escapeHtml(x.updated_by || x.created_by || '')}</td>
+									</tr>
+								`).join('')}
+							</tbody>
+						</table>
+					</div>
+				`;
+			},
 
 			bindClick(id, handler) {
 				const el = document.getElementById(id);
@@ -2670,13 +2943,28 @@
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
 				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
 
+				[
+					'pinSid',
+					'logSid',
+					'exSid',
+					'abSid',
+					'manSid',
+					'stateToolStudent',
+					'payloadStudent'
+				].forEach(id => StaffUI.bindStudentLookup(id));
+
+				StaffUI.loadClassOptions();
+
 				const today = UI.ymd();
 				const logDate = $('#logDate');
 				const abDate = $('#abDate');
+				const stateToolDate = $('#stateToolDate');
 				const staffMonth = $('#staffMonthYyyymm');
-				if (logDate && !logDate.value) logDate.value = today;
-				if (abDate && !abDate.value) abDate.value = today;
-				if (staffMonth && !staffMonth.value) staffMonth.value = today.slice(0, 6);
+
+				if (logDate && !logDate.value) logDate.value = StaffUI.ymdToDateInput(today);
+				if (abDate && !abDate.value) abDate.value = StaffUI.ymdToDateInput(today);
+				if (stateToolDate && !stateToolDate.value) stateToolDate.value = StaffUI.ymdToDateInput(today);
+				if (staffMonth && !staffMonth.value) staffMonth.value = StaffUI.yyyymmToMonthInput(today.slice(0, 6));
 
 				StaffUI.applyRoleView();
 			},
@@ -2743,18 +3031,24 @@
 			},
 
 			async approvePin() {
-				const student_id = ($('#pinSid').value || '').trim();
+				const student = StaffUI.readStudentSelection('pinSid');
+				const student_id = student.student_id;
 				const pin = ($('#staffPinInput').value || '').trim();
 				const box = $('#pinMsg');
 
-				if (!student_id || !pin) {
-					UI.showMsg(box, false, '학번과 PIN을 입력하세요.');
+				if (!student_id) {
+					UI.showMsg(box, false, '학생 이름을 검색한 뒤 목록에서 선택하세요.');
+					return;
+				}
+
+				if (!pin) {
+					UI.showMsg(box, false, '직원 PIN을 입력하세요.');
 					return;
 				}
 
 				const r = await App.rpc('kiosk.approvePin', { student_id, pin });
 				if (r.ok) {
-					UI.showMsg(box, true, '승인 완료: ' + UI.padSid(student_id));
+					UI.showMsg(box, true, '승인 완료: ' + (student.label || StaffUI.studentDisplay(student_id, student.student_name)));
 					const pinInput = $('#staffPinInput');
 					if (pinInput) pinInput.value = '';
 					return;
@@ -2764,9 +3058,16 @@
 			},
 
 			async loadLogs() {
-				const yyyymmdd = ($('#logDate').value || '').trim() || UI.ymd();
-				const student_id = ($('#logSid').value || '').trim();
+				const yyyymmdd = StaffUI.readYmdInput('logDate', true);
+				const student = StaffUI.readStudentSelection('logSid');
+				const rawStudentQuery = String(($('#logSid') && $('#logSid').value) || '').trim();
+				const student_id = student.student_id;
 				const tbody = $('#logBoxBody');
+
+				if (rawStudentQuery && !student_id) {
+					UI.toast(false, '로그 조회 학생은 이름 검색 후 목록에서 선택하세요.');
+					return;
+				}
 
 				if (tbody) tbody.innerHTML = '<tr><td colspan="9">조회 중...</td></tr>';
 
@@ -2786,7 +3087,7 @@
 					tbody.innerHTML = logs.map(row => `
 						<tr>
 							<td>${escapeHtml(row.ts || '')}</td>
-							<td>${escapeHtml(row.student_id || '')}</td>
+							<td>${escapeHtml(StaffUI.studentDisplay(row.student_id, row.student_name))}</td>
 							<td>${escapeHtml(row.action_type || '')}</td>
 							<td>${escapeHtml(row.kiosk_floor || '')}</td>
 							<td>${escapeHtml(row.result || '')}</td>
@@ -3134,7 +3435,7 @@
 				},
 
 			async loadStaffMonthSummary() {
-				const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
+				const yyyymm = StaffUI.readYyyymmInput('staffMonthYyyymm', true);
 				const box = $('#staffMonthBox');
 
 				box.textContent = '조회 중...';
@@ -3146,6 +3447,8 @@
 				}
 
 				const items = (r.data && r.data.items) ? r.data.items : [];
+				StaffUI.populateStaffMonthDetailOptions(items);
+
 				if (!items.length) {
 					box.textContent = '조회된 월 집계가 없습니다.';
 					return;
@@ -3155,12 +3458,16 @@
 			},
 
 			async loadStaffMonthDetail() {
-				const yyyymm = ($('#staffMonthYyyymm').value || '').trim();
-				const staff_id = ($('#staffMonthDetailId').value || '').trim();
+				const yyyymm = StaffUI.readYyyymmInput('staffMonthYyyymm', true);
+				const detailSelect = $('#staffMonthDetailId');
+				const staff_id = String((detailSelect && detailSelect.value) || '').trim();
+				const selectedLabel = detailSelect && detailSelect.selectedOptions && detailSelect.selectedOptions[0]
+					? String(detailSelect.selectedOptions[0].textContent || '').trim()
+					: staff_id;
 				const box = $('#staffMonthBox');
 
 				if (!staff_id) {
-					UI.toast(false, 'staff_id를 입력하세요.');
+					UI.toast(false, '상세 조회할 직원을 선택하세요.');
 					return;
 				}
 
@@ -3178,50 +3485,68 @@
 					return;
 				}
 
-				StaffUI.renderStaffMonthDetail(items, staff_id, r.data && r.data.yyyymm ? r.data.yyyymm : '');
+				StaffUI.renderStaffMonthDetail(items, selectedLabel || staff_id, r.data && r.data.yyyymm ? r.data.yyyymm : '');
 			},
 
 			async setException(yn) {
-				const student_id = ($('#exSid').value || '').trim();
+				const student = StaffUI.readStudentSelection('exSid');
+				const student_id = student.student_id;
 				const exception_note = ($('#exNote').value || '').trim();
+
 				if (!student_id) {
-					UI.toast(false, '학번을 입력하세요.');
+					UI.toast(false, '학생 이름을 검색한 뒤 목록에서 선택하세요.');
 					return;
 				}
 
 				const r = await App.rpc('teacher.setException', { student_id, is_exception: yn, exception_note });
+				const studentLabel = student.label || StaffUI.studentDisplay(student_id, student.student_name);
+
 				UI.toast(
 					!!r.ok,
 					r.ok
 						? (
 							yn === 'Y'
-							? '상시 학번 직접 출결 허용 등록 완료: ' + UI.padSid(student_id)
-							: '상시 학번 직접 출결 허용 해제 완료: ' + UI.padSid(student_id)
+							? '상시 학번 직접 출결 허용 등록 완료: ' + studentLabel
+							: '상시 학번 직접 출결 허용 해제 완료: ' + studentLabel
 						)
 						: ((r.error && r.error.message) ? r.error.message : '실패')
 				);
 			},
 
 			async abList() {
-				const yyyymmdd = ($('#abDate').value || '').trim();
-				const class_id = ($('#abClassId').value || '').trim();
-				const student_id = ($('#abSid').value || '').trim();
+				const yyyymmdd = StaffUI.readYmdInput('abDate', false);
+				const class_id = String(($('#abClassId') && $('#abClassId').value) || '').trim();
+				const student = StaffUI.readStudentSelection('abSid');
+				const rawStudentQuery = String(($('#abSid') && $('#abSid').value) || '').trim();
+				const student_id = student.student_id;
 				const box = $('#abBox');
+
+				if (rawStudentQuery && !student_id) {
+					UI.toast(false, '학생 이름을 검색한 뒤 목록에서 선택하세요.');
+					return;
+				}
 
 				box.textContent = '조회 중...';
 				const r = await App.rpc('assistant.listAbsenceExcuses', { yyyymmdd, class_id, student_id });
-				box.textContent = r.ok ? JSON.stringify(r.data, null, 2) : ((r.error && r.error.message) ? r.error.message : '조회 실패');
+				if (!r.ok) {
+					box.textContent = (r.error && r.error.message) ? r.error.message : '조회 실패';
+					return;
+				}
+
+				const items = Array.isArray(r.data && r.data.items) ? r.data.items : [];
+				StaffUI.renderAbsenceExcuseList(items);
 			},
 
 			async abUpsert() {
-				const yyyymmdd = ($('#abDate').value || '').trim();
-				const class_id = ($('#abClassId').value || '').trim();
-				const student_id = ($('#abSid').value || '').trim();
+				const yyyymmdd = StaffUI.readYmdInput('abDate', false);
+				const class_id = String(($('#abClassId') && $('#abClassId').value) || '').trim();
+				const student = StaffUI.readStudentSelection('abSid');
+				const student_id = student.student_id;
 				const reason = ($('#abReason').value || '').trim();
 				const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
 
 				if (!yyyymmdd || !class_id || !student_id) {
-					UI.toast(false, '날짜, class_id, 학번은 모두 필수입니다.');
+					UI.toast(false, '날짜, 반, 학생 선택은 모두 필수입니다.');
 					return;
 				}
 
@@ -3232,16 +3557,22 @@
 					reason,
 					until_min: untilMin || 0
 				});
+
 				UI.toast(!!r.ok, r.ok ? '결석 예외 저장 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
+
+				if (r.ok) {
+					await StaffUI.abList();
+				}
 			},
 
 			async abRemove() {
-				const yyyymmdd = ($('#abDate').value || '').trim();
-				const class_id = ($('#abClassId').value || '').trim();
-				const student_id = ($('#abSid').value || '').trim();
+				const yyyymmdd = StaffUI.readYmdInput('abDate', false);
+				const class_id = String(($('#abClassId') && $('#abClassId').value) || '').trim();
+				const student = StaffUI.readStudentSelection('abSid');
+				const student_id = student.student_id;
 
 				if (!yyyymmdd || !class_id || !student_id) {
-					UI.toast(false, '삭제 시 날짜, class_id, 학번이 모두 필요합니다.');
+					UI.toast(false, '삭제 시 날짜, 반, 학생 선택이 모두 필요합니다.');
 					return;
 				}
 
@@ -3249,6 +3580,10 @@
 
 				const r = await App.rpc('assistant.removeAbsenceExcuse', { yyyymmdd, class_id, student_id });
 				UI.toast(!!r.ok, r.ok ? '결석 예외 삭제 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
+
+				if (r.ok) {
+					await StaffUI.abList();
+				}
 			},
 
 			async toggleSafe(mode) {
@@ -3418,7 +3753,7 @@
 							<thead>
 								<tr>
 									<th>created_at</th>
-									<th>student_id</th>
+									<th>학생</th>
 									<th>action</th>
 									<th>attempts</th>
 									<th>error</th>
@@ -3429,7 +3764,7 @@
 								${items.map(x => `
 									<tr>
 										<td>${escapeHtml(x.created_at || '')}</td>
-										<td>${escapeHtml(x.student_id || '')}</td>
+										<td>${escapeHtml(StaffUI.studentDisplay(x.student_id, x.student_name))}</td>
 										<td>${escapeHtml(x.action_type || '')}</td>
 										<td>${escapeHtml(x.attempts || '')}</td>
 										<td class="wrap">${escapeHtml(x.last_error || '')}</td>
@@ -3481,13 +3816,13 @@
 				UI.toast(true, 'queue 재처리 완료');
 			},
 			async scanTodayStateMismatch() {
-				const yyyymmdd = prompt('검사할 날짜를 입력하세요. 예: 20260509\n비우면 오늘 날짜로 실행합니다.', '');
+				const yyyymmdd = StaffUI.readYmdInput('stateToolDate', true);
 
 				const box = $('#diagBox');
 				if (box) box.textContent = 'today_student_state 불일치 검사 중...';
 
 				const r = await App.rpc('admin.scanTodayStateMismatch', {
-					yyyymmdd: yyyymmdd || ''
+					yyyymmdd
 				});
 
 				if (!r.ok) {
@@ -3525,7 +3860,9 @@
 						'actual_state_count: ' + (d.actual_state_count || 0) + '\n' +
 						'mismatch_count: ' + (d.mismatch_count || 0) + '\n\n' +
 						items.slice(0, 30).map(x => {
-							return x.student_id + ' [' + (x.kind || '') + ']: ' + (x.diffs || []).join(' / ');
+							return StaffUI.studentDisplay(x.student_id, x.student_name) +
+								' [' + (x.kind || '') + ']: ' +
+								(x.diffs || []).join(' / ');
 						}).join('\n');
 				}
 
@@ -3536,15 +3873,22 @@
 				const pin = prompt('[보안 확인] 오늘 학생 상태 read model을 재빌드하려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;
 
-				const yyyymmdd = prompt('재빌드할 날짜를 입력하세요. 예: 20260509\n비우면 오늘 날짜로 실행합니다.', '');
-				const studentId = prompt('특정 학생만 재빌드하려면 학번 4자리를 입력하세요.\n전체 재빌드는 비워두세요.', '');
+				const yyyymmdd = StaffUI.readYmdInput('stateToolDate', true);
+				const student = StaffUI.readStudentSelection('stateToolStudent');
+				const rawStudentQuery = String(($('#stateToolStudent') && $('#stateToolStudent').value) || '').trim();
+				const studentId = student.student_id;
+
+				if (rawStudentQuery && !studentId) {
+					UI.toast(false, '특정 학생 재빌드는 이름 검색 후 목록에서 학생을 선택하세요.');
+					return;
+				}
 
 				const box = $('#diagBox');
 				if (box) box.textContent = 'today_student_state 재빌드 중...';
 
 				const r = await App.rpc('admin.rebuildTodayState', {
 					pin,
-					yyyymmdd: yyyymmdd || '',
+					yyyymmdd,
 					student_id: studentId || ''
 				});
 
@@ -3555,11 +3899,15 @@
 				}
 
 				const d = r.data || {};
+				const studentLabel = studentId
+					? (student.label || StaffUI.studentDisplay(studentId, student.student_name))
+					: '전체';
+
 				if (box) {
 					box.textContent =
 						'today_student_state 재빌드 완료\n\n' +
 						'yyyymmdd: ' + (d.yyyymmdd || '') + '\n' +
-						'student_id: ' + (d.student_id || '전체') + '\n' +
+						'student: ' + studentLabel + '\n' +
 						'log_count: ' + (d.log_count || 0) + '\n' +
 						'rebuilt_count: ' + (d.rebuilt_count || 0);
 				}
@@ -3697,8 +4045,13 @@
 				const pin = prompt('[보안 확인] 알림톡 payload를 미리보려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;
 
-				const studentId = prompt('payload를 확인할 학생 학번 4자리를 입력하세요.', '');
-				if (!studentId) return;
+				const student = StaffUI.readStudentSelection('payloadStudent');
+				const studentId = student.student_id;
+
+				if (!studentId) {
+					UI.toast(false, 'payload를 확인할 학생을 이름 검색 후 목록에서 선택하세요.');
+					return;
+				}
 
 				const box = $('#diagBox');
 				if (box) box.textContent = '알림톡 payload 생성 중...';
@@ -3808,17 +4161,24 @@
 			},
 
 			async manualAttendance() {
-				const student_id = ($('#manSid').value || '').trim();
+				const student = StaffUI.readStudentSelection('manSid');
+				const student_id = student.student_id;
 				const action_type = ($('#manAction').value || '').trim();
 				const reason = ($('#manReason').value || '').trim();
 				const source_trace_id = ($('#manSourceTrace').value || '').trim();
 
-				if (!student_id || !reason || !source_trace_id) {
-					UI.toast(false, '학번, 정정 사유, 그리고 오류 원본 trace_id 입력이 모두 필수입니다.');
+				if (!student_id) {
+					UI.toast(false, '학생 이름을 검색한 뒤 목록에서 선택하세요.');
 					return;
 				}
 
-				const pin = prompt(`[${student_id}] 학생의 출결을 [${action_type}]으로 강제 정정합니다.\n진행하시려면 본인(직원)의 PIN 번호를 입력하세요.`);
+				if (!action_type || !reason || !source_trace_id) {
+					UI.toast(false, '정정 액션, 정정 사유, 오류 원본 trace_id 입력이 모두 필수입니다.');
+					return;
+				}
+
+				const studentLabel = student.label || StaffUI.studentDisplay(student_id, student.student_name);
+				const pin = prompt(`[${studentLabel}] 학생의 출결을 [${action_type}]으로 강제 정정합니다.\n진행하시려면 본인(직원)의 PIN 번호를 입력하세요.`);
 				if (pin == null) {
 					UI.toast(false, '수동 정정이 취소되었습니다.');
 					return;
@@ -3858,6 +4218,7 @@
 						}
 
 						$('#manSid').value = '';
+						$('#manAction').value = '';
 						$('#manReason').value = '';
 						$('#manSourceTrace').value = '';
 					} else {

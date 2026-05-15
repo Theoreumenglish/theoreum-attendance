@@ -1051,14 +1051,26 @@ async function adminScanTodayStateMismatchDirect(args = {}, sessionToken = '') {
   }
 
   const items = buildStateMismatchItems(expectedRows, actualRows);
+  const studentNameMap = await readStudentNameMap(
+    supabase,
+    items.map(item => item?.student_id)
+  );
+  const enrichedItems = items.map(item => {
+    const studentId = normalizeStudentId(item?.student_id);
+    return {
+      ...item,
+      student_id: studentId,
+      student_name: studentNameMap[studentId] || ''
+    };
+  });
 
   return success({
     yyyymmdd,
     log_count: Array.isArray(logs) ? logs.length : 0,
     expected_student_count: expectedRows.length,
     actual_state_count: Array.isArray(actualRows) ? actualRows.length : 0,
-    mismatch_count: items.length,
-    items
+    mismatch_count: enrichedItems.length,
+    items: enrichedItems
   });
 }
 
@@ -1854,6 +1866,132 @@ async function absentRunNowDirect(args = {}, sessionToken = '') {
   });
 }
 
+async function readStudentNameMap(supabase, studentIds = []) {
+  const ids = Array.from(new Set(
+    (studentIds || [])
+      .map(normalizeStudentId)
+      .filter(Boolean)
+  ));
+
+  if (!ids.length) return {};
+
+  const { data, error } = await supabase
+    .from('students')
+    .select('student_id, student_name')
+    .in('student_id', ids);
+
+  if (error) return {};
+
+  return (Array.isArray(data) ? data : []).reduce((acc, row) => {
+    const sid = normalizeStudentId(row?.student_id);
+    if (sid) acc[sid] = String(row?.student_name || '').trim();
+    return acc;
+  }, {});
+}
+
+async function readClassNameMap(supabase, classIds = []) {
+  const ids = Array.from(new Set(
+    (classIds || [])
+      .map(value => String(value || '').trim())
+      .filter(Boolean)
+  ));
+
+  if (!ids.length) return {};
+
+  const { data, error } = await supabase
+    .from('classes')
+    .select('class_id, name')
+    .in('class_id', ids);
+
+  if (error) return {};
+
+  return (Array.isArray(data) ? data : []).reduce((acc, row) => {
+    const classId = String(row?.class_id || '').trim();
+    if (classId) acc[classId] = String(row?.name || '').trim();
+    return acc;
+  }, {});
+}
+
+async function assistantSearchStudentsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const raw = String(args.q || args.keyword || '').trim().slice(0, 40);
+  const keyword = raw.replace(/[%_]/g, '').trim();
+  const limit = Math.max(1, Math.min(40, toPositiveInt(args.limit, 20)));
+
+  if (!keyword) {
+    return success({ count: 0, items: [] });
+  }
+
+  const supabase = getSupabaseAdmin();
+  const digits = keyword.replace(/[^0-9]/g, '');
+  let query = supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, status')
+    .order('student_name', { ascending: true })
+    .limit(limit);
+
+  if (/^\d{1,4}$/.test(digits) && digits.length === keyword.length) {
+    query = query.ilike('student_id', `%${digits}%`);
+  } else {
+    query = query.ilike('student_name', `%${keyword}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || '학생 검색 실패');
+  }
+
+  const items = (Array.isArray(data) ? data : []).map(row => ({
+    student_id: normalizeStudentId(row?.student_id),
+    student_name: String(row?.student_name || '').trim(),
+    school: String(row?.school || '').trim(),
+    grade: String(row?.grade || '').trim(),
+    status: String(row?.status || '').trim()
+  })).filter(item => item.student_id);
+
+  return success({
+    count: items.length,
+    items
+  });
+}
+
+async function assistantListClassOptionsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const limit = Math.max(1, Math.min(1000, toPositiveInt(args.limit, 500)));
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('classes')
+    .select('class_id, name, teacher, start, end, status')
+    .order('start', { ascending: true })
+    .order('name', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || '반 목록 조회 실패');
+  }
+
+  const items = (Array.isArray(data) ? data : [])
+    .filter(row => String(row?.status || 'active').trim().toLowerCase() !== 'deleted')
+    .map(row => ({
+      class_id: String(row?.class_id || '').trim(),
+      name: String(row?.name || '').trim(),
+      teacher: String(row?.teacher || '').trim(),
+      start: String(row?.start || '').trim(),
+      end: String(row?.end || '').trim()
+    }))
+    .filter(item => item.class_id);
+
+  return success({
+    count: items.length,
+    items
+  });
+}
+
 async function assertAbsenceExcuseTarget(supabase, classId, yyyymmdd, studentId) {
   const { data: student, error: studentErr } = await supabase
     .from('students')
@@ -1931,9 +2069,32 @@ async function assistantListAbsenceExcusesDirect(args = {}, sessionToken = '') {
     return fail(500, 'DB_SELECT_FAILED', error.message || 'absence_excuses 조회 실패');
   }
 
+  const rows = Array.isArray(data) ? data : [];
+  const studentNameMap = await readStudentNameMap(
+    supabase,
+    rows.map(row => row?.student_id)
+  );
+  const classNameMap = await readClassNameMap(
+    supabase,
+    rows.map(row => row?.class_id)
+  );
+
+  const items = rows.map(row => {
+    const studentId = normalizeStudentId(row?.student_id);
+    const mappedClassId = String(row?.class_id || '').trim();
+
+    return {
+      ...row,
+      student_id: studentId,
+      student_name: studentNameMap[studentId] || '',
+      class_id: mappedClassId,
+      class_name: classNameMap[mappedClassId] || ''
+    };
+  });
+
   return success({
-    count: Array.isArray(data) ? data.length : 0,
-    items: data || []
+    count: items.length,
+    items
   });
 }
 
@@ -2300,6 +2461,16 @@ export default async function handler(req, res) {
 
   if (op === 'staff.clock.qr') {
     const result = await handleStaffClockQr(payload);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.searchStudents') {
+    const result = await assistantSearchStudentsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.listClassOptions') {
+    const result = await assistantListClassOptionsDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
