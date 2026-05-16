@@ -1975,92 +1975,184 @@ async function assistantSearchStudentsDirect(args = {}, sessionToken = '') {
   });
 }
 
-async function assistantListClassOptionsDirect(args = {}, sessionToken = '') {
+async function assistantListClassRosterDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
 
-  const limit = Math.max(1, Math.min(1000, toPositiveInt(args.limit, 500)));
-  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const classId = String(args.class_id || args.classId || '').trim();
+  if (!classId) {
+    return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  }
+
   const supabase = getSupabaseAdmin();
+  const { data: relRows, error: relErr } = await supabase
+    .from('class_students')
+    .select('student_id')
+    .eq('class_id', classId)
+    .limit(2000);
 
-  if (isStrictYmd(yyyymmdd)) {
-    const { data, error } = await supabase
-      .from('class_schedule')
-      .select('class_id, class_name, teacher, start, end, status')
-      .eq('yyyymmdd', yyyymmdd)
-      .eq('status', 'SCHEDULED')
-      .order('start', { ascending: true })
-      .order('class_name', { ascending: true })
-      .limit(limit);
+  if (relErr) {
+    return fail(500, 'DB_SELECT_FAILED', relErr.message || '반별 학생 관계 조회 실패');
+  }
 
-    if (error) {
-      return fail(500, 'DB_SELECT_FAILED', error.message || '해당 날짜 수업 반 목록 조회 실패');
-    }
+  const studentIds = Array.from(new Set(
+    (Array.isArray(relRows) ? relRows : [])
+      .map(row => normalizeStudentId(row?.student_id))
+      .filter(Boolean)
+  ));
 
-    const rows = Array.isArray(data) ? data : [];
-    const teacherNameMap = await readStaffNameMap(
-      supabase,
-      rows.map(row => row?.teacher)
-    );
+  if (!studentIds.length) {
+    return success({ class_id: classId, count: 0, items: [] });
+  }
 
-    const items = rows
-      .map(row => {
-        const teacher = String(row?.teacher || '').trim().toLowerCase();
-        return {
-          class_id: String(row?.class_id || '').trim(),
-          name: String(row?.class_name || '').trim(),
-          teacher,
-          teacher_name: teacherNameMap[teacher] || teacher,
-          start: String(row?.start || '').trim(),
-          end: String(row?.end || '').trim()
-        };
-      })
-      .filter(item => item.class_id);
+  const { data: students, error: stuErr } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, status')
+    .in('student_id', studentIds)
+    .order('student_name', { ascending: true })
+    .limit(2000);
 
-    return success({
-      count: items.length,
-      items,
-      yyyymmdd
+  if (stuErr) {
+    return fail(500, 'DB_SELECT_FAILED', stuErr.message || 'students 조회 실패');
+  }
+
+  const items = (Array.isArray(students) ? students : [])
+    .map(row => ({
+      student_id: normalizeStudentId(row?.student_id),
+      student_name: String(row?.student_name || '').trim(),
+      school: String(row?.school || '').trim(),
+      grade: String(row?.grade || '').trim(),
+      status: String(row?.status || '').trim()
+    }))
+    .filter(item => item.student_id);
+
+  return success({
+    class_id: classId,
+    count: items.length,
+    items
+  });
+}
+
+async function assistantBulkUpsertAbsenceExcusesDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const rawIds = Array.isArray(args.student_ids)
+    ? args.student_ids
+    : Array.isArray(args.studentIds)
+      ? args.studentIds
+      : [];
+
+  const studentIds = Array.from(new Set(
+    rawIds.map(normalizeStudentId).filter(Boolean)
+  )).slice(0, 80);
+
+  if (!studentIds.length) {
+    return fail(400, 'INVALID_INPUT', '일괄 등록할 학생을 1명 이상 선택하세요.');
+  }
+
+  const results = [];
+  for (const studentId of studentIds) {
+    const out = await assistantUpsertAbsenceExcuseHybrid({
+      ...args,
+      student_id: studentId
+    }, sessionToken);
+
+    const body = out?.body || {};
+    const data = body?.data || {};
+    const ok = body?.ok === true;
+
+    results.push({
+      student_id: studentId,
+      ok,
+      status: Number(out?.status || 0) || 0,
+      replicaPatched: data.replicaPatched !== false,
+      replicaPatchError: String(data.replicaPatchError || '').trim(),
+      data,
+      error: ok ? null : (body?.error || { code: 'UNKNOWN', message: '일괄 결석예외 저장 실패' })
     });
   }
 
-  const { data, error } = await supabase
-    .from('classes')
-    .select('class_id, name, teacher, start, end, status')
-    .order('start', { ascending: true })
-    .order('name', { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    return fail(500, 'DB_SELECT_FAILED', error.message || '반 목록 조회 실패');
-  }
-
-  const rows = (Array.isArray(data) ? data : [])
-    .filter(row => String(row?.status || 'active').trim().toLowerCase() !== 'deleted');
-
-  const teacherNameMap = await readStaffNameMap(
-    supabase,
-    rows.map(row => row?.teacher)
-  );
-
-  const items = rows
-    .map(row => {
-      const teacher = String(row?.teacher || '').trim().toLowerCase();
-      return {
-        class_id: String(row?.class_id || '').trim(),
-        name: String(row?.name || '').trim(),
-        teacher,
-        teacher_name: teacherNameMap[teacher] || teacher,
-        start: String(row?.start || '').trim(),
-        end: String(row?.end || '').trim()
-      };
-    })
-    .filter(item => item.class_id);
+  const succeeded = results.filter(item => item.ok).length;
+  const failed = results.length - succeeded;
+  const replicaWarn = results.filter(item => item.ok && item.replicaPatched === false).length;
 
   return success({
-    count: items.length,
-    items,
-    yyyymmdd: ''
+    requested: studentIds.length,
+    succeeded,
+    failed,
+    replica_warn: replicaWarn,
+    items: results
+  });
+}
+
+async function countNotifyQueueRows(supabase, status = '', actionPrefix = '') {
+  let query = supabase
+    .from('attendance_notify_queue')
+    .select('queue_id', { count: 'exact', head: true });
+
+  const normStatus = String(status || '').trim().toUpperCase();
+  if (normStatus) query = query.eq('status', normStatus);
+
+  const prefix = String(actionPrefix || '').trim().toUpperCase();
+  if (prefix === 'ABSENT') query = query.ilike('action_type', 'ABSENT_%');
+  if (prefix === 'ATTENDANCE') query = query.ilike('action_type', 'CHECK_%');
+
+  const { count, error } = await query;
+  if (error) return { ok: false, count: 0, error: error.message || 'queue count 실패' };
+  return { ok: true, count: Number(count || 0) || 0, error: '' };
+}
+
+async function adminGetOpsOverviewDirect(sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const meta = await readRuntimeMeta(true);
+  if (!meta.ok) {
+    return fail(
+      500,
+      meta.error.code || 'DB_SELECT_FAILED',
+      meta.error.message || '운영 메타 정보를 읽지 못했습니다.'
+    );
+  }
+
+  const supabase = getSupabaseAdmin();
+  const centralReplica = await readCentralReplicaDiag();
+
+  const [
+    failedAbsent,
+    failedAttendance,
+    pendingAll,
+    latestAbsenceOut,
+    latestWorkerOut
+  ] = await Promise.all([
+    countNotifyQueueRows(supabase, 'FAILED', 'ABSENT'),
+    countNotifyQueueRows(supabase, 'FAILED', 'ATTENDANCE'),
+    countNotifyQueueRows(supabase, 'PENDING', ''),
+    supabase
+      .from('absence_detection_runs')
+      .select('run_id, created_at, source, status, yyyymmdd, queued_count, failed_count, sent_count, error')
+      .order('created_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('notify_worker_runs')
+      .select('run_id, created_at, source, status, done, failed, requeued, error')
+      .order('created_at', { ascending: false })
+      .limit(1)
+  ]);
+
+  return success({
+    safe: meta.data?.safe || {},
+    kiosk_floor: meta.data?.kiosk_floor || '',
+    central_replica: centralReplica,
+    queue: {
+      failed_absent: failedAbsent,
+      failed_attendance: failedAttendance,
+      pending_all: pendingAll
+    },
+    latest_absence_run: Array.isArray(latestAbsenceOut?.data) ? latestAbsenceOut.data[0] || null : null,
+    latest_notify_worker_run: Array.isArray(latestWorkerOut?.data) ? latestWorkerOut.data[0] || null : null,
+    checked_at: nowIso()
   });
 }
 
@@ -2408,6 +2500,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'assistant.listClassRoster') {
+    const result = await assistantListClassRosterDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'assistant.getLogs') {
     const result = await assistantGetLogsDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
@@ -2499,6 +2596,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'admin.getOpsOverview') {
+    const result = await adminGetOpsOverviewDirect(sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'assistant.listAbsenceExcuses') {
     const result = await assistantListAbsenceExcusesDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
@@ -2506,6 +2608,11 @@ export default async function handler(req, res) {
 
   if (op === 'assistant.addAbsenceExcuse') {
     const result = await assistantUpsertAbsenceExcuseHybrid(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.bulkAddAbsenceExcuses') {
+    const result = await assistantBulkUpsertAbsenceExcusesDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

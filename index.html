@@ -1345,6 +1345,16 @@
           </div>
         </div>
       </div>
+	        <div class="card compactCard adminOnly" style="margin-top:24px;">
+        <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+          <div class="sectionTitle">운영 상태 요약</div>
+          <div class="subText">중앙DB 반영 상태, 안전 모드, 실패 알림 queue, 최근 미등원/알림 worker 상태를 한 번에 확인합니다.</div>
+          <div class="row" style="margin-top:16px;">
+            <button class="btn btn-pri" id="btnOpsOverviewRefresh" type="button">운영 상태 새로고침</button>
+          </div>
+          <div class="mono" id="opsOverviewBox" style="margin-top:16px; max-height:320px; overflow:auto; text-align:left;">운영 상태를 불러오지 않았습니다.</div>
+        </div>
+      </div>
 
 	<!-- 관리자 전용: 상시 학번 직접 출결 허용 -->
 	<div class="card compactCard adminOnly" style="margin-top:24px;">
@@ -1381,6 +1391,14 @@
 		<input class="inp" id="abSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
 		</div>
 
+		<div class="subText" id="abClassSummary" style="margin-top:12px; text-align:left;">날짜와 반을 선택하면 수업 요약이 표시됩니다.</div>
+
+		<div class="row" style="margin-top:16px;">
+		<button class="btn btn-ghost" id="btnAbLoadRoster" type="button">반 학생 불러오기</button>
+		<button class="btn btn-sky" id="btnAbBulkUpsert" type="button">선택 학생 일괄 등록</button>
+		</div>
+		<div class="mono" id="abRosterBox" style="margin-top:12px; max-height:260px; overflow:auto; text-align:left;">반을 선택하면 학생 체크 목록을 불러올 수 있습니다.</div>
+
 		<div class="row" style="margin-top:16px;">
 		<input class="inp" id="abReason" placeholder="사유: 지각 연락 / 병원 / 학교 행사 등" style="flex:2;">
 		<select class="inp" id="abUntilMin" style="flex:1;">
@@ -1391,6 +1409,12 @@
 			<option value="240">4시간</option>
 			<option value="480">8시간</option>
 		</select>
+		<div class="row" style="margin-top:12px;">
+		<button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="abReason" data-fill-value="지각 연락">지각 연락</button>
+		<button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="abReason" data-fill-value="병원">병원</button>
+		<button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="abReason" data-fill-value="학교 행사">학교 행사</button>
+		<button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="abReason" data-fill-value="학부모 연락">학부모 연락</button>
+		</div>
 		</div>
 
 		<div class="row" style="margin-top:16px;">
@@ -1452,6 +1476,12 @@
                   <input class="inp" id="manReason" placeholder="정정 사유" style="flex:2;">
                   <input class="inp" id="manSourceTrace" placeholder="원본 trace_id" style="flex:2;">
                 </div>
+                <div class="row" style="margin-top:12px;">
+                  <button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="manReason" data-fill-value="QR 인식 오류">QR 인식 오류</button>
+                  <button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="manReason" data-fill-value="직원 승인 누락">직원 승인 누락</button>
+                  <button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="manReason" data-fill-value="시스템 지연 반영">시스템 지연 반영</button>
+                  <button class="btn btn-ghost reasonPresetBtn" type="button" data-fill-target="manReason" data-fill-value="출결 이동 정정">출결 이동 정정</button>
+                </div>
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-pri" id="btnManualAttendance" type="button">수동 정정 저장</button>
                 </div>
@@ -1501,6 +1531,11 @@
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-pri" id="btnRunAbsent" type="button">미등원 즉시 실행</button>
                   <button class="btn btn-ghost" id="btnRunAbsentDry" type="button">미등원 모의 감지</button>
+                  <select class="inp" id="queueScope" style="min-width:190px; max-width:240px;">
+                    <option value="ABSENT">미등원 알림 실패</option>
+                    <option value="ATTENDANCE">등·하원 알림 실패</option>
+                    <option value="ALL">전체 실패 조회</option>
+                  </select>
 					<button class="btn btn-ghost" id="btnQueueList" type="button">실패 알림 조회</button>
 					<button class="btn btn-bad" id="btnQueueRetry" type="button">실패 알림 재처리</button>
 					<button class="btn btn-ghost" id="btnScanStateMismatch" type="button">오늘 상태 불일치 검사</button>
@@ -2646,7 +2681,11 @@ const StaffUI = {
 			me: null,
 			studentSearchTimer: null,
 			studentSearchSeq: 0,
+			studentSearchTimer: null,
+			studentSearchSeq: 0,
 			studentOptionMap: new Map(),
+			classOptionMap: new Map(),
+			absenceRosterItems: [],
 
 			ymdToDateInput(yyyymmdd) {
 				const raw = String(yyyymmdd || '').replace(/[^0-9]/g, '');
@@ -2899,10 +2938,16 @@ const StaffUI = {
 
 				if (!r.ok) {
 					select.innerHTML = '<option value="">반 목록 조회 실패</option>';
+					StaffUI.classOptionMap = new Map();
+					StaffUI.renderAbsenceClassSummary();
 					return;
 				}
 
 				const items = Array.isArray(r.data && r.data.items) ? r.data.items : [];
+				StaffUI.classOptionMap = new Map(
+					items.map(item => [String(item.class_id || '').trim(), item])
+				);
+
 				select.innerHTML =
 					(items.length
 						? '<option value="">해당 날짜 수업 반 선택</option>'
@@ -2928,6 +2973,139 @@ const StaffUI = {
 				if (current && items.some(item => String(item.class_id || '').trim() === current)) {
 					select.value = current;
 				}
+
+				StaffUI.renderAbsenceClassSummary();
+			},
+
+			renderAbsenceClassSummary() {
+				const box = $('#abClassSummary');
+				const select = $('#abClassId');
+				if (!box || !select) return;
+
+				const classId = String(select.value || '').trim();
+				const item = StaffUI.classOptionMap.get(classId);
+				if (!item) {
+					box.textContent = '날짜와 반을 선택하면 수업 요약이 표시됩니다.';
+					return;
+				}
+
+				const time = [item.start || '', item.end || ''].filter(Boolean).join('~');
+				const teacher = String(item.teacher_name || item.teacher || '').trim();
+				box.textContent = [
+					'선택 반: ' + (item.name || classId),
+					time ? time : '',
+					teacher ? '담당 ' + teacher : ''
+				].filter(Boolean).join(' · ');
+			},
+
+			renderAbsenceRoster(items) {
+				const box = $('#abRosterBox');
+				if (!box) return;
+
+				const rows = Array.isArray(items) ? items : [];
+				StaffUI.absenceRosterItems = rows;
+
+				if (!rows.length) {
+					box.textContent = '이 반에 선택 가능한 학생이 없습니다.';
+					return;
+				}
+
+				box.innerHTML = `
+					<div style="font-weight:900; margin-bottom:10px;">반 학생 선택 (${rows.length}명)</div>
+					<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:8px;">
+						${rows.map(item => {
+							const sid = UI.padSid(item.student_id || '');
+							const name = String(item.student_name || '').trim() || '이름 없음';
+							const schoolGrade = [item.school || '', item.grade || ''].filter(Boolean).join(' ');
+							const status = String(item.status || '').trim();
+							const disabled = status && !['재원', 'ACTIVE', 'active'].includes(status) ? 'disabled' : '';
+							return `
+								<label style="display:flex; gap:8px; align-items:flex-start; padding:10px; border:1px solid rgba(148,163,184,.35); border-radius:12px; background:#fff;">
+									<input class="abRosterChk" type="checkbox" value="${escapeHtml(sid)}" ${disabled} style="margin-top:3px;">
+									<span>
+										<strong>${escapeHtml(name)} (${escapeHtml(sid)})</strong><br>
+										<span style="color:var(--sub); font-weight:800;">${escapeHtml([schoolGrade, status].filter(Boolean).join(' · '))}</span>
+									</span>
+								</label>
+							`;
+						}).join('')}
+					</div>
+				`;
+			},
+
+			async loadAbsenceRoster() {
+				const classId = String(($('#abClassId') && $('#abClassId').value) || '').trim();
+				const box = $('#abRosterBox');
+				if (!classId) {
+					UI.toast(false, '먼저 반을 선택하세요.');
+					if (box) box.textContent = '반을 선택하면 학생 체크 목록을 불러올 수 있습니다.';
+					return;
+				}
+
+				if (box) box.textContent = '반 학생 목록을 불러오는 중...';
+				const r = await App.rpc('assistant.listClassRoster', { class_id: classId });
+				if (!r.ok) {
+					if (box) box.textContent = (r.error && r.error.message) ? r.error.message : '반 학생 목록 조회 실패';
+					UI.toast(false, '반 학생 목록 조회 실패');
+					return;
+				}
+
+				StaffUI.renderAbsenceRoster(Array.isArray(r.data && r.data.items) ? r.data.items : []);
+			},
+
+			selectedAbsenceRosterIds() {
+				return Array.from(document.querySelectorAll('.abRosterChk:checked'))
+					.map(el => UI.padSid(el.value || ''))
+					.filter(Boolean);
+			},
+
+			async abBulkUpsert() {
+				const yyyymmdd = StaffUI.readYmdInput('abDate', false);
+				const class_id = String(($('#abClassId') && $('#abClassId').value) || '').trim();
+				const student_ids = StaffUI.selectedAbsenceRosterIds();
+				const reason = ($('#abReason').value || '').trim();
+				const untilMin = parseInt(($('#abUntilMin').value || '').trim(), 10);
+
+				if (!yyyymmdd || !class_id) {
+					UI.toast(false, '날짜와 반을 먼저 선택하세요.');
+					return;
+				}
+
+				if (!student_ids.length) {
+					UI.toast(false, '일괄 등록할 학생을 체크하세요.');
+					return;
+				}
+
+				if (!confirm('선택한 ' + student_ids.length + '명에게 당일 미등원 알림 제외를 일괄 등록합니다. 계속할까요?')) {
+					return;
+				}
+
+				const r = await App.rpc('assistant.bulkAddAbsenceExcuses', {
+					yyyymmdd,
+					class_id,
+					student_ids,
+					reason,
+					until_min: untilMin || 0
+				});
+
+				if (!r.ok) {
+					UI.toast(false, (r.error && r.error.message) ? r.error.message : '결석예외 일괄 등록 실패');
+					return;
+				}
+
+				const d = r.data || {};
+				const msg = '일괄 등록 완료: 성공 ' + (d.succeeded || 0) + '명 / 실패 ' + (d.failed || 0) + '명';
+				UI.toast(
+					(d.failed || 0) === 0 && (d.replica_warn || 0) === 0,
+					msg + ((d.replica_warn || 0) ? ' / 실시간 replica 경고 ' + d.replica_warn + '건' : '')
+				);
+
+				const box = $('#abBox');
+				if (box) {
+					box.textContent = msg + ((d.replica_warn || 0) ? '\n실시간 replica 경고: ' + d.replica_warn + '건' : '');
+				}
+
+				await StaffUI.abList();
 			},
 
 			populateStaffMonthDetailOptions(items) {
@@ -3011,6 +3189,9 @@ const StaffUI = {
 
 				StaffUI.bindClick('btnApprovePin', StaffUI.approvePin);
 				StaffUI.bindClick('btnLoadLogs', StaffUI.loadLogs);
+				StaffUI.bindClick('btnOpsOverviewRefresh', StaffUI.loadOpsOverview);
+				StaffUI.bindClick('btnAbLoadRoster', StaffUI.loadAbsenceRoster);
+				StaffUI.bindClick('btnAbBulkUpsert', StaffUI.abBulkUpsert);
 				StaffUI.bindClick('btnLoadStaffMonth', StaffUI.loadStaffMonthSummary);
 				StaffUI.bindClick('btnLoadStaffMonthDetail', StaffUI.loadStaffMonthDetail);
 				StaffUI.bindClick('btnSetExY', () => StaffUI.setException('Y'));
@@ -3039,7 +3220,15 @@ const StaffUI = {
 				StaffUI.bindClick('btnCleanupQrDry', StaffUI.cleanupQrExpiredDry);
 				StaffUI.bindClick('btnCleanupQr', StaffUI.cleanupQrExpired);
 				StaffUI.bindClick('btnFlushCache', StaffUI.flushCache);
-				StaffUI.bindClick('btnGenSchedule', StaffUI.generateSchedule);
+
+				document.querySelectorAll('.reasonPresetBtn[data-fill-target][data-fill-value]').forEach(btn => {
+					btn.addEventListener('click', () => {
+						const target = document.getElementById(String(btn.dataset.fillTarget || '').trim());
+						if (!target) return;
+						target.value = String(btn.dataset.fillValue || '').trim();
+						safeFocus(target, 0);
+					});
+				});
 
 				[
 					'pinSid',
@@ -3067,9 +3256,11 @@ const StaffUI = {
 				}
 
 				if (abClassEl) {
-					abClassEl.addEventListener('change', () => {
+					abClassEl.addEventListener('change', async () => {
 						if (abSidEl) abSidEl.value = '';
 						StaffUI.renderStudentOptions([]);
+						StaffUI.renderAbsenceClassSummary();
+						await StaffUI.loadAbsenceRoster();
 					});
 				}
 
@@ -3085,6 +3276,9 @@ const StaffUI = {
 				if (staffMonth && !staffMonth.value) staffMonth.value = StaffUI.yyyymmToMonthInput(today.slice(0, 6));
 
 				StaffUI.applyRoleView();
+				if (StaffUI.me && ['admin', 'owner'].includes(String(StaffUI.me.role || '').trim().toLowerCase())) {
+					StaffUI.loadOpsOverview().catch(() => {});
+				}
 			},
 
 			setRoleSectionVisible(selector, visible) {
@@ -3115,11 +3309,14 @@ const StaffUI = {
 					'btnApprovePin',
 					'btnAbList',
 					'btnAbUpsert',
-					'btnAbRemove'
+					'btnAbRemove',
+					'btnAbLoadRoster',
+					'btnAbBulkUpsert'
 					].forEach(id => StaffUI.setDisabledById(id, !assistantPlus));
 
 					['btnSetExY', 'btnSetExN'].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
 				[
+					'btnOpsOverviewRefresh',
 					'btnLoadStaffMonth',
 					'btnLoadStaffMonthDetail',
 					'btnManualAttendance',
@@ -3144,6 +3341,46 @@ const StaffUI = {
 					'btnCleanupQr',
 					'btnFlushCache'
 				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
+			},
+
+			queueScope() {
+				const el = $('#queueScope');
+				return String(el && el.value ? el.value : 'ABSENT').trim().toUpperCase() || 'ABSENT';
+			},
+
+			async loadOpsOverview() {
+				const box = $('#opsOverviewBox');
+				if (box) box.textContent = '운영 상태를 불러오는 중...';
+
+				const r = await App.rpc('admin.getOpsOverview');
+				if (!r.ok) {
+					if (box) box.textContent = (r.error && r.error.message) ? r.error.message : '운영 상태 조회 실패';
+					return;
+				}
+
+				const d = r.data || {};
+				const replica = d.central_replica || {};
+				const queue = d.queue || {};
+				const absence = d.latest_absence_run || {};
+				const worker = d.latest_notify_worker_run || {};
+
+				const failedAbsent = queue.failed_absent && queue.failed_absent.count != null ? queue.failed_absent.count : '-';
+				const failedAttendance = queue.failed_attendance && queue.failed_attendance.count != null ? queue.failed_attendance.count : '-';
+				const pendingAll = queue.pending_all && queue.pending_all.count != null ? queue.pending_all.count : '-';
+
+				if (box) {
+					box.textContent =
+						'운영 상태 요약\n\n' +
+						'SAFE MODE: ' + ((d.safe && String(d.safe.mode || '').toUpperCase() === 'Y') ? 'ON' : 'OFF') + '\n' +
+						'KIOSK FLOOR: ' + (d.kiosk_floor || '-') + '\n' +
+						'중앙DB sync: ' + (replica.status || '-') + ' / ' + (replica.syncedAt || '-') + '\n' +
+						'중앙DB sync 경과: ' + (replica.ageMin == null ? '-' : replica.ageMin + '분') + '\n' +
+						'실패 queue - 미등원: ' + failedAbsent + '건 / 등하원: ' + failedAttendance + '건\n' +
+						'대기 queue 전체: ' + pendingAll + '건\n\n' +
+						'최근 미등원 감지: ' + (absence.created_at || '-') + ' / ' + (absence.status || '-') + ' / queued ' + (absence.queued_count || 0) + ' / failed ' + (absence.failed_count || 0) + '\n' +
+						'최근 알림 worker: ' + (worker.created_at || '-') + ' / ' + (worker.status || '-') + ' / done ' + (worker.done || 0) + ' / failed ' + (worker.failed || 0) + '\n' +
+						'checked_at: ' + (d.checked_at || '-');
+				}
 			},
 
 			async approvePin() {
@@ -3784,28 +4021,32 @@ const StaffUI = {
 					return;
 				}
 
-				const box = $('#diagBox');
-				if (box) box.textContent = '중앙DB 최신화 반영 실행 중...';
+				await UI.withBtnBusy('#btnRunCentralReplicaSync', '최신화 반영 중...', async () => {
+					const box = $('#diagBox');
+					if (box) box.textContent = '중앙DB 최신화 반영 실행 중...';
 
-				const r = await App.rpc('admin.runCentralReplicaSync', { pin });
-				if (!r.ok) {
-					const msg = (r.error && r.error.message) ? r.error.message : '중앙DB 최신화 반영 실패';
-					if (box) box.textContent = msg;
-					UI.toast(false, msg);
-					return;
-				}
+					const r = await App.rpc('admin.runCentralReplicaSync', { pin });
+					if (!r.ok) {
+						const msg = (r.error && r.error.message) ? r.error.message : '중앙DB 최신화 반영 실패';
+						if (box) box.textContent = msg;
+						UI.toast(false, msg);
+						await StaffUI.loadOpsOverview().catch(() => {});
+						return;
+					}
 
-				const d = r.data || {};
-				if (box) {
-					box.textContent =
-						'중앙DB 최신화 반영 완료\n\n' +
-						'synced_at: ' + (d.synced_at || '') + '\n' +
-						'requested_by: ' + (d.requested_by || '') + '\n\n' +
-						JSON.stringify(d.counts || {}, null, 2);
-				}
+					const d = r.data || {};
+					if (box) {
+						box.textContent =
+							'중앙DB 최신화 반영 완료\n\n' +
+							'synced_at: ' + (d.synced_at || '') + '\n' +
+							'requested_by: ' + (d.requested_by || '') + '\n\n' +
+							JSON.stringify(d.counts || {}, null, 2);
+					}
 
-				await App.refreshMeta();
-				UI.toast(true, '중앙DB 최신화 반영 완료');
+					await App.refreshMeta();
+					await StaffUI.loadOpsOverview().catch(() => {});
+					UI.toast(true, '중앙DB 최신화 반영 완료');
+				});
 			},
 
 			async runAbsentNow() {
@@ -3923,9 +4164,15 @@ const StaffUI = {
 
 				box.textContent = '알림 queue 조회 중...';
 
+				const scope = StaffUI.queueScope();
+				const actionPrefix = scope === 'ALL' ? '' : scope;
+				const scopeLabel = scope === 'ATTENDANCE'
+					? '등·하원 알림'
+					: (scope === 'ALL' ? '전체 알림' : '미등원 알림');
+
 				const r = await App.rpc('admin.listNotifyQueue', {
 					status: 'FAILED',
-					action_prefix: 'ABSENT',
+					action_prefix: actionPrefix,
 					limit: 100
 				});
 
@@ -3939,13 +4186,13 @@ const StaffUI = {
 				const items = Array.isArray(data.items) ? data.items : [];
 
 				if (!items.length) {
-					box.textContent = 'FAILED 상태의 미등원 알림 queue가 없습니다.';
+					box.textContent = 'FAILED 상태의 ' + scopeLabel + ' queue가 없습니다.';
 					UI.toast(true, '실패 queue 없음');
 					return;
 				}
 
 				box.innerHTML = `
-					<div style="font-weight:900; margin-bottom:10px;">FAILED 미등원 알림 queue: ${items.length}건</div>
+					<div style="font-weight:900; margin-bottom:10px;">FAILED ${escapeHtml(scopeLabel)} queue: ${items.length}건</div>
 					<div class="logScroll" style="max-height:260px;">
 						<table class="logTable">
 							<thead>
@@ -3978,16 +4225,23 @@ const StaffUI = {
 			},
 
 			async queueRetry() {
-				const pin = prompt('[보안 확인] FAILED 미등원 알림 queue를 재처리하려면 관리자 PIN을 입력하세요.');
+				const scope = StaffUI.queueScope();
+				if (scope === 'ALL') {
+					UI.toast(false, '재처리는 미등원 또는 등·하원 알림 중 하나를 선택해야 합니다.');
+					return;
+				}
+
+				const scopeLabel = scope === 'ATTENDANCE' ? '등·하원 알림' : '미등원 알림';
+				const pin = prompt('[보안 확인] FAILED ' + scopeLabel + ' queue를 재처리하려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;
 
 				const box = $('#diagBox');
-				if (box) box.textContent = 'FAILED 미등원 알림 queue 재처리 중...';
+				if (box) box.textContent = 'FAILED ' + scopeLabel + ' queue 재처리 중...';
 
 				const r = await App.rpc('admin.retryNotifyQueue', {
 					pin,
 					status: 'FAILED',
-					action_prefix: 'ABSENT',
+					action_prefix: scope,
 					limit: 50,
 					reset_attempts: 'N'
 				});
@@ -4353,7 +4607,7 @@ const StaffUI = {
 				const r = await App.rpc('admin.flushCache', { pin });
 				UI.toast(!!r.ok, r.ok ? '캐시를 비웠습니다.' : ((r.error && r.error.message) ? r.error.message : '실패'));
 			},
-			
+
 			async manualAttendance() {
 				const student = StaffUI.readStudentSelection('manSid');
 				const student_id = student.student_id;
