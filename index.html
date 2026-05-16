@@ -1525,7 +1525,8 @@
                   <input class="inp" id="payloadStudent" list="staffStudentOptions" placeholder="알림 payload 학생 이름 검색" autocomplete="off" style="flex:1;">
                 </div>
                 <div class="row" style="margin-top:16px;">
-                  <button class="btn btn-bad" id="btnSafeOn" type="button">점검 모드</button>
+                  <button class="btn btn-bad" id="btnSafeOn" type="button">점검 모드 ON</button>
+                  <button class="btn btn-ghost" id="btnSafeOff" type="button">점검 모드 OFF</button>
                   <button class="btn btn-sky" id="btnRunCentralReplicaSync" type="button">중앙DB 최신화 반영</button>
                 </div>
                 <div class="row" style="margin-top:16px;">
@@ -3354,7 +3355,11 @@ const StaffUI = {
 
 				const r = await App.rpc('admin.getOpsOverview');
 				if (!r.ok) {
-					if (box) box.textContent = (r.error && r.error.message) ? r.error.message : '운영 상태 조회 실패';
+					if (box) {
+						box.textContent = (r.error && r.error.message)
+							? r.error.message
+							: '운영 상태 조회 실패';
+					}
 					return;
 				}
 
@@ -3363,22 +3368,52 @@ const StaffUI = {
 				const queue = d.queue || {};
 				const absence = d.latest_absence_run || {};
 				const worker = d.latest_notify_worker_run || {};
+				const errors = d.errors || {};
 
-				const failedAbsent = queue.failed_absent && queue.failed_absent.count != null ? queue.failed_absent.count : '-';
-				const failedAttendance = queue.failed_attendance && queue.failed_attendance.count != null ? queue.failed_attendance.count : '-';
-				const pendingAll = queue.pending_all && queue.pending_all.count != null ? queue.pending_all.count : '-';
+				const fmtCount = item => {
+					if (!item) return '조회 실패';
+					if (item.ok === false) {
+						return '조회 실패: ' + (item.error || '-');
+					}
+					return String(item.count == null ? '-' : item.count) + '건';
+				};
+
+				const absenceLine = errors.latest_absence_run
+					? '최근 미등원 감지: 조회 실패 - ' + errors.latest_absence_run
+					: '최근 미등원 감지: ' +
+						(absence.created_at || '-') +
+						' / ' +
+						(absence.status || '-') +
+						' / queued ' +
+						(absence.queued_count || 0) +
+						' / failed ' +
+						(absence.failed_count || 0);
+
+				const workerLine = errors.latest_notify_worker_run
+					? '최근 알림 worker: 조회 실패 - ' + errors.latest_notify_worker_run
+					: '최근 알림 worker: ' +
+						(worker.created_at || '-') +
+						' / ' +
+						(worker.status || '-') +
+						' / done ' +
+						(worker.done || 0) +
+						' / failed ' +
+						(worker.failed || 0);
 
 				if (box) {
 					box.textContent =
 						'운영 상태 요약\n\n' +
-						'SAFE MODE: ' + ((d.safe && String(d.safe.mode || '').toUpperCase() === 'Y') ? 'ON' : 'OFF') + '\n' +
+						'SAFE MODE: ' +
+						((d.safe && String(d.safe.mode || '').toUpperCase() === 'Y') ? 'ON' : 'OFF') +
+						'\n' +
 						'KIOSK FLOOR: ' + (d.kiosk_floor || '-') + '\n' +
 						'중앙DB sync: ' + (replica.status || '-') + ' / ' + (replica.syncedAt || '-') + '\n' +
 						'중앙DB sync 경과: ' + (replica.ageMin == null ? '-' : replica.ageMin + '분') + '\n' +
-						'실패 queue - 미등원: ' + failedAbsent + '건 / 등하원: ' + failedAttendance + '건\n' +
-						'대기 queue 전체: ' + pendingAll + '건\n\n' +
-						'최근 미등원 감지: ' + (absence.created_at || '-') + ' / ' + (absence.status || '-') + ' / queued ' + (absence.queued_count || 0) + ' / failed ' + (absence.failed_count || 0) + '\n' +
-						'최근 알림 worker: ' + (worker.created_at || '-') + ' / ' + (worker.status || '-') + ' / done ' + (worker.done || 0) + ' / failed ' + (worker.failed || 0) + '\n' +
+						'실패 queue - 미등원: ' + fmtCount(queue.failed_absent) +
+						' / 등하원: ' + fmtCount(queue.failed_attendance) + '\n' +
+						'대기 queue 전체: ' + fmtCount(queue.pending_all) + '\n\n' +
+						absenceLine + '\n' +
+						workerLine + '\n' +
 						'checked_at: ' + (d.checked_at || '-');
 				}
 			},

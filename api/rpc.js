@@ -2141,6 +2141,18 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
       .limit(1)
   ]);
 
+  const errors = {};
+
+  if (latestAbsenceOut?.error) {
+    errors.latest_absence_run =
+      latestAbsenceOut.error.message || 'absence_detection_runs 조회 실패';
+  }
+
+  if (latestWorkerOut?.error) {
+    errors.latest_notify_worker_run =
+      latestWorkerOut.error.message || 'notify_worker_runs 조회 실패';
+  }
+
   return success({
     safe: meta.data?.safe || {},
     kiosk_floor: meta.data?.kiosk_floor || '',
@@ -2150,8 +2162,17 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
       failed_attendance: failedAttendance,
       pending_all: pendingAll
     },
-    latest_absence_run: Array.isArray(latestAbsenceOut?.data) ? latestAbsenceOut.data[0] || null : null,
-    latest_notify_worker_run: Array.isArray(latestWorkerOut?.data) ? latestWorkerOut.data[0] || null : null,
+    latest_absence_run: latestAbsenceOut?.error
+      ? null
+      : Array.isArray(latestAbsenceOut?.data)
+        ? latestAbsenceOut.data[0] || null
+        : null,
+    latest_notify_worker_run: latestWorkerOut?.error
+      ? null
+      : Array.isArray(latestWorkerOut?.data)
+        ? latestWorkerOut.data[0] || null
+        : null,
+    errors,
     checked_at: nowIso()
   });
 }
