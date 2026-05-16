@@ -1,14 +1,14 @@
-# 프로젝트 인수인계/운영 기준 (Direct 전환 단계)
+# 프로젝트 인수인계/운영 기준 (운영 고도화 단계)
 
 ## 1) 현재 상태표 (반드시 이 표 기준으로 판단)
 
 - **중앙DB GAS (`v26.0-central-ultimate`)**: 운영 중인 기준 시스템(SSOT), strict schema/repair/self-check/cron/replica sync 허브.
 - **출석 GAS (`v27.2.2-att-central-final`)**: 레거시 기준 동작 + 운영 보조/비상 레퍼런스.
 - **직원 QR 생성기 GAS (`v1.0.1-staff-release2`)**: 직원 QR 세션/검증 정책 원본.
-- **Vercel/Supabase**: 실시간 핫패스 주력 런타임(점진 이전의 실제 대상).
+- **Vercel/Supabase**: 실시간 핫패스 주력 런타임. 이전의 큰 줄기는 완료되었고, 현재는 운영 안정화·기능 추가·UI/UX 고도화 대상.
 
 > 핵심: 이 프로젝트는 GAS를 “전부 폐기”하는 것이 아니라,
-> **중앙DB 정책 원본은 유지하고 실시간 경로의 GAS 의존만 제거**하는 작업이다.
+> **중앙DB 정책 원본은 유지하고, 실시간 운영은 Vercel/Supabase direct runtime으로 굳힌 상태에서 안정화와 고도화를 진행**하는 단계다.
 
 ## 2) 권위 순서 (authoritative precedence)
 
@@ -34,12 +34,12 @@
 
 같은 UI처럼 보여도 RPC 계층/자산 경로가 다르므로 **섞으면 바로 깨진다**.
 
-## 5) Direct 전환 우선순위 (현 시점)
+## 5) 운영 고도화 우선순위 (현 시점)
 
-1. snapshot/sync 품질 안정화
-2. direct 배포본 최종 검수
-3. Pro 기준 cron/worker를 복구/보조 경로로 재설계
-4. 레거시 fallback 제거 최종 검수
+1. 중앙DB bridge / hybrid write / replica patch 정합성 고정
+2. direct 런타임의 cron·worker·sync 운영 안정화
+3. 직원 화면 입력 UX와 장애 대응 도구 고도화
+4. 레거시 fallback 제거 여부를 최신 운영본 기준으로 최종 검수
 
 ## 6) 운영 전 최종 점검 체크리스트
 

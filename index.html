@@ -1333,10 +1333,11 @@
                       <th>입력/예외</th>
                       <th>사유</th>
                       <th>trace_id</th>
+                      <th>정정</th>
                     </tr>
                   </thead>
                   <tbody id="logBoxBody">
-                    <tr><td colspan="9">조회 결과가 없습니다.</td></tr>
+                    <tr><td colspan="10">조회 결과가 없습니다.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1429,12 +1430,12 @@
         </div>
 
         <div class="foldCard">
-          <details>
-            <summary>출결 관리</summary>
+          <details id="attendanceManageFold">
+			<summary>출결 관리</summary>
             <div class="foldBody">
               <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
 
-              <div class="section section-tight">
+              <div class="section section-tight" id="manualCorrectionSection">
                 <div class="sectionTitle">수동 정정</div>
                 <div class="row" style="margin-top:16px;">
                   <input class="inp" id="manSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
@@ -1484,8 +1485,7 @@
             <summary>관리자 도구</summary>
             <div class="foldBody">
               <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
-                <div class="sectionTitle">안전 모드 / 트리거 / 캐시 / 스케줄</div>
-                <div class="row" style="margin-top:16px;">
+                <div class="sectionTitle">안전 모드 / 실시간 반영 / 캐시 / 점검</div>
                 <div class="row" style="margin-top:16px;">
                   <input class="inp" id="safeMsg" placeholder="점검 모드 안내 문구 (선택)" style="flex:1;">
                 </div>
@@ -1496,8 +1496,7 @@
                 </div>
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-bad" id="btnSafeOn" type="button">점검 모드</button>
-                  <button class="btn btn-pri" id="btnInstallAbsent" type="button">미등원 트리거</button>
-                  <button class="btn btn-pri" id="btnInstallDaily" type="button">데일리 트리거</button>
+                  <button class="btn btn-sky" id="btnRunCentralReplicaSync" type="button">중앙DB 최신화 반영</button>
                 </div>
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-pri" id="btnRunAbsent" type="button">미등원 즉시 실행</button>
@@ -1514,7 +1513,6 @@
                   <button class="btn btn-ghost" id="btnCleanupQrDry" type="button">운영 만료 모의 정리</button>
                   <button class="btn btn-ghost" id="btnCleanupQr" type="button">운영 만료 정리</button>
                   <button class="btn btn-bad" id="btnFlushCache" type="button">캐시 비우기</button>
-                  <button class="btn btn-sky" id="btnGenSchedule" type="button">스케줄 재생성</button>
                 </div>
               </div>
             </div>
@@ -2694,6 +2692,82 @@ const StaffUI = {
 				return sid || '-';
 			},
 
+			formatAbsenceUntil(raw, yyyymmdd) {
+				const value = String(raw || '').trim();
+				if (!value) return '-';
+
+				let ms = NaN;
+				if (/^\d{10,13}$/.test(value)) {
+					ms = value.length === 10 ? Number(value) * 1000 : Number(value);
+				} else {
+					ms = Date.parse(value);
+				}
+
+				if (!Number.isFinite(ms)) return value;
+
+				const parts = new Intl.DateTimeFormat('ko-KR', {
+					timeZone: 'Asia/Seoul',
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
+					hour: '2-digit',
+					minute: '2-digit',
+					hour12: false
+				}).formatToParts(new Date(ms));
+
+				const map = {};
+				parts.forEach(part => {
+					if (part.type !== 'literal') map[part.type] = part.value;
+				});
+
+				const ymd = String(map.year || '') + String(map.month || '') + String(map.day || '');
+				const hhmm = String(map.hour || '00') + ':' + String(map.minute || '00');
+
+				if (String(yyyymmdd || '').trim() === ymd && hhmm === '23:59') {
+					return '당일 끝까지';
+				}
+
+				return [
+					map.year || '',
+					map.month || '',
+					map.day || ''
+				].filter(Boolean).join('-') + ' ' + hhmm + '까지';
+			},
+
+			showReplicaPatchResult(r, successMessage, contextLabel) {
+				const data = (r && r.data) ? r.data : {};
+				const patched = data.replicaPatched;
+				const patchError = String(data.replicaPatchError || '').trim();
+				const box = $('#diagBox');
+
+				if (r && r.ok && patched === false) {
+					const headline = String(contextLabel || '실시간 replica 반영') + ' 경고';
+					const warning =
+						successMessage +
+						' / 중앙DB 저장은 완료됐지만 실시간 replica 반영은 지연될 수 있습니다.' +
+						(patchError ? ' (' + patchError + ')' : '');
+
+					UI.toast(false, warning);
+
+					if (box) {
+						box.textContent =
+							headline + '\n\n' +
+							'central_db_bridge: OK\n' +
+							'replica_patch: FAILED\n' +
+							'error: ' + (patchError || '-') + '\n\n' +
+							'필요 시 관리자 도구의 [중앙DB 최신화 반영]을 실행하세요.';
+					}
+
+					return false;
+				}
+
+				UI.toast(!!(r && r.ok), r && r.ok
+					? successMessage
+					: ((r && r.error && r.error.message) ? r.error.message : '실패'));
+
+				return !!(r && r.ok);
+			},
+
 			renderStudentOptions(items) {
 				const list = $('#staffStudentOptions');
 				if (!list) return;
@@ -2722,10 +2796,11 @@ const StaffUI = {
 				}).join('');
 			},
 
-			async searchStudentOptions(q, seq) {
+			async searchStudentOptions(q, seq, extraArgs) {
 				const r = await App.rpc('assistant.searchStudents', {
 					q: String(q || '').trim(),
-					limit: 20
+					limit: 20,
+					...(extraArgs || {})
 				});
 
 				if (seq !== StaffUI.studentSearchSeq) return;
@@ -2738,9 +2813,11 @@ const StaffUI = {
 				StaffUI.renderStudentOptions(items);
 			},
 
-			bindStudentLookup(id) {
+			bindStudentLookup(id, opt) {
 				const el = document.getElementById(id);
 				if (!el) return;
+
+				const options = opt || {};
 
 				const run = () => {
 					const q = String(el.value || '').trim();
@@ -2751,9 +2828,22 @@ const StaffUI = {
 						return;
 					}
 
+					const extraArgs = {};
+					if (options.classIdInputId) {
+						const classEl = document.getElementById(options.classIdInputId);
+						const classId = String(classEl && classEl.value ? classEl.value : '').trim();
+
+						if (!classId) {
+							StaffUI.renderStudentOptions([]);
+							return;
+						}
+
+						extraArgs.class_id = classId;
+					}
+
 					const seq = ++StaffUI.studentSearchSeq;
 					StaffUI.studentSearchTimer = setTimeout(() => {
-						StaffUI.searchStudentOptions(q, seq);
+						StaffUI.searchStudentOptions(q, seq, extraArgs);
 					}, 180);
 				};
 
@@ -2801,12 +2891,22 @@ const StaffUI = {
 				if (!select) return;
 
 				const current = String(select.value || '').trim();
-				const r = await App.rpc('assistant.listClassOptions', { limit: 500 });
-				if (!r.ok) return;
+				const yyyymmdd = StaffUI.readYmdInput('abDate', true);
+				const r = await App.rpc('assistant.listClassOptions', {
+					yyyymmdd,
+					limit: 500
+				});
+
+				if (!r.ok) {
+					select.innerHTML = '<option value="">반 목록 조회 실패</option>';
+					return;
+				}
 
 				const items = Array.isArray(r.data && r.data.items) ? r.data.items : [];
 				select.innerHTML =
-					'<option value="">반 선택</option>' +
+					(items.length
+						? '<option value="">해당 날짜 수업 반 선택</option>'
+						: '<option value="">해당 날짜에 등록 가능한 수업 반이 없습니다</option>') +
 					items.map(item => {
 						const classId = String(item.class_id || '').trim();
 						const name = String(item.name || '').trim() || '이름 없는 반';
@@ -2814,11 +2914,10 @@ const StaffUI = {
 							String(item.start || '').trim(),
 							String(item.end || '').trim()
 						].filter(Boolean).join('~');
-						const teacher = String(item.teacher || '').trim();
+						const teacherName = String(item.teacher_name || item.teacher || '').trim();
 						const detail = [
 							time,
-							teacher ? '담당 ' + teacher : '',
-							classId
+							teacherName ? '담당 ' + teacherName : ''
 						].filter(Boolean).join(' · ');
 
 						return '<option value="' + escapeHtml(classId) + '">' +
@@ -2886,7 +2985,7 @@ const StaffUI = {
 										</td>
 										<td>${escapeHtml(StaffUI.studentDisplay(x.student_id, x.student_name))}</td>
 										<td class="wrap">${escapeHtml(x.reason || '')}</td>
-										<td class="wrap">${escapeHtml(x.until_ts || '')}</td>
+										<td class="wrap">${escapeHtml(StaffUI.formatAbsenceUntil(x.until_ts, x.yyyymmdd))}</td>
 										<td>${escapeHtml(x.updated_by || x.created_by || '')}</td>
 									</tr>
 								`).join('')}
@@ -2925,8 +3024,7 @@ const StaffUI = {
 				StaffUI.bindClick('btnTestNcp', StaffUI.testNcp);
 				StaffUI.bindClick('btnSafeOff', () => StaffUI.toggleSafe('N'));
 				StaffUI.bindClick('btnSafeOn', () => StaffUI.toggleSafe('Y'));
-				StaffUI.bindClick('btnInstallAbsent', StaffUI.installAbsentTrigger);
-				StaffUI.bindClick('btnInstallDaily', StaffUI.installDailyTrigger);
+				StaffUI.bindClick('btnRunCentralReplicaSync', StaffUI.runCentralReplicaSync);
 				StaffUI.bindClick('btnRunAbsent', StaffUI.runAbsentNow);
 				StaffUI.bindClick('btnRunAbsentDry', StaffUI.runAbsentDry);
 				StaffUI.bindClick('btnFloor5', () => StaffUI.setFloor('5F'));
@@ -2947,13 +3045,33 @@ const StaffUI = {
 					'pinSid',
 					'logSid',
 					'exSid',
-					'abSid',
 					'manSid',
 					'stateToolStudent',
 					'payloadStudent'
 				].forEach(id => StaffUI.bindStudentLookup(id));
 
+				StaffUI.bindStudentLookup('abSid', { classIdInputId: 'abClassId' });
 				StaffUI.loadClassOptions();
+
+				const abDateEl = $('#abDate');
+				const abClassEl = $('#abClassId');
+				const abSidEl = $('#abSid');
+
+				if (abDateEl) {
+					abDateEl.addEventListener('change', async () => {
+						if (abClassEl) abClassEl.value = '';
+						if (abSidEl) abSidEl.value = '';
+						StaffUI.renderStudentOptions([]);
+						await StaffUI.loadClassOptions();
+					});
+				}
+
+				if (abClassEl) {
+					abClassEl.addEventListener('change', () => {
+						if (abSidEl) abSidEl.value = '';
+						StaffUI.renderStudentOptions([]);
+					});
+				}
 
 				const today = UI.ymd();
 				const logDate = $('#logDate');
@@ -3010,8 +3128,7 @@ const StaffUI = {
 					'btnTestNcp',
 					'btnSafeOff',
 					'btnSafeOn',
-					'btnInstallAbsent',
-					'btnInstallDaily',
+					'btnRunCentralReplicaSync',
 					'btnRunAbsent',
 					'btnRunAbsentDry',
 					'btnFloor5',
@@ -3025,8 +3142,7 @@ const StaffUI = {
 					'btnPreviewNotifyPayload',
 					'btnCleanupQrDry',
 					'btnCleanupQr',
-					'btnFlushCache',
-					'btnGenSchedule'
+					'btnFlushCache'
 				].forEach(id => StaffUI.setDisabledById(id, !adminPlus));
 			},
 
@@ -3069,35 +3185,88 @@ const StaffUI = {
 					return;
 				}
 
-				if (tbody) tbody.innerHTML = '<tr><td colspan="9">조회 중...</td></tr>';
+				if (tbody) tbody.innerHTML = '<tr><td colspan="10">조회 중...</td></tr>';
 
 				const r = await App.rpc('assistant.getLogs', { yyyymmdd, student_id, limit: 300 });
 				if (!r.ok) {
-					if (tbody) tbody.innerHTML = '<tr><td colspan="9">' + escapeHtml((r.error && r.error.message) ? r.error.message : '조회 실패') + '</td></tr>';
+					if (tbody) tbody.innerHTML = '<tr><td colspan="10">' + escapeHtml((r.error && r.error.message) ? r.error.message : '조회 실패') + '</td></tr>';
 					return;
 				}
 
 				const logs = (r.data && Array.isArray(r.data.logs)) ? r.data.logs : [];
 				if (!logs.length) {
-					if (tbody) tbody.innerHTML = '<tr><td colspan="9">조회 결과가 없습니다.</td></tr>';
+					if (tbody) tbody.innerHTML = '<tr><td colspan="10">조회 결과가 없습니다.</td></tr>';
 					return;
 				}
 
 				if (tbody) {
-					tbody.innerHTML = logs.map(row => `
-						<tr>
-							<td>${escapeHtml(row.ts || '')}</td>
-							<td>${escapeHtml(StaffUI.studentDisplay(row.student_id, row.student_name))}</td>
-							<td>${escapeHtml(row.action_type || '')}</td>
-							<td>${escapeHtml(row.kiosk_floor || '')}</td>
-							<td>${escapeHtml(row.result || '')}</td>
-							<td>${escapeHtml(row.qr_id || '')}</td>
-							<td>${escapeHtml([row.input_mode || '', row.exception || ''].filter(Boolean).join('/'))}</td>
-							<td>${escapeHtml(row.deny_reason || '')}</td>
-							<td>${escapeHtml(row.trace_id || '')}</td>
-						</tr>
-					`).join('');
+					tbody.innerHTML = logs.map(row => {
+						const traceId = String(row.trace_id || '').trim();
+						const sid = UI.padSid(row.student_id || '');
+						const studentName = String(row.student_name || '').trim();
+						const fixButton = traceId
+							? '<button class="btn btn-ghost logFixBtn" type="button" style="padding:7px 10px; min-height:auto;"' +
+								' data-sid="' + escapeHtml(sid) + '"' +
+								' data-name="' + escapeHtml(studentName) + '"' +
+								' data-trace="' + escapeHtml(traceId) + '">정정</button>'
+							: '-';
+
+						return `
+							<tr>
+								<td>${escapeHtml(row.ts || '')}</td>
+								<td>${escapeHtml(StaffUI.studentDisplay(row.student_id, row.student_name))}</td>
+								<td>${escapeHtml(row.action_type || '')}</td>
+								<td>${escapeHtml(row.kiosk_floor || '')}</td>
+								<td>${escapeHtml(row.result || '')}</td>
+								<td>${escapeHtml(row.qr_id || '')}</td>
+								<td>${escapeHtml([row.input_mode || '', row.exception || ''].filter(Boolean).join('/'))}</td>
+								<td>${escapeHtml(row.deny_reason || '')}</td>
+								<td>${escapeHtml(traceId)}</td>
+								<td>${fixButton}</td>
+							</tr>
+						`;
+					}).join('');
+
+					tbody.querySelectorAll('.logFixBtn').forEach(btn => {
+						btn.addEventListener('click', () => {
+							StaffUI.prepareManualAttendanceFromLog(btn);
+						});
+					});
 				}
+			},
+
+			prepareManualAttendanceFromLog(button) {
+				const sid = UI.padSid(button && button.dataset ? button.dataset.sid : '');
+				const name = String(button && button.dataset ? button.dataset.name || '' : '').trim();
+				const traceId = String(button && button.dataset ? button.dataset.trace || '' : '').trim();
+
+				if (!sid || !traceId) {
+					UI.toast(false, '정정 자동 입력에 필요한 학생/trace_id 정보가 없습니다.');
+					return;
+				}
+
+				const studentLabel = StaffUI.studentDisplay(sid, name);
+				const manSid = $('#manSid');
+				const manTrace = $('#manSourceTrace');
+				const manReason = $('#manReason');
+				const manAction = $('#manAction');
+
+				if (manSid) manSid.value = studentLabel;
+				if (manTrace) manTrace.value = traceId;
+				if (manAction) manAction.value = '';
+				if (manReason && !String(manReason.value || '').trim()) {
+					manReason.value = '출결 로그 확인 후 수동 정정';
+				}
+
+				const fold = $('#attendanceManageFold');
+				if (fold) fold.open = true;
+
+				const section = $('#manualCorrectionSection');
+				if (section && typeof section.scrollIntoView === 'function') {
+					section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				}
+
+				UI.toast(true, '수동 정정 입력칸에 ' + studentLabel + ' / 원본 trace_id를 채웠습니다.');
 			},
 
 			async diag() {
@@ -3501,15 +3670,12 @@ const StaffUI = {
 				const r = await App.rpc('teacher.setException', { student_id, is_exception: yn, exception_note });
 				const studentLabel = student.label || StaffUI.studentDisplay(student_id, student.student_name);
 
-				UI.toast(
-					!!r.ok,
-					r.ok
-						? (
-							yn === 'Y'
-							? '상시 학번 직접 출결 허용 등록 완료: ' + studentLabel
-							: '상시 학번 직접 출결 허용 해제 완료: ' + studentLabel
-						)
-						: ((r.error && r.error.message) ? r.error.message : '실패')
+				StaffUI.showReplicaPatchResult(
+					r,
+					yn === 'Y'
+						? '상시 학번 직접 출결 허용 등록 완료: ' + studentLabel
+						: '상시 학번 직접 출결 허용 해제 완료: ' + studentLabel,
+					'상시 학번 직접 출결 허용'
 				);
 			},
 
@@ -3558,9 +3724,13 @@ const StaffUI = {
 					until_min: untilMin || 0
 				});
 
-				UI.toast(!!r.ok, r.ok ? '결석 예외 저장 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
+				const saved = StaffUI.showReplicaPatchResult(
+					r,
+					'결석 예외 저장 완료',
+					'결석 예외 저장'
+				);
 
-				if (r.ok) {
+				if (r.ok && saved) {
 					await StaffUI.abList();
 				}
 			},
@@ -3579,9 +3749,13 @@ const StaffUI = {
 				if (!confirm('정말 진행할까요?')) return;
 
 				const r = await App.rpc('assistant.removeAbsenceExcuse', { yyyymmdd, class_id, student_id });
-				UI.toast(!!r.ok, r.ok ? '결석 예외 삭제 완료' : ((r.error && r.error.message) ? r.error.message : '실패'));
+				const removed = StaffUI.showReplicaPatchResult(
+					r,
+					'결석 예외 삭제 완료',
+					'결석 예외 삭제'
+				);
 
-				if (r.ok) {
+				if (r.ok && removed) {
 					await StaffUI.abList();
 				}
 			},
@@ -3602,12 +3776,36 @@ const StaffUI = {
 				UI.toast(true, mode === 'Y' ? '점검 모드가 켜졌습니다.' : '온라인 상태로 복구되었습니다.');
 			},
 
-			async installAbsentTrigger() {
-				UI.toast(false, 'Vercel cron 설정으로 처리해야 합니다. GAS 트리거 설치는 사용하지 않습니다.');
-			},
+			async runCentralReplicaSync() {
+				const pin = prompt('[보안 확인] 중앙DB 최신화 반영을 실행하려면 관리자 PIN을 입력하세요.');
+				if (!pin) return;
 
-			async installDailyTrigger() {
-				UI.toast(false, 'Vercel cron 설정으로 처리해야 합니다. GAS 트리거 설치는 사용하지 않습니다.');
+				if (!confirm('중앙DB 원본을 기준으로 Supabase replica를 즉시 최신화합니다.\n학생/직원/반/스케줄/예외 데이터가 다시 반영됩니다.\n계속할까요?')) {
+					return;
+				}
+
+				const box = $('#diagBox');
+				if (box) box.textContent = '중앙DB 최신화 반영 실행 중...';
+
+				const r = await App.rpc('admin.runCentralReplicaSync', { pin });
+				if (!r.ok) {
+					const msg = (r.error && r.error.message) ? r.error.message : '중앙DB 최신화 반영 실패';
+					if (box) box.textContent = msg;
+					UI.toast(false, msg);
+					return;
+				}
+
+				const d = r.data || {};
+				if (box) {
+					box.textContent =
+						'중앙DB 최신화 반영 완료\n\n' +
+						'synced_at: ' + (d.synced_at || '') + '\n' +
+						'requested_by: ' + (d.requested_by || '') + '\n\n' +
+						JSON.stringify(d.counts || {}, null, 2);
+				}
+
+				await App.refreshMeta();
+				UI.toast(true, '중앙DB 최신화 반영 완료');
 			},
 
 			async runAbsentNow() {
@@ -4155,11 +4353,7 @@ const StaffUI = {
 				const r = await App.rpc('admin.flushCache', { pin });
 				UI.toast(!!r.ok, r.ok ? '캐시를 비웠습니다.' : ((r.error && r.error.message) ? r.error.message : '실패'));
 			},
-
-			async generateSchedule() {
-				UI.toast(false, '중앙DB → Supabase replica sync/스케줄 생성 worker 구현 후 활성화해야 합니다.');
-			},
-
+			
 			async manualAttendance() {
 				const student = StaffUI.readStudentSelection('manSid');
 				const student_id = student.student_id;

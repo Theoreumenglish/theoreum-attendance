@@ -31,6 +31,7 @@ import {
   assistantUpsertAbsenceExcuseHybrid,
   assistantRemoveAbsenceExcuseHybrid
 } from '../lib/rpc-hybrid-write.js';
+import { proxyRpcToGas } from '../lib/gas-rpc-proxy.js';
 import {
   assistantGetLogsDirect,
   assistantGetLogByTraceDirect,
@@ -331,64 +332,6 @@ async function adminSetSafeModeDirect(args = {}, sessionToken = '') {
   return success(meta.data);
 }
 
-async function teacherSetExceptionDirect(args = {}, sessionToken = '') {
-  const auth = await requireRole(sessionToken, 'teacher');
-  if (!auth.ok) return auth.out;
-
-  const sid = normalizeStudentId(args.student_id || args.sid || '');
-  const yn =
-    String(args.is_exception || args.isException || 'N').trim().toUpperCase() === 'Y'
-      ? 'Y'
-      : 'N';
-  const note = String(args.exception_note || args.note || '').trim().slice(0, 200);
-
-  if (!sid) {
-    return fail(400, 'INVALID_INPUT', '학번 4자리가 필요합니다.');
-  }
-
-  const supabase = getSupabaseAdmin();
-
-  const { data: found, error: readErr } = await supabase
-    .from('students')
-    .select('*')
-    .eq('student_id', sid)
-    .maybeSingle();
-
-  if (readErr) {
-    return fail(500, 'DB_SELECT_FAILED', readErr.message || 'students 조회 실패');
-  }
-
-  if (!found) {
-    return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
-  }
-
-  if (normalizeRole(auth.me.role) === 'teacher' && !teacherOwnsStudent(auth.me, found)) {
-    return fail(403, 'NO_PERMISSION', '담당 학생만 예외 설정을 변경할 수 있습니다.');
-  }
-
-  const { data: patched, error: updateErr } = await supabase
-    .from('students')
-    .update({
-      is_exception: yn,
-      exception_note: yn === 'Y' ? note : ''
-    })
-    .eq('student_id', sid)
-    .select('student_id, student_name, is_exception, exception_note')
-    .maybeSingle();
-
-  if (updateErr) {
-    return fail(500, 'DB_UPDATE_FAILED', updateErr.message || 'students update 실패');
-  }
-
-  return success({
-    student_id: sid,
-    student_name: String(patched?.student_name || found.student_name || '').trim(),
-    is_exception: String(patched?.is_exception || yn).trim().toUpperCase(),
-    exception_note: String(patched?.exception_note || '').trim(),
-    updated_by: auth.me.staff_id,
-    updated_role: auth.me.role
-  });
-}
 function envReady(name) {
   return !!String(process.env[name] || '').trim();
 }
@@ -1770,8 +1713,31 @@ async function adminFlushCacheDirect(args = {}, sessionToken = '') {
   });
 }
 
-function notImplementedDirect(message) {
-  return fail(501, 'NOT_IMPLEMENTED_DIRECT', message);
+async function adminRunCentralReplicaSyncDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const pin = pickAdminPin(args);
+  const pinCheck = await verifyAdminPinByStaffId(auth.me.staff_id, pin);
+  if (!pinCheck.ok) {
+    return fail(
+      401,
+      pinCheck.error.code || 'AUTH_FAILED',
+      pinCheck.error.message || '관리자 PIN 확인 실패'
+    );
+  }
+
+  const result = await proxyRpcToGas(
+    'bridge.replica.sync.run',
+    {
+      actor_staff_id: auth.me.staff_id,
+      actor_role: normalizeRole(auth.me.role),
+      actor_name: String(auth.me.name || '')
+    },
+    ''
+  );
+
+  return result;
 }
 
 async function absentRunNowDirect(args = {}, sessionToken = '') {
@@ -1912,12 +1878,36 @@ async function readClassNameMap(supabase, classIds = []) {
   }, {});
 }
 
+async function readStaffNameMap(supabase, staffIds = []) {
+  const ids = Array.from(new Set(
+    (staffIds || [])
+      .map(value => String(value || '').trim().toLowerCase())
+      .filter(Boolean)
+  ));
+
+  if (!ids.length) return {};
+
+  const { data, error } = await supabase
+    .from('staff')
+    .select('staff_id, name')
+    .in('staff_id', ids);
+
+  if (error) return {};
+
+  return (Array.isArray(data) ? data : []).reduce((acc, row) => {
+    const staffId = String(row?.staff_id || '').trim().toLowerCase();
+    if (staffId) acc[staffId] = String(row?.name || '').trim();
+    return acc;
+  }, {});
+}
+
 async function assistantSearchStudentsDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
 
   const raw = String(args.q || args.keyword || '').trim().slice(0, 40);
   const keyword = raw.replace(/[%_]/g, '').trim();
+  const classId = String(args.class_id || args.classId || '').trim();
   const limit = Math.max(1, Math.min(40, toPositiveInt(args.limit, 20)));
 
   if (!keyword) {
@@ -1925,12 +1915,40 @@ async function assistantSearchStudentsDirect(args = {}, sessionToken = '') {
   }
 
   const supabase = getSupabaseAdmin();
+  let scopedStudentIds = [];
+
+  if (classId) {
+    const { data: relations, error: relationError } = await supabase
+      .from('class_students')
+      .select('student_id')
+      .eq('class_id', classId)
+      .limit(1200);
+
+    if (relationError) {
+      return fail(500, 'DB_SELECT_FAILED', relationError.message || '반별 학생 관계 조회 실패');
+    }
+
+    scopedStudentIds = Array.from(new Set(
+      (Array.isArray(relations) ? relations : [])
+        .map(row => normalizeStudentId(row?.student_id))
+        .filter(Boolean)
+    ));
+
+    if (!scopedStudentIds.length) {
+      return success({ count: 0, items: [] });
+    }
+  }
+
   const digits = keyword.replace(/[^0-9]/g, '');
   let query = supabase
     .from('students')
     .select('student_id, student_name, school, grade, status')
     .order('student_name', { ascending: true })
     .limit(limit);
+
+  if (scopedStudentIds.length) {
+    query = query.in('student_id', scopedStudentIds);
+  }
 
   if (/^\d{1,4}$/.test(digits) && digits.length === keyword.length) {
     query = query.ilike('student_id', `%${digits}%`);
@@ -1962,7 +1980,49 @@ async function assistantListClassOptionsDirect(args = {}, sessionToken = '') {
   if (!auth.ok) return auth.out;
 
   const limit = Math.max(1, Math.min(1000, toPositiveInt(args.limit, 500)));
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
   const supabase = getSupabaseAdmin();
+
+  if (isStrictYmd(yyyymmdd)) {
+    const { data, error } = await supabase
+      .from('class_schedule')
+      .select('class_id, class_name, teacher, start, end, status')
+      .eq('yyyymmdd', yyyymmdd)
+      .eq('status', 'SCHEDULED')
+      .order('start', { ascending: true })
+      .order('class_name', { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      return fail(500, 'DB_SELECT_FAILED', error.message || '해당 날짜 수업 반 목록 조회 실패');
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const teacherNameMap = await readStaffNameMap(
+      supabase,
+      rows.map(row => row?.teacher)
+    );
+
+    const items = rows
+      .map(row => {
+        const teacher = String(row?.teacher || '').trim().toLowerCase();
+        return {
+          class_id: String(row?.class_id || '').trim(),
+          name: String(row?.class_name || '').trim(),
+          teacher,
+          teacher_name: teacherNameMap[teacher] || teacher,
+          start: String(row?.start || '').trim(),
+          end: String(row?.end || '').trim()
+        };
+      })
+      .filter(item => item.class_id);
+
+    return success({
+      count: items.length,
+      items,
+      yyyymmdd
+    });
+  }
 
   const { data, error } = await supabase
     .from('classes')
@@ -1975,20 +2035,32 @@ async function assistantListClassOptionsDirect(args = {}, sessionToken = '') {
     return fail(500, 'DB_SELECT_FAILED', error.message || '반 목록 조회 실패');
   }
 
-  const items = (Array.isArray(data) ? data : [])
-    .filter(row => String(row?.status || 'active').trim().toLowerCase() !== 'deleted')
-    .map(row => ({
-      class_id: String(row?.class_id || '').trim(),
-      name: String(row?.name || '').trim(),
-      teacher: String(row?.teacher || '').trim(),
-      start: String(row?.start || '').trim(),
-      end: String(row?.end || '').trim()
-    }))
+  const rows = (Array.isArray(data) ? data : [])
+    .filter(row => String(row?.status || 'active').trim().toLowerCase() !== 'deleted');
+
+  const teacherNameMap = await readStaffNameMap(
+    supabase,
+    rows.map(row => row?.teacher)
+  );
+
+  const items = rows
+    .map(row => {
+      const teacher = String(row?.teacher || '').trim().toLowerCase();
+      return {
+        class_id: String(row?.class_id || '').trim(),
+        name: String(row?.name || '').trim(),
+        teacher,
+        teacher_name: teacherNameMap[teacher] || teacher,
+        start: String(row?.start || '').trim(),
+        end: String(row?.end || '').trim()
+      };
+    })
     .filter(item => item.class_id);
 
   return success({
     count: items.length,
-    items
+    items,
+    yyyymmdd: ''
   });
 }
 
@@ -2095,144 +2167,6 @@ async function assistantListAbsenceExcusesDirect(args = {}, sessionToken = '') {
   return success({
     count: items.length,
     items
-  });
-}
-
-async function assistantAddAbsenceExcuseDirect(args = {}, sessionToken = '') {
-  const auth = await requireRole(sessionToken, 'assistant');
-  if (!auth.ok) return auth.out;
-
-  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
-  const classId = String(args.class_id || '').trim();
-  const sid = normalizeStudentId(args.student_id || args.sid || '');
-  const reason = String(args.reason || '').trim().slice(0, 300);
-  const untilMin = Number(args.until_min || args.untilMin || 0);
-
-  if (!classId || classId === '*') {
-    return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
-  }
-
-  if (!isStrictYmd(yyyymmdd)) {
-    return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
-  }
-
-  if (!sid) {
-    return fail(400, 'INVALID_INPUT', '학번 4자리가 필요합니다.');
-  }
-
-  const today = kstYmd(new Date());
-  if (yyyymmdd < today) {
-    return fail(403, 'NO_PERMISSION', '과거 날짜에는 미등원 예외를 등록할 수 없습니다.');
-  }
-
-  const supabase = getSupabaseAdmin();
-  const targetError = await assertAbsenceExcuseTarget(supabase, classId, yyyymmdd, sid);
-  if (targetError) return targetError;
-
-  const untilTs = Number.isFinite(untilMin) && untilMin > 0
-    ? new Date(Date.now() + Math.floor(untilMin) * 60 * 1000).toISOString()
-    : new Date(
-        Number(yyyymmdd.slice(0, 4)),
-        Number(yyyymmdd.slice(4, 6)) - 1,
-        Number(yyyymmdd.slice(6, 8)),
-        23,
-        59,
-        59
-      ).toISOString();
-
-  const now = nowIso();
-
-  const { data: existing, error: existingErr } = await supabase
-    .from('absence_excuses')
-    .select('excuse_id')
-    .eq('class_id', classId)
-    .eq('yyyymmdd', yyyymmdd)
-    .eq('student_id', sid)
-    .limit(1)
-    .maybeSingle();
-
-  if (existingErr) {
-    return fail(500, 'DB_SELECT_FAILED', existingErr.message || 'absence_excuses 기존 데이터 조회 실패');
-  }
-
-  if (existing?.excuse_id) {
-    const { data, error } = await supabase
-      .from('absence_excuses')
-      .update({
-        reason,
-        until_ts: untilTs,
-        updated_at: now,
-        updated_by: auth.me.staff_id
-      })
-      .eq('excuse_id', existing.excuse_id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) {
-      return fail(500, 'DB_UPDATE_FAILED', error.message || 'absence_excuses update 실패');
-    }
-
-    return success({
-      item: data,
-      updated: true
-    });
-  }
-
-  const row = {
-    excuse_id: randomUUID(),
-    class_id: classId,
-    yyyymmdd,
-    student_id: sid,
-    reason,
-    until_ts: untilTs,
-    created_at: now,
-    created_by: auth.me.staff_id,
-    updated_at: now,
-    updated_by: auth.me.staff_id
-  };
-
-  const { data, error } = await supabase
-    .from('absence_excuses')
-    .insert([row])
-    .select('*')
-    .single();
-
-  if (error) {
-    return fail(500, 'DB_INSERT_FAILED', error.message || 'absence_excuses insert 실패');
-  }
-
-  return success({
-    item: data,
-    updated: false
-  });
-}
-
-async function assistantRemoveAbsenceExcuseDirect(args = {}, sessionToken = '') {
-  const auth = await requireRole(sessionToken, 'assistant');
-  if (!auth.ok) return auth.out;
-
-  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
-  const classId = String(args.class_id || '').trim();
-  const sid = args.student_id ? normalizeStudentId(args.student_id) : '';
-
-  if (!classId || !yyyymmdd || !sid) {
-    return fail(400, 'INVALID_INPUT', 'class_id / yyyymmdd / student_id가 모두 필요합니다.');
-  }
-
-  const supabase = getSupabaseAdmin();
-  const { count, error } = await supabase
-    .from('absence_excuses')
-    .delete({ count: 'exact' })
-    .eq('class_id', classId)
-    .eq('yyyymmdd', yyyymmdd)
-    .eq('student_id', sid);
-
-  if (error) {
-    return fail(500, 'DB_DELETE_FAILED', error.message || 'absence_excuses delete 실패');
-  }
-
-  return success({
-    removed: typeof count === 'number' ? count : 0
   });
 }
 
@@ -2560,6 +2494,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'admin.runCentralReplicaSync') {
+    const result = await adminRunCentralReplicaSyncDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'assistant.listAbsenceExcuses') {
     const result = await assistantListAbsenceExcusesDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
@@ -2577,21 +2516,6 @@ export default async function handler(req, res) {
 
   if (op === 'assistant.manualAttendance') {
     const result = await assistantManualAttendanceDirect(payload.args || {}, sessionToken);
-    return send(res, result.status, result.body);
-  }
-
-  if (op === 'absent.installTrigger') {
-    const result = notImplementedDirect('GAS 트리거 설치는 Vercel 운영본에서 사용하지 않습니다. Vercel Cron으로 설정해야 합니다.');
-    return send(res, result.status, result.body);
-  }
-
-  if (op === 'admin.installDailyTrigger') {
-    const result = notImplementedDirect('GAS 데일리 트리거 설치는 Vercel 운영본에서 사용하지 않습니다. Vercel Cron으로 설정해야 합니다.');
-    return send(res, result.status, result.body);
-  }
-
-  if (op === 'admin.generateSchedule') {
-    const result = notImplementedDirect('스케줄 재생성은 중앙DB SSOT → Supabase replica sync worker 구현 후 활성화해야 합니다.');
     return send(res, result.status, result.body);
   }
 
