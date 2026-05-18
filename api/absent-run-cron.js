@@ -77,7 +77,7 @@ export default async function handler(req, res) {
 
   try {
     const detection = await runAbsenceDetectionDirect({
-      stages: process.env.ABSENT_STAGE_MINUTES || '10,30',
+      stages: process.env.ABSENT_STAGE_MINUTES || '5,20',
       dry_run: 'N'
     });
 
