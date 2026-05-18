@@ -1048,6 +1048,8 @@ async function metaDiagDirect(sessionToken = '') {
     absentNotifyParentsOn: String(process.env.ABSENT_NOTIFY_PARENTS || 'Y').trim().toUpperCase() === 'Y',
     cronSecretSet: envReady('CRON_SECRET'),
     absentStageMinutes: String(process.env.ABSENT_STAGE_MINUTES || '10,30').trim(),
+    absentStageCatchupGraceMin: String(process.env.ABSENT_STAGE_CATCHUP_GRACE_MIN || '20').trim(),
+    absentQueueMaxAgeMin: String(process.env.ABSENT_QUEUE_MAX_AGE_MIN || '20').trim(),
     absentCronWorkerLimit: String(process.env.ABSENT_CRON_WORKER_LIMIT || '20').trim(),
     centralReplicaOk: !!centralReplica.ok,
     centralReplicaStatus: centralReplica.status || '',

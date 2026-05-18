@@ -2490,9 +2490,10 @@
 						const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
 						const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_QR_FAIL';
 
-						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg);
+						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg + ' 다시 스캔해주세요.');
 						setDbg(staffErrCode);
 						UI.beep(false);
+						Voice.speak('직원 큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.');
 						UI.flashScreen(false);
 						return;
 					}
@@ -2573,11 +2574,18 @@
 						Kiosk.resetPendingMark();
 					}
 
-					const errMsg = Kiosk.getErrorMessage(r.error ? r.error.code : '', r.error ? r.error.message : '');
-					UI.showModal(false, '처리 실패', errMsg);
-					setDbg(((r.error && r.error.code) ? r.error.code : 'ERROR') + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
+					const errCode = r.error ? String(r.error.code || '').trim() : '';
+					const errMsg = Kiosk.getErrorMessage(errCode, r.error ? r.error.message : '');
+					const isQrScanFailure = isQr && (errCode === 'QR_EXPIRED' || errCode === 'QR_INVALID');
+					const failTitle = isQrScanFailure ? 'QR 스캔 실패' : '처리 실패';
+					const failDesc = isQrScanFailure ? (errMsg + ' 다시 스캔해주세요.') : errMsg;
+
+					UI.showModal(false, failTitle, failDesc);
+					setDbg((errCode || 'ERROR') + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 					UI.beep(false);
-					Voice.speak('다시 한번 시도해주세요.');
+					Voice.speak(isQrScanFailure
+						? '큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.'
+						: '다시 한번 시도해주세요.');
 					UI.flashScreen(false);
 				} finally {
 					Kiosk.setLoading(false);
@@ -3573,6 +3581,8 @@ const StaffUI = {
 					<b>[미등원 학부모 알림]</b> ${d.absentNotifyParentsOn ? '✅ ON' : '⚪ OFF'}<br>
 					<b>[Cron Secret]</b> ${d.cronSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[미등원 stage]</b> ${escapeHtml(d.absentStageMinutes || '10,30')}분<br>
+					<b>[미등원 stage catch-up 허용]</b> ${escapeHtml(d.absentStageCatchupGraceMin || '20')}분<br>
+					<b>[미등원 queue 최대 대기]</b> ${escapeHtml(d.absentQueueMaxAgeMin || '20')}분<br>
 					<b>[Cron worker limit]</b> ${escapeHtml(d.absentCronWorkerLimit || '20')}<br>
 					<b>[중앙DB Sync]</b> ${d.centralReplicaOk ? '✅ 정상' : '❌ 확인 필요'}<br>
 					<b>[중앙DB Sync 상태]</b> ${escapeHtml(d.centralReplicaStatus || '')}<br>
@@ -4258,7 +4268,11 @@ const StaffUI = {
 										<td>${escapeHtml(StaffUI.studentDisplay(x.student_id, x.student_name))}</td>
 										<td>${escapeHtml(x.action_type || '')}</td>
 										<td>${escapeHtml(x.attempts || '')}</td>
-										<td class="wrap">${escapeHtml(x.last_error || '')}</td>
+										<td class="wrap">${escapeHtml(
+											String(x.last_error || '') === 'ABSENT_SEND_WINDOW_EXPIRED'
+												? '발송 기한 만료 — 자동/수동 재발송 차단'
+												: (x.last_error || '')
+										)}</td>
 										<td class="wrap">${escapeHtml(x.trace_id || '')}</td>
 									</tr>
 								`).join('')}
@@ -4306,6 +4320,7 @@ const StaffUI = {
 						'알림 queue 재처리 결과\n\n' +
 						'selected: ' + (d.selected || 0) + '\n' +
 						'reset: ' + (d.reset || 0) + '\n' +
+						'excluded_expired: ' + (d.excluded_expired || 0) + '\n' +
 						'worker.done: ' + (worker.done || 0) + '\n' +
 						'worker.failed: ' + (worker.failed || 0) + '\n' +
 						'worker.requeued: ' + (worker.requeued || 0);
