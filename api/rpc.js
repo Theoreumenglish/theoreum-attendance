@@ -27,7 +27,7 @@ import {
   normalizeYn
 } from './_runtime-meta.js';
 import {
-  teacherSetExceptionHybrid,
+  adminSetStudentExceptionHybrid,
   assistantUpsertAbsenceExcuseHybrid,
   assistantRemoveAbsenceExcuseHybrid
 } from '../lib/rpc-hybrid-write.js';
@@ -2256,7 +2256,9 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
     failedAttendance,
     pendingAll,
     latestAbsenceOut,
-    latestWorkerOut
+    latestWorkerOut,
+    latestAbsenceCronOut,
+    latestWorkerCronOut
   ] = await Promise.all([
     countNotifyQueueRows(supabase, 'FAILED', 'ABSENT'),
     countNotifyQueueRows(supabase, 'FAILED', 'ATTENDANCE'),
@@ -2269,6 +2271,18 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
     supabase
       .from('notify_worker_runs')
       .select('run_id, created_at, source, status, done, failed, requeued, error')
+      .order('created_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('absence_detection_runs')
+      .select('run_id, created_at, source, status, yyyymmdd, queued_count, failed_count, sent_count, error')
+      .eq('source', 'CRON')
+      .order('created_at', { ascending: false })
+      .limit(1),
+    supabase
+      .from('notify_worker_runs')
+      .select('run_id, created_at, source, status, done, failed, requeued, error')
+      .eq('source', 'CRON')
       .order('created_at', { ascending: false })
       .limit(1)
   ]);
@@ -2285,6 +2299,62 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
       latestWorkerOut.error.message || 'notify_worker_runs 조회 실패';
   }
 
+  if (latestAbsenceCronOut?.error) {
+    errors.latest_absence_cron_run =
+      latestAbsenceCronOut.error.message || 'CRON absence_detection_runs 조회 실패';
+  }
+
+  if (latestWorkerCronOut?.error) {
+    errors.latest_notify_worker_cron_run =
+      latestWorkerCronOut.error.message || 'CRON notify_worker_runs 조회 실패';
+  }
+
+  const latestAbsenceRun = latestAbsenceOut?.error
+    ? null
+    : Array.isArray(latestAbsenceOut?.data)
+      ? latestAbsenceOut.data[0] || null
+      : null;
+
+  const latestNotifyWorkerRun = latestWorkerOut?.error
+    ? null
+    : Array.isArray(latestWorkerOut?.data)
+      ? latestWorkerOut.data[0] || null
+      : null;
+
+  const latestAbsenceCronRun = latestAbsenceCronOut?.error
+    ? null
+    : Array.isArray(latestAbsenceCronOut?.data)
+      ? latestAbsenceCronOut.data[0] || null
+      : null;
+
+  const latestNotifyWorkerCronRun = latestWorkerCronOut?.error
+    ? null
+    : Array.isArray(latestWorkerCronOut?.data)
+      ? latestWorkerCronOut.data[0] || null
+      : null;
+
+  const absenceCronMaxStaleMin = toPositiveIntBounded(
+    process.env.ABSENT_CRON_STALE_MIN,
+    3,
+    1,
+    60
+  );
+
+  const notifyWorkerCronMaxStaleMin = toPositiveIntBounded(
+    process.env.NOTIFY_WORKER_CRON_STALE_MIN,
+    3,
+    1,
+    60
+  );
+
+  const absenceCronAgeMin = latestAbsenceCronRun?.created_at
+    ? minutesSinceIso(latestAbsenceCronRun.created_at)
+    : null;
+
+  const notifyWorkerCronAgeMin = latestNotifyWorkerCronRun?.created_at
+    ? minutesSinceIso(latestNotifyWorkerCronRun.created_at)
+    : null;
+
   return success({
     safe: meta.data?.safe || {},
     kiosk_floor: meta.data?.kiosk_floor || '',
@@ -2294,16 +2364,18 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
       failed_attendance: failedAttendance,
       pending_all: pendingAll
     },
-    latest_absence_run: latestAbsenceOut?.error
-      ? null
-      : Array.isArray(latestAbsenceOut?.data)
-        ? latestAbsenceOut.data[0] || null
-        : null,
-    latest_notify_worker_run: latestWorkerOut?.error
-      ? null
-      : Array.isArray(latestWorkerOut?.data)
-        ? latestWorkerOut.data[0] || null
-        : null,
+    latest_absence_run: latestAbsenceRun,
+    latest_notify_worker_run: latestNotifyWorkerRun,
+    latest_absence_cron_run: latestAbsenceCronRun,
+    latest_notify_worker_cron_run: latestNotifyWorkerCronRun,
+    cron_health: {
+      absence_age_min: absenceCronAgeMin,
+      absence_max_stale_min: absenceCronMaxStaleMin,
+      absence_stale: absenceCronAgeMin == null || absenceCronAgeMin > absenceCronMaxStaleMin,
+      notify_worker_age_min: notifyWorkerCronAgeMin,
+      notify_worker_max_stale_min: notifyWorkerCronMaxStaleMin,
+      notify_worker_stale: notifyWorkerCronAgeMin == null || notifyWorkerCronAgeMin > notifyWorkerCronMaxStaleMin
+    },
     errors,
     checked_at: nowIso()
   });
@@ -2804,8 +2876,8 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
-  if (op === 'teacher.setException') {
-    const result = await teacherSetExceptionHybrid(payload.args || {}, sessionToken);
+  if (op === 'admin.setStudentException' || op === 'teacher.setException') {
+    const result = await adminSetStudentExceptionHybrid(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

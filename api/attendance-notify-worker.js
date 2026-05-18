@@ -42,6 +42,14 @@ function getWorkerKey() {
   return String(process.env.NOTIFY_WORKER_KEY || '').trim();
 }
 
+function isCronBearer(req) {
+  const cronSecret = String(process.env.CRON_SECRET || '').trim();
+  if (!cronSecret) return false;
+
+  const authHeader = String(req?.headers?.authorization || '').trim();
+  return authHeader === `Bearer ${cronSecret}`;
+}
+
 function isWorkerAuthorized(req, body) {
   const workerKey = getWorkerKey();
   const cronSecret = String(process.env.CRON_SECRET || '').trim();
@@ -118,7 +126,7 @@ export default async function handler(req, res) {
     const limit = readLimit(req, body);
     const out = await runAttendanceNotifyWorker({
       limit,
-      source: 'API_WORKER'
+      source: isCronBearer(req) ? 'CRON' : 'API_WORKER'
     });
     return send(res, out.ok ? 200 : 500, out);
   } catch (e) {

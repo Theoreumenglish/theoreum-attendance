@@ -3384,6 +3384,7 @@ const StaffUI = {
 				const absence = d.latest_absence_run || {};
 				const worker = d.latest_notify_worker_run || {};
 				const errors = d.errors || {};
+				const cron = d.cron_health || {};
 
 				const fmtCount = item => {
 					if (!item) return '조회 실패';
@@ -3415,6 +3416,24 @@ const StaffUI = {
 						' / failed ' +
 						(worker.failed || 0);
 
+				const absenceCronLine = errors.latest_absence_cron_run
+					? '미등원 cron 상태: 조회 실패 - ' + errors.latest_absence_cron_run
+					: '미등원 cron 상태: ' +
+						(cron.absence_stale ? '⚠️ 지연/중단 의심' : '정상') +
+						' / 최근 ' +
+						(cron.absence_age_min == null ? '-' : cron.absence_age_min + '분 전') +
+						' / 허용 ' +
+						(cron.absence_max_stale_min == null ? '-' : cron.absence_max_stale_min + '분');
+
+				const notifyWorkerCronLine = errors.latest_notify_worker_cron_run
+					? '알림 worker cron 상태: 조회 실패 - ' + errors.latest_notify_worker_cron_run
+					: '알림 worker cron 상태: ' +
+						(cron.notify_worker_stale ? '⚠️ 지연/중단 의심' : '정상') +
+						' / 최근 ' +
+						(cron.notify_worker_age_min == null ? '-' : cron.notify_worker_age_min + '분 전') +
+						' / 허용 ' +
+						(cron.notify_worker_max_stale_min == null ? '-' : cron.notify_worker_max_stale_min + '분');
+
 				if (box) {
 					box.textContent =
 						'운영 상태 요약\n\n' +
@@ -3427,6 +3446,8 @@ const StaffUI = {
 						'실패 queue - 미등원: ' + fmtCount(queue.failed_absent) +
 						' / 등하원: ' + fmtCount(queue.failed_attendance) + '\n' +
 						'대기 queue 전체: ' + fmtCount(queue.pending_all) + '\n\n' +
+						absenceCronLine + '\n' +
+						notifyWorkerCronLine + '\n\n' +
 						absenceLine + '\n' +
 						workerLine + '\n' +
 						'checked_at: ' + (d.checked_at || '-');
@@ -3956,7 +3977,7 @@ const StaffUI = {
 					return;
 				}
 
-				const r = await App.rpc('teacher.setException', { student_id, is_exception: yn, exception_note });
+				const r = await App.rpc('admin.setStudentException', { student_id, is_exception: yn, exception_note });
 				const studentLabel = student.label || StaffUI.studentDisplay(student_id, student.student_name);
 
 				StaffUI.showReplicaPatchResult(
