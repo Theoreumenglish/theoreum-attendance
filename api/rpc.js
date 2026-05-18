@@ -1727,6 +1727,11 @@ async function adminRunCentralReplicaSyncDirect(args = {}, sessionToken = '') {
     );
   }
 
+  const requestedTimeoutMs = Number(process.env.CENTRAL_SYNC_TIMEOUT_MS || 55000);
+  const timeoutMs = Number.isFinite(requestedTimeoutMs)
+    ? requestedTimeoutMs
+    : 55000;
+
   const result = await proxyRpcToGas(
     'bridge.replica.sync.run',
     {
@@ -1734,7 +1739,8 @@ async function adminRunCentralReplicaSyncDirect(args = {}, sessionToken = '') {
       actor_role: normalizeRole(auth.me.role),
       actor_name: String(auth.me.name || '')
     },
-    ''
+    '',
+    { timeoutMs }
   );
 
   return result;
@@ -2033,9 +2039,39 @@ async function assistantListClassRosterDirect(args = {}, sessionToken = '') {
   });
 }
 
+function bulkEndOfKstDayIso(yyyymmdd) {
+  const y = Number(String(yyyymmdd || '').slice(0, 4));
+  const m = Number(String(yyyymmdd || '').slice(4, 6));
+  const d = Number(String(yyyymmdd || '').slice(6, 8));
+
+  return new Date(Date.UTC(y, m - 1, d, 14, 59, 59, 999)).toISOString();
+}
+
+function bulkNormalizeUntilIso(raw, yyyymmdd) {
+  const s = String(raw || '').trim();
+
+  if (/^\d{10,13}$/.test(s)) {
+    const ms = s.length === 10 ? Number(s) * 1000 : Number(s);
+    if (Number.isFinite(ms)) return new Date(ms).toISOString();
+  }
+
+  const parsed = Date.parse(s);
+  if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+
+  return bulkEndOfKstDayIso(yyyymmdd);
+}
+
 async function assistantBulkUpsertAbsenceExcusesDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
+
+  const classId = String(args.class_id || args.classId || '').trim();
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const reason = String(args.reason || '').trim().slice(0, 300);
+  const untilMinRaw = Number(args.until_min || args.untilMin || 0);
+  const untilMin = Number.isFinite(untilMinRaw)
+    ? Math.max(0, Math.min(1440, Math.floor(untilMinRaw)))
+    : 0;
 
   const rawIds = Array.isArray(args.student_ids)
     ? args.student_ids
@@ -2044,45 +2080,139 @@ async function assistantBulkUpsertAbsenceExcusesDirect(args = {}, sessionToken =
       : [];
 
   const studentIds = Array.from(new Set(
-    rawIds.map(normalizeStudentId).filter(Boolean)
+    rawIds
+      .map(normalizeStudentId)
+      .filter(Boolean)
   )).slice(0, 80);
+
+  if (!classId || classId === '*') {
+    return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  }
+
+  if (!isStrictYmd(yyyymmdd)) {
+    return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
+  }
 
   if (!studentIds.length) {
     return fail(400, 'INVALID_INPUT', '일괄 등록할 학생을 1명 이상 선택하세요.');
   }
 
-  const results = [];
-  for (const studentId of studentIds) {
-    const out = await assistantUpsertAbsenceExcuseHybrid({
-      ...args,
-      student_id: studentId
-    }, sessionToken);
+  const gasResult = await proxyRpcToGas(
+    'bridge.absence_excuse.bulk_upsert',
+    {
+      class_id: classId,
+      yyyymmdd,
+      student_ids: studentIds,
+      reason,
+      until_min: untilMin,
+      actor_staff_id: auth.me.staff_id,
+      actor_role: normalizeRole(auth.me.role),
+      actor_name: String(auth.me.name || '')
+    },
+    ''
+  );
 
-    const body = out?.body || {};
-    const data = body?.data || {};
-    const ok = body?.ok === true;
-
-    results.push({
-      student_id: studentId,
-      ok,
-      status: Number(out?.status || 0) || 0,
-      replicaPatched: data.replicaPatched !== false,
-      replicaPatchError: String(data.replicaPatchError || '').trim(),
-      data,
-      error: ok ? null : (body?.error || { code: 'UNKNOWN', message: '일괄 결석예외 저장 실패' })
-    });
+  if (!gasResult.body || gasResult.body.ok !== true) {
+    return gasResult;
   }
 
-  const succeeded = results.filter(item => item.ok).length;
-  const failed = results.length - succeeded;
-  const replicaWarn = results.filter(item => item.ok && item.replicaPatched === false).length;
+  const gasData = gasResult.body?.data || {};
+  const bridgeItems = Array.isArray(gasData.items) ? gasData.items : [];
+  const successfulBridgeItems = bridgeItems.filter(item =>
+    item && item.ok === true && item.item && item.item.student_id
+  );
+
+  let replicaPatched = false;
+  let replicaPatchError = '';
+
+  if (successfulBridgeItems.length) {
+    try {
+      const supabase = getSupabaseAdmin();
+      const now = new Date().toISOString();
+
+      const rows = successfulBridgeItems.map(item => {
+        const saved = item.item || {};
+        const sid = normalizeStudentId(saved.student_id || item.student_id || '');
+
+        return {
+          excuse_id: String(saved.excuse_id || '').trim(),
+          class_id: classId,
+          yyyymmdd,
+          student_id: sid,
+          reason: String(saved.reason || reason).trim(),
+          until_ts: bulkNormalizeUntilIso(saved.until_ts, yyyymmdd),
+          created_at: String(saved.created_at || now),
+          created_by: String(saved.created_by || auth.me.staff_id),
+          updated_at: String(saved.updated_at || now),
+          updated_by: String(saved.updated_by || auth.me.staff_id),
+          synced_at: now
+        };
+      }).filter(row =>
+        row.excuse_id &&
+        row.class_id &&
+        row.yyyymmdd &&
+        row.student_id
+      );
+
+      if (!rows.length) {
+        replicaPatchError = 'bulk bridge 응답에 replica upsert 가능한 item이 없습니다.';
+      } else {
+        const { error } = await supabase
+          .from('absence_excuses')
+          .upsert(rows, {
+            onConflict: 'class_id,yyyymmdd,student_id'
+          });
+
+        if (error) {
+          replicaPatchError = error.message || 'absence_excuses bulk upsert 실패';
+        } else {
+          replicaPatched = true;
+        }
+      }
+    } catch (e) {
+      replicaPatchError = e?.message || 'absence_excuses bulk replica upsert 실패';
+    }
+  }
+
+  const items = bridgeItems.map(item => {
+    const saved = item && item.item ? item.item : {};
+    const studentId = normalizeStudentId(
+      item?.student_id ||
+      saved.student_id ||
+      ''
+    );
+    const ok = item && item.ok === true;
+
+    return {
+      student_id: studentId,
+      ok,
+      replicaPatched: ok ? replicaPatched : false,
+      replicaPatchError: ok && !replicaPatched
+        ? replicaPatchError
+        : '',
+      data: ok ? { item: saved } : {},
+      error: ok
+        ? null
+        : (item?.error || {
+            code: 'UNKNOWN',
+            message: '일괄 결석예외 저장 실패'
+          })
+    };
+  });
+
+  const succeeded = items.filter(item => item.ok).length;
+  const failed = items.length - succeeded;
+  const replicaWarn = succeeded > 0 && !replicaPatched
+    ? succeeded
+    : 0;
 
   return success({
-    requested: studentIds.length,
+    requested: Number(gasData.requested || studentIds.length) || studentIds.length,
     succeeded,
     failed,
     replica_warn: replicaWarn,
-    items: results
+    source: 'central_db_bulk_bridge',
+    items
   });
 }
 
