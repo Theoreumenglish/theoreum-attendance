@@ -1379,7 +1379,7 @@
 		<div class="sectionTitle">당일 미등원 알림 제외</div>
 		<div class="subText">
 		지각 또는 결석 연락이 온 학생을 해당 반·해당 날짜의
-		미등원 10분/30분 알림 대상에서만 제외합니다.
+		반별로 설정된 미등원 1차/2차 알림 대상에서만 제외합니다.
 		학생의 일반 QR 등원/하원과 등·하원 알림톡은 그대로 정상 작동합니다.
 		</div>
 
@@ -3601,7 +3601,7 @@ const StaffUI = {
 					<b>[미등원 템플릿]</b> ${d.classAbsentTemplateSet ? '✅ 설정됨' : '❌ 미설정'}<br>
 					<b>[미등원 학부모 알림]</b> ${d.absentNotifyParentsOn ? '✅ ON' : '⚪ OFF'}<br>
 					<b>[Cron Secret]</b> ${d.cronSecretSet ? '✅ 설정됨' : '❌ 미설정'}<br>
-					<b>[미등원 stage]</b> ${escapeHtml(d.absentStageMinutes || '5,20')}분<br>
+					<b>[미등원 기본 stage]</b> ${escapeHtml(d.absentStageMinutes || '5,20')}분<br>
 					<b>[미등원 stage catch-up 허용]</b> ${escapeHtml(d.absentStageCatchupGraceMin || '15')}분<br>
 					<b>[미등원 queue 최대 대기]</b> ${escapeHtml(d.absentQueueMaxAgeMin || '20')}분<br>
 					<b>[Cron worker limit]</b> ${escapeHtml(d.absentCronWorkerLimit || '20')}<br>
