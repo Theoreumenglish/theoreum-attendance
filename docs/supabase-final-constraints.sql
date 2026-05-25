@@ -146,7 +146,51 @@ create table if not exists public.classes (
 );
 
 alter table if exists public.classes
+add column if not exists alert_delay text not null default '5,20';
+
+alter table if exists public.classes
+add column if not exists alert_to text not null default 'parent';
+
+alter table if exists public.classes
 add column if not exists synced_at timestamp with time zone;
+
+alter table public.classes
+alter column alert_delay set default '5,20';
+
+alter table public.classes
+alter column alert_to set default 'parent';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'classes_alert_delay_check'
+  ) then
+    alter table public.classes
+    add constraint classes_alert_delay_check
+    check (
+      case
+        when trim(coalesce(alert_delay, '')) ~ '^(5|10|15|20|25|30|35|40|45|50|55|60),(5|10|15|20|25|30|35|40|45|50|55|60)$'
+        then split_part(trim(alert_delay), ',', 1)::int < split_part(trim(alert_delay), ',', 2)::int
+        else false
+      end
+    );
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'classes_alert_to_check'
+  ) then
+    alter table public.classes
+    add constraint classes_alert_to_check
+    check (alert_to in ('parent', 'student', 'both'));
+  end if;
+end $$;
 
 create table if not exists public.class_exceptions (
   class_id text not null,
