@@ -2169,9 +2169,8 @@
             const v = Kiosk.normalizeScanText(input.value);
             input.value = v;
 
-            if (/^STAFFQR1\./i.test(v)) {
-              clearTimeout(Kiosk._autoTimer);
-              Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+            if (Kiosk.isCompleteStaffQr(v)) {
+              Kiosk.queueSubmit(120);
             }
             return;
           }
@@ -2181,19 +2180,19 @@
             input.value = digits;
 
             if (digits.length === 4) {
-              clearTimeout(Kiosk._autoTimer);
-              Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+              Kiosk.queueSubmit(80);
             }
           } else {
             const v = Kiosk.normalizeScanText(input.value);
             const digits = String(v || '').replace(/[^0-9]/g, '').slice(-4);
             input.value = v;
 
-            const shouldSubmitStudent = /^QR1\./i.test(v) || digits.length === 4;
+            const shouldSubmitStudent =
+              Kiosk.isCompleteStudentQr(v) ||
+              Kiosk.shouldSubmitDirectSid(v);
 
             if (shouldSubmitStudent) {
-              clearTimeout(Kiosk._autoTimer);
-              Kiosk._autoTimer = setTimeout(() => { Kiosk.submit(); }, 30);
+              Kiosk.queueSubmit(120);
             }
           }
         });
@@ -2201,7 +2200,29 @@
 				input.addEventListener('keydown', e => {
 					if (e.key !== 'Enter') return;
 					e.preventDefault();
+
+					const v = Kiosk.normalizeScanText(input.value);
+
 					clearTimeout(Kiosk._autoTimer);
+
+					if (/^QR1\./i.test(v) && !Kiosk.isCompleteStudentQr(v)) {
+						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						UI.beep(false);
+						UI.flashScreen(false);
+						input.value = '';
+						safeFocus(input, 80);
+						return;
+					}
+
+					if (/^STAFFQR1\./i.test(v) && !Kiosk.isCompleteStaffQr(v)) {
+						UI.showModal(false, '직원 QR 일부 입력', '직원 QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						UI.beep(false);
+						UI.flashScreen(false);
+						input.value = '';
+						safeFocus(input, 80);
+						return;
+					}
+
 					Kiosk.submit();
 				});
 
@@ -2269,6 +2290,31 @@
           if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
           return s;
 			},
+
+      isCompleteStudentQr(v) {
+        return /^QR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(String(v || '').trim());
+      },
+
+      isCompleteStaffQr(v) {
+        return /^STAFFQR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(String(v || '').trim());
+      },
+
+      shouldSubmitDirectSid(v) {
+        const raw = String(v || '').trim();
+
+        if (/^QR1\./i.test(raw) || /^STAFFQR1\./i.test(raw)) {
+          return false;
+        }
+
+        return raw.replace(/[^0-9]/g, '').slice(-4).length === 4;
+      },
+
+      queueSubmit(delayMs = 120) {
+        clearTimeout(Kiosk._autoTimer);
+        Kiosk._autoTimer = setTimeout(() => {
+          Kiosk.submit();
+        }, delayMs);
+      },
 
       getInputPlaceholder() {
         return Kiosk.staffQuickOpen
@@ -2409,7 +2455,29 @@
 					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
 					const isQr = /^QR1\./i.test(val);
 					const isStaffQr = /^STAFFQR1\./i.test(val);
-					const isExceptionId = digits.length === 4;
+					const isExceptionId = Kiosk.shouldSubmitDirectSid(val);
+
+					if (isQr && !Kiosk.isCompleteStudentQr(val)) {
+						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						setDbg('INCOMPLETE_STUDENT_QR');
+						UI.beep(false);
+						Voice.speak('큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						UI.flashScreen(false);
+						input.value = '';
+						safeFocus(input, 80);
+						return;
+					}
+
+					if (isStaffQr && !Kiosk.isCompleteStaffQr(val)) {
+						UI.showModal(false, '직원 QR 일부 입력', '직원 QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						setDbg('INCOMPLETE_STAFF_QR');
+						UI.beep(false);
+						Voice.speak('직원 큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						UI.flashScreen(false);
+						input.value = '';
+						safeFocus(input, 80);
+						return;
+					}
 
 					if (!val) return;
 
@@ -2637,6 +2705,7 @@
 				safeFocus(input);
 				if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 					input.value += e.key;
+					input.dispatchEvent(new Event('input', { bubbles: true }));
 					e.preventDefault();
 				}
 			}
