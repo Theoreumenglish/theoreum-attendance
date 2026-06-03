@@ -430,19 +430,96 @@
         line-height: 1.45;
       }
 
+      .adminWorkHeader {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 2px 0 4px;
+      }
+
+      .adminWorkKicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(79, 70, 229, 0.10);
+        color: var(--pri);
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .adminWorkTitle {
+        font-size: 28px;
+        font-weight: 950;
+        letter-spacing: -0.8px;
+        color: var(--text);
+      }
+
+      .adminWorkDesc {
+        margin-top: 8px;
+        color: var(--sub);
+        font-size: 15px;
+        font-weight: 750;
+        line-height: 1.55;
+      }
+
+      .adminWorkBadge {
+        flex: 0 0 auto;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(16, 185, 129, 0.10);
+        color: #047857;
+        font-size: 13px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
       .adminQuickGrid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
-        margin-top: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .adminQuickGroup {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 22px;
+        padding: 16px;
+        background: rgba(248, 250, 252, 0.86);
+      }
+
+      .adminQuickGroupTitle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 15px;
+        font-weight: 950;
+        color: var(--text);
+      }
+
+      .adminQuickGroupHint {
+        color: var(--sub);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .adminQuickStack {
+        display: grid;
+        gap: 10px;
       }
 
       .adminQuickBtn {
+        width: 100%;
         border: 1px solid rgba(79, 70, 229, 0.18);
         background: #fff;
         color: var(--text);
         border-radius: 18px;
-        padding: 16px 14px;
+        padding: 15px 14px;
         text-align: left;
         cursor: pointer;
         box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
@@ -451,14 +528,37 @@
 
       .adminQuickBtn:hover {
         transform: translateY(-1px);
-        border-color: rgba(79, 70, 229, 0.38);
+        border-color: rgba(79, 70, 229, 0.42);
         box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+      }
+
+      .adminQuickBtn.primary {
+        border-color: rgba(79, 70, 229, 0.32);
+        background: linear-gradient(180deg, rgba(79, 70, 229, 0.10), #fff);
+      }
+
+      .adminQuickBtn.warn {
+        border-color: rgba(245, 158, 11, 0.36);
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.11), #fff);
+      }
+
+      .adminQuickBtn.danger {
+        border-color: rgba(239, 68, 68, 0.28);
+        background: linear-gradient(180deg, rgba(239, 68, 68, 0.08), #fff);
       }
 
       .adminQuickTitle {
         font-size: 16px;
         font-weight: 950;
         color: var(--pri);
+      }
+
+      .adminQuickBtn.warn .adminQuickTitle {
+        color: #b45309;
+      }
+
+      .adminQuickBtn.danger .adminQuickTitle {
+        color: #b91c1c;
       }
 
       .adminQuickDesc {
@@ -469,13 +569,28 @@
         line-height: 1.45;
       }
 
-      @media (max-width: 900px) {
-        .adminQuickGrid {
-          grid-template-columns: 1fr 1fr;
-        }
+      .adminQrNotice {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(14, 165, 233, 0.08);
+        border: 1px solid rgba(14, 165, 233, 0.20);
+        color: #075985;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.55;
       }
 
-      @media (max-width: 560px) {
+      @media (max-width: 980px) {
+        .adminWorkHeader {
+          display: block;
+        }
+
+        .adminWorkBadge {
+          display: inline-flex;
+          margin-top: 12px;
+        }
+
         .adminQuickGrid {
           grid-template-columns: 1fr;
         }
@@ -1406,31 +1521,95 @@
       </div>
       <div class="card compactCard adminOnly" id="adminQuickMenu" style="margin-top:24px;">
         <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-          <div class="sectionTitle">관리자 빠른 메뉴</div>
-          <div class="subText">
-            자주 쓰는 기능만 먼저 모았습니다. 일반 운영자는 이 영역에서 대부분의 작업을 처리하면 됩니다.
+          <div class="adminWorkHeader">
+            <div>
+              <div class="adminWorkKicker">관리자 업무센터</div>
+              <div class="adminWorkTitle">오늘 운영에서 자주 쓰는 기능</div>
+              <div class="adminWorkDesc">
+                일반 관리자는 아래 순서대로 처리하면 됩니다.
+                위험한 기능은 “문제 해결” 영역에 따로 분리했습니다.
+              </div>
+            </div>
+            <div class="adminWorkBadge">일상 운영 우선</div>
           </div>
 
           <div class="adminQuickGrid">
-            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="opsOverviewBox">
-              <div class="adminQuickTitle">1. 운영 상태 확인</div>
-              <div class="adminQuickDesc">중앙DB 반영, 점검 모드, 알림 worker 상태를 확인합니다.</div>
-            </button>
+            <div class="adminQuickGroup">
+              <div class="adminQuickGroupTitle">
+                오늘 운영
+                <span class="adminQuickGroupHint">매일 확인</span>
+              </div>
 
-            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="abDate">
-              <div class="adminQuickTitle">2. 미등원 알림 제외</div>
-              <div class="adminQuickDesc">지각·결석 연락 학생을 오늘 미등원 문자 대상에서 제외합니다.</div>
-            </button>
+              <div class="adminQuickStack">
+                <button class="adminQuickBtn primary adminJumpBtn" type="button" data-target="opsOverviewBox">
+                  <div class="adminQuickTitle">운영 상태 확인</div>
+                  <div class="adminQuickDesc">중앙DB 반영, 점검 모드, 알림 worker 상태를 한 번에 확인합니다.</div>
+                </button>
 
-            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="exSid">
-              <div class="adminQuickTitle">3. QR 어려운 학생 허용</div>
-              <div class="adminQuickDesc">QR 인식이 어려운 학생만 학번 직접 출결을 허용합니다.</div>
-            </button>
+                <button class="adminQuickBtn adminJumpBtn" type="button" data-target="abDate">
+                  <div class="adminQuickTitle">오늘 미등원 문자 제외</div>
+                  <div class="adminQuickDesc">지각·결석 연락이 온 학생을 오늘 미등원 문자 대상에서 제외합니다.</div>
+                </button>
 
-            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="staffMonthYyyymm">
-              <div class="adminQuickTitle">4. 직원 근무시간</div>
-              <div class="adminQuickDesc">직원 월근무 요약과 상세 내역을 조회합니다.</div>
-            </button>
+                <button class="adminQuickBtn adminJumpBtn" type="button" data-target="staffMonthYyyymm">
+                  <div class="adminQuickTitle">직원 근무시간 확인</div>
+                  <div class="adminQuickDesc">직원별 월근무 요약과 상세 근무 내역을 확인합니다.</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="adminQuickGroup">
+              <div class="adminQuickGroupTitle">
+                학생 처리
+                <span class="adminQuickGroupHint">현장 대응</span>
+              </div>
+
+              <div class="adminQuickStack">
+                <button class="adminQuickBtn warn adminJumpBtn" type="button" data-target="exSid">
+                  <div class="adminQuickTitle">QR 어려운 학생 학번 허용</div>
+                  <div class="adminQuickDesc">QR이 계속 안 찍히는 학생만 학번 직접 출결을 허용합니다.</div>
+                </button>
+
+                <button class="adminQuickBtn adminJumpBtn" type="button" data-target="manualCorrectionSection">
+                  <div class="adminQuickTitle">출결 수동 정정</div>
+                  <div class="adminQuickDesc">QR 오류, 직원 승인 누락, 이동 정정이 필요할 때 사용합니다.</div>
+                </button>
+
+                <button class="adminQuickBtn adminJumpBtn" type="button" data-target="btnQueueList">
+                  <div class="adminQuickTitle">실패 알림 조회</div>
+                  <div class="adminQuickDesc">미등원/등하원 알림 실패 내역을 확인합니다.</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="adminQuickGroup">
+              <div class="adminQuickGroupTitle">
+                문제 해결
+                <span class="adminQuickGroupHint">관리자 전용</span>
+              </div>
+
+              <div class="adminQuickStack">
+                <button class="adminQuickBtn danger adminJumpBtn" type="button" data-target="btnRunCentralReplicaSync">
+                  <div class="adminQuickTitle">중앙DB 최신화 반영</div>
+                  <div class="adminQuickDesc">중앙DB 수정사항이 화면에 늦게 반영될 때만 실행합니다.</div>
+                </button>
+
+                <button class="adminQuickBtn adminJumpBtn" type="button" data-target="btnCheckCentral">
+                  <div class="adminQuickTitle">중앙DB 점검</div>
+                  <div class="adminQuickDesc">GAS bridge, 중앙DB 연결, 설정 상태를 점검합니다.</div>
+                </button>
+
+                <button class="adminQuickBtn adminJumpBtn" type="button" data-target="btnScanStateMismatch">
+                  <div class="adminQuickTitle">오늘 상태 불일치 검사</div>
+                  <div class="adminQuickDesc">오늘 출결 상태가 이상할 때 불일치 여부를 검사합니다.</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="adminQrNotice">
+            QR이 잘 안 찍히는 학생은 먼저 화면 밝기 최대로, 스캐너와 15~30cm 거리 유지,
+            삑 소리 후 화면 닫기를 안내하세요. 그래도 반복되면 “QR 어려운 학생 학번 허용”으로 처리합니다.
           </div>
         </div>
       </div>
@@ -1448,10 +1627,10 @@
 	<!-- 관리자 전용: 상시 학번 직접 출결 허용 -->
 	<div class="card compactCard adminOnly" style="margin-top:24px;">
 	<div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-		<div class="sectionTitle">상시 학번 직접 출결 허용 학생</div>
+		<div class="sectionTitle">QR 어려운 학생 학번 직접 출결 허용</div>
 		<div class="subText">
-		QR 사용이 어려운 학생에게만 관리자/원장이 허용하는 기능입니다.
-		일반적인 지각·결석 연락 학생은 아래의 “당일 미등원 알림 제외”에서 처리하세요.
+		QR이 반복적으로 안 찍히는 학생에게만 허용하는 예외 기능입니다.
+		지각·결석 연락 학생은 아래의 “오늘 미등원 문자 제외”에서 처리하세요.
 		</div>
 		<div class="row" style="margin-top:20px;">
 		<input class="inp" id="exSid" list="staffStudentOptions" placeholder="학생 이름 검색 후 선택" autocomplete="off" style="flex:1;">
@@ -1465,7 +1644,7 @@
 	<!-- 조교 이상: 당일 미등원 알림 제외 -->
 	<div class="card compactCard assistantOnly" style="margin-top:24px;">
 	<div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-		<div class="sectionTitle">당일 미등원 알림 제외</div>
+		<div class="sectionTitle">오늘 미등원 문자 제외</div>
 		<div class="subText">
 		지각 또는 결석 연락이 온 학생을 해당 반·해당 날짜의
 		반별로 설정된 미등원 1차/2차 알림 대상에서만 제외합니다.
@@ -1520,7 +1699,7 @@
       <div class="card compactCard adminOnly" style="margin-top:24px;">
         <div class="foldCard" style="margin-top:0;">
           <details open>
-            <summary>직원 근무시간</summary>
+            <summary>직원 근무시간 확인</summary>
             <div class="foldBody">
               <div class="row" style="margin-top:18px;">
                 <button class="btn btn-pri" id="btnLoadStaffMonth" type="button">월근무 요약 조회</button>
@@ -3470,14 +3649,23 @@ const StaffUI = {
                 return;
               }
 
-              target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-              });
+              let fold = target.closest('details');
 
-              if (typeof target.focus === 'function') {
-                safeFocus(target, 250);
+              while (fold) {
+                fold.open = true;
+                fold = fold.parentElement ? fold.parentElement.closest('details') : null;
               }
+
+              setTimeout(() => {
+                target.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'center'
+                });
+
+                if (typeof target.focus === 'function') {
+                  safeFocus(target, 250);
+                }
+              }, 80);
             });
           });
 
