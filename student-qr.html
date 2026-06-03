@@ -289,10 +289,10 @@
       justify-content: center;
       align-items: center;
       background: #ffffff;
-      padding: 22px;
-      border-radius: 14px;
-      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04);
-      box-sizing: content-box;
+      padding: 18px;
+      border-radius: 8px;
+      box-shadow: none;
+      box-sizing: border-box;
     }
 
     #qrcode img,
@@ -323,17 +323,66 @@
       line-height: 1.5;
     }
 
+    body.running {
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 12px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      background: #ffffff;
+    }
+
+    body.running .card {
+      width: 100%;
+      max-width: none;
+      min-height: 100svh;
+      padding: 12px 10px 16px;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      background: #ffffff;
+    }
+
     body.running .field,
     body.running .btnRow,
     body.running .title,
-    body.running .sub {
+    body.running .sub,
+    body.running .brand-logo-container {
       display: none;
     }
 
-    body.running .brand-logo {
-      width: clamp(280px, 62vw, 460px);
-      margin-bottom: 0;
-      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    body.running .qrWrap {
+      display: flex;
+      width: 100%;
+      margin-top: 0;
+    }
+
+    body.running .who {
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      font-size: clamp(20px, 5vw, 28px);
+      border-radius: 14px;
+    }
+
+    body.running .qrCard {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      background: #ffffff;
+    }
+
+    body.running .timer {
+      margin-top: 10px;
+      padding: 8px 18px;
+      font-size: clamp(18px, 4.8vw, 24px);
+    }
+
+    body.running .tiny {
+      margin-top: 8px;
+      font-size: clamp(14px, 3.8vw, 18px);
+      line-height: 1.45;
     }
 
     @media (max-width: 480px) {
@@ -589,13 +638,13 @@
     function getDynamicQrSize() {
       const screenWidth = window.innerWidth || 390;
       const screenHeight = window.innerHeight || 720;
-      const safeWidth = Math.max(260, screenWidth - 72);
+      const safeWidth = Math.max(280, screenWidth - 24);
 
       return Math.floor(Math.min(
         safeWidth,
-        screenWidth * 0.84,
-        screenHeight * 0.54,
-        520
+        screenWidth * 0.94,
+        screenHeight * 0.68,
+        640
       ));
     }
 
