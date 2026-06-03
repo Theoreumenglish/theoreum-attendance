@@ -344,83 +344,142 @@
 			margin-bottom: 16px;
 		}
 
-    .kStaffQuick {
-      display: none;
-      margin-top: 18px;
-      padding: 18px;
-      border: 2px dashed rgba(79, 70, 229, 0.22);
-      border-radius: 22px;
-      background: rgba(79, 70, 229, 0.04);
-    }
+      .kStaffQuick {
+        display: none;
+        position: fixed;
+        left: 50%;
+        bottom: 18px;
+        width: min(560px, calc(100vw - 28px));
+        max-height: min(42vh, 260px);
+        overflow: auto;
+        transform: translateX(-50%);
+        padding: 18px;
+        border: 2px solid rgba(79, 70, 229, 0.22);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 18px 46px rgba(15, 23, 42, 0.18);
+        z-index: 9999;
+      }
 
-    .kStaffQuick.show {
-      display: block;
-    }
+      .kStaffQuick.show {
+        display: block;
+      }
 
-    .kStaffQuickHead {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
+      .kStaffQuickHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
 
-    .kStaffQuickTitle {
-      font-size: 16px;
-      font-weight: 900;
-      color: var(--pri);
-      letter-spacing: -0.2px;
-    }
+      .kStaffQuickTitle {
+        font-size: 16px;
+        font-weight: 900;
+        color: var(--pri);
+        letter-spacing: -0.2px;
+      }
 
-    .kStaffQuickClose {
-      border: none;
-      background: transparent;
-      color: var(--sub);
-      font-size: 15px;
-      font-weight: 800;
-      cursor: pointer;
-      padding: 6px 8px;
-      border-radius: 10px;
-    }
+      .kStaffQuickClose {
+        border: none;
+        background: transparent;
+        color: var(--sub);
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+        padding: 6px 8px;
+        border-radius: 10px;
+      }
 
-    .kStaffQuickClose:hover {
-      background: rgba(15, 23, 42, 0.06);
-      color: var(--text);
-    }
+      .kStaffQuickClose:hover {
+        background: rgba(15, 23, 42, 0.06);
+        color: var(--text);
+      }
 
-    .kStaffQuickRow {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
+      .kStaffQuickRow {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
 
-    .kStaffQuickBtn {
-      border: 2px solid var(--line);
-      background: #fff;
-      color: var(--sub);
-      border-radius: 16px;
-      padding: 14px 12px;
-      font-size: 18px;
-      font-weight: 900;
-      cursor: pointer;
-      transition: all .15s ease;
-    }
+      .kStaffQuickBtn {
+        border: 2px solid var(--line);
+        background: #fff;
+        color: var(--sub);
+        border-radius: 16px;
+        padding: 14px 12px;
+        font-size: 18px;
+        font-weight: 900;
+        cursor: pointer;
+        transition: all .15s ease;
+      }
 
-    .kStaffQuickBtn.on {
-      border-color: var(--pri);
-      background: rgba(79, 70, 229, 0.10);
-      color: var(--pri);
-      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.12);
-    }
+      .kStaffQuickBtn.on {
+        border-color: var(--pri);
+        background: rgba(79, 70, 229, 0.10);
+        color: var(--pri);
+        box-shadow: 0 8px 16px rgba(79, 70, 229, 0.12);
+      }
 
-    .kStaffQuickHint {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--sub);
-      text-align: center;
-      line-height: 1.45;
-    }
+      .kStaffQuickHint {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--sub);
+        text-align: center;
+        line-height: 1.45;
+      }
+
+      .adminQuickGrid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .adminQuickBtn {
+        border: 1px solid rgba(79, 70, 229, 0.18);
+        background: #fff;
+        color: var(--text);
+        border-radius: 18px;
+        padding: 16px 14px;
+        text-align: left;
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      }
+
+      .adminQuickBtn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(79, 70, 229, 0.38);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.10);
+      }
+
+      .adminQuickTitle {
+        font-size: 16px;
+        font-weight: 950;
+        color: var(--pri);
+      }
+
+      .adminQuickDesc {
+        margin-top: 6px;
+        font-size: 13px;
+        font-weight: 750;
+        color: var(--sub);
+        line-height: 1.45;
+      }
+
+      @media (max-width: 900px) {
+        .adminQuickGrid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .adminQuickGrid {
+          grid-template-columns: 1fr;
+        }
+      }
 
 		.cardTitle {
 			font-size: 46px;
@@ -1345,6 +1404,36 @@
           </div>
         </div>
       </div>
+      <div class="card compactCard adminOnly" id="adminQuickMenu" style="margin-top:24px;">
+        <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
+          <div class="sectionTitle">관리자 빠른 메뉴</div>
+          <div class="subText">
+            자주 쓰는 기능만 먼저 모았습니다. 일반 운영자는 이 영역에서 대부분의 작업을 처리하면 됩니다.
+          </div>
+
+          <div class="adminQuickGrid">
+            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="opsOverviewBox">
+              <div class="adminQuickTitle">1. 운영 상태 확인</div>
+              <div class="adminQuickDesc">중앙DB 반영, 점검 모드, 알림 worker 상태를 확인합니다.</div>
+            </button>
+
+            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="abDate">
+              <div class="adminQuickTitle">2. 미등원 알림 제외</div>
+              <div class="adminQuickDesc">지각·결석 연락 학생을 오늘 미등원 문자 대상에서 제외합니다.</div>
+            </button>
+
+            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="exSid">
+              <div class="adminQuickTitle">3. QR 어려운 학생 허용</div>
+              <div class="adminQuickDesc">QR 인식이 어려운 학생만 학번 직접 출결을 허용합니다.</div>
+            </button>
+
+            <button class="adminQuickBtn adminJumpBtn" type="button" data-target="staffMonthYyyymm">
+              <div class="adminQuickTitle">4. 직원 근무시간</div>
+              <div class="adminQuickDesc">직원 월근무 요약과 상세 내역을 조회합니다.</div>
+            </button>
+          </div>
+        </div>
+      </div>
 	        <div class="card compactCard adminOnly" style="margin-top:24px;">
         <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
           <div class="sectionTitle">운영 상태 요약</div>
@@ -1512,10 +1601,14 @@
 
         <div class="foldCard">
           <details>
-            <summary>관리자 도구</summary>
+            <summary>고급 관리자 도구 · 문제 해결용</summary>
             <div class="foldBody">
               <div class="section" style="margin-top:18px; padding-top:0; border-top:none;">
-                <div class="sectionTitle">안전 모드 / 실시간 반영 / 캐시 / 점검</div>
+                <div class="sectionTitle">고급 관리자 도구</div>
+                <div class="subText">
+                  이 영역은 장애 대응, 강제 동기화, 실패 알림 재처리, 캐시 초기화처럼 관리자만 사용하는 기능입니다.
+                  평소 운영은 위의 “관리자 빠른 메뉴”를 먼저 사용하세요.
+                </div>
                 <div class="row" style="margin-top:16px;">
                   <input class="inp" id="safeMsg" placeholder="점검 모드 안내 문구 (선택)" style="flex:1;">
                 </div>
@@ -1575,16 +1668,24 @@
 				.replace(/'/g, '&#39;');
 		}
 
-		function safeFocus(el, delay = 0) {
-			const run = () => {
-				if (!el) return;
-				if (!document.contains(el)) return;
-				if (typeof el.focus !== 'function') return;
-				try { el.focus(); } catch (_) {}
-			};
-			if (delay > 0) setTimeout(run, delay);
-			else run();
-		}
+      function safeFocus(el, delay = 0) {
+        const run = () => {
+          if (!el) return;
+          if (!document.contains(el)) return;
+          if (typeof el.focus !== 'function') return;
+
+          try {
+            el.focus({ preventScroll: true });
+          } catch (_) {
+            try {
+              el.focus();
+            } catch (__) {}
+          }
+        };
+
+        if (delay > 0) setTimeout(run, delay);
+        else run();
+      }
     function renderFatalBootError(title, message) {
 		const v = document.getElementById('viewPort');
 		if (!v) return;
@@ -2277,19 +2378,27 @@
         }
       },
 
-			normalizeScanText(v) {
-				const map = {
-					'ㅂ':'q','ㅈ':'w','ㄷ':'e','ㄱ':'r','ㅅ':'t','ㅛ':'y','ㅕ':'u','ㅑ':'i','ㅐ':'o','ㅔ':'p',
-					'ㅁ':'a','ㄴ':'s','ㅇ':'d','ㄹ':'f','ㅎ':'g','ㅗ':'h','ㅓ':'j','ㅏ':'k','ㅣ':'l',
-					'ㅋ':'z','ㅌ':'x','ㅊ':'c','ㅍ':'v','ㅠ':'b','ㅜ':'n','ㅡ':'m',
-					'ㅃ':'Q','ㅉ':'W','ㄸ':'E','ㄲ':'R','ㅆ':'T','ㅒ':'O','ㅖ':'P'
-				};
+      normalizeScanText(v) {
+        const map = {
+          'ㅂ':'q','ㅈ':'w','ㄷ':'e','ㄱ':'r','ㅅ':'t','ㅛ':'y','ㅕ':'u','ㅑ':'i','ㅐ':'o','ㅔ':'p',
+          'ㅁ':'a','ㄴ':'s','ㅇ':'d','ㄹ':'f','ㅎ':'g','ㅗ':'h','ㅓ':'j','ㅏ':'k','ㅣ':'l',
+          'ㅋ':'z','ㅌ':'x','ㅊ':'c','ㅍ':'v','ㅠ':'b','ㅜ':'n','ㅡ':'m',
+          'ㅃ':'Q','ㅉ':'W','ㄸ':'E','ㄲ':'R','ㅆ':'T','ㅒ':'O','ㅖ':'P'
+        };
 
-				let s = String(v || '').split('').map(ch => map[ch] || ch).join('').replace(/\s+/g, '').trim();
-				if (/^qr1\./i.test(s)) s = 'QR1.' + s.slice(4);
-          if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
-          return s;
-			},
+        let s = String(v || '')
+          .split('')
+          .map(ch => map[ch] || ch)
+          .join('')
+          .replace(/\s+/g, '')
+          .trim();
+
+        if (/^qr1\./i.test(s)) s = 'QR1.' + s.slice(4);
+        if (/^qr2\./i.test(s)) s = 'QR2.' + s.slice(4);
+        if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
+
+        return s;
+      },
 
       isCompleteStudentQr(v) {
         return /^QR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(String(v || '').trim());
@@ -2661,55 +2770,88 @@
 			}
 		};
 
-		document.addEventListener('keydown', e => {
-			if ($('#offlineLock').classList.contains('show') || Kiosk.isSubmitting) return;
+      document.addEventListener('keydown', e => {
+        const offlineLock = $('#offlineLock');
 
-			if (['F5', 'F12'].includes(e.key) || (e.ctrlKey && e.key.toLowerCase() === 'r')) {
-				e.preventDefault();
-			}
-			if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'q') {
-				location.reload();
-			}
+        if ((offlineLock && offlineLock.classList.contains('show')) || Kiosk.isSubmitting) {
+          return;
+        }
 
-			if (App.currentView !== 'kiosk') return;
+        if (['F5', 'F12'].includes(e.key) || (e.ctrlKey && e.key.toLowerCase() === 'r')) {
+          e.preventDefault();
+        }
 
-			if (e.getModifierState && e.getModifierState('CapsLock')) {
-				UI.toast(false, '⚠️ Caps Lock을 꺼주세요.');
-			}
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'q') {
+          location.reload();
+        }
 
-			const modeMap = {
-				'F1': 'CHECK_IN', '1': 'CHECK_IN',
-				'F2': 'CHECK_OUT', '2': 'CHECK_OUT',
-				'F3': 'MOVE', '3': 'MOVE',
-				'F4': 'OUTING', '4': 'OUTING'
-			};
+        if (App.currentView !== 'kiosk') return;
 
-			if (['F1', 'F2', 'F3', 'F4'].includes(e.key) || (e.altKey && ['1', '2', '3', '4'].includes(e.key))) {
-				e.preventDefault();
-				Kiosk.setAction(modeMap[e.key]);
-				return;
-			}
+        if (e.getModifierState && e.getModifierState('CapsLock')) {
+          UI.toast(false, '⚠️ Caps Lock을 꺼주세요.');
+        }
 
-			if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-				$('#fullModal').classList.remove('show');
-			}
+        const modeMap = {
+          'F1': 'CHECK_IN',
+          '1': 'CHECK_IN',
+          'F2': 'CHECK_OUT',
+          '2': 'CHECK_OUT',
+          'F3': 'MOVE',
+          '3': 'MOVE',
+          'F4': 'OUTING',
+          '4': 'OUTING'
+        };
 
-			const input = $('#kInput');
-			const activeTag = document.activeElement && document.activeElement.tagName
-				? document.activeElement.tagName
-				: '';
+        if (
+          ['F1', 'F2', 'F3', 'F4'].includes(e.key) ||
+          (e.altKey && ['1', '2', '3', '4'].includes(e.key))
+        ) {
+          e.preventDefault();
+          Kiosk.setAction(modeMap[e.key]);
+          return;
+        }
 
-			if (!input || activeTag === 'BUTTON') return;
+        const input = $('#kInput');
+        if (!input) return;
 
-			if (document.activeElement !== input) {
-				safeFocus(input);
-				if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-					input.value += e.key;
-					input.dispatchEvent(new Event('input', { bubbles: true }));
-					e.preventDefault();
-				}
-			}
-		});
+        const isPlainChar =
+          e.key.length === 1 &&
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey;
+
+        if (isPlainChar) {
+          const modal = $('#fullModal');
+          if (modal) modal.classList.remove('show');
+        }
+
+        if (document.activeElement !== input) {
+          safeFocus(input);
+
+          if (isPlainChar) {
+            input.value += e.key;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            e.preventDefault();
+            return;
+          }
+
+          if (e.key === 'Enter') {
+            e.preventDefault();
+
+            const v = Kiosk.normalizeScanText(input.value);
+            input.value = v;
+
+            const shouldSubmit =
+              Kiosk.isCompleteStudentQr(v) ||
+              Kiosk.isCompleteStaffQr(v) ||
+              Kiosk.shouldSubmitDirectSid(v);
+
+            if (shouldSubmit) {
+              Kiosk.queueSubmit(40);
+            }
+          }
+        }
+      });
 
 		const Auth = {
 			initLogin() {
@@ -3314,6 +3456,27 @@ const StaffUI = {
 						safeFocus(target, 0);
 					});
 				});
+
+          document.querySelectorAll('.adminJumpBtn[data-target]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const targetId = String(btn.dataset.target || '').trim();
+              const target = document.getElementById(targetId);
+
+              if (!target) {
+                UI.toast(false, '이동할 영역을 찾지 못했습니다.');
+                return;
+              }
+
+              target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+
+              if (typeof target.focus === 'function') {
+                safeFocus(target, 250);
+              }
+            });
+          });
 
 				[
 					'pinSid',

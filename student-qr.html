@@ -289,8 +289,10 @@
       justify-content: center;
       align-items: center;
       background: #ffffff;
-      padding: 18px;
-      border-radius: 12px;
+      padding: 22px;
+      border-radius: 14px;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.04);
+      box-sizing: content-box;
     }
 
     #qrcode img,
@@ -298,6 +300,7 @@
       display: block;
       width: 100% !important;
       height: 100% !important;
+      image-rendering: pixelated;
     }
 
     .timer{
@@ -442,7 +445,7 @@
   </div>
 
   <script>
-    const APP_VERSION = 'student-qr-vercel-v19';
+    const APP_VERSION = 'student-qr-vercel-v22';
     const API = {
       sessionStart: '/api/student-qr/session-start',
       frame: '/api/student-qr/frame',
@@ -460,7 +463,7 @@
       starting: false,
       sessionToken: '',
       sessionExpAt: 0,
-      stepMs: 10000,
+      stepMs: 6000,
       timerId: null,
       resizeTimer: null,
       uiTimerId: null,
@@ -582,8 +585,16 @@
     }
 
     function getDynamicQrSize() {
-      const screenWidth = window.innerWidth;
-      return Math.floor(Math.min(screenWidth * 0.85, 420));
+      const screenWidth = window.innerWidth || 390;
+      const screenHeight = window.innerHeight || 720;
+      const safeWidth = Math.max(260, screenWidth - 72);
+
+      return Math.floor(Math.min(
+        safeWidth,
+        screenWidth * 0.84,
+        screenHeight * 0.54,
+        520
+      ));
     }
 
     function drawQr(text){
@@ -873,7 +884,7 @@
         State.running = true;
         State.sessionToken = r.data.token;
         State.sessionExpAt = r.data.expiresAt;
-        State.stepMs = 10000;
+        State.stepMs = 6000;
         syncServerClock(r.data.serverNow);
         State.studentId = r.data.student?.student_id || sid;
         State.studentName = r.data.student?.student_name || '';
