@@ -2404,7 +2404,7 @@
         const raw = String(v || '').trim();
 
         return /^QR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(raw) ||
-          /^QR2\.\d{4}\.[A-Za-z0-9_-]{16,64}\.[A-Za-z0-9_-]{12,64}\.\d{10,14}\.[A-Za-z0-9_-]{16,43}$/i.test(raw);
+          /^QR2\.\d{4}\.[A-Za-z0-9_-]{8,64}\.[A-Za-z0-9_-]{8,64}\.\d{10,14}\.[A-Za-z0-9_-]{12,43}$/i.test(raw);
       },
 
       isCompleteStaffQr(v) {
