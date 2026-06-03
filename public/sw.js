@@ -1,6 +1,7 @@
-const CACHE = 'theoreum-attendance-shell-v24';
+const CACHE = 'theoreum-attendance-shell-v25';
 const SHELL = [
   '/',
+  '/admin.html',
   '/manifest.webmanifest',
   '/theoreum-banner.png',
   '/student-qr-brand.svg',

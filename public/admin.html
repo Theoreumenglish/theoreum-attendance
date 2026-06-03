@@ -1,0 +1,1172 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>더오름 관리자 콘솔</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #101828;
+      --sub: #667085;
+      --line: #e4e7ec;
+      --pri: #4f46e5;
+      --pri-2: #3730a3;
+      --good: #059669;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --sky: #0369a1;
+      --shadow: 0 18px 50px rgba(16, 24, 40, 0.08);
+      --r-xl: 28px;
+      --r-lg: 22px;
+      --r-md: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.13), transparent 32%),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.10), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.82);
+      border-bottom: 1px solid rgba(228, 231, 236, 0.82);
+    }
+
+    .topbarIn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brandMark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--pri), #0ea5e9);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 950;
+      box-shadow: 0 12px 28px rgba(79, 70, 229, 0.30);
+    }
+
+    .brandTitle {
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: -0.5px;
+      white-space: nowrap;
+    }
+
+    .brandSub {
+      margin-top: 2px;
+      color: var(--sub);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .topActions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--good);
+      box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.14);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 272px minmax(0, 1fr);
+      gap: 22px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 22px 46px;
+    }
+
+    .side {
+      position: sticky;
+      top: 88px;
+      align-self: start;
+      border: 1px solid var(--line);
+      border-radius: var(--r-xl);
+      background: rgba(255, 255, 255, 0.90);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .sideTitle {
+      margin: 4px 6px 16px;
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.04em;
+    }
+
+    .navBtn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      background: transparent;
+      color: var(--sub);
+      padding: 13px 14px;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .navBtn:hover,
+    .navBtn.on {
+      background: rgba(79, 70, 229, 0.10);
+      color: var(--pri);
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--r-xl);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .heroTitle {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.08;
+      letter-spacing: -1.5px;
+      font-weight: 980;
+    }
+
+    .heroDesc {
+      margin-top: 14px;
+      color: var(--sub);
+      font-size: 16px;
+      font-weight: 750;
+      line-height: 1.6;
+    }
+
+    .statusGrid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      border: 1px solid rgba(228, 231, 236, 0.92);
+      border-radius: 20px;
+      background: #fff;
+      padding: 18px;
+    }
+
+    .statLabel {
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .statValue {
+      margin-top: 8px;
+      font-size: 30px;
+      font-weight: 980;
+      letter-spacing: -0.8px;
+    }
+
+    .statNote {
+      margin-top: 5px;
+      color: var(--sub);
+      font-size: 12px;
+      font-weight: 750;
+      word-break: break-all;
+    }
+
+    .section {
+      margin-top: 18px;
+    }
+
+    .sectionHead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .sectionTitle {
+      font-size: 24px;
+      font-weight: 980;
+      letter-spacing: -0.7px;
+    }
+
+    .sectionDesc {
+      margin-top: 5px;
+      color: var(--sub);
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.5;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .actionCard {
+      border: 1px solid rgba(79, 70, 229, 0.16);
+      border-radius: var(--r-lg);
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(16, 24, 40, 0.06);
+    }
+
+    .actionKicker {
+      color: var(--pri);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .actionTitle {
+      margin-top: 6px;
+      font-size: 19px;
+      font-weight: 980;
+      letter-spacing: -0.4px;
+    }
+
+    .actionDesc {
+      margin-top: 8px;
+      min-height: 42px;
+      color: var(--sub);
+      font-size: 14px;
+      font-weight: 720;
+      line-height: 1.5;
+    }
+
+    .btnRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 14px;
+      min-height: 42px;
+      padding: 10px 14px;
+      background: #eef2ff;
+      color: var(--pri);
+      font-size: 14px;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .btnPri {
+      background: var(--pri);
+      color: #fff;
+    }
+
+    .btnGood {
+      background: #ecfdf3;
+      color: #047857;
+    }
+
+    .btnWarn {
+      background: #fffbeb;
+      color: var(--warn);
+    }
+
+    .btnBad {
+      background: #fef2f2;
+      color: var(--bad);
+    }
+
+    .btnGhost {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--sub);
+    }
+
+    .inp {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 13px;
+      font-size: 15px;
+      font-weight: 760;
+      outline: none;
+    }
+
+    .inp:focus {
+      border-color: rgba(79, 70, 229, 0.55);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.10);
+    }
+
+    .fieldLabel {
+      margin-bottom: 7px;
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .selectedStudent {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(79, 70, 229, 0.08);
+      color: var(--pri);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .listItem {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+
+    .mono {
+      max-height: 380px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #0f172a;
+      color: #dbeafe;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .checkList {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .checkList li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid rgba(14, 165, 233, 0.15);
+      border-radius: 16px;
+      background: rgba(14, 165, 233, 0.06);
+      padding: 12px 14px;
+      color: #075985;
+      font-size: 14px;
+      font-weight: 820;
+      line-height: 1.45;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 99;
+      transform: translateX(-50%);
+      max-width: min(560px, calc(100vw - 28px));
+      border-radius: 999px;
+      background: #111827;
+      color: #fff;
+      padding: 13px 18px;
+      font-size: 14px;
+      font-weight: 850;
+      box-shadow: 0 18px 44px rgba(17, 24, 39, 0.26);
+    }
+
+    .loginWrap {
+      display: grid;
+      place-items: center;
+      min-height: calc(100vh - 90px);
+      padding: 28px;
+    }
+
+    .loginCard {
+      width: min(480px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+      padding: 34px;
+    }
+
+    .busyBar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 120;
+      width: 100%;
+      height: 4px;
+      transform-origin: left;
+      transform: scaleX(0);
+      background: linear-gradient(90deg, var(--pri), #0ea5e9);
+      transition: transform .2s ease;
+    }
+
+    .busyBar.on {
+      transform: scaleX(1);
+    }
+
+    @media (max-width: 1120px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+
+      .hero,
+      .grid3,
+      .grid2,
+      .statusGrid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbarIn {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .shell {
+        padding: 16px 12px 34px;
+      }
+
+      .card {
+        padding: 18px;
+        border-radius: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="busyBar" class="busyBar"></div>
+
+  <header class="topbar">
+    <div class="topbarIn">
+      <div class="brand">
+        <div class="brandMark">↑</div>
+        <div>
+          <div class="brandTitle">더오름 관리자 콘솔</div>
+          <div class="brandSub">Attendance Operations Center</div>
+        </div>
+      </div>
+
+      <div class="topActions">
+        <div class="pill"><span class="dot"></span><span id="netText">Online</span></div>
+        <div class="pill" id="whoText">로그인 전</div>
+        <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크</button>
+        <button class="btn btnGhost hidden" id="btnLogout" type="button">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="loginView" class="loginWrap hidden">
+    <div class="loginCard">
+      <div class="brand" style="margin-bottom:22px;">
+        <div class="brandMark">↑</div>
+        <div>
+          <div class="brandTitle">관리자 로그인</div>
+          <div class="brandSub">관리자·원장 권한 계정으로 접속하세요.</div>
+        </div>
+      </div>
+
+      <div style="display:grid; gap:12px;">
+        <div>
+          <div class="fieldLabel">직원 ID</div>
+          <input class="inp" id="loginId" autocomplete="username" placeholder="직원 ID" />
+        </div>
+        <div>
+          <div class="fieldLabel">비밀번호</div>
+          <input class="inp" id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호" />
+        </div>
+        <button class="btn btnPri" id="btnLogin" type="button" style="height:52px; font-size:16px;">로그인</button>
+        <div id="loginMsg" class="sectionDesc"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="appView" class="shell hidden">
+    <aside class="side">
+      <div class="sideTitle">업무 메뉴</div>
+      <button class="navBtn on" type="button" data-go="dashboard">오늘 운영 <span>›</span></button>
+      <button class="navBtn" type="button" data-go="quick">빠른 업무 <span>›</span></button>
+      <button class="navBtn" type="button" data-go="qrCenter">QR 문제 대응 <span>›</span></button>
+      <button class="navBtn" type="button" data-go="trouble">문제 해결 <span>›</span></button>
+      <button class="navBtn" type="button" data-go="advanced">고급 도구 <span>›</span></button>
+    </aside>
+
+    <main class="main">
+      <section class="hero" id="dashboard">
+        <div class="card">
+          <h1 class="heroTitle">오늘 운영을 한 화면에서 확인하세요.</h1>
+          <div class="heroDesc">
+            미등원 알림, 중앙DB 동기화, 실패 알림, 점검 모드를 관리자가 바로 판단할 수 있게 정리했습니다.
+          </div>
+
+          <div class="statusGrid">
+            <div class="stat">
+              <div class="statLabel">중앙DB 상태</div>
+              <div class="statValue" id="statReplica">-</div>
+              <div class="statNote" id="statReplicaNote">조회 전</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">미등원 실패</div>
+              <div class="statValue" id="statFailedAbsent">-</div>
+              <div class="statNote">FAILED ABSENT</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">등하원 실패</div>
+              <div class="statValue" id="statFailedAttendance">-</div>
+              <div class="statNote">FAILED ATTENDANCE</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">점검 모드</div>
+              <div class="statValue" id="statSafe">-</div>
+              <div class="statNote" id="statSafeNote">runtime_config</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sectionTitle">운영 체크</div>
+          <div class="sectionDesc">아래 버튼 하나로 운영 상태를 새로고침합니다.</div>
+          <div class="btnRow">
+            <button class="btn btnPri" id="btnRefreshOverview" type="button">운영 상태 새로고침</button>
+            <button class="btn btnGhost" type="button" onclick="location.href='/'">기존 직원 화면 열기</button>
+          </div>
+          <div class="sectionDesc" id="overviewText" style="margin-top:14px;">아직 불러오지 않았습니다.</div>
+        </div>
+      </section>
+
+      <section class="section" id="quick">
+        <div class="sectionHead">
+          <div>
+            <div class="sectionTitle">빠른 업무</div>
+            <div class="sectionDesc">현장에서 자주 쓰는 작업만 먼저 배치했습니다.</div>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="actionCard">
+            <div class="actionKicker">학생 처리</div>
+            <div class="actionTitle">QR 어려운 학생 학번 허용</div>
+            <div class="actionDesc">QR이 반복적으로 안 찍히는 학생만 학번 직접 출결을 허용합니다.</div>
+            <div class="fieldLabel">학생 이름 또는 학번</div>
+            <input class="inp" id="studentQuery" placeholder="예: 민서 또는 0123" autocomplete="off" />
+            <div class="list" id="studentResults"></div>
+            <div id="selectedStudent" class="selectedStudent hidden"></div>
+            <div class="btnRow">
+              <button class="btn btnWarn" id="btnAllowSid" type="button">학번 허용</button>
+              <button class="btn btnGhost" id="btnBlockSid" type="button">허용 해제</button>
+            </div>
+          </div>
+
+          <div class="actionCard">
+            <div class="actionKicker">알림</div>
+            <div class="actionTitle">실패 알림 조회</div>
+            <div class="actionDesc">미등원/등하원 알림 실패 내역을 바로 확인합니다.</div>
+            <div class="btnRow">
+              <button class="btn btnPri" id="btnFailedAbsent" type="button">미등원 실패</button>
+              <button class="btn btnGhost" id="btnFailedAttendance" type="button">등하원 실패</button>
+            </div>
+          </div>
+
+          <div class="actionCard">
+            <div class="actionKicker">직원</div>
+            <div class="actionTitle">직원 근무시간 확인</div>
+            <div class="actionDesc">상세 근무시간 관리는 기존 직원 화면과 연결해 사용합니다.</div>
+            <div class="btnRow">
+              <button class="btn btnGhost" type="button" onclick="location.href='/'">직원 화면 열기</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="qrCenter">
+        <div class="sectionHead">
+          <div>
+            <div class="sectionTitle">QR 문제 대응센터</div>
+            <div class="sectionDesc">QR 스캔이 안 될 때 관리자가 그대로 안내할 수 있는 체크리스트입니다.</div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="actionTitle">스캐너 설정 체크</div>
+            <ul class="checkList" style="margin-top:14px;">
+              <li>✅ 스캐너 조명 ON, 조준선/레이저 ON</li>
+              <li>✅ QR Code Enable 또는 2D Code Enable 확인</li>
+              <li>✅ Mobile Screen Reading 모드가 있으면 ON</li>
+              <li>✅ HID Keyboard Mode 사용</li>
+              <li>✅ Suffix Enter 설정 확인</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="actionTitle">학생 안내문</div>
+            <ul class="checkList" style="margin-top:14px;">
+              <li>📱 휴대폰 화면 밝기를 최대로 올립니다.</li>
+              <li>📏 QR과 스캐너는 15~30cm 정도 떨어뜨립니다.</li>
+              <li>✨ 화면을 살짝 기울여 반사를 줄입니다.</li>
+              <li>🔊 삑 소리가 난 뒤 화면을 닫습니다.</li>
+              <li>🔁 계속 안 되면 학번 직접 출결 허용으로 처리합니다.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="trouble">
+        <div class="sectionHead">
+          <div>
+            <div class="sectionTitle">문제 해결</div>
+            <div class="sectionDesc">장애 대응용 기능입니다. 실행 전 관리자 PIN이 필요할 수 있습니다.</div>
+          </div>
+        </div>
+
+        <div class="grid3">
+          <div class="actionCard">
+            <div class="actionKicker">중앙DB</div>
+            <div class="actionTitle">중앙DB 점검</div>
+            <div class="actionDesc">Supabase replica, 필수 테이블, bridge 상태를 점검합니다.</div>
+            <div class="btnRow">
+              <button class="btn btnPri" id="btnCheckCentral" type="button">점검 실행</button>
+            </div>
+          </div>
+
+          <div class="actionCard">
+            <div class="actionKicker">동기화</div>
+            <div class="actionTitle">중앙DB 최신화 반영</div>
+            <div class="actionDesc">중앙DB 수정사항이 화면에 늦게 보일 때만 실행합니다.</div>
+            <div class="btnRow">
+              <button class="btn btnBad" id="btnSyncReplica" type="button">PIN 입력 후 실행</button>
+            </div>
+          </div>
+
+          <div class="actionCard">
+            <div class="actionKicker">상태 검사</div>
+            <div class="actionTitle">오늘 상태 불일치 검사</div>
+            <div class="actionDesc">출결 로그와 오늘 상태 read model이 맞는지 검사합니다.</div>
+            <div class="btnRow">
+              <button class="btn btnGhost" id="btnMismatch" type="button">검사 실행</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="advanced">
+        <div class="sectionHead">
+          <div>
+            <div class="sectionTitle">고급 도구</div>
+            <div class="sectionDesc">일반 운영 중에는 자주 사용하지 않는 기능입니다.</div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="actionCard">
+            <div class="actionKicker">캐시</div>
+            <div class="actionTitle">운영 캐시 비우기</div>
+            <div class="actionDesc">운영 상태가 즉시 반영되지 않을 때 runtime cache를 비웁니다.</div>
+            <div class="btnRow">
+              <button class="btn btnWarn" id="btnFlushCache" type="button">PIN 입력 후 캐시 비우기</button>
+            </div>
+          </div>
+
+          <div class="actionCard">
+            <div class="actionKicker">상세 결과</div>
+            <div class="actionTitle">작업 결과</div>
+            <div class="actionDesc">점검·조회·처리 결과가 아래에 표시됩니다.</div>
+          </div>
+        </div>
+
+        <div class="mono" id="resultBox" style="margin-top:14px;">작업 결과가 여기에 표시됩니다.</div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    const App = {
+      sess: localStorage.getItem('ATT_SESS') || '',
+      me: null,
+      selectedStudent: null,
+      pending: 0,
+      searchTimer: null,
+      searchSeq: 0,
+
+      busy(on) {
+        App.pending += on ? 1 : -1;
+        if (App.pending < 0) App.pending = 0;
+        $('#busyBar').classList.toggle('on', App.pending > 0);
+      },
+
+      async rpc(op, args = {}, options = {}) {
+        App.busy(true);
+
+        const controller = new AbortController();
+        const timeoutMs = Number(options.timeoutMs || 20000);
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const res = await fetch('/api/rpc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              op,
+              args,
+              sessionToken: App.sess
+            }),
+            cache: 'no-store',
+            signal: controller.signal
+          });
+
+          const text = await res.text();
+          let json = null;
+
+          try {
+            json = text ? JSON.parse(text) : null;
+          } catch (e) {
+            return {
+              ok: false,
+              error: {
+                code: 'BAD_JSON',
+                message: '서버 응답을 JSON으로 해석하지 못했습니다.'
+              }
+            };
+          }
+
+          return json || {
+            ok: false,
+            error: {
+              code: 'EMPTY_RESPONSE',
+              message: '빈 응답입니다.'
+            }
+          };
+        } catch (e) {
+          return {
+            ok: false,
+            error: {
+              code: e && e.name === 'AbortError' ? 'RPC_TIMEOUT' : 'RPC_FAIL',
+              message: e && e.name === 'AbortError'
+                ? '요청 시간이 초과되었습니다.'
+                : ((e && e.message) || '서버 연결 실패')
+            }
+          };
+        } finally {
+          clearTimeout(timer);
+          App.busy(false);
+        }
+      }
+    };
+
+    function esc(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function showToast(message) {
+      const el = $('#toast');
+      el.textContent = message;
+      el.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => el.classList.add('hidden'), 2800);
+    }
+
+    function showResult(title, data) {
+      $('#resultBox').textContent = title + '\n\n' + JSON.stringify(data, null, 2);
+      location.hash = '#advanced';
+      $('#advanced').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function normalizeSid(value) {
+      const digits = String(value || '').replace(/[^0-9]/g, '');
+      return digits ? digits.slice(-4).padStart(4, '0') : '';
+    }
+
+    function fmtAge(min) {
+      if (min == null || min === '') return '-';
+      const n = Number(min);
+      if (!Number.isFinite(n)) return '-';
+      return n < 1 ? '방금' : Math.round(n) + '분 전';
+    }
+
+    function setView(loggedIn) {
+      $('#loginView').classList.toggle('hidden', loggedIn);
+      $('#appView').classList.toggle('hidden', !loggedIn);
+      $('#btnLogout').classList.toggle('hidden', !loggedIn);
+      $('#whoText').textContent = loggedIn && App.me
+        ? (App.me.name || App.me.staff_id || '직원') + ' · ' + (App.me.role || '')
+        : '로그인 전';
+    }
+
+    async function checkMe() {
+      if (!App.sess) {
+        setView(false);
+        return;
+      }
+
+      const r = await App.rpc('auth.me', {});
+      if (r.ok && r.data && r.data.loggedIn) {
+        App.me = r.data;
+        setView(true);
+        await loadOverview();
+        return;
+      }
+
+      App.sess = '';
+      localStorage.removeItem('ATT_SESS');
+      setView(false);
+    }
+
+    async function login() {
+      const id = ($('#loginId').value || '').trim();
+      const pw = $('#loginPw').value || '';
+
+      if (!id || !pw) {
+        $('#loginMsg').textContent = '직원 ID와 비밀번호를 입력하세요.';
+        return;
+      }
+
+      const r = await App.rpc('auth.login', {
+        staff_id: id,
+        password: pw
+      });
+
+      if (r.ok && r.data && r.data.loggedIn) {
+        App.sess = r.data.sessionToken || '';
+        localStorage.setItem('ATT_SESS', App.sess);
+        App.me = r.data.staff || r.data;
+        $('#loginPw').value = '';
+        setView(true);
+        await loadOverview();
+        return;
+      }
+
+      $('#loginMsg').textContent = r.error && r.error.message ? r.error.message : '로그인 실패';
+    }
+
+    async function logout() {
+      await App.rpc('auth.logout', {});
+      App.sess = '';
+      App.me = null;
+      App.selectedStudent = null;
+      localStorage.removeItem('ATT_SESS');
+      setView(false);
+    }
+
+    async function loadOverview() {
+      const r = await App.rpc('admin.getOpsOverview', {});
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '운영 상태 조회 실패');
+        return;
+      }
+
+      const d = r.data || {};
+      const replica = d.central_replica || {};
+      const queue = d.queue || {};
+      const safe = d.safe || {};
+      const replicaStatus = replica.status || (replica.ok ? 'OK' : 'CHECK');
+
+      $('#statReplica').textContent = replicaStatus;
+      $('#statReplicaNote').textContent = replica.syncedAt
+        ? '동기화 ' + fmtAge(replica.ageMin)
+        : '동기화 정보 없음';
+      $('#statFailedAbsent').textContent = String(queue.failed_absent ?? 0);
+      $('#statFailedAttendance').textContent = String(queue.failed_attendance ?? 0);
+      $('#statSafe').textContent = String(safe.enabled || safe.value || 'N').toUpperCase() === 'Y' ? 'ON' : 'OFF';
+      $('#statSafeNote').textContent = '층 ' + (d.kiosk_floor || '-') + ' · PENDING ' + (queue.pending_all ?? 0);
+      $('#overviewText').textContent = '마지막 확인: ' + (d.checked_at || new Date().toISOString());
+    }
+
+    function renderStudents(items) {
+      const box = $('#studentResults');
+      if (!items.length) {
+        box.innerHTML = '<div class="sectionDesc">검색 결과가 없습니다.</div>';
+        return;
+      }
+
+      box.innerHTML = items.map(item => {
+        const sid = normalizeSid(item.student_id);
+        const label = `${sid} · ${item.student_name || ''} · ${item.school || ''} ${item.grade || ''}`;
+        return `
+          <button class="listItem" type="button" data-sid="${esc(sid)}" data-name="${esc(item.student_name || '')}">
+            <span>${esc(label)}</span>
+            <strong>선택</strong>
+          </button>
+        `;
+      }).join('');
+
+      $$('#studentResults .listItem').forEach(btn => {
+        btn.addEventListener('click', () => {
+          App.selectedStudent = {
+            student_id: btn.dataset.sid || '',
+            student_name: btn.dataset.name || ''
+          };
+
+          $('#selectedStudent').textContent =
+            '선택됨: ' + App.selectedStudent.student_id + ' · ' + App.selectedStudent.student_name;
+          $('#selectedStudent').classList.remove('hidden');
+        });
+      });
+    }
+
+    async function searchStudentsNow() {
+      const q = ($('#studentQuery').value || '').trim();
+      const seq = ++App.searchSeq;
+
+      if (q.length < 2 && !/^\d{1,4}$/.test(q)) {
+        $('#studentResults').innerHTML = '<div class="sectionDesc">두 글자 이상 또는 학번을 입력하세요.</div>';
+        return;
+      }
+
+      const r = await App.rpc('assistant.searchStudents', {
+        q,
+        limit: 12
+      });
+
+      if (seq !== App.searchSeq) return;
+
+      if (!r.ok) {
+        $('#studentResults').innerHTML = '<div class="sectionDesc">검색 실패: ' + esc(r.error && r.error.message ? r.error.message : '') + '</div>';
+        return;
+      }
+
+      renderStudents(r.data && Array.isArray(r.data.items) ? r.data.items : []);
+    }
+
+    function scheduleStudentSearch() {
+      clearTimeout(App.searchTimer);
+      App.searchTimer = setTimeout(searchStudentsNow, 220);
+    }
+
+    async function setStudentException(value) {
+      const student = App.selectedStudent;
+      if (!student || !student.student_id) {
+        showToast('학생을 먼저 검색해서 선택하세요.');
+        return;
+      }
+
+      const note = value === 'Y'
+        ? 'QR 인식 어려움으로 관리자 콘솔에서 학번 직접 출결 허용'
+        : '관리자 콘솔에서 학번 직접 출결 허용 해제';
+
+      const r = await App.rpc('admin.setStudentException', {
+        student_id: student.student_id,
+        is_exception: value,
+        exception_note: note
+      }, { timeoutMs: 30000 });
+
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '처리 실패');
+        showResult('학생 예외 처리 실패', r);
+        return;
+      }
+
+      showToast(value === 'Y' ? '학번 직접 출결을 허용했습니다.' : '학번 직접 출결 허용을 해제했습니다.');
+      showResult('학생 예외 처리 완료', r.data || r);
+    }
+
+    async function listQueue(actionPrefix) {
+      const r = await App.rpc('admin.listNotifyQueue', {
+        status: 'FAILED',
+        action_prefix: actionPrefix,
+        limit: 30
+      });
+
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '조회 실패');
+        return;
+      }
+
+      showResult(actionPrefix === 'ABSENT' ? '미등원 실패 알림' : '등하원 실패 알림', r.data || {});
+    }
+
+    async function checkCentral() {
+      const r = await App.rpc('meta.checkCentral', {}, { timeoutMs: 30000 });
+      showResult(r.ok ? '중앙DB 점검 결과' : '중앙DB 점검 실패', r.ok ? r.data : r);
+    }
+
+    async function runReplicaSync() {
+      const pin = prompt('중앙DB 최신화 반영을 실행하려면 관리자 PIN을 입력하세요.');
+      if (!pin) return;
+
+      const r = await App.rpc('admin.runCentralReplicaSync', {
+        pin
+      }, { timeoutMs: 65000 });
+
+      showResult(r.ok ? '중앙DB 최신화 반영 완료' : '중앙DB 최신화 반영 실패', r.ok ? r.data : r);
+      await loadOverview();
+    }
+
+    async function scanMismatch() {
+      const r = await App.rpc('admin.scanTodayStateMismatch', {}, { timeoutMs: 30000 });
+      showResult(r.ok ? '오늘 상태 불일치 검사 결과' : '오늘 상태 불일치 검사 실패', r.ok ? r.data : r);
+    }
+
+    async function flushCache() {
+      const pin = prompt('운영 캐시를 비우려면 관리자 PIN을 입력하세요.');
+      if (!pin) return;
+
+      const r = await App.rpc('admin.flushCache', {
+        pin
+      });
+
+      showResult(r.ok ? '캐시 비우기 완료' : '캐시 비우기 실패', r.ok ? r.data : r);
+      await loadOverview();
+    }
+
+    function bindEvents() {
+      $('#btnLogin').addEventListener('click', login);
+      $('#btnLogout').addEventListener('click', logout);
+      $('#btnRefreshOverview').addEventListener('click', loadOverview);
+      $('#studentQuery').addEventListener('input', scheduleStudentSearch);
+      $('#btnAllowSid').addEventListener('click', () => setStudentException('Y'));
+      $('#btnBlockSid').addEventListener('click', () => setStudentException('N'));
+      $('#btnFailedAbsent').addEventListener('click', () => listQueue('ABSENT'));
+      $('#btnFailedAttendance').addEventListener('click', () => listQueue('ATTENDANCE'));
+      $('#btnCheckCentral').addEventListener('click', checkCentral);
+      $('#btnSyncReplica').addEventListener('click', runReplicaSync);
+      $('#btnMismatch').addEventListener('click', scanMismatch);
+      $('#btnFlushCache').addEventListener('click', flushCache);
+
+      ['loginId', 'loginPw'].forEach(id => {
+        $('#' + id).addEventListener('keydown', e => {
+          if (e.key === 'Enter') login();
+        });
+      });
+
+      $$('.navBtn[data-go]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.go || '';
+          const target = document.getElementById(id);
+          if (!target) return;
+
+          $$('.navBtn').forEach(x => x.classList.remove('on'));
+          btn.classList.add('on');
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
+
+    window.addEventListener('online', () => {
+      $('#netText').textContent = 'Online';
+      showToast('네트워크가 복구되었습니다.');
+    });
+
+    window.addEventListener('offline', () => {
+      $('#netText').textContent = 'Offline';
+      showToast('네트워크가 불안정합니다.');
+    });
+
+    bindEvents();
+    checkMe();
+  </script>
+</body>
+</html>
