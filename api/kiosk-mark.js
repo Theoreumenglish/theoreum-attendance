@@ -12,13 +12,13 @@ const MOVE_DEDUPE_MS = 90000;
 function normalizeStudentId(input) {
   const text = String(input || '').trim();
   if (!text) return '';
-  if (/^QR(?:1|2)\./i.test(text)) return '';
+  if (/^(?:QR(?:1|2)|Q3)\./i.test(text)) return '';
   if (!/^\d{1,4}$/.test(text)) return '';
   return text.padStart(4, '0');
 }
 
 function isStudentQrText(input) {
-  return /^QR(?:1|2)\./i.test(String(input || '').trim());
+  return /^(?:QR(?:1|2)|Q3)\./i.test(String(input || '').trim());
 }
 
 function normalizeAction(input) {

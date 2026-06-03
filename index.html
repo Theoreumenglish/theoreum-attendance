@@ -2485,7 +2485,7 @@
 
 					clearTimeout(Kiosk._autoTimer);
 
-					if (/^QR(?:1|2)\./i.test(v) && !Kiosk.isCompleteStudentQr(v)) {
+					if (/^(?:QR(?:1|2)|Q3)\./i.test(v) && !Kiosk.isCompleteStudentQr(v)) {
 						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
 						UI.beep(false);
 						UI.flashScreen(false);
@@ -2574,6 +2574,7 @@
 
         if (/^qr1\./i.test(s)) s = 'QR1.' + s.slice(4);
         if (/^qr2\./i.test(s)) s = 'QR2.' + s.slice(4);
+        if (/^q3\./i.test(s)) s = 'Q3.' + s.slice(3);
         if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
 
         return s;
@@ -2583,7 +2584,8 @@
         const raw = String(v || '').trim();
 
         return /^QR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(raw) ||
-          /^QR2\.\d{4}\.[A-Za-z0-9_-]{8,64}\.[A-Za-z0-9_-]{8,64}\.\d{10,14}\.[A-Za-z0-9_-]{12,43}$/i.test(raw);
+          /^QR2\.\d{4}\.[A-Za-z0-9_-]{8,64}\.[A-Za-z0-9_-]{8,64}\.\d{10,14}\.[A-Za-z0-9_-]{12,43}$/i.test(raw) ||
+          /^Q3\.\d{4}\.[A-Za-z0-9_-]{6,32}\.[A-Za-z0-9_-]{6,32}\.[0-9a-z]{6,12}\.[A-Za-z0-9_-]{10,24}$/i.test(raw);
       },
 
       isCompleteStaffQr(v) {
@@ -2593,7 +2595,7 @@
       shouldSubmitDirectSid(v) {
         const raw = String(v || '').trim();
 
-        if (/^QR(?:1|2)\./i.test(raw) || /^STAFFQR1\./i.test(raw)) {
+        if (/^(?:QR(?:1|2)|Q3)\./i.test(raw) || /^STAFFQR1\./i.test(raw)) {
           return false;
         }
 
@@ -2744,7 +2746,7 @@
 						: (input.value || '').trim();
 
 					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
-					const isQr = /^QR(?:1|2)\./i.test(val);
+					const isQr = /^(?:QR(?:1|2)|Q3)\./i.test(val);
 					const isStaffQr = /^STAFFQR1\./i.test(val);
 					const isExceptionId = Kiosk.shouldSubmitDirectSid(val);
 

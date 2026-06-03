@@ -437,15 +437,15 @@
         </div>
         <div class="timer" id="timer">-</div>
         <div class="tiny">
-          보안을 위해 화면을 벗어나면 자동 종료됩니다.<br>
-          같은 학번으로 다른 탭/기기에서 새 QR을 만들면 기존 QR은 즉시 무효가 됩니다.
+          스캐너에서 삑 소리가 난 뒤 화면을 닫아주세요.<br>
+          QR이 잘 안 찍히면 화면 밝기를 최대로 올리고 15~30cm 떨어져 보여주세요.
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    const APP_VERSION = 'student-qr-vercel-v22';
+    const APP_VERSION = 'student-qr-vercel-v24';
     const API = {
       sessionStart: '/api/student-qr/session-start',
       frame: '/api/student-qr/frame',

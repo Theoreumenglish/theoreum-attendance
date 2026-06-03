@@ -1,4 +1,4 @@
-const VERSION = 'student-qr-vercel-v22';
+const VERSION = 'student-qr-vercel-v24';
 const CACHE_NAME = 'theoreum-student-qr-' + VERSION;
 
 const SHELL_URLS = [
