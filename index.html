@@ -2446,6 +2446,10 @@
             }
           }, 10000);
 
+          if (!Kiosk.staffQuickOpen && Kiosk.handleStaffCommand(input.value)) {
+            return;
+          }
+
           if (Kiosk.staffQuickOpen) {
             const v = Kiosk.normalizeScanText(input.value);
             input.value = v;
@@ -2485,6 +2489,10 @@
 					const v = Kiosk.normalizeScanText(input.value);
 
 					clearTimeout(Kiosk._autoTimer);
+
+          if (!Kiosk.staffQuickOpen && Kiosk.handleStaffCommand(v)) {
+            return;
+          }
 
 					if (/^(?:QR(?:1|2)|Q3)\./i.test(v) && !Kiosk.isCompleteStudentQr(v)) {
 						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
@@ -2580,6 +2588,39 @@
 
         return s;
       },
+
+      handleStaffCommand(raw) {
+        const cmd = Kiosk.normalizeScanText(raw)
+          .toLowerCase()
+          .replace(/[^a-z가-힣]/g, '');
+
+        const staffCommands = new Set([
+          'staff',
+          'staffin',
+          'staffout',
+          '직원',
+          '직원출근',
+          '직원퇴근'
+        ]);
+
+        if (!staffCommands.has(cmd)) return false;
+
+        const action = (cmd.includes('out') || cmd.includes('퇴근')) ? 'OUT' : 'IN';
+
+        Kiosk.setStaffQuickAction(action);
+        Kiosk.openStaffQuick();
+
+        const input = $('#kInput');
+        if (input) {
+          input.value = '';
+          safeFocus(input, 50);
+        }
+
+        UI.toast(true, action === 'IN' ? '직원 출근 모드' : '직원 퇴근 모드');
+
+        return true;
+      },
+
 
       isCompleteStudentQr(v) {
         const raw = String(v || '').trim();
