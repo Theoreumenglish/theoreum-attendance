@@ -2080,18 +2080,49 @@
 			}
 		};
 
-		const Voice = {
-			synth: window.speechSynthesis,
-			speak(text) {
-				if (!this.synth || !text) return;
-				this.synth.cancel();
-				const u = new SpeechSynthesisUtterance(text);
-				u.lang = 'ko-KR';
-				u.rate = 1.08;
-				u.pitch = 1.0;
-				this.synth.speak(u);
+			const Voice = {
+				synth: window.speechSynthesis,
+				voice: null,
+
+				pickVoice() {
+					if (!this.synth) return null;
+
+					const voices = this.synth.getVoices ? this.synth.getVoices() : [];
+					if (!voices || !voices.length) return null;
+
+					const koVoices = voices.filter(v => /^ko[-_]?KR/i.test(v.lang || '') || /korean|한국|한국어/i.test(v.name || ''));
+
+					const preferred = koVoices.find(v => /google|microsoft|sunhi|heami|natural|online/i.test(v.name || '')) ||
+						koVoices[0] ||
+						voices.find(v => /^ko/i.test(v.lang || '')) ||
+						null;
+
+					this.voice = preferred || null;
+					return this.voice;
+				},
+
+				speak(text, mode = 'normal') {
+					if (!this.synth || !text) return;
+
+					this.synth.cancel();
+
+					const u = new SpeechSynthesisUtterance(String(text || '').trim());
+					u.lang = 'ko-KR';
+
+					const selectedVoice = this.voice || this.pickVoice();
+					if (selectedVoice) u.voice = selectedVoice;
+
+					u.volume = 1.0;
+					u.rate = mode === 'error' ? 0.96 : 1.01;
+					u.pitch = mode === 'error' ? 1.0 : 1.12;
+
+					this.synth.speak(u);
+				}
+			};
+
+			if (Voice.synth && typeof Voice.synth.addEventListener === 'function') {
+				Voice.synth.addEventListener('voiceschanged', () => Voice.pickVoice());
 			}
-		};
 
 		const UI = {
 			audioCtx: null,
@@ -2796,7 +2827,7 @@
 						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
 						setDbg('INCOMPLETE_STUDENT_QR');
 						UI.beep(false);
-						Voice.speak('큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						Voice.speak('큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.', 'error');
 						UI.flashScreen(false);
 						input.value = '';
 						safeFocus(input, 80);
@@ -2807,7 +2838,7 @@
 						UI.showModal(false, '직원 QR 일부 입력', '직원 QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
 						setDbg('INCOMPLETE_STAFF_QR');
 						UI.beep(false);
-						Voice.speak('직원 큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
+						Voice.speak('직원 큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.', 'error');
 						UI.flashScreen(false);
 						input.value = '';
 						safeFocus(input, 80);
@@ -2821,7 +2852,7 @@
 						UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
 						setDbg('NON_ASCII_INPUT');
 						UI.beep(false);
-						Voice.speak('한영 키를 확인해주세요.');
+						Voice.speak('한영 키를 확인해주세요.', 'error');
 						UI.flashScreen(false);
 
 						input.value = '';
@@ -2856,7 +2887,7 @@
 						);
 						setDbg('QR_OR_EXCEPTION_ID_REQUIRED');
 						UI.beep(false);
-						Voice.speak('입력 방식을 확인해주세요.');
+						Voice.speak('입력 방식을 확인해주세요.', 'error');
 						UI.flashScreen(false);
 						return;
 					}
@@ -2884,7 +2915,7 @@
 							UI.beep(true);
 							UI.flashScreen(true);
 							if (name) {
-								Voice.speak(name + ' 선생님, ' + (staffAction === 'IN' ? '출근' : '퇴근') + '되었습니다.');
+								Voice.speak('처리되었습니다.');
 							}
 							Kiosk.closeStaffQuick();
 							return;
@@ -2896,7 +2927,7 @@
 						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg + ' 다시 스캔해주세요.');
 						setDbg(staffErrCode);
 						UI.beep(false);
-						Voice.speak('직원 큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.');
+						Voice.speak('직원 큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.', 'error');
 						UI.flashScreen(false);
 						return;
 					}
@@ -2968,7 +2999,7 @@
 						);
 						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 						UI.beep(false);
-						Voice.speak('학번 직접 출결 승인 대상입니다. 데스크에 문의해주세요.');
+						Voice.speak('학번 직접 출결 승인 대상입니다. 데스크에 문의해주세요.', 'error');
 						UI.flashScreen(false);
 						return;
 					}
@@ -2988,7 +3019,7 @@
 					UI.beep(false);
 					Voice.speak(isQrScanFailure
 						? '큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.'
-						: '다시 한번 시도해주세요.');
+						: '다시 한번 시도해주세요.', 'error');
 					UI.flashScreen(false);
 				} finally {
 					Kiosk.setLoading(false);
