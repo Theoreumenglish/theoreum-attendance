@@ -344,14 +344,26 @@
 			margin-bottom: 16px;
 		}
 
-    .kStaffQuick {
-      display: none;
-      margin-top: 18px;
-      padding: 18px;
-      border: 2px dashed rgba(79, 70, 229, 0.22);
-      border-radius: 22px;
-      background: rgba(79, 70, 229, 0.04);
-    }
+	    .kStaffQuick {
+	      display: none;
+	      position: fixed;
+	      left: 50%;
+	      bottom: 18px;
+	      width: min(560px, calc(100vw - 28px));
+	      max-height: min(42vh, 260px);
+	      overflow: auto;
+	      transform: translateX(-50%);
+	      padding: 18px;
+	      border: 2px solid rgba(79, 70, 229, 0.22);
+	      border-radius: 22px;
+	      background: rgba(255, 255, 255, 0.98);
+	      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.18);
+	      z-index: 9999;
+	    }
+
+	    .kStaffQuick.show {
+	      display: block;
+	    }
 
     .kStaffQuick.show {
       display: block;
@@ -1580,7 +1592,9 @@
 				if (!el) return;
 				if (!document.contains(el)) return;
 				if (typeof el.focus !== 'function') return;
-				try { el.focus(); } catch (_) {}
+				try { el.focus({ preventScroll: true }); } catch (_) {
+				try { el.focus(); } catch (__) {}
+				}
 			};
 			if (delay > 0) setTimeout(run, delay);
 			else run();
@@ -2205,7 +2219,7 @@
 
 					clearTimeout(Kiosk._autoTimer);
 
-					if (/^QR1\./i.test(v) && !Kiosk.isCompleteStudentQr(v)) {
+					if (/^QR(?:1|2)\./i.test(v) && !Kiosk.isCompleteStudentQr(v)) {
 						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
 						UI.beep(false);
 						UI.flashScreen(false);
@@ -2287,12 +2301,16 @@
 
 				let s = String(v || '').split('').map(ch => map[ch] || ch).join('').replace(/\s+/g, '').trim();
 				if (/^qr1\./i.test(s)) s = 'QR1.' + s.slice(4);
-          if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
+				if (/^qr2\./i.test(s)) s = 'QR2.' + s.slice(4);
+	          if (/^staffqr1\./i.test(s)) s = 'STAFFQR1.' + s.slice(9);
           return s;
 			},
 
       isCompleteStudentQr(v) {
-        return /^QR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(String(v || '').trim());
+        const raw = String(v || '').trim();
+
+        return /^QR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(raw) ||
+          /^QR2\.\d{4}\.[A-Za-z0-9_-]{16,64}\.[A-Za-z0-9_-]{12,64}\.\d{10,14}\.[A-Za-z0-9_-]{16,43}$/i.test(raw);
       },
 
       isCompleteStaffQr(v) {
@@ -2302,7 +2320,7 @@
       shouldSubmitDirectSid(v) {
         const raw = String(v || '').trim();
 
-        if (/^QR1\./i.test(raw) || /^STAFFQR1\./i.test(raw)) {
+        if (/^QR(?:1|2)\./i.test(raw) || /^STAFFQR1\./i.test(raw)) {
           return false;
         }
 
@@ -2453,7 +2471,7 @@
 						: (input.value || '').trim();
 
 					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
-					const isQr = /^QR1\./i.test(val);
+					const isQr = /^QR(?:1|2)\./i.test(val);
 					const isStaffQr = /^STAFFQR1\./i.test(val);
 					const isExceptionId = Kiosk.shouldSubmitDirectSid(val);
 
@@ -2699,7 +2717,7 @@
 				? document.activeElement.tagName
 				: '';
 
-			if (!input || activeTag === 'BUTTON') return;
+			if (!input) return;
 
 			if (document.activeElement !== input) {
 				safeFocus(input);

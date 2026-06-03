@@ -583,7 +583,8 @@
 
     function getDynamicQrSize() {
       const screenWidth = window.innerWidth;
-      return Math.floor(Math.min(screenWidth * 0.85, 420));
+      const screenHeight = window.innerHeight || 720;
+      return Math.floor(Math.min(screenWidth * 0.9, screenHeight * 0.56, 520));
     }
 
     function drawQr(text){
