@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 import { studentQrVerify } from '../lib/student-qr-core.js';
 import { enqueueAttendanceNotify } from '../lib/attendance-notify-queue.js';
-import { hasValidPinApproval } from '../lib/staff-auth.js';
 import { readRuntimeMeta, normalizeFloor, normalizeYn } from './_runtime-meta.js';
 
 const ALLOWED_ACTIONS = new Set(['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING']);
@@ -706,14 +705,9 @@ export async function handleKioskMark(payload) {
         );
       }
 
-      const approved = await hasValidPinApproval(sid);
-      if (!approved) {
-        return fail(400, 'NEED_PIN', '학번 직접 출결 학생은 데스크 PIN 승인이 필요합니다.', {
-          needPin: true,
-          student_id: sid,
-          student_name: student.student_name || ''
-        });
-      }
+      // 운영 정책:
+      // students.is_exception = Y 인 학생은 상시 학번 직접 출결 대상입니다.
+      // 별도 PIN 승인(kiosk_pin_approvals)은 요구하지 않습니다.
     }
 
     const stateOut = await loadCurrentTodayState(supabase, sid, yyyymmdd);
