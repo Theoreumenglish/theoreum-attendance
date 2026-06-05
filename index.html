@@ -3679,7 +3679,6 @@ const StaffUI = {
 				if (head) head.textContent = (StaffUI.me.name || StaffUI.me.staff_id || '직원') + '님 접속중';
 				if (rolePill) rolePill.textContent = StaffUI.me.role || 'staff';
 
-				StaffUI.bindClick('btnApprovePin', StaffUI.approvePin);
 				StaffUI.bindClick('btnLoadLogs', StaffUI.loadLogs);
 				StaffUI.bindClick('btnOpsOverviewRefresh', StaffUI.loadOpsOverview);
 				StaffUI.bindClick('btnAbLoadRoster', StaffUI.loadAbsenceRoster);
@@ -3753,7 +3752,6 @@ const StaffUI = {
           });
 
 				[
-					'pinSid',
 					'logSid',
 					'exSid',
 					'manSid',
@@ -3958,33 +3956,6 @@ const StaffUI = {
 						workerLine + '\n' +
 						'checked_at: ' + (d.checked_at || '-');
 				}
-			},
-
-			async approvePin() {
-				const student = StaffUI.readStudentSelection('pinSid');
-				const student_id = student.student_id;
-				const pin = ($('#staffPinInput').value || '').trim();
-				const box = $('#pinMsg');
-
-				if (!student_id) {
-					UI.showMsg(box, false, '학생 이름을 검색한 뒤 목록에서 선택하세요.');
-					return;
-				}
-
-				if (!pin) {
-					UI.showMsg(box, false, '직원 PIN을 입력하세요.');
-					return;
-				}
-
-				const r = await App.rpc('kiosk.approvePin', { student_id, pin });
-				if (r.ok) {
-					UI.showMsg(box, true, '승인 완료: ' + (student.label || StaffUI.studentDisplay(student_id, student.student_name)));
-					const pinInput = $('#staffPinInput');
-					if (pinInput) pinInput.value = '';
-					return;
-				}
-
-				UI.showMsg(box, false, (r.error && r.error.message) ? r.error.message : '승인 실패');
 			},
 
 			async loadLogs() {

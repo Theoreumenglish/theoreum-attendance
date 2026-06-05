@@ -613,7 +613,7 @@ export async function handleKioskMark(payload) {
     return fail(
       400,
       'QR_REQUIRED',
-      '등/하원은 전용 QR 또는 관리자 허용 학생의 학번 직접 출결만 가능합니다.'
+      '등/하원은 전용 QR 또는 예외학생 학번 입력만 가능합니다.'
     );
   }
 
@@ -701,7 +701,7 @@ export async function handleKioskMark(payload) {
         return fail(
           400,
           'NOT_EXCEPTION',
-          '학번 직접 등/하원 허용 학생만 학번으로 처리할 수 있습니다.'
+          '학번 직접 출결 허용 학생이 아닙니다. 직원 화면에서 QR 예외 등록 후 다시 입력하세요.'
         );
       }
 

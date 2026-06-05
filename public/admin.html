@@ -649,8 +649,8 @@
         <div class="grid3">
           <div class="actionCard">
             <div class="actionKicker">학생 처리</div>
-            <div class="actionTitle">QR 어려운 학생 학번 허용</div>
-            <div class="actionDesc">QR이 반복적으로 안 찍히는 학생만 학번 직접 출결을 허용합니다.</div>
+            <div class="actionTitle">QR 예외 학생 학번 출결</div>
+            <div class="actionDesc">등록된 학생은 등/하원 모드에서 학번 4자리로 상시 처리됩니다.</div>
             <div class="fieldLabel">학생 이름 또는 학번</div>
             <input class="inp" id="studentQuery" placeholder="예: 민서 또는 0123" autocomplete="off" />
             <div class="list" id="studentResults"></div>
@@ -1054,8 +1054,8 @@
       }
 
       const note = value === 'Y'
-        ? 'QR 인식 어려움으로 관리자 콘솔에서 학번 직접 출결 허용'
-        : '관리자 콘솔에서 학번 직접 출결 허용 해제';
+        ? 'QR 인식 어려움으로 운영 포털에서 상시 학번 출결 허용'
+        : '운영 포털에서 상시 학번 출결 허용 해제';
 
       const r = await App.rpc('admin.setStudentException', {
         student_id: student.student_id,
@@ -1069,7 +1069,7 @@
         return;
       }
 
-      showToast(value === 'Y' ? '학번 직접 출결을 허용했습니다.' : '학번 직접 출결 허용을 해제했습니다.');
+      showToast(value === 'Y' ? '상시 학번 출결을 허용했습니다.' : '상시 학번 출결 허용을 해제했습니다.');
       showResult('학생 예외 처리 완료', r.data || r);
     }
 
