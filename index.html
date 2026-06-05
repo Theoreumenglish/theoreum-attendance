@@ -1626,7 +1626,7 @@
 	<!-- 관리자 전용: 상시 학번 직접 출결 허용 -->
 	<div class="card compactCard adminOnly" style="margin-top:24px;">
 	<div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-		<div class="sectionTitle">QR 어려운 학생 학번 직접 출결 허용</div>
+		<div class="sectionTitle">QR 예외 학생 상시 학번 출결</div>
 		<div class="subText">
 		QR이 반복적으로 안 찍히는 학생에게만 허용하는 상시 학번 출결 기능입니다.
 		등록된 학생은 별도 PIN 승인 없이 등/하원 모드에서 학번 4자리로 처리됩니다.
@@ -1753,6 +1753,7 @@
                 <div class="row" style="margin-top:16px;">
                   <button class="btn btn-pri" id="btnManualAttendance" type="button">수동 정정 저장</button>
                 </div>
+              </div>
               </div>
             </div>
           </details>
@@ -3002,7 +3003,7 @@
 
 						UI.showModal(
 							false,
-							'학번 직접 출결 승인 필요',
+							'키오스크 새로고침 필요',
 							'예외학생은 PIN 없이 학번 출결이 가능합니다. 키오스크를 새로고침한 뒤 다시 입력하세요.'
 						);
 						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
@@ -3826,7 +3827,6 @@ const StaffUI = {
 
 				[
 					'btnLoadLogs',
-					'btnApprovePin',
 					'btnAbList',
 					'btnAbUpsert',
 					'btnAbRemove',
