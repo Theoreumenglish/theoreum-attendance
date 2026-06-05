@@ -2795,6 +2795,16 @@
 				return map[code] || defaultMsg || '처리 실패';
 			},
 
+			getSuccessVoiceText(title) {
+				const t = String(title || '');
+				if (t.includes('등원')) return '등원 처리되었습니다.';
+				if (t.includes('하원')) return '하원 처리되었습니다.';
+				if (t.includes('복귀')) return '복귀 처리되었습니다.';
+				if (t.includes('외출')) return '외출 처리되었습니다.';
+				if (t.includes('교실') || t.includes('이동')) return '이동 처리되었습니다.';
+				return '처리되었습니다.';
+			},
+
 			async submit() {
 				if (Kiosk.isSubmitting) return;
 				Kiosk.setLoading(true);
@@ -2862,10 +2872,13 @@
 					}
 
 					if (isStaffQr && !Kiosk.staffQuickOpen) {
-						UI.showModal(false, '직원 QR 감지', '직원 처리는 층 표시를 길게 눌러 직원 모드를 연 뒤 진행하세요.');
+						UI.showModal(false, '직원 QR 감지', '입력창에 staff 또는 staffout을 입력한 뒤 직원 QR을 스캔하세요.');
 						setDbg('STAFF_QUICK_MODE_REQUIRED');
 						UI.beep(false);
+						Voice.speak('직원 모드를 먼저 열어주세요.', 'error');
 						UI.flashScreen(false);
+						input.value = '';
+						safeFocus(input, 50);
 						return;
 					}
 
@@ -2907,16 +2920,12 @@
 						});
 
 						if (r.ok) {
-							const name = (r.data && r.data.name) ? r.data.name : '';
 							const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
-							const desc = name ? (name + ' 선생님') : '직원 처리 완료';
 
-							UI.showModal(true, title, desc);
+							UI.showModal(true, title, '처리되었습니다.');
 							UI.beep(true);
 							UI.flashScreen(true);
-							if (name) {
-								Voice.speak('처리되었습니다.');
-							}
+							Voice.speak('처리되었습니다.');
 							Kiosk.closeStaffQuick();
 							return;
 						}
@@ -2983,7 +2992,7 @@
 						UI.showModal(true, ui.title || '완료', maskedName + ' (' + sid + ')');
 						UI.beep(true);
 						UI.flashScreen(true);
-						if (rawName) Voice.speak(rawName + ' 학생, ' + (ui.title || '처리') + '되었습니다.');
+						Voice.speak(Kiosk.getSuccessVoiceText(ui.title));
 						return;
 					}
 
