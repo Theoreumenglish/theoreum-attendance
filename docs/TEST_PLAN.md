@@ -1,0 +1,99 @@
+# 더오름 운영 포털 테스트 계획
+
+이 문서는 운영 안정성과 포트폴리오 신뢰성을 위해 단계적으로 추가할 테스트 범위를 정리한다. 현재 단계에서는 대규모 E2E보다 정적 계약 검사와 smoke test를 먼저 도입한다.
+
+## 1. 현재 수동 검사 기준
+
+배포 전 항상 실행한다.
+
+```powershell
+Select-String -Path .\public\admin.html,.\public\sw.js,.\docs\OPERATIONS_PORTAL_V1.md -Pattern '^<<<<<<<|^=======|^>>>>>>>'
+node --check .\public\sw.js
+
+$adminHtml = Get-Content .\public\admin.html -Raw
+$adminScript = [regex]::Match($adminHtml, '(?s)<script>(.*?)</script>').Groups[1].Value
+$adminScript | Set-Content -Encoding UTF8 .\_admin_inline_check.js
+node --check .\_admin_inline_check.js
+Remove-Item .\_admin_inline_check.js -Force
+
+git diff --check
+npm run check
+npm run build
+```
+
+## 2. Static Contract Test v1
+
+예정 파일:
+
+```text
+scripts/contract-check.mjs
+```
+
+검사 항목:
+
+| 항목 | 목적 |
+| --- | --- |
+| `public/admin.html` script 문법 | inline JS 깨짐 방지 |
+| 중복 id 검사 | 버튼/입력 연결 충돌 방지 |
+| `data-go` 대상 검사 | 메뉴 클릭 대상 누락 방지 |
+| 필수 화면 id 검사 | dashboard/attendance/students 등 유지 |
+| 필수 버튼 id 검사 | 로그인, 로그 조회, 수동 정정 등 유지 |
+| 필수 RPC op 문자열 검사 | api/rpc.js 공개 계약 유지 |
+| service worker cache version 검사 | 배포 후 캐시 꼬임 방지 |
+
+## 3. Smoke Test v1
+
+환경변수와 테스트 계정이 준비된 뒤 추가한다.
+
+예정 파일:
+
+```text
+scripts/smoke-test.mjs
+```
+
+테스트 항목:
+
+| 테스트 | 의미 |
+| --- | --- |
+| 로그인 실패 | auth validation |
+| 로그인 성공 | auth flow |
+| `auth.me` | session 유지 |
+| 학생 검색 | 핵심 read flow |
+| 출결 로그 조회 | attendance read flow |
+| 권한 없는 admin op 차단 | role control |
+| 수동 정정 validation 실패 | auditability 전 단계 |
+| 운영 요약 조회 | reporting |
+
+## 4. E2E Test v1
+
+나중에 Playwright 또는 동등한 도구로 도입한다. 지금은 범위가 너무 커서 보류한다.
+
+예정 시나리오:
+
+1. 직원 로그인
+2. 학생 검색
+3. 출결 로그 조회
+4. QR 예외 학생 등록/해제
+5. 수동 정정 validation
+6. 학부모 리포트 링크 미리보기
+7. 로그아웃
+
+## 5. 실제 운영 검수 체크리스트
+
+| 영역 | 확인 |
+| --- | --- |
+| 학생 QR | 등원/하원 정상, 이름 음성 미출력 |
+| 직원 QR | staff/staffout 정상, 이름 음성 미출력 |
+| QR 예외 | `is_exception=Y` 학생 학번 출결 가능 |
+| 일반 학생 | 학번 직접 출결 차단 |
+| 수동 정정 | PIN + reason + source_trace_id 필수 |
+| 알림 | 실패 큐 조회 정상 |
+| 포털 UI | 메뉴별 화면 독립 표시, hash 유지 |
+| 캐시 | `public/sw.js` cache version 증가 |
+
+## 6. 실패 시 원칙
+
+- 배포 전 실패: 커밋하지 않는다.
+- 배포 후 화면 이상: service worker/cache를 먼저 의심한다.
+- 출석/QR 로직 이상: 최신 안정화 태그와 diff 비교한다.
+- 중앙DB GAS 수정 시: Apps Script 새 Web App 버전 배포가 필요하다.

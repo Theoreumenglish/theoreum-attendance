@@ -78,3 +78,37 @@
 5. Parent Report v1: 일간·주간 리포트 링크와 시각화 카드
 6. Student Portal v1: 학생 오늘 할 일, 숙제/클리닉, 시험/성적 조회
 
+
+
+## Staff Portal App UI v2
+
+### 목적
+
+Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 같은 구조를 실제 업무 앱처럼 보이도록 정리한다.
+
+### 반영 원칙
+
+- 모든 메뉴는 같은 페이지에 길게 붙는 느낌이 아니라 독립 업무 화면처럼 보여야 한다.
+- 왼쪽 메뉴, 상단 페이지 헤더, 오른쪽 업무 화면을 분리한다.
+- 홈은 기능 설명 페이지가 아니라 오늘 운영을 판단하는 command center로 둔다.
+- 디자인은 미니멀하고 세련된 SaaS 대시보드 느낌을 목표로 한다.
+- 출석 안정화 코드, 학생 QR, 직원 QR, `index.html`, 중앙DB GAS는 건드리지 않는다.
+
+### 자소서/포트폴리오 관점
+
+이 포털은 단순 기능 모음이 아니라 다음 네 가지 흐름을 보여주는 내부 운영 시스템이다.
+
+1. Information Flow: 출결, 미등원, 알림, 학생 상태가 한 흐름으로 연결된다.
+2. Accountability: 수동 정정, 문자, 메모, 클리닉 처리 주체가 추적 가능해야 한다.
+3. Intervention Workflow: 단어시험 불통과, 미완료, 출결 위험 신호가 학생 지원 후보로 이어진다.
+4. Parent Communication: 내부 메모와 학부모 공개 메모를 분리하고 리포트로 공유한다.
+
+### 다음 단계
+
+1. Portal Role Policy Sync v1
+2. Student 360 Profile v1
+3. Audit Log Schema v1
+4. Clinic Schema v1
+5. Word Test Schema v1
+6. Parent Report v1
+7. Static Contract Test v1
