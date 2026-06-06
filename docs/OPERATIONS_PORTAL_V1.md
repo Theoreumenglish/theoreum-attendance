@@ -40,3 +40,41 @@
 - Phase 4: 단어시험 결과 입력 및 후보 클리닉 생성
 - Phase 5: 학부모 일간/주간 리포트 링크
 - Phase 6: parent_accounts / parent_student_links 기반 로그인 포털
+
+## Shell v2: 메뉴별 화면 분리
+
+`public/admin.html`은 실제 운영 사이트처럼 왼쪽 메뉴별 화면 전환 방식으로 동작한다.
+
+- `/admin.html#dashboard`: 홈
+- `/admin.html#attendance`: 출결
+- `/admin.html#students`: 학생
+- `/admin.html#classes`: 클래스
+- `/admin.html#clinic`: 클리닉
+- `/admin.html#words`: 단어시험
+- `/admin.html#messages`: 문자·알림
+- `/admin.html#reports`: 학부모 리포트
+- `/admin.html#staff`: 직원
+- `/admin.html#advanced`: 설정·점검
+- `/admin.html#qrCenter`: 출결 보조 화면. 왼쪽 메뉴에는 노출하지 않고 출결 화면 버튼에서 진입한다.
+
+화면 전환은 같은 HTML 안에서 `portalView` 단위로 처리한다. 별도 파일 라우팅으로 나누지 않은 이유는 로그인 세션, 공통 RPC, 권한 처리, 배포 경로를 안정적으로 유지하기 위함이다.
+
+## 학생·학부모 포털 방향
+
+학생/학부모 포털은 직원 포털과 다른 목적의 화면으로 설계한다.
+
+- 학생 화면: 오늘 수업, 오늘 할 일, 숙제/클리닉, 단어 재시험, 시험 결과를 실행 중심으로 보여준다.
+- 학부모 화면: 자녀 출결, 클리닉 진행, 단어시험/성적, 일간·주간 리포트, 선생님 공유 메모를 보고 중심으로 보여준다.
+- 학부모에게는 `parent_visible = true`인 공유 정보만 공개한다.
+- 내부 메모와 학부모 공유 메모는 반드시 분리한다.
+- 최종 목표는 `parent_accounts`와 `parent_student_links` 기반 로그인 포털이며, 초기에는 문자 인증/리포트 링크 방식으로 시작할 수 있다.
+
+## 다음 구현 순서
+
+1. Portal Role Policy Sync v1: 관리자·강사·조교·학부모 권한 문구와 실제 API 정책 정렬
+2. Student Detail v1: 학생 기본 정보, 오늘 출결, 최근 출결 이력, QR 예외 여부, 메모 영역
+3. Audit Log Schema v1: 출결 정정, 문자 발송, 메모, 클리닉, 리포트 등 주요 행동 감사 로그
+4. Clinic Schema v1: 공통/개인 클리닉 항목, 과제, 완료/부분완료/반려 로그
+5. Parent Report v1: 일간·주간 리포트 링크와 시각화 카드
+6. Student Portal v1: 학생 오늘 할 일, 숙제/클리닉, 시험/성적 조회
+

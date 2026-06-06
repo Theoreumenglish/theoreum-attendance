@@ -208,6 +208,54 @@
       min-width: 0;
     }
 
+    .pageHeader {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 20px 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--r-xl);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    .pageKicker {
+      color: var(--pri);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pageTitle {
+      margin: 4px 0 0;
+      font-size: 30px;
+      font-weight: 990;
+      letter-spacing: -0.9px;
+    }
+
+    .pageDesc {
+      margin-top: 8px;
+      color: var(--sub);
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.55;
+    }
+
+    .portalView {
+      display: none;
+    }
+
+    .portalView.active {
+      display: block;
+    }
+
+    .portalView.hero.active {
+      display: grid;
+    }
+
     .hero {
       display: grid;
       grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
@@ -775,7 +823,19 @@
     </aside>
 
     <main class="main">
-      <section class="hero" id="dashboard">
+      <div class="pageHeader" id="pageHeader">
+        <div>
+          <div class="pageKicker" id="pageKicker">운영 포털</div>
+          <h1 class="pageTitle" id="pageTitle">홈</h1>
+          <div class="pageDesc" id="pageDesc">오늘 운영 상태와 빠른 업무를 확인합니다.</div>
+        </div>
+        <div class="tagRow" id="pageTags" style="justify-content:flex-end; margin-top:0;">
+          <span class="tag tagGood">메뉴별 화면</span>
+          <span class="tag">Shell v2</span>
+        </div>
+      </div>
+
+      <section class="hero portalView active" id="dashboard" data-view-title="홈" data-view-desc="오늘 운영 상태와 빠른 업무를 확인합니다.">
         <div class="card">
           <h1 class="heroTitle">오늘 운영을 한 화면에서 관리하세요.</h1>
           <div class="heroDesc">
@@ -817,13 +877,13 @@
           <div class="sectionDesc" id="overviewText" style="margin-top:14px;">아직 불러오지 않았습니다.</div>
           <div class="tagRow">
             <span class="tag tagGood">출석 안정화 유지</span>
-            <span class="tag">포털 Shell v1</span>
+            <span class="tag">포털 Shell v2</span>
             <span class="tag tagWarn">새 DB 기능은 Phase 분리</span>
           </div>
         </div>
       </section>
 
-      <section class="section" id="attendance">
+      <section class="section portalView" id="attendance" data-view-title="출결" data-view-desc="실시간 로그, QR 예외, 수동 정정, QR 문제 대응을 관리합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">출결</div>
@@ -918,7 +978,7 @@
         </div>
       </section>
 
-      <section class="section" id="students">
+      <section class="section portalView" id="students" data-view-title="학생" data-view-desc="학생 검색, QR 예외, 학생 상세 확장 기반을 관리합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">학생</div>
@@ -957,7 +1017,7 @@
         </div>
       </section>
 
-      <section class="section" id="classes">
+      <section class="section portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 담당 선생님, 수강생 연결 구조를 준비합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">클래스</div>
@@ -987,7 +1047,7 @@
         </div>
       </section>
 
-      <section class="section" id="clinic">
+      <section class="section portalView" id="clinic" data-view-title="클리닉" data-view-desc="수업·개별·추가·단어 클리닉과 항목 템플릿 구조를 준비합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">클리닉</div>
@@ -1021,7 +1081,7 @@
         </div>
       </section>
 
-      <section class="section" id="words">
+      <section class="section portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 결과와 불통과 클리닉 후보 생성 흐름을 준비합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">단어시험</div>
@@ -1049,7 +1109,7 @@
         </div>
       </section>
 
-      <section class="section" id="messages">
+      <section class="section portalView" id="messages" data-view-title="문자·알림" data-view-desc="미등원·등하원 실패 알림과 리포트 발송 흐름을 관리합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">문자·알림</div>
@@ -1081,7 +1141,7 @@
         </div>
       </section>
 
-      <section class="section" id="reports">
+      <section class="section portalView" id="reports" data-view-title="학부모 리포트" data-view-desc="일간·주간 리포트, 공개 메모, 성적·출결 시각화 구조를 준비합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">학부모 리포트</div>
@@ -1109,7 +1169,7 @@
         </div>
       </section>
 
-      <section class="section" id="staff">
+      <section class="section portalView" id="staff" data-view-title="직원" data-view-desc="직원 QR, 근무 기록, 권한·근무시간 접근 원칙을 관리합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">직원</div>
@@ -1138,7 +1198,7 @@
         </div>
       </section>
 
-      <section class="section" id="qrCenter">
+      <section class="section portalView" id="qrCenter" data-view-title="QR 문제 대응센터" data-view-desc="QR이 반복적으로 안 찍히는 학생과 기기 환경을 점검합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">QR 문제 대응센터</div>
@@ -1171,7 +1231,7 @@
         </div>
       </section>
 
-      <section class="section" id="advanced">
+      <section class="section portalView" id="advanced" data-view-title="설정·점검" data-view-desc="중앙DB 점검, replica 동기화, 캐시, 운영 로그 확인을 진행합니다.">
         <div class="sectionHead">
           <div>
             <div class="sectionTitle">설정·점검</div>
@@ -1220,7 +1280,8 @@
       selectedStudent: null,
       searchTimer: null,
       searchSeq: 0,
-      busyCount: 0
+      busyCount: 0,
+      currentView: 'dashboard'
     };
 
     function esc(value) {
@@ -1268,21 +1329,65 @@
       showToast._timer = setTimeout(() => el.classList.add('hidden'), 2800);
     }
 
-    function showResult(title, data) {
-      $('#resultBox').textContent = title + '\n\n' + JSON.stringify(data, null, 2);
-      setActiveNav('advanced');
-      $('#advanced').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const VIEW_NAV_ALIAS = {
+      qrCenter: 'attendance'
+    };
+
+    function getHashView() {
+      const raw = decodeURIComponent(String(location.hash || '').replace(/^#/, '')).trim();
+      return raw || 'dashboard';
+    }
+
+    function getPortalView(id) {
+      const target = document.getElementById(id);
+      if (target && target.classList.contains('portalView')) return target;
+      return document.getElementById('dashboard');
     }
 
     function setActiveNav(id) {
-      $$('.navBtn').forEach(x => x.classList.toggle('on', x.dataset.go === id));
+      const navId = VIEW_NAV_ALIAS[id] || id;
+      $$('.navBtn').forEach(x => x.classList.toggle('on', x.dataset.go === navId));
+    }
+
+    function updatePageHeader(view) {
+      const title = view.dataset.viewTitle || '홈';
+      const desc = view.dataset.viewDesc || '운영 포털 화면입니다.';
+      $('#pageTitle').textContent = title;
+      $('#pageDesc').textContent = desc;
+      $('#pageKicker').textContent = view.id === 'qrCenter' ? '출결 보조 화면' : '운영 포털';
+      document.title = '더오름 운영 포털 · ' + title;
+    }
+
+    function showPortalView(id, options = {}) {
+      const view = getPortalView(id);
+      const viewId = view && view.id ? view.id : 'dashboard';
+
+      $$('.portalView').forEach(x => x.classList.toggle('active', x.id === viewId));
+      App.currentView = viewId;
+      setActiveNav(viewId);
+      updatePageHeader(view);
+
+      if (options.updateHash !== false) {
+        const nextHash = '#' + viewId;
+        if (location.hash !== nextHash) {
+          if (options.replace) history.replaceState(null, '', nextHash);
+          else history.pushState(null, '', nextHash);
+        }
+      }
+
+      if (options.scroll !== false) {
+        const header = $('#pageHeader');
+        if (header) header.scrollIntoView({ behavior: options.smooth === false ? 'auto' : 'smooth', block: 'start' });
+      }
     }
 
     function jumpTo(id) {
-      const target = document.getElementById(id);
-      if (!target) return;
-      setActiveNav(id);
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showPortalView(id || 'dashboard');
+    }
+
+    function showResult(title, data) {
+      $('#resultBox').textContent = title + '\n\n' + JSON.stringify(data, null, 2);
+      showPortalView('advanced');
     }
 
     async function rpc(op, args = {}, options = {}) {
@@ -1329,6 +1434,10 @@
       $('#whoText').textContent = loggedIn && App.me
         ? (App.me.name || App.me.staff_id || '직원') + ' · ' + (App.me.role || '')
         : '로그인 전';
+
+      if (loggedIn) {
+        showPortalView(getHashView(), { replace: true, scroll: false });
+      }
     }
 
     async function checkMe() {
@@ -1718,6 +1827,11 @@
         btn.addEventListener('click', () => jumpTo(btn.dataset.goLink || 'dashboard'));
       });
     }
+
+    window.addEventListener('hashchange', () => {
+      if ($('#appView').classList.contains('hidden')) return;
+      showPortalView(getHashView(), { updateHash: false, scroll: false });
+    });
 
     window.addEventListener('online', () => {
       $('#netText').textContent = 'Online';
