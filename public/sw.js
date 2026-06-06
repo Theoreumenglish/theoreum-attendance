@@ -1,4 +1,4 @@
-const CACHE = 'theoreum-attendance-shell-v34';
+const CACHE = 'theoreum-attendance-shell-v35';
 const SHELL = [
   '/',
   '/admin.html',

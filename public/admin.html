@@ -5,54 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow" />
   <title>더오름 운영 포털</title>
+  
   <style>
-
     :root {
-      --bg: #f7f8fb;
-      --surface: #ffffff;
-      --surface-2: #fbfcfe;
-      --surface-3: #f3f6fb;
-      --text: #111827;
-      --sub: #64748b;
-      --muted: #94a3b8;
-      --line: #e5e7eb;
-      --line-2: #eef2f7;
-      --pri: #2563eb;
-      --pri-2: #1d4ed8;
-      --pri-soft: #eff6ff;
-      --good: #059669;
-      --good-soft: #ecfdf5;
-      --warn: #b45309;
-      --warn-soft: #fffbeb;
-      --bad: #dc2626;
-      --bad-soft: #fef2f2;
-      --ink: #0f172a;
-      --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
-      --shadow-sm: 0 10px 24px rgba(15, 23, 42, 0.06);
-      --shadow-md: 0 24px 60px rgba(15, 23, 42, 0.08);
-      --r-xl: 28px;
-      --r-lg: 22px;
-      --r-md: 16px;
-      --r-sm: 12px;
+      --bg: #f5f6f8;
+      --panel: #ffffff;
+      --panel-2: #fafafa;
+      --text: #15171a;
+      --muted: #6b7280;
+      --soft: #9ca3af;
+      --line: #e6e8ec;
+      --line-2: #f0f1f3;
+      --accent: #111827;
+      --accent-soft: #f3f4f6;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+      --green: #059669;
+      --green-soft: #ecfdf5;
+      --amber: #b45309;
+      --amber-soft: #fffbeb;
+      --red: #dc2626;
+      --red-soft: #fef2f2;
+      --shadow: 0 16px 48px rgba(15, 23, 42, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --side-w: 260px;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html {
-      scroll-behavior: auto;
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: -0.015em;
     }
 
     body {
-      margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(180deg, rgba(239, 246, 255, 0.82), rgba(247, 248, 251, 0.96) 320px),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      letter-spacing: -0.01em;
+      overflow-x: hidden;
     }
 
     button,
@@ -74,337 +72,464 @@
       display: none !important;
     }
 
-    .topbar {
-      position: sticky;
+    .busyBar {
+      position: fixed;
       top: 0;
-      z-index: 30;
-      background: rgba(255, 255, 255, 0.84);
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid rgba(226, 232, 240, 0.92);
+      left: 0;
+      z-index: 100;
+      width: 100%;
+      height: 3px;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0;
+      background: transparent;
     }
 
-    .topbarIn {
+    .busyBar.on {
+      opacity: 1;
+    }
+
+    .busyBar.on::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 38%;
+      background: var(--accent);
+      animation: busy 0.9s ease-in-out infinite;
+    }
+
+    @keyframes busy {
+      0% {
+        transform: translateX(-120%);
+      }
+      100% {
+        transform: translateX(280%);
+      }
+    }
+
+    .topbar {
+      display: none;
+    }
+
+    .loginWrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 40px 22px;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(37, 99, 235, 0.08), transparent 26%),
+        radial-gradient(circle at 78% 12%, rgba(15, 23, 42, 0.08), transparent 24%),
+        var(--bg);
+    }
+
+    .loginCard {
+      width: min(1040px, 100%);
+      min-height: 620px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .loginIntro {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: space-between;
-      gap: 18px;
-      height: 72px;
-      max-width: 1680px;
-      margin: 0 auto;
-      padding: 0 24px;
+      gap: 28px;
+      padding: 48px;
+      border-right: 1px solid var(--line);
+      background:
+        linear-gradient(145deg, #111827, #1f2937);
+      color: #ffffff;
     }
 
-    .brand {
+    .loginBrand {
       display: flex;
       align-items: center;
-      gap: 12px;
-      min-width: 0;
+      gap: 14px;
     }
 
     .brandMark {
       display: grid;
       place-items: center;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       flex: 0 0 auto;
-      border-radius: 14px;
-      background: var(--ink);
+      border-radius: 16px;
+      background: #111827;
       color: #ffffff;
-      font-weight: 950;
-      box-shadow: var(--shadow-xs);
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .loginIntro .brandMark {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
 
     .brandTitle {
-      color: var(--ink);
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 900;
-      line-height: 1.15;
+      line-height: 1.2;
     }
 
     .brandSub {
-      margin-top: 2px;
-      color: var(--sub);
-      font-size: 12px;
+      margin-top: 3px;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 13px;
       font-weight: 700;
-      white-space: nowrap;
     }
 
-    .topActions {
+    .loginHeadline {
+      max-width: 520px;
+    }
+
+    .loginHeadline h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 56px);
+      font-weight: 950;
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+    }
+
+    .loginHeadline p {
+      margin: 18px 0 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 16px;
+      line-height: 1.72;
+    }
+
+    .loginPoints {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .loginPoints li {
       display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
+      align-items: flex-start;
     }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      min-height: 36px;
-      padding: 0 12px;
+    .loginPoints li::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: #93c5fd;
+    }
+
+    .loginForm {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 48px 42px;
+    }
+
+    .loginFormTitle {
+      margin: 0 0 10px;
+      font-size: 28px;
+      font-weight: 930;
+      letter-spacing: -0.04em;
+    }
+
+    .loginFormDesc {
+      margin: 0 0 30px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .fieldStack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .fieldLabel {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .inp,
+    .select,
+    .textarea {
+      width: 100%;
+      min-height: 46px;
+      padding: 0 14px;
       border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.9);
-      color: var(--sub);
-      font-size: 12px;
-      font-weight: 800;
-      box-shadow: var(--shadow-xs);
+      border-radius: var(--radius-md);
+      outline: none;
+      background: #ffffff;
+      color: var(--text);
+      box-shadow: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
 
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--good);
-      box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
+    .textarea {
+      min-height: 96px;
+      padding: 13px 14px;
+      line-height: 1.55;
+    }
+
+    .inp:focus,
+    .select:focus,
+    .textarea:focus {
+      border-color: #111827;
+      box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.07);
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 40px;
       gap: 8px;
-      border: 0;
-      border-radius: 13px;
-      padding: 10px 14px;
-      font-size: 13px;
+      min-height: 42px;
+      padding: 0 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--text);
+      font-size: 14px;
       font-weight: 850;
-      line-height: 1;
+      text-decoration: none;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
     }
 
     .btn:hover {
       transform: translateY(-1px);
-    }
-
-    .btn:active {
-      transform: translateY(0);
+      border-color: #d1d5db;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
     }
 
     .btnPri {
-      background: var(--ink);
+      border-color: var(--accent);
+      background: var(--accent);
       color: #ffffff;
-      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
-    }
-
-    .btnPri:hover {
-      background: #1e293b;
     }
 
     .btnGhost {
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.88);
-      color: var(--ink);
-      box-shadow: var(--shadow-xs);
-    }
-
-    .btnGhost:hover {
       background: #ffffff;
-      border-color: #cbd5e1;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .btnWarn {
-      background: var(--warn-soft);
-      color: var(--warn);
-      border: 1px solid rgba(245, 158, 11, 0.28);
+      color: var(--text);
     }
 
     .btnBad {
-      background: var(--bad-soft);
-      color: var(--bad);
-      border: 1px solid rgba(220, 38, 38, 0.22);
+      border-color: var(--red);
+      background: var(--red);
+      color: #ffffff;
+    }
+
+    .btnWarn {
+      border-color: #f59e0b;
+      background: #f59e0b;
+      color: #ffffff;
     }
 
     .btnRow {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 14px;
-    }
-
-    .busyBar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, var(--pri), transparent);
-      transform: translateX(-100%);
-      opacity: 0;
-      transition: opacity 0.18s ease;
-    }
-
-    .busyBar.on {
-      opacity: 1;
-      animation: busySlide 1.1s linear infinite;
-    }
-
-    @keyframes busySlide {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
-    .toast {
-      position: fixed;
-      right: 22px;
-      bottom: 22px;
-      z-index: 80;
-      max-width: min(440px, calc(100vw - 44px));
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(15, 23, 42, 0.95);
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: 800;
-      box-shadow: var(--shadow-md);
-    }
-
-    .loginWrap {
-      min-height: calc(100vh - 72px);
-      display: grid;
-      place-items: center;
-      padding: 34px;
-    }
-
-    .loginCard {
-      width: min(430px, 100%);
-      border: 1px solid rgba(226, 232, 240, 0.96);
-      border-radius: 30px;
-      background: rgba(255, 255, 255, 0.94);
-      padding: 30px;
-      box-shadow: var(--shadow-md);
+      align-items: center;
     }
 
     .shell {
+      min-height: 100vh;
       display: grid;
-      grid-template-columns: 282px minmax(0, 1fr);
-      gap: 18px;
-      height: calc(100vh - 72px);
-      max-width: 1680px;
-      margin: 0 auto;
-      padding: 18px 24px 24px;
-      overflow: hidden;
+      grid-template-columns: var(--side-w) minmax(0, 1fr);
     }
 
     .side {
-      min-height: 0;
-      overflow: auto;
-      border: 1px solid var(--line);
-      border-radius: 28px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      border-right: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.86);
-      box-shadow: var(--shadow-sm);
-      padding: 14px;
+      backdrop-filter: blur(16px);
     }
 
-    .sideTitle {
-      padding: 8px 10px 12px;
-      color: var(--muted);
-      font-size: 11px;
+    .sideBrand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sideBrandText strong {
+      display: block;
+      font-size: 16px;
       font-weight: 950;
-      letter-spacing: 0.09em;
+      line-height: 1.15;
+    }
+
+    .sideBrandText span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sideSectionLabel {
+      margin: 22px 8px 9px;
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
     }
 
+    .sideNav {
+      display: grid;
+      gap: 4px;
+    }
+
     .navBtn {
+      width: 100%;
+      min-height: 42px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      width: 100%;
-      min-height: 46px;
+      gap: 12px;
+      padding: 0 12px;
       border: 0;
-      border-radius: 16px;
+      border-radius: 12px;
       background: transparent;
-      color: #475569;
-      padding: 0 13px;
+      color: #4b5563;
       font-size: 14px;
       font-weight: 850;
-      cursor: pointer;
       text-align: left;
-      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+      cursor: pointer;
     }
 
     .navBtn span {
-      color: #cbd5e1;
-      font-weight: 900;
+      color: var(--soft);
+      font-size: 16px;
     }
 
     .navBtn:hover {
-      background: var(--surface-3);
-      color: var(--ink);
+      background: #f3f4f6;
+      color: var(--text);
     }
 
     .navBtn.on {
-      background: var(--ink);
+      background: var(--accent);
       color: #ffffff;
-      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
+      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.16);
     }
 
     .navBtn.on span {
       color: rgba(255, 255, 255, 0.72);
     }
 
-    .sideNote {
-      margin-top: 14px;
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--surface-3);
-      color: var(--sub);
+    .sideFooter {
+      margin-top: auto;
+      display: grid;
+      gap: 10px;
+      padding: 14px 8px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .userBox {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+    }
+
+    .userName {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    .userState {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 7px;
+      color: var(--muted);
       font-size: 12px;
-      font-weight: 720;
-      line-height: 1.55;
+      font-weight: 750;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
     }
 
     .main {
-      display: flex;
-      flex-direction: column;
       min-width: 0;
-      min-height: 0;
-      overflow: hidden;
+      padding: 28px 34px 44px;
+    }
+
+    .workspace {
+      max-width: 1320px;
+      margin: 0 auto;
     }
 
     .pageHeader {
-      flex: 0 0 auto;
       display: flex;
-      align-items: flex-start;
+      align-items: flex-end;
       justify-content: space-between;
-      gap: 18px;
-      margin: 0 0 16px;
-      padding: 18px 20px;
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      background: rgba(255, 255, 255, 0.88);
-      box-shadow: var(--shadow-sm);
+      gap: 24px;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
     }
 
     .pageKicker {
-      color: var(--pri);
-      font-size: 11px;
-      font-weight: 950;
-      letter-spacing: 0.1em;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
     }
 
     .pageTitle {
-      margin: 4px 0 0;
-      color: var(--ink);
-      font-size: 28px;
+      margin: 7px 0 0;
+      color: var(--text);
+      font-size: clamp(28px, 3vw, 42px);
       font-weight: 950;
-      letter-spacing: -0.85px;
+      line-height: 1.05;
+      letter-spacing: -0.055em;
     }
 
     .pageDesc {
-      margin-top: 7px;
-      color: var(--sub);
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.45;
+      max-width: 760px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .topTools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
     }
 
     .portalView {
@@ -413,304 +538,238 @@
 
     .portalView.active {
       display: block;
-      min-height: 100%;
-      animation: viewIn 0.18s ease-out;
-    }
-
-    .portalView.hero.active {
-      display: grid;
+      animation: viewIn 0.16s ease-out;
     }
 
     @keyframes viewIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .main > .portalView,
-    .main > .hero.portalView,
-    .main > .section.portalView {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: auto;
-      margin: 0;
-    }
-
-    .hero {
-      grid-template-columns: minmax(0, 1.18fr) minmax(320px, 0.82fr);
-      gap: 16px;
-    }
-
-    .card,
-    .section,
-    .actionCard {
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .card {
-      border-radius: 28px;
-      padding: 24px;
-    }
-
-    .section {
-      border-radius: 28px;
-      padding: 24px;
-    }
-
-    .sectionHead {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 16px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--line-2);
-    }
-
-    .sectionTitle {
-      color: var(--ink);
-      font-size: 23px;
-      font-weight: 950;
-      letter-spacing: -0.65px;
-    }
-
-    .sectionDesc {
-      margin-top: 5px;
-      color: var(--sub);
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.55;
-    }
-
-    .heroTitle {
-      margin: 0;
-      color: var(--ink);
-      font-size: clamp(30px, 3.8vw, 46px);
-      line-height: 1.08;
-      letter-spacing: -1.65px;
-      font-weight: 980;
-    }
-
-    .heroDesc {
-      margin-top: 16px;
-      max-width: 760px;
-      color: var(--sub);
-      font-size: 15px;
-      font-weight: 700;
-      line-height: 1.7;
-    }
-
-    .focusStrip {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .focusCard {
-      min-height: 106px;
-      border: 1px solid var(--line-2);
-      border-radius: 20px;
-      background: var(--surface-2);
-      padding: 15px;
-    }
-
-    .focusLabel {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 950;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-    }
-
-    .focusTitle {
-      margin-top: 8px;
-      color: var(--ink);
-      font-size: 15px;
-      font-weight: 930;
-      line-height: 1.35;
-    }
-
-    .focusDesc {
-      margin-top: 6px;
-      color: var(--sub);
-      font-size: 12px;
-      font-weight: 680;
-      line-height: 1.45;
-    }
-
-    .statusGrid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 20px;
-    }
-
-    .stat {
-      min-height: 118px;
-      border: 1px solid var(--line-2);
-      border-radius: 22px;
-      background: linear-gradient(180deg, #ffffff, #fbfcfe);
-      padding: 16px;
-      box-shadow: var(--shadow-xs);
-    }
-
-    .statLabel {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .statValue {
-      margin-top: 8px;
-      color: var(--ink);
-      font-size: 28px;
-      line-height: 1;
-      font-weight: 980;
-      letter-spacing: -0.8px;
-    }
-
-    .statNote {
-      margin-top: 8px;
-      color: var(--sub);
-      font-size: 12px;
-      font-weight: 720;
-      line-height: 1.4;
-    }
-
-    .grid2,
-    .grid3,
-    .fieldGrid {
-      display: grid;
-      gap: 14px;
+      gap: 18px;
     }
 
     .grid2 {
+      display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
     }
 
     .grid3 {
+      display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
     }
 
-    .fieldGrid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-top: 12px;
+    .grid4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
     }
 
-    .actionCard {
-      border-radius: 22px;
-      padding: 18px;
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: var(--panel);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     }
 
-    .actionKicker {
-      color: var(--pri);
-      font-size: 11px;
-      font-weight: 950;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .cardPad {
+      padding: 24px;
     }
 
-    .actionTitle {
-      margin-top: 7px;
-      color: var(--ink);
-      font-size: 18px;
-      font-weight: 940;
+    .cardHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .sectionTitle {
+      color: var(--text);
+      font-size: 19px;
+      font-weight: 930;
+      letter-spacing: -0.035em;
       line-height: 1.25;
-      letter-spacing: -0.35px;
     }
 
-    .actionDesc {
+    .sectionDesc {
       margin-top: 7px;
-      color: var(--sub);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    .smallText {
+      color: var(--muted);
       font-size: 13px;
-      font-weight: 700;
       line-height: 1.55;
     }
 
-    .fieldLabel {
-      margin-bottom: 7px;
-      color: #475569;
+    .metricCard {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+    }
+
+    .metricLabel {
+      color: var(--muted);
       font-size: 12px;
       font-weight: 900;
+      letter-spacing: 0.02em;
     }
 
-    .inp,
-    .select {
-      width: 100%;
-      min-height: 42px;
-      border: 1px solid #dbe3ef;
-      border-radius: 14px;
+    .metricValue {
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 30px;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+    }
+
+    .metricNote {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .taskList {
+      display: grid;
+      gap: 10px;
+    }
+
+    .taskItem {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
       background: #ffffff;
-      color: var(--ink);
-      padding: 10px 12px;
-      outline: none;
-      font-size: 14px;
-      font-weight: 720;
-      transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
     }
 
-    .inp:focus,
-    .select:focus {
-      border-color: rgba(37, 99, 235, 0.65);
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+    .taskIcon {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .taskTitle {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1.3;
+    }
+
+    .taskDesc {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .formGrid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .formGrid.cols2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .formGrid.cols3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .span2 {
+      grid-column: span 2;
+    }
+
+    .span3 {
+      grid-column: span 3;
     }
 
     .tableWrap {
       overflow: auto;
       border: 1px solid var(--line);
-      border-radius: 20px;
+      border-radius: var(--radius-lg);
       background: #ffffff;
-      box-shadow: var(--shadow-xs);
     }
 
-    table {
+    .table {
       width: 100%;
-      min-width: 920px;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 13px;
+      min-width: 760px;
+      border-collapse: collapse;
     }
 
-    th,
-    td {
-      padding: 12px 13px;
+    .table th,
+    .table td {
+      padding: 12px 14px;
       border-bottom: 1px solid var(--line-2);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.45;
       text-align: left;
-      vertical-align: top;
+      vertical-align: middle;
     }
 
-    th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      background: #f8fafc;
-      color: #475569;
+    .table th {
+      background: #fafafa;
+      color: var(--muted);
       font-size: 12px;
-      font-weight: 950;
+      font-weight: 900;
+      letter-spacing: 0.02em;
     }
 
-    td {
-      color: var(--ink);
-      font-weight: 650;
-    }
-
-    tr:last-child td {
+    .table tr:last-child td {
       border-bottom: 0;
     }
 
-    .wrap {
-      white-space: normal;
-      word-break: break-all;
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .listItem {
+      width: 100%;
+      display: block;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .listItem:hover {
+      border-color: #d1d5db;
+      background: #fafafa;
     }
 
     .tagRow {
       display: flex;
-      align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 12px;
+      align-items: center;
     }
 
     .tag {
@@ -721,747 +780,741 @@
       border: 1px solid var(--line);
       border-radius: 999px;
       background: #ffffff;
-      color: var(--sub);
+      color: var(--muted);
       font-size: 12px;
       font-weight: 850;
+      white-space: nowrap;
     }
 
     .tagGood {
-      border-color: rgba(5, 150, 105, 0.22);
-      background: var(--good-soft);
-      color: var(--good);
+      border-color: rgba(5, 150, 105, 0.18);
+      background: var(--green-soft);
+      color: var(--green);
     }
 
     .tagWarn {
-      border-color: rgba(180, 83, 9, 0.24);
-      background: var(--warn-soft);
-      color: var(--warn);
+      border-color: rgba(180, 83, 9, 0.18);
+      background: var(--amber-soft);
+      color: var(--amber);
     }
 
     .tagBad {
-      border-color: rgba(220, 38, 38, 0.20);
-      background: var(--bad-soft);
-      color: var(--bad);
-    }
-
-    .list {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .listItem {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: #ffffff;
-      padding: 12px 14px;
-      color: var(--ink);
-      font-weight: 800;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .selectedStudent,
-    .timeItem,
-    .emptyState {
-      border: 1px solid var(--line-2);
-      border-radius: 18px;
-      background: var(--surface-2);
-      padding: 14px;
-    }
-
-    .selectedStudent {
-      margin-top: 12px;
-      color: var(--good);
-      font-size: 13px;
-      font-weight: 880;
-    }
-
-    .timeTitle {
-      color: var(--ink);
-      font-size: 15px;
-      font-weight: 930;
-    }
-
-    .timeDesc {
-      margin-top: 6px;
-      color: var(--sub);
-      font-size: 13px;
-      font-weight: 690;
-      line-height: 1.55;
-    }
-
-    .checkList {
-      display: grid;
-      gap: 10px;
-      padding-left: 0;
-      list-style: none;
-      color: var(--sub);
-      font-size: 14px;
-      font-weight: 750;
-      line-height: 1.5;
+      border-color: rgba(220, 38, 38, 0.18);
+      background: var(--red-soft);
+      color: var(--red);
     }
 
     .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-
-    #resultBox {
       min-height: 220px;
-      max-height: 420px;
-      overflow: auto;
-      white-space: pre-wrap;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      background: #0f172a;
-      color: #dbeafe;
       padding: 16px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: #0f172a;
+      color: #e5e7eb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
-      line-height: 1.6;
+      line-height: 1.55;
+      white-space: pre-wrap;
     }
 
-    @media (max-width: 1180px) {
+    .emptyPanel {
+      padding: 28px;
+      border: 1px dashed #d1d5db;
+      border-radius: var(--radius-xl);
+      background: #ffffff;
+    }
+
+    .emptyPanel h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 930;
+      letter-spacing: -0.035em;
+    }
+
+    .emptyPanel p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(170px, 1fr));
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .boardCol {
+      min-height: 190px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: #ffffff;
+    }
+
+    .boardTitle {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    .boardDesc {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .reportPreview {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 18px;
+    }
+
+    .phonePreview {
+      min-height: 540px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: #ffffff;
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    .phoneTop {
+      width: 86px;
+      height: 5px;
+      margin: 0 auto 20px;
+      border-radius: 999px;
+      background: #e5e7eb;
+    }
+
+    .miniChart {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 92px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #ffffff;
+    }
+
+    .miniBar {
+      flex: 1;
+      min-width: 16px;
+      border-radius: 8px 8px 3px 3px;
+      background: #111827;
+    }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 80;
+      max-width: min(420px, calc(100vw - 48px));
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #111827;
+      color: #ffffff;
+      box-shadow: var(--shadow);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1100px) {
       .shell {
         grid-template-columns: 1fr;
-        height: auto;
-        min-height: calc(100vh - 72px);
-        overflow: visible;
       }
 
       .side {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        position: static;
+        height: auto;
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
       }
 
-      .sideTitle,
-      .sideNote {
-        grid-column: 1 / -1;
+      .sideNav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sideFooter {
+        display: none;
       }
 
       .main {
-        overflow: visible;
+        padding: 22px 18px 38px;
       }
 
-      .main > .portalView,
-      .main > .hero.portalView,
-      .main > .section.portalView {
-        overflow: visible;
-      }
-
-      .hero,
+      .grid2,
       .grid3,
-      .focusStrip,
-      .statusGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .grid4,
+      .reportPreview {
+        grid-template-columns: 1fr;
+      }
+
+      .formGrid.cols2,
+      .formGrid.cols3 {
+        grid-template-columns: 1fr;
+      }
+
+      .span2,
+      .span3 {
+        grid-column: auto;
       }
     }
 
     @media (max-width: 760px) {
-      .topbarIn {
-        height: auto;
-        align-items: flex-start;
-        flex-direction: column;
-        padding: 14px;
-      }
-
-      .topActions {
-        justify-content: flex-start;
-      }
-
-      .shell {
-        padding: 12px;
-      }
-
-      .side,
-      .hero,
-      .grid2,
-      .grid3,
-      .fieldGrid,
-      .focusStrip,
-      .statusGrid {
+      .loginCard {
+        min-height: auto;
         grid-template-columns: 1fr;
       }
 
-      .pageHeader,
-      .sectionHead {
+      .loginIntro {
+        padding: 34px;
+        border-right: 0;
+      }
+
+      .loginForm {
+        padding: 34px 28px;
+      }
+
+      .sideNav {
+        grid-template-columns: 1fr;
+      }
+
+      .pageHeader {
         align-items: flex-start;
         flex-direction: column;
       }
 
-      .card,
-      .section {
-        padding: 18px;
-        border-radius: 22px;
+      .topTools {
+        justify-content: flex-start;
       }
 
-      .heroTitle {
-        font-size: 30px;
+      .board {
+        grid-template-columns: repeat(5, 210px);
       }
     }
-
   </style>
+
 </head>
+
 <body>
   <div id="busyBar" class="busyBar"></div>
 
-  <header class="topbar">
-    <div class="topbarIn">
-      <div class="brand">
-        <div class="brandMark">↑</div>
-        <div>
-          <div class="brandTitle">더오름 운영 포털</div>
-          <div class="brandSub">Operations · Accountability · Reports</div>
-        </div>
-      </div>
-
-      <div class="topActions">
-        <div class="pill"><span class="dot"></span><span id="netText">Online</span></div>
-        <div class="pill" id="whoText">로그인 전</div>
-        <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크</button>
-        <button class="btn btnGhost" type="button" onclick="location.href='/staff-qr.html'">직원 QR</button>
-        <button class="btn btnGhost hidden" id="btnLogout" type="button">로그아웃</button>
-      </div>
-    </div>
-  </header>
-
   <div id="loginView" class="loginWrap hidden">
     <div class="loginCard">
-      <div class="brand" style="margin-bottom:22px;">
-        <div class="brandMark">↑</div>
-        <div>
-          <div class="brandTitle">운영 포털 로그인</div>
-          <div class="brandSub">관리자·강사·조교 계정으로 접속하세요.</div>
+      <div class="loginIntro">
+        <div class="loginBrand">
+          <div class="brandMark">↑</div>
+          <div>
+            <div class="brandTitle">더오름 운영 포털</div>
+            <div class="brandSub">Operations Portal</div>
+          </div>
         </div>
+
+        <div class="loginHeadline">
+          <h1>오늘 운영을<br>한 화면에서 정리합니다.</h1>
+          <p>
+            출결, 학생 관리, 클리닉, 단어시험, 학부모 리포트를 연결하는 내부 운영 시스템입니다.
+            직원이 빠르게 판단하고, 모든 주요 행동은 기록으로 남기는 구조를 지향합니다.
+          </p>
+        </div>
+
+        <ul class="loginPoints">
+          <li>출결 이상, 미등원, QR 예외를 빠르게 확인</li>
+          <li>학생별 지원 흐름과 학부모 공유 정보를 분리</li>
+          <li>강사·조교의 현장 처리는 허용하고 감사 로그로 추적</li>
+        </ul>
       </div>
 
-      <div style="display:grid; gap:12px;">
-        <div>
-          <div class="fieldLabel">직원 ID</div>
-          <input class="inp" id="loginId" autocomplete="username" placeholder="직원 ID" />
+      <div class="loginForm">
+        <h2 class="loginFormTitle">로그인</h2>
+        <p class="loginFormDesc">관리자·강사·조교 계정으로 접속하세요.</p>
+
+        <div class="fieldStack">
+          <div>
+            <div class="fieldLabel">직원 ID</div>
+            <input class="inp" id="loginId" autocomplete="username" placeholder="예: fubao" />
+          </div>
+          <div>
+            <div class="fieldLabel">비밀번호</div>
+            <input class="inp" id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호" />
+          </div>
+          <button class="btn btnPri" id="btnLogin" type="button" style="height:54px; font-size:16px;">운영 포털 로그인</button>
+          <div id="loginMsg" class="smallText"></div>
         </div>
-        <div>
-          <div class="fieldLabel">비밀번호</div>
-          <input class="inp" id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호" />
-        </div>
-        <button class="btn btnPri" id="btnLogin" type="button" style="height:52px; font-size:16px;">로그인</button>
-        <div id="loginMsg" class="sectionDesc"></div>
       </div>
     </div>
   </div>
 
   <div id="appView" class="shell hidden">
     <aside class="side">
-      <div class="sideTitle">운영 메뉴</div>
-      <button class="navBtn on" type="button" data-go="dashboard">홈 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="attendance">출결 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="students">학생 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="classes">클래스 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="clinic">클리닉 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="words">단어시험 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="messages">문자·알림 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="reports">학부모 리포트 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="staff">직원 <span>›</span></button>
-      <button class="navBtn" type="button" data-go="advanced">설정·점검 <span>›</span></button>
+      <div class="sideBrand">
+        <div class="brandMark">↑</div>
+        <div class="sideBrandText">
+          <strong>더오름 운영 포털</strong>
+          <span>Staff Operations</span>
+        </div>
+      </div>
 
-      <div class="sideNote">
-        SSOT는 중앙DB GAS + Google Sheets입니다.<br>
-        포털은 출결, 책임성, 개입 workflow, 학부모 커뮤니케이션을 모듈별 화면으로 분리합니다.
+      <div class="sideSectionLabel">Main</div>
+      <nav class="sideNav" aria-label="운영 메뉴">
+        <button class="navBtn on" type="button" data-go="dashboard">홈 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="attendance">출결 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="students">학생 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="classes">클래스 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="clinic">클리닉 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="words">단어시험 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="messages">문자·알림 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="reports">학부모 리포트 <span>›</span></button>
+      </nav>
+
+      <div class="sideSectionLabel">System</div>
+      <nav class="sideNav" aria-label="시스템 메뉴">
+        <button class="navBtn" type="button" data-go="staff">직원 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="advanced">설정·점검 <span>›</span></button>
+      </nav>
+
+      <div class="sideFooter">
+        <div class="userBox">
+          <div class="userName" id="whoText">로그인 전</div>
+          <div class="userState"><span class="dot"></span><span id="netText">Online</span></div>
+        </div>
+        <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크 열기</button>
+        <button class="btn btnGhost hidden" id="btnLogout" type="button">로그아웃</button>
       </div>
     </aside>
 
     <main class="main">
-      <div class="pageHeader" id="pageHeader">
-        <div>
-          <div class="pageKicker" id="pageKicker">운영 포털</div>
-          <h1 class="pageTitle" id="pageTitle">홈</h1>
-          <div class="pageDesc" id="pageDesc">오늘 운영 상태와 빠른 업무를 확인합니다.</div>
+      <div class="workspace">
+        <div class="pageHeader" id="pageHeader">
+          <div>
+            <div class="pageKicker" id="pageKicker">운영 포털</div>
+            <h1 class="pageTitle" id="pageTitle">홈</h1>
+            <div class="pageDesc" id="pageDesc">오늘 운영 상태와 빠른 업무를 확인합니다.</div>
+          </div>
+          <div class="topTools" id="pageTags">
+            <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크</button>
+            <button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
+          </div>
         </div>
-        <div class="tagRow" id="pageTags" style="justify-content:flex-end; margin-top:0;">
-          <span class="tag tagGood">메뉴별 화면</span>
-          <span class="tag">App UI v2</span>
-        </div>
+
+        <section class="portalView active" id="dashboard" data-view-title="홈" data-view-desc="오늘 운영 상태와 우선 처리할 업무만 간단히 확인합니다.">
+          <div class="grid">
+            <div class="grid4">
+              <div class="metricCard">
+                <div class="metricLabel">중앙DB</div>
+                <div class="metricValue" id="statReplica">-</div>
+                <div class="metricNote" id="statReplicaNote">조회 전</div>
+              </div>
+              <div class="metricCard">
+                <div class="metricLabel">미등원 실패</div>
+                <div class="metricValue" id="statFailedAbsent">-</div>
+                <div class="metricNote">FAILED ABSENT</div>
+              </div>
+              <div class="metricCard">
+                <div class="metricLabel">등하원 실패</div>
+                <div class="metricValue" id="statFailedAttendance">-</div>
+                <div class="metricNote">FAILED ATTENDANCE</div>
+              </div>
+              <div class="metricCard">
+                <div class="metricLabel">점검 모드</div>
+                <div class="metricValue" id="statSafe">-</div>
+                <div class="metricNote" id="statSafeNote">runtime_config</div>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="card cardPad">
+                <div class="cardHead">
+                  <div>
+                    <div class="sectionTitle">오늘 처리 흐름</div>
+                    <div class="sectionDesc">홈에는 설명을 많이 넣지 않고, 오늘 확인할 업무만 남겼습니다.</div>
+                  </div>
+                </div>
+                <div class="taskList">
+                  <div class="taskItem">
+                    <div class="taskIcon">1</div>
+                    <div>
+                      <div class="taskTitle">출결 이상 확인</div>
+                      <div class="taskDesc">미등원 실패, 등하원 실패, 상태 불일치를 확인합니다.</div>
+                    </div>
+                  </div>
+                  <div class="taskItem">
+                    <div class="taskIcon">2</div>
+                    <div>
+                      <div class="taskTitle">현장 처리 기록화</div>
+                      <div class="taskDesc">수동 정정, 문자, QR 예외, 메모는 감사 로그 대상입니다.</div>
+                    </div>
+                  </div>
+                  <div class="taskItem">
+                    <div class="taskIcon">3</div>
+                    <div>
+                      <div class="taskTitle">개입 후보 관리</div>
+                      <div class="taskDesc">단어 불통과와 미완료 클리닉을 학생 지원 workflow로 연결합니다.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card cardPad">
+                <div class="sectionTitle">운영 요약</div>
+                <div class="sectionDesc" id="overviewText">아직 불러오지 않았습니다.</div>
+                <div class="tagRow" style="margin-top:18px;">
+                  <span class="tag tagGood">Information Flow</span>
+                  <span class="tag">Accountability</span>
+                  <span class="tag">Intervention</span>
+                  <span class="tag">Parent Report</span>
+                </div>
+                <div class="btnRow" style="margin-top:20px;">
+                  <button class="btn btnPri" type="button" data-go-link="attendance">출결 확인</button>
+                  <button class="btn btnGhost" type="button" data-go-link="students">학생 검색</button>
+                  <button class="btn btnGhost" type="button" data-go-link="reports">리포트 보기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="attendance" data-view-title="출결" data-view-desc="출결 로그, 수동 정정, 실패 알림, QR 문제 대응을 처리합니다.">
+          <div class="grid">
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">출결 로그</div>
+                  <div class="sectionDesc">날짜와 학생 학번으로 최근 출결 기록을 조회합니다.</div>
+                </div>
+                <button class="btn btnGhost" type="button" data-go-link="qrCenter">QR 문제 대응</button>
+              </div>
+
+              <div class="formGrid cols3">
+                <div>
+                  <div class="fieldLabel">날짜</div>
+                  <input class="inp" id="logYmd" inputmode="numeric" placeholder="YYYYMMDD" />
+                </div>
+                <div>
+                  <div class="fieldLabel">학생 학번</div>
+                  <input class="inp" id="logSidFilter" inputmode="numeric" placeholder="선택 입력" />
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn btnPri" id="btnLoadLogs" type="button" style="width:100%;">로그 조회</button>
+                </div>
+              </div>
+
+              <div class="tableWrap" style="margin-top:18px;">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>시간</th>
+                      <th>학생</th>
+                      <th>동작</th>
+                      <th>입력</th>
+                      <th>결과</th>
+                      <th>trace</th>
+                      <th>선택</th>
+                    </tr>
+                  </thead>
+                  <tbody id="attendanceLogRows">
+                    <tr>
+                      <td colspan="7" style="color:var(--muted);">조회 전입니다.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="grid2">
+              <div class="card cardPad">
+                <div class="sectionTitle">수동 정정</div>
+                <div class="sectionDesc">출결 로그에서 trace를 선택한 뒤 사유와 PIN을 입력합니다.</div>
+                <div class="formGrid" style="margin-top:16px;">
+                  <div class="formGrid cols2">
+                    <div>
+                      <div class="fieldLabel">학생 학번</div>
+                      <input class="inp" id="manualSid" inputmode="numeric" placeholder="0000" />
+                    </div>
+                    <div>
+                      <div class="fieldLabel">동작</div>
+                      <select class="select" id="manualAction">
+                        <option value="">선택</option>
+                        <option value="CHECK_IN">등원</option>
+                        <option value="CHECK_OUT">하원</option>
+                        <option value="OUTING">외출</option>
+                        <option value="RETURN">복귀</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="fieldLabel">원본 trace_id</div>
+                    <input class="inp" id="manualTraceId" placeholder="로그 선택 시 자동 입력" />
+                  </div>
+                  <div>
+                    <div class="fieldLabel">정정 사유</div>
+                    <textarea class="textarea" id="manualReason" placeholder="예: QR 인식 실패로 데스크 확인 후 정정"></textarea>
+                  </div>
+                  <div class="formGrid cols2">
+                    <div>
+                      <div class="fieldLabel">직원 PIN</div>
+                      <input class="inp" id="manualPin" type="password" inputmode="numeric" placeholder="PIN" />
+                    </div>
+                    <div style="display:flex; align-items:end;">
+                      <button class="btn btnPri" id="btnManualAttendance" type="button" style="width:100%;">정정 저장</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card cardPad">
+                <div class="sectionTitle">실패 알림</div>
+                <div class="sectionDesc">문자/알림 실패 건을 확인하고 원인을 추적합니다.</div>
+                <div class="btnRow" style="margin-top:16px;">
+                  <button class="btn btnGhost" id="btnFailedAbsent" type="button">미등원 실패</button>
+                  <button class="btn btnGhost" id="btnFailedAttendance" type="button">등하원 실패</button>
+                  <button class="btn btnGhost" id="btnMismatch" type="button">상태 불일치</button>
+                </div>
+                <div class="emptyPanel" style="margin-top:18px;">
+                  <h3>QR 예외는 학생 화면에서 처리</h3>
+                  <p>학생 검색 후 QR 예외 허용/해제를 처리하면 됩니다. 포털에는 매일 쓰지 않는 외부 링크를 넣지 않았습니다.</p>
+                  <div class="btnRow" style="margin-top:16px;">
+                    <button class="btn btnPri" type="button" data-go-link="students">학생 검색으로 이동</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="students" data-view-title="학생" data-view-desc="학생을 검색하고 QR 예외, 최근 출결, 메모 확장 위치를 확인합니다.">
+          <div class="grid2">
+            <div class="card cardPad">
+              <div class="sectionTitle">학생 검색</div>
+              <div class="sectionDesc">이름 또는 학번으로 검색합니다. 선택한 학생은 출결 수동 정정에도 자동 반영됩니다.</div>
+              <div style="margin-top:16px;">
+                <input class="inp" id="studentQuery" placeholder="학생 이름 또는 학번" autocomplete="off" />
+              </div>
+              <div class="tag tagGood hidden" id="selectedStudent" style="margin-top:14px;"></div>
+              <div class="list" id="studentResults" style="margin-top:16px;">
+                <div class="smallText">검색어를 입력하세요.</div>
+              </div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">학생 상세</div>
+                  <div class="sectionDesc">Student 360 Profile의 시작점입니다.</div>
+                </div>
+                <div class="tagRow">
+                  <span class="tag">내부 메모 분리</span>
+                  <span class="tag">학부모 공유 메모 분리</span>
+                </div>
+              </div>
+              <div id="studentDetailBody" class="emptyPanel">
+                <h3>학생을 선택하세요</h3>
+                <p>출결 요약, QR 예외 여부, 최근 로그, 클리닉·단어시험·메모가 이 화면으로 확장됩니다.</p>
+              </div>
+              <div class="btnRow" style="margin-top:18px;">
+                <button class="btn btnPri" id="btnAllowSid" type="button">QR 예외 허용</button>
+                <button class="btn btnGhost" id="btnBlockSid" type="button">QR 예외 해제</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 수강생, 담당 선생님을 관리할 예정입니다.">
+          <div class="emptyPanel">
+            <h3>클래스 화면</h3>
+            <p>지금은 출석 안정화와 학생 상세를 우선하고, 이후 class_schedule, class_students, classes를 연결합니다.</p>
+          </div>
+        </section>
+
+        <section class="portalView" id="clinic" data-view-title="클리닉" data-view-desc="수업·개별·추가·단어 클리닉을 intervention workflow로 관리합니다.">
+          <div class="grid">
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">클리닉 보드</div>
+                  <div class="sectionDesc">단어 불통과, 미완료, 출결 위험 신호가 후보로 생성되고 확인 후 확정되는 구조입니다.</div>
+                </div>
+                <div class="tagRow">
+                  <span class="tag tagWarn">후보 생성 후 확인</span>
+                  <span class="tag">공통 + 개인 항목</span>
+                </div>
+              </div>
+              <div class="board">
+                <div class="boardCol">
+                  <div class="boardTitle">후보</div>
+                  <div class="boardDesc">단어 불통과, 미완료, 결석 등에서 자동 후보 생성</div>
+                </div>
+                <div class="boardCol">
+                  <div class="boardTitle">대기</div>
+                  <div class="boardDesc">직원이 확인하고 실제 클리닉으로 배정</div>
+                </div>
+                <div class="boardCol">
+                  <div class="boardTitle">진행중</div>
+                  <div class="boardDesc">학생이 처리 중인 클리닉</div>
+                </div>
+                <div class="boardCol">
+                  <div class="boardTitle">완료</div>
+                  <div class="boardDesc">완료 기록과 학부모 공개 여부 선택</div>
+                </div>
+                <div class="boardCol">
+                  <div class="boardTitle">반려/부분완료</div>
+                  <div class="boardDesc">메모 필수, 다음 조치 연결</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 결과를 performance data로 저장하고 클리닉 후보와 연결합니다.">
+          <div class="grid2">
+            <div class="emptyPanel">
+              <h3>단어시험 결과 입력</h3>
+              <p>점수, 통과/불통과, 틀린 개수, 누적 범위를 입력하고 클리닉 후보로 연결합니다.</p>
+            </div>
+            <div class="emptyPanel">
+              <h3>Performance Data</h3>
+              <p>단어시험을 단순 점수표가 아니라 학생 개입 workflow의 trigger로 사용합니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="messages" data-view-title="문자·알림" data-view-desc="미등원, 등하원, 클리닉, 리포트 발송 이력을 관리합니다.">
+          <div class="grid2">
+            <div class="card cardPad">
+              <div class="sectionTitle">실패 알림 조회</div>
+              <div class="sectionDesc">NCP 템플릿 문구는 유지하고, 실패한 발송만 추적합니다.</div>
+              <div class="btnRow" style="margin-top:16px;">
+                <button class="btn btnGhost" type="button" data-go-link="attendance">출결 화면에서 실패 알림 조회</button>
+                </div>
+            </div>
+            <div class="emptyPanel">
+              <h3>문자 발송 정책</h3>
+              <p>관리자·강사·조교 모두 현장 발송 가능 방향입니다. 발송 이력은 감사 로그 대상입니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="reports" data-view-title="학부모 리포트" data-view-desc="일간·주간 리포트, 그래프, 학부모 공유 메모를 준비합니다.">
+          <div class="reportPreview">
+            <div class="phonePreview">
+              <div class="phoneTop"></div>
+              <div class="sectionTitle">이번 주 리포트</div>
+              <div class="sectionDesc">학부모에게는 자녀에게 공개된 정보만 보여줍니다.</div>
+              <div class="grid" style="gap:12px; margin-top:18px;">
+                <div class="metricCard">
+                  <div class="metricLabel">출석</div>
+                  <div class="metricValue">4/4</div>
+                  <div class="metricNote">이번 주 수업 기준</div>
+                </div>
+                <div class="metricCard">
+                  <div class="metricLabel">단어시험 평균</div>
+                  <div class="metricValue">92</div>
+                  <div class="metricNote">최근 결과 예시</div>
+                </div>
+                <div class="metricCard">
+                  <div class="metricLabel">클리닉 완료</div>
+                  <div class="metricValue">5/6</div>
+                  <div class="metricNote">미완료 1건</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="sectionTitle">리포트 구성</div>
+              <div class="sectionDesc">출결, 클리닉, 단어시험, 성적 추이, 선생님 공유 코멘트를 시각화합니다.</div>
+              <div class="grid2" style="margin-top:18px;">
+                <div>
+                  <div class="fieldLabel">단어시험 점수 추이</div>
+                  <div class="miniChart">
+                    <div class="miniBar" style="height:54%;"></div>
+                    <div class="miniBar" style="height:68%;"></div>
+                    <div class="miniBar" style="height:78%;"></div>
+                    <div class="miniBar" style="height:86%;"></div>
+                    <div class="miniBar" style="height:74%;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="fieldLabel">클리닉 완료율</div>
+                  <div class="miniChart">
+                    <div class="miniBar" style="height:40%;"></div>
+                    <div class="miniBar" style="height:52%;"></div>
+                    <div class="miniBar" style="height:66%;"></div>
+                    <div class="miniBar" style="height:80%;"></div>
+                    <div class="miniBar" style="height:88%;"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="emptyPanel" style="margin-top:18px;">
+                <h3>공개/비공개 분리</h3>
+                <p>internal_note와 parent_note를 분리하고 parent_visible = true인 기록만 학부모에게 공개합니다.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="staff" data-view-title="직원" data-view-desc="직원 근태와 업무 처리량은 HR operations module로 확장합니다.">
+          <div class="grid2">
+            <div class="emptyPanel">
+              <h3>직원 근태 요약</h3>
+              <p>이 화면은 향후 월간 근무 요약, 누락 탐지, 처리 업무 로그 중심으로 확장합니다.</p>
+            </div>
+            <div class="emptyPanel">
+              <h3>책임성 지표</h3>
+              <p>출결 정정, 문자 발송, 클리닉 처리, 메모 작성 등 주요 행동을 actor 기준으로 추적합니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="qrCenter" data-view-title="QR 문제 대응센터" data-view-desc="QR 인식 문제를 진단하고 예외 학번 출결 등록으로 연결합니다.">
+          <div class="grid2">
+            <div class="emptyPanel">
+              <h3>QR 인식 문제 대응</h3>
+              <p>학생 QR이 반복적으로 안 찍히면 학생 화면에서 QR 예외를 허용합니다. 예외학생은 학번 4자리로 상시 출결 가능합니다.</p>
+            </div>
+            <div class="emptyPanel">
+              <h3>체크 순서</h3>
+              <p>화면 밝기, 거리, 각도, QR 재발급, 예외 등록 순서로 확인합니다. 키오스크 로직은 이번 패치에서 건드리지 않습니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="portalView" id="advanced" data-view-title="설정·점검" data-view-desc="중앙DB 점검, replica 동기화, 캐시, 상태 불일치 등 위험 작업을 실행합니다.">
+          <div class="grid2">
+            <div class="card cardPad">
+              <div class="sectionTitle">운영 점검</div>
+              <div class="sectionDesc">위험도가 있는 작업은 이 화면에서만 실행합니다.</div>
+              <div class="btnRow" style="margin-top:16px;">
+                <button class="btn btnPri" id="btnCheckCentral" type="button">중앙DB 점검</button>
+                <button class="btn btnWarn" id="btnSyncReplica" type="button">중앙DB 최신화</button>
+                <button class="btn btnGhost" type="button" data-go-link="attendance">상태 불일치 확인은 출결 화면에서</button>
+                <button class="btn btnBad" id="btnFlushCache" type="button">캐시 비우기</button>
+              </div>
+              <div class="sectionDesc" style="margin-top:16px;">중앙DB GAS를 수정하지 않았으므로 Apps Script 새 Web App 배포는 필요 없습니다.</div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="sectionTitle">작업 결과</div>
+              <div class="sectionDesc">점검/동기화/실패 알림 조회 결과가 표시됩니다.</div>
+              <div class="mono" id="resultBox" style="margin-top:14px;">작업 결과가 여기에 표시됩니다.</div>
+            </div>
+          </div>
+        </section>
       </div>
-
-      <section class="hero portalView active" id="dashboard" data-view-title="홈" data-view-desc="오늘 운영 상태, 책임성, 개입 workflow, 학부모 커뮤니케이션 흐름을 확인합니다.">
-        <div class="card">
-          <div class="pageKicker">Operations Command Center</div>
-          <h1 class="heroTitle">오늘 운영을 빠르게 판단하고, 모든 행동은 기록으로 남깁니다.</h1>
-          <div class="heroDesc">
-            더오름 운영 포털은 단순 출결 화면이 아니라 출결, 학생 관리, 직원 책임성, 클리닉 개입, 학부모 리포트를 연결하는 내부 운영 시스템입니다.
-            출석 안정화 코드는 유지하고, 각 메뉴는 실제 업무 앱처럼 독립 화면으로 분리했습니다.
-          </div>
-
-          <div class="focusStrip">
-            <div class="focusCard">
-              <div class="focusLabel">Information Flow</div>
-              <div class="focusTitle">출결·알림 흐름</div>
-              <div class="focusDesc">등원, 하원, 미등원, 실패 알림을 같은 업무 흐름에서 확인합니다.</div>
-            </div>
-            <div class="focusCard">
-              <div class="focusLabel">Accountability</div>
-              <div class="focusTitle">누가 무엇을 했는가</div>
-              <div class="focusDesc">수동 정정, 문자, 메모, 클리닉은 감사 로그 확장을 전제로 설계합니다.</div>
-            </div>
-            <div class="focusCard">
-              <div class="focusLabel">Intervention</div>
-              <div class="focusTitle">클리닉 개입</div>
-              <div class="focusDesc">단어시험·미완료·출결 위험 신호가 개입 후보로 이어지는 구조입니다.</div>
-            </div>
-            <div class="focusCard">
-              <div class="focusLabel">Parent Report</div>
-              <div class="focusTitle">학부모 커뮤니케이션</div>
-              <div class="focusDesc">공개 메모와 리포트 링크를 통해 자녀 정보만 안전하게 공유합니다.</div>
-            </div>
-          </div>
-
-          <div class="statusGrid">
-            <div class="stat">
-              <div class="statLabel">중앙DB 상태</div>
-              <div class="statValue" id="statReplica">-</div>
-              <div class="statNote" id="statReplicaNote">조회 전</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">미등원 실패</div>
-              <div class="statValue" id="statFailedAbsent">-</div>
-              <div class="statNote">FAILED ABSENT</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">등하원 실패</div>
-              <div class="statValue" id="statFailedAttendance">-</div>
-              <div class="statNote">FAILED ATTENDANCE</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">점검 모드</div>
-              <div class="statValue" id="statSafe">-</div>
-              <div class="statNote" id="statSafeNote">runtime_config</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="sectionTitle">오늘 할 일</div>
-          <div class="sectionDesc">포털을 열면 먼저 운영 상태를 확인하고, 문제가 있는 흐름만 해당 메뉴에서 처리합니다.</div>
-          <div class="btnRow">
-            <button class="btn btnPri" id="btnRefreshOverview" type="button">운영 상태 새로고침</button>
-            <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크 열기</button>
-          </div>
-          <div class="sectionDesc" id="overviewText" style="margin-top:14px;">아직 불러오지 않았습니다.</div>
-
-          <div class="list" style="margin-top:16px;">
-            <div class="timeItem">
-              <div class="timeTitle">1. 출결 이상 확인</div>
-              <div class="timeDesc">미등원 실패, 등하원 실패, 오늘 상태 불일치가 있는지 확인합니다.</div>
-            </div>
-            <div class="timeItem">
-              <div class="timeTitle">2. 현장 처리 기록화</div>
-              <div class="timeDesc">수동 정정, 문자 발송, QR 예외, 메모는 모두 추후 audit log 대상입니다.</div>
-            </div>
-            <div class="timeItem">
-              <div class="timeTitle">3. 개입 후보 관리</div>
-              <div class="timeDesc">단어 불통과, 미완료 클리닉, 출결 위험 신호는 학생별 지원 workflow로 연결합니다.</div>
-            </div>
-          </div>
-
-          <div class="tagRow">
-            <span class="tag tagGood">출석 안정화 유지</span>
-            <span class="tag">App UI v2</span>
-            <span class="tag tagWarn">DB 기능은 Phase 분리</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="attendance" data-view-title="출결" data-view-desc="실시간 로그, QR 예외, 수동 정정, QR 문제 대응을 관리합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">출결</div>
-            <div class="sectionDesc">실시간 로그 조회, QR 예외, 수동 정정, QR 문제 대응을 한 화면에 모았습니다.</div>
-          </div>
-          <div class="tagRow" style="margin-top:0;">
-            <span class="tag tagGood">관리자·강사·조교 가능</span>
-            <span class="tag tagWarn">정정은 PIN + 사유 필수</span>
-          </div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">출결 로그</div>
-            <div class="actionTitle">오늘 출결 조회</div>
-            <div class="actionDesc">학생별/날짜별 출결 로그를 확인하고 수동 정정 원본 trace를 선택합니다.</div>
-            <div class="fieldGrid">
-              <div>
-                <div class="fieldLabel">날짜(YYYYMMDD)</div>
-                <input class="inp" id="logYmd" inputmode="numeric" maxlength="8" />
-              </div>
-              <div>
-                <div class="fieldLabel">학번 선택 필터</div>
-                <input class="inp" id="logSidFilter" inputmode="numeric" maxlength="4" placeholder="전체 조회는 비움" />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn btnPri" id="btnLoadLogs" type="button">출결 로그 조회</button>
-              <button class="btn btnGhost" id="btnMismatch" type="button">오늘 상태 불일치 검사</button>
-            </div>
-          </div>
-
-          <div class="actionCard">
-            <div class="actionKicker">수동 정정</div>
-            <div class="actionTitle">출결 수동 정정</div>
-            <div class="actionDesc">원본 trace_id를 기준으로 정정 로그를 append-only로 추가합니다.</div>
-            <div class="fieldGrid">
-              <div>
-                <div class="fieldLabel">학번</div>
-                <input class="inp" id="manualSid" inputmode="numeric" maxlength="4" placeholder="0004" />
-              </div>
-              <div>
-                <div class="fieldLabel">정정 액션</div>
-                <select class="select" id="manualAction">
-                  <option value="CHECK_IN">등원</option>
-                  <option value="CHECK_OUT">하원</option>
-                  <option value="OUTING">외출</option>
-                  <option value="RETURN">복귀</option>
-                </select>
-              </div>
-            </div>
-            <div class="fieldLabel">원본 trace_id</div>
-            <input class="inp" id="manualTraceId" placeholder="아래 로그에서 선택" />
-            <div class="fieldLabel">정정 사유</div>
-            <input class="inp" id="manualReason" placeholder="예: QR 오인식으로 등원 누락" />
-            <div class="fieldLabel">직원 PIN</div>
-            <input class="inp" id="manualPin" type="password" inputmode="numeric" placeholder="PIN" />
-            <div class="btnRow">
-              <button class="btn btnWarn" id="btnManualAttendance" type="button">수동 정정 저장</button>
-            </div>
-          </div>
-
-          <div class="actionCard">
-            <div class="actionKicker">QR 예외</div>
-            <div class="actionTitle">상시 학번 출결</div>
-            <div class="actionDesc">QR이 반복적으로 안 찍히는 학생은 등/하원 모드에서 학번 4자리로 처리합니다.</div>
-            <div class="btnRow">
-              <button class="btn btnGhost" type="button" data-go-link="students">학생 검색으로 이동</button>
-              <button class="btn btnGhost" type="button" data-go-link="qrCenter">QR 체크리스트</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="tableWrap" style="margin-top:14px;">
-          <table>
-            <thead>
-              <tr>
-                <th>시간</th>
-                <th>학번</th>
-                <th>이름</th>
-                <th>액션</th>
-                <th>결과</th>
-                <th>입력</th>
-                <th>trace_id</th>
-                <th>정정</th>
-              </tr>
-            </thead>
-            <tbody id="attendanceLogRows">
-              <tr><td colspan="8" class="wrap">아직 조회하지 않았습니다.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="section portalView" id="students" data-view-title="학생" data-view-desc="학생 검색, QR 예외, 학생 상세 확장 기반을 관리합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">학생</div>
-            <div class="sectionDesc">학생 검색, QR 예외 등록/해제, 학생 상세 확장 자리를 먼저 고정합니다.</div>
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="actionCard">
-            <div class="actionKicker">학생 검색</div>
-            <div class="actionTitle">전체 학생 조회</div>
-            <div class="actionDesc">관리자·강사·조교 모두 전체 학생 검색과 상세 조회가 가능한 운영자입니다.</div>
-            <div class="fieldLabel">학생 이름 또는 학번</div>
-            <input class="inp" id="studentQuery" placeholder="예: 민서 또는 0123" autocomplete="off" />
-            <div class="list" id="studentResults"></div>
-            <div id="selectedStudent" class="selectedStudent hidden"></div>
-            <div class="btnRow">
-              <button class="btn btnWarn" id="btnAllowSid" type="button">QR 예외 허용</button>
-              <button class="btn btnGhost" id="btnBlockSid" type="button">허용 해제</button>
-            </div>
-          </div>
-
-          <div class="actionCard">
-            <div class="actionKicker">학생 상세 v1 자리</div>
-            <div class="actionTitle">선택 학생 요약</div>
-            <div class="actionDesc">출결 이력, 클리닉 이력, 단어시험, 내부 메모, 학부모 공유 메모가 이 영역으로 확장됩니다.</div>
-            <div id="studentDetailBody" class="emptyState">
-              학생을 검색해서 선택하면 학번·이름·학교·학년·재원 상태가 표시됩니다.
-            </div>
-            <div class="tagRow">
-              <span class="tag">내부 메모 분리</span>
-              <span class="tag">학부모 공유 메모 분리</span>
-              <span class="tag tagWarn">연락처: 조교는 뒤 4자리</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 담당 선생님, 수강생 연결 구조를 준비합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">클래스</div>
-            <div class="sectionDesc">반별 학생, 담당 선생님, 시간표, 미등원 알림 시간 설정을 연결할 영역입니다.</div>
-          </div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">Phase 2</div>
-            <div class="actionTitle">반 목록/수강생</div>
-            <div class="actionDesc">기존 class_students replica를 읽어 반별 수강생과 출결 상태를 보여줍니다.</div>
-            <div class="tagRow"><span class="tag tagWarn">읽기 먼저</span><span class="tag">쓰기 후순위</span></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">알림</div>
-            <div class="actionTitle">반별 미등원 시간</div>
-            <div class="actionDesc">수업 시작 후 5분/20분 알림 정책과 class alert_delay를 한 화면에서 관리합니다.</div>
-            <div class="tagRow"><span class="tag">5분 단위</span><span class="tag tagBad">늦장 발송 차단</span></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">SSOT</div>
-            <div class="actionTitle">중앙DB 기준</div>
-            <div class="actionDesc">클래스 수정은 중앙DB bridge를 통과한 뒤 Supabase replica를 갱신합니다.</div>
-            <div class="tagRow"><span class="tag tagGood">CentralDB first</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="clinic" data-view-title="클리닉" data-view-desc="수업·개별·추가·단어 클리닉과 항목 템플릿 구조를 준비합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">클리닉</div>
-            <div class="sectionDesc">수업·개별·추가·단어/재시험 클리닉을 관리하는 핵심 모듈입니다.</div>
-          </div>
-          <div class="tagRow" style="margin-top:0;">
-            <span class="tag tagGood">조교도 항목 추가 가능</span>
-            <span class="tag">공통 + 선생님 개인 항목</span>
-          </div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">클리닉 종류</div>
-            <div class="actionTitle">4개 큰 분류</div>
-            <div class="actionDesc">수업 클리닉, 개별 클리닉, 추가 클리닉, 단어·재시험 클리닉으로 분류합니다.</div>
-            <div class="tagRow"><span class="tag">대기</span><span class="tag">진행중</span><span class="tag tagGood">완료</span><span class="tag tagWarn">부분완료</span><span class="tag tagBad">반려</span></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">항목 템플릿</div>
-            <div class="actionTitle">자유 추가 구조</div>
-            <div class="actionDesc">고정 항목만 쓰지 않고 전체 공통 항목과 선생님별 개인 항목을 모두 지원합니다.</div>
-            <div class="emptyState">다음 Phase에서 clinic_item_templates 테이블과 audit log를 붙입니다.</div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">학부모 공개</div>
-            <div class="actionTitle">기록별 공개 선택</div>
-            <div class="actionDesc">internal_note와 parent_note는 무조건 분리하고 parent_visible=true인 기록만 학부모에게 보여줍니다.</div>
-            <div class="tagRow"><span class="tag">내부 메모</span><span class="tag tagGood">공유 메모</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 결과와 불통과 클리닉 후보 생성 흐름을 준비합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">단어시험</div>
-            <div class="sectionDesc">단어시험 결과 입력, 불통과 후보 생성, 재시험/깜지 클리닉 연결을 설계 기준대로 배치했습니다.</div>
-          </div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">결과 입력</div>
-            <div class="actionTitle">틀린 개수 + 총개수</div>
-            <div class="actionDesc">점수만 저장하지 않고 틀린 개수/총개수 기준으로 통과율과 추이를 계산합니다.</div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">불통과</div>
-            <div class="actionTitle">클리닉 후보 생성</div>
-            <div class="actionDesc">불통과 즉시 자동 확정하지 않고 후보를 만든 뒤 강사/조교가 확인합니다.</div>
-            <div class="tagRow"><span class="tag tagWarn">자동 확정 금지</span><span class="tag tagGood">확인 후 등록</span></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">리포트</div>
-            <div class="actionTitle">점수 추이 시각화</div>
-            <div class="actionDesc">학부모 일간/주간 리포트에서 단어시험 통과율과 추이를 그래프로 보여줍니다.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="messages" data-view-title="문자·알림" data-view-desc="미등원·등하원 실패 알림과 리포트 발송 흐름을 관리합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">문자·알림</div>
-            <div class="sectionDesc">관리자·강사·조교 모두 문자 발송 가능하되, 발송·재발송·실패 처리는 로그로 추적합니다.</div>
-          </div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">실패 조회</div>
-            <div class="actionTitle">미등원/등하원 실패</div>
-            <div class="actionDesc">운영 중 실패한 알림을 확인하고 필요하면 재처리합니다.</div>
-            <div class="btnRow">
-              <button class="btn btnPri" id="btnFailedAbsent" type="button">미등원 실패</button>
-              <button class="btn btnGhost" id="btnFailedAttendance" type="button">등하원 실패</button>
-            </div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">발송 정책</div>
-            <div class="actionTitle">템플릿 문구 고정</div>
-            <div class="actionDesc">NCP 템플릿 문구는 중앙 정책으로 유지하고, 포털에서는 대상·상태·결과만 관리합니다.</div>
-            <div class="tagRow"><span class="tag tagBad">문구 임의 변경 금지</span></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">감사 로그</div>
-            <div class="actionTitle">누가 보냈는지 추적</div>
-            <div class="actionDesc">문자 발송/재발송/실패처리 모두 actor, role, student_id, payload 요약을 남기는 구조로 확장합니다.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="reports" data-view-title="학부모 리포트" data-view-desc="일간·주간 리포트, 공개 메모, 성적·출결 시각화 구조를 준비합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">학부모 리포트</div>
-            <div class="sectionDesc">학부모는 자녀에게 공개된 정보만 조회합니다. 최종 목표는 로그인 가능한 학부모 포털입니다.</div>
-          </div>
-          <div class="tagRow" style="margin-top:0;"><span class="tag">일간</span><span class="tag">주간</span><span class="tag tagGood">그래프</span></div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">초기</div>
-            <div class="actionTitle">문자 리포트 링크</div>
-            <div class="actionDesc">일간/주간 리포트를 문자 링크로 보내고, 링크는 만료 시간을 둡니다.</div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">최종</div>
-            <div class="actionTitle">학부모 로그인</div>
-            <div class="actionDesc">parent_accounts와 parent_student_links로 보호자 계정과 자녀를 연결합니다.</div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">시각화</div>
-            <div class="actionTitle">출결·클리닉·성적 그래프</div>
-            <div class="actionDesc">출석률, 단어시험 통과율, 클리닉 완료율, 성적 추이를 일간/주간으로 보여줍니다.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="staff" data-view-title="직원" data-view-desc="직원 QR, 근무 기록, 권한·근무시간 접근 원칙을 관리합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">직원</div>
-            <div class="sectionDesc">직원 QR과 근무시간은 출석 안정화 기능을 유지합니다. 전체 근무시간 관리는 관리자만 접근합니다.</div>
-          </div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">직원 QR</div>
-            <div class="actionTitle">출근/퇴근 QR</div>
-            <div class="actionDesc">직원 QR 생성 화면으로 이동합니다. 성공 음성은 이름 없이 “처리되었습니다.”만 출력됩니다.</div>
-            <div class="btnRow"><button class="btn btnPri" type="button" onclick="location.href='/staff-qr.html'">직원 QR 열기</button></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">권한</div>
-            <div class="actionTitle">역할 기준</div>
-            <div class="actionDesc">관리자/강사/조교/학부모로 분리합니다. 조교는 학부모 연락처 전체 번호를 볼 수 없습니다.</div>
-            <div class="tagRow"><span class="tag">admin</span><span class="tag">teacher</span><span class="tag">assistant</span><span class="tag">parent</span></div>
-          </div>
-          <div class="actionCard">
-            <div class="actionKicker">근무시간</div>
-            <div class="actionTitle">민감 정보 분리</div>
-            <div class="actionDesc">강사/조교는 학생 운영 기능은 넓게 허용하되, 직원 전체 근무시간·급여성 정보는 제한합니다.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="qrCenter" data-view-title="QR 문제 대응센터" data-view-desc="QR이 반복적으로 안 찍히는 학생과 기기 환경을 점검합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">QR 문제 대응센터</div>
-            <div class="sectionDesc">QR 스캔이 안 될 때 그대로 안내할 수 있는 체크리스트입니다.</div>
-          </div>
-        </div>
-
-        <div class="grid2">
-          <div class="card">
-            <div class="actionTitle">스캐너 설정 체크</div>
-            <ul class="checkList" style="margin-top:14px;">
-              <li>✅ 스캐너 조명 ON, 조준선/레이저 ON</li>
-              <li>✅ QR Code Enable 또는 2D Code Enable 확인</li>
-              <li>✅ Mobile Screen Reading 모드가 있으면 ON</li>
-              <li>✅ HID Keyboard Mode 사용</li>
-              <li>✅ Suffix Enter 설정 확인</li>
-            </ul>
-          </div>
-
-          <div class="card">
-            <div class="actionTitle">학생 안내문</div>
-            <ul class="checkList" style="margin-top:14px;">
-              <li>📱 휴대폰 화면 밝기를 최대로 올립니다.</li>
-              <li>📏 QR과 스캐너는 15~30cm 정도 떨어뜨립니다.</li>
-              <li>✨ 화면을 살짝 기울여 반사를 줄입니다.</li>
-              <li>🔊 삑 소리가 난 뒤 화면을 닫습니다.</li>
-              <li>🔁 계속 안 되면 QR 예외 학생으로 등록해 학번 4자리 출결을 사용합니다.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section class="section portalView" id="advanced" data-view-title="설정·점검" data-view-desc="중앙DB 점검, replica 동기화, 캐시, 운영 로그 확인을 진행합니다.">
-        <div class="sectionHead">
-          <div>
-            <div class="sectionTitle">설정·점검</div>
-            <div class="sectionDesc">중앙DB, 캐시, 동기화, 상태 불일치 등 위험도가 있는 작업은 여기에서만 실행합니다.</div>
-          </div>
-          <div class="tagRow" style="margin-top:0;"><span class="tag tagBad">관리자 전용 권장</span></div>
-        </div>
-
-        <div class="grid3">
-          <div class="actionCard">
-            <div class="actionKicker">중앙DB</div>
-            <div class="actionTitle">중앙DB 점검</div>
-            <div class="actionDesc">Supabase replica, 필수 테이블, bridge 상태를 점검합니다.</div>
-            <div class="btnRow"><button class="btn btnPri" id="btnCheckCentral" type="button">점검 실행</button></div>
-          </div>
-
-          <div class="actionCard">
-            <div class="actionKicker">동기화</div>
-            <div class="actionTitle">중앙DB 최신화 반영</div>
-            <div class="actionDesc">중앙DB 수정사항이 화면에 늦게 보일 때만 실행합니다.</div>
-            <div class="btnRow"><button class="btn btnBad" id="btnSyncReplica" type="button">PIN 입력 후 실행</button></div>
-          </div>
-
-          <div class="actionCard">
-            <div class="actionKicker">캐시</div>
-            <div class="actionTitle">운영 캐시 비우기</div>
-            <div class="actionDesc">운영 상태가 즉시 반영되지 않을 때 runtime cache를 비웁니다.</div>
-            <div class="btnRow"><button class="btn btnWarn" id="btnFlushCache" type="button">PIN 입력 후 캐시 비우기</button></div>
-          </div>
-        </div>
-
-        <div class="mono" id="resultBox" style="margin-top:14px;">작업 결과가 여기에 표시됩니다.</div>
-      </section>
     </main>
   </div>
 
   <div id="toast" class="toast hidden"></div>
+
 
   <script>
     const $ = (sel) => document.querySelector(sel);
