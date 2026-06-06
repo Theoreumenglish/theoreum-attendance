@@ -1983,6 +1983,137 @@ async function assistantSearchStudentsDirect(args = {}, sessionToken = '') {
   });
 }
 
+
+async function assistantListClassOptionsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const limit = Math.max(1, Math.min(1000, toPositiveInt(args.limit, 500)));
+  const includeInactive = args.include_inactive === true || args.includeInactive === true;
+  const supabase = getSupabaseAdmin();
+
+  if (yyyymmdd && !isStrictYmd(yyyymmdd)) {
+    return fail(400, 'INVALID_INPUT', 'yyyymmdd는 8자리 숫자여야 합니다.');
+  }
+
+  if (yyyymmdd) {
+    let scheduleQuery = supabase
+      .from('class_schedule')
+      .select('yyyymmdd, class_id, class_name, teacher, start, end, status')
+      .eq('yyyymmdd', yyyymmdd)
+      .order('start', { ascending: true })
+      .limit(limit);
+
+    if (!includeInactive) {
+      scheduleQuery = scheduleQuery.eq('status', 'SCHEDULED');
+    }
+
+    const { data: scheduleRows, error: scheduleErr } = await scheduleQuery;
+    if (scheduleErr) {
+      return fail(500, 'DB_SELECT_FAILED', scheduleErr.message || 'class_schedule 조회 실패');
+    }
+
+    const schedules = Array.isArray(scheduleRows) ? scheduleRows : [];
+    const classIds = Array.from(new Set(
+      schedules
+        .map(row => String(row?.class_id || '').trim())
+        .filter(Boolean)
+    ));
+
+    const classMap = new Map();
+    if (classIds.length) {
+      const { data: classRows, error: classErr } = await supabase
+        .from('classes')
+        .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
+        .in('class_id', classIds)
+        .limit(classIds.length);
+
+      if (classErr) {
+        return fail(500, 'DB_SELECT_FAILED', classErr.message || 'classes 조회 실패');
+      }
+
+      for (const row of Array.isArray(classRows) ? classRows : []) {
+        const classId = String(row?.class_id || '').trim();
+        if (classId) classMap.set(classId, row);
+      }
+    }
+
+    const staffNameMap = await readStaffNameMap(
+      supabase,
+      schedules.map(row => row?.teacher).filter(Boolean)
+    );
+
+    const items = schedules.map(row => {
+      const classId = String(row?.class_id || '').trim();
+      const classRow = classMap.get(classId) || {};
+      const teacher = String(row?.teacher || classRow.teacher || '').trim();
+
+      return {
+        yyyymmdd,
+        class_id: classId,
+        name: String(row?.class_name || classRow.name || '').trim(),
+        class_name: String(row?.class_name || classRow.name || '').trim(),
+        teacher,
+        teacher_name: staffNameMap[String(teacher).toLowerCase()] || teacher,
+        start: String(row?.start || classRow.start || '').trim(),
+        end: String(row?.end || classRow.end || '').trim(),
+        room: String(classRow.room || '').trim(),
+        alert_delay: String(classRow.alert_delay || '').trim(),
+        alert_to: String(classRow.alert_to || '').trim(),
+        status: String(row?.status || classRow.status || '').trim()
+      };
+    }).filter(item => item.class_id);
+
+    return success({
+      yyyymmdd,
+      count: items.length,
+      items
+    });
+  }
+
+  let classQuery = supabase
+    .from('classes')
+    .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
+    .order('start', { ascending: true })
+    .limit(limit);
+  const { data: classRows, error: classErr } = await classQuery;
+  if (classErr) {
+    return fail(500, 'DB_SELECT_FAILED', classErr.message || 'classes 조회 실패');
+  }
+
+  const rows = Array.isArray(classRows) ? classRows : [];
+  const staffNameMap = await readStaffNameMap(
+    supabase,
+    rows.map(row => row?.teacher).filter(Boolean)
+  );
+
+  const items = rows.map(row => {
+    const teacher = String(row?.teacher || '').trim();
+    const classId = String(row?.class_id || '').trim();
+    const name = String(row?.name || '').trim();
+
+    return {
+      class_id: classId,
+      name,
+      class_name: name,
+      teacher,
+      teacher_name: staffNameMap[String(teacher).toLowerCase()] || teacher,
+      start: String(row?.start || '').trim(),
+      end: String(row?.end || '').trim(),
+      room: String(row?.room || '').trim(),
+      alert_delay: String(row?.alert_delay || '').trim(),
+      alert_to: String(row?.alert_to || '').trim(),
+      status: String(row?.status || '').trim()
+    };
+  }).filter(item => item.class_id);
+
+  return success({
+    count: items.length,
+    items
+  });
+}
+
 async function assistantListClassRosterDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;

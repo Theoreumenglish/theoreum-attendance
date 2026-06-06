@@ -10,7 +10,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "node scripts/check-js.mjs"
+    "check": "node scripts/check-js.mjs",
+    "contract-check": "node scripts/contract-check.mjs",
+    "verify": "npm run check && npm run contract-check && npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

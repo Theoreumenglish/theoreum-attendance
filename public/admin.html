@@ -1214,17 +1214,18 @@
                   <thead>
                     <tr>
                       <th>시간</th>
-                      <th>학생</th>
+                      <th>ID</th>
+                      <th>이름</th>
                       <th>동작</th>
-                      <th>입력</th>
                       <th>결과</th>
+                      <th>입력</th>
                       <th>trace</th>
                       <th>선택</th>
                     </tr>
                   </thead>
                   <tbody id="attendanceLogRows">
                     <tr>
-                      <td colspan="7" style="color:var(--muted);">조회 전입니다.</td>
+                      <td colspan="8" style="color:var(--muted);">조회 전입니다.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1631,9 +1632,15 @@
       showPortalView(id || 'dashboard');
     }
 
-    function showResult(title, data) {
-      $('#resultBox').textContent = title + '\n\n' + JSON.stringify(data, null, 2);
-      showPortalView('advanced');
+    function showResult(title, data, options = {}) {
+      const resultBox = $('#resultBox');
+      if (resultBox) {
+        resultBox.textContent = title + '\n\n' + JSON.stringify(data, null, 2);
+      }
+
+      if (options.jump === true) {
+        showPortalView('advanced');
+      }
     }
 
     async function rpc(op, args = {}, options = {}) {
@@ -2002,7 +2009,7 @@
 
     async function checkCentral() {
       const r = await rpc('meta.checkCentral', {}, { timeoutMs: 30000 });
-      showResult(r.ok ? '중앙DB 점검 결과' : '중앙DB 점검 실패', r.ok ? r.data : r);
+      showResult(r.ok ? '중앙DB 점검 결과' : '중앙DB 점검 실패', r.ok ? r.data : r, { jump: true });
     }
 
     async function runReplicaSync() {
@@ -2013,13 +2020,13 @@
         pin
       }, { timeoutMs: 65000 });
 
-      showResult(r.ok ? '중앙DB 최신화 반영 완료' : '중앙DB 최신화 반영 실패', r.ok ? r.data : r);
+      showResult(r.ok ? '중앙DB 최신화 반영 완료' : '중앙DB 최신화 반영 실패', r.ok ? r.data : r, { jump: true });
       await loadOverview();
     }
 
     async function scanMismatch() {
       const r = await rpc('admin.scanTodayStateMismatch', {}, { timeoutMs: 30000 });
-      showResult(r.ok ? '오늘 상태 불일치 검사 결과' : '오늘 상태 불일치 검사 실패', r.ok ? r.data : r);
+      showResult(r.ok ? '오늘 상태 불일치 검사 결과' : '오늘 상태 불일치 검사 실패', r.ok ? r.data : r, { jump: true });
     }
 
     async function flushCache() {
@@ -2030,7 +2037,7 @@
         pin
       });
 
-      showResult(r.ok ? '캐시 비우기 완료' : '캐시 비우기 실패', r.ok ? r.data : r);
+      showResult(r.ok ? '캐시 비우기 완료' : '캐시 비우기 실패', r.ok ? r.data : r, { jump: true });
       await loadOverview();
     }
 

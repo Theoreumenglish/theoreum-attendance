@@ -1,0 +1,120 @@
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+const root = process.cwd();
+const read = file => readFileSync(join(root, file), 'utf8');
+const files = {
+  rpc: 'api/rpc.js',
+  admin: 'public/admin.html',
+  index: 'index.html'
+};
+
+let failed = 0;
+function ok(message) {
+  console.log('OK', message);
+}
+function fail(message) {
+  failed += 1;
+  console.error('FAIL', message);
+}
+function uniq(values) {
+  return Array.from(new Set(values)).sort();
+}
+function collect(re, text, group = 1) {
+  const out = [];
+  for (const match of text.matchAll(re)) out.push(match[group]);
+  return out;
+}
+
+for (const file of Object.values(files)) {
+  if (!existsSync(join(root, file))) {
+    fail(`${file} 파일이 없습니다.`);
+  }
+}
+
+const rpcText = read(files.rpc);
+const adminText = read(files.admin);
+const indexText = read(files.index);
+const uiText = `${adminText}\n${indexText}`;
+
+const handledOps = uniq(collect(/\bop\s*={2,3}\s*['"]([^'"]+)['"]/g, rpcText));
+const uiOps = uniq([
+  ...collect(/\b(?:App\.)?rpc\s*\(\s*['"]([^'"]+)['"]/g, uiText),
+  ...collect(/\bop\s*:\s*['"]([^'"]+)['"]/g, uiText)
+]);
+
+const missingOps = uiOps.filter(op => !handledOps.includes(op));
+if (missingOps.length) {
+  fail(`UI 호출 op가 api/rpc.js에서 처리되지 않습니다: ${missingOps.join(', ')}`);
+} else {
+  ok(`UI 호출 op ${uiOps.length}개가 api/rpc.js에 모두 존재합니다.`);
+}
+
+const importedNames = new Set();
+for (const match of rpcText.matchAll(/import\s+\{([\s\S]*?)\}\s+from\s+['"][^'"]+['"]/g)) {
+  for (const part of match[1].split(',')) {
+    const name = part.trim().split(/\s+as\s+/).pop().trim();
+    if (name) importedNames.add(name);
+  }
+}
+for (const match of rpcText.matchAll(/import\s+([A-Za-z_$][\w$]*)\s+from\s+['"][^'"]+['"]/g)) {
+  importedNames.add(match[1]);
+}
+
+const localNames = new Set([
+  ...collect(/\basync\s+function\s+([A-Za-z_$][\w$]*)\s*\(/g, rpcText),
+  ...collect(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g, rpcText),
+  ...collect(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(/g, rpcText)
+]);
+
+const directCalls = uniq(collect(/\bawait\s+([A-Za-z_$][\w$]*Direct)\s*\(/g, rpcText));
+const missingDirects = directCalls.filter(name => !localNames.has(name) && !importedNames.has(name));
+if (missingDirects.length) {
+  fail(`Direct 호출 함수 정의/import 누락: ${missingDirects.join(', ')}`);
+} else {
+  ok(`Direct 호출 함수 ${directCalls.length}개가 모두 정의 또는 import되어 있습니다.`);
+}
+
+const viewIds = new Set();
+for (const match of adminText.matchAll(/<section\b[^>]*>/g)) {
+  const tag = match[0];
+  if (!/\bclass=["'][^"']*portalView/.test(tag)) continue;
+  const idMatch = tag.match(/\bid=["']([^"']+)["']/);
+  if (idMatch) viewIds.add(idMatch[1]);
+}
+const navTargets = uniq(collect(/\bdata-go(?:-link)?=["']([^"']+)["']/g, adminText));
+const missingTargets = navTargets.filter(id => !viewIds.has(id));
+if (missingTargets.length) {
+  fail(`admin.html data-go 대상 section 누락: ${missingTargets.join(', ')}`);
+} else {
+  ok(`admin.html data-go 대상 ${navTargets.length}개가 모두 section으로 존재합니다.`);
+}
+
+const attendanceTable = adminText.match(/<tbody\s+id=["']attendanceLogRows["'][\s\S]*?<\/tbody>/);
+const attendanceHeader = adminText.match(/<section\s+class=["']portalView["']\s+id=["']attendance["'][\s\S]*?<thead>([\s\S]*?)<\/thead>/);
+if (!attendanceHeader) {
+  fail('출결 로그 테이블 thead를 찾지 못했습니다.');
+} else {
+  const headerCount = collect(/<th\b/g, attendanceHeader[1], 0).length;
+  if (headerCount !== 8) {
+    fail(`출결 로그 테이블 헤더는 8칸이어야 합니다. 현재 ${headerCount}칸입니다.`);
+  } else {
+    ok('출결 로그 테이블 헤더가 8칸입니다.');
+  }
+}
+if (!attendanceTable) {
+  fail('attendanceLogRows tbody를 찾지 못했습니다.');
+} else if (!/colspan=["']8["']/.test(attendanceTable[0])) {
+  fail('attendanceLogRows 초기 빈 행 colspan이 8이 아닙니다.');
+} else {
+  ok('attendanceLogRows 초기 빈 행 colspan이 8입니다.');
+}
+
+if (failed > 0) {
+  console.error('');
+  console.error(`Contract check failed: ${failed} issue(s)`);
+  process.exit(1);
+}
+
+console.log('');
+console.log('Contract check passed.');
