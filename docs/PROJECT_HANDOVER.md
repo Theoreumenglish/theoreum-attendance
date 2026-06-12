@@ -103,3 +103,9 @@
 3. 학생 선택 후 오늘 로그, 단어 점수, 클리닉 생성 버튼이 각각 해당 화면과 필드를 자동 준비하는지 확인한다.
 4. 클리닉 프리셋 버튼이 clinic_tasks를 생성하고 Student 360에 반영되는지 확인한다.
 5. 단어시험 점수 프리셋 버튼이 word_test_results 저장과 FAIL 시 WORD_FAIL 클리닉 후보 생성을 유지하는지 확인한다.
+
+## 2026-06-12 Simple Ops UX v2
+
+The admin portal was simplified after field feedback that the previous one-click version still felt visually busy. This patch does not change the database or server API. It narrows the visible interface to the daily operating loop and adds `scripts/admin-ux-check.mjs` to prevent future UI bloat.
+
+Key rule: new features should be added behind an existing daily action, a specific student profile, or a collapsed advanced area instead of adding another always-visible button.

@@ -1240,6 +1240,228 @@
         grid-template-columns: repeat(5, 210px);
       }
     }
+
+
+    /* Simple Ops UX v2: 덜어내고, 핵심 업무만 먼저 보이게 하는 레이어 */
+    .loginWrap {
+      background: #f7f8fa;
+    }
+
+    .loginCard {
+      width: min(460px, 100%);
+      min-height: auto;
+      grid-template-columns: 1fr;
+      border-radius: 26px;
+      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.10);
+    }
+
+    .simpleLoginIntro {
+      padding: 34px 34px 10px;
+      border-right: 0;
+      background: #ffffff;
+    }
+
+    .simpleLoginIntro .loginBrand {
+      margin-bottom: 22px;
+    }
+
+    .simpleLoginIntro .loginHeadline h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: -0.055em;
+    }
+
+    .simpleLoginIntro .loginHeadline p {
+      margin-top: 8px;
+      max-width: none;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .loginForm {
+      padding: 18px 34px 34px;
+    }
+
+    .loginFormTitle,
+    .loginFormDesc {
+      display: none;
+    }
+
+    .shell {
+      grid-template-columns: 224px minmax(0, 1fr);
+    }
+
+    .side {
+      padding: 20px 14px;
+    }
+
+    .sideBrand {
+      padding-bottom: 16px;
+    }
+
+    .sideSectionLabel {
+      margin-top: 18px;
+    }
+
+    .moreNav {
+      margin: 12px 0 0;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+    }
+
+    .moreNav > summary {
+      list-style: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 950;
+      padding: 7px 8px;
+    }
+
+    .moreNav > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .moreNav > summary::after {
+      content: "⌄";
+      float: right;
+      color: var(--soft);
+    }
+
+    .moreNav[open] > summary::after {
+      content: "⌃";
+    }
+
+    .main {
+      padding: 24px 28px 38px;
+    }
+
+    .pageHeader {
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+    }
+
+    .pageDesc {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .quickDock {
+      gap: 10px;
+      padding: 14px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+    }
+
+    .quickDockMain {
+      grid-template-columns: minmax(180px, 0.75fr) minmax(300px, 1fr);
+    }
+
+    .quickSelected {
+      font-size: 15px;
+      letter-spacing: -0.025em;
+    }
+
+    .simpleQuickActions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .simpleQuickActions .quickActionBtn {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 14px;
+    }
+
+    .compactDashboard .grid4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .compactDashboard .compactOnly {
+      display: none;
+    }
+
+    .metricCard.isFocus {
+      border-color: rgba(180, 83, 9, 0.28);
+      background: #fffaf2;
+    }
+
+    .todayConsole .cardHead {
+      align-items: center;
+    }
+
+    .simpleCommandRow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .simpleCommandRow .commandButton {
+      min-height: 88px;
+      padding: 16px;
+      border-radius: 18px;
+    }
+
+    .simpleCommandRow .commandDesc {
+      margin-top: 6px;
+    }
+
+    .compactStudentActions {
+      margin-top: 16px;
+      padding: 10px;
+      border-radius: 16px;
+    }
+
+    .compactStudentActions .quickActionBtn {
+      min-width: 76px;
+    }
+
+    .compactDetails {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #ffffff;
+    }
+
+    .compactDetails > summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .compactDetails .quickPresetGrid {
+      margin-top: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .simpleQuickActions,
+      .simpleCommandRow,
+      .compactDashboard .grid4 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .loginCard {
+        width: min(420px, 100%);
+      }
+      .quickDockMain,
+      .simpleQuickActions,
+      .simpleCommandRow,
+      .compactDashboard .grid4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
   </style>
 
 </head>
@@ -1249,38 +1471,28 @@
 
   <div id="loginView" class="loginWrap hidden">
     <div class="loginCard">
-      <div class="loginIntro">
+      <div class="loginIntro simpleLoginIntro">
         <div class="loginBrand">
           <div class="brandMark">↑</div>
           <div>
             <div class="brandTitle">더오름 운영 포털</div>
-            <div class="brandSub">Operations Portal</div>
+            <div class="brandSub">Staff Login</div>
           </div>
         </div>
-
         <div class="loginHeadline">
-          <h1>오늘 운영을<br>한 화면에서 정리합니다.</h1>
-          <p>
-            출결, 학생 관리, 클리닉, 단어시험, 학부모 리포트를 연결하는 내부 운영 시스템입니다.
-            직원이 빠르게 판단하고, 모든 주요 행동은 기록으로 남기는 구조를 지향합니다.
-          </p>
+          <h1>로그인</h1>
+          <p>직원 ID와 비밀번호만 입력하세요.</p>
         </div>
-
-        <ul class="loginPoints">
-          <li>출결 이상, 미등원, QR 예외를 빠르게 확인</li>
-          <li>학생별 지원 흐름과 학부모 공유 정보를 분리</li>
-          <li>강사·조교의 현장 처리는 허용하고 감사 로그로 추적</li>
-        </ul>
       </div>
 
       <div class="loginForm">
-        <h2 class="loginFormTitle">로그인</h2>
-        <p class="loginFormDesc">관리자·강사·조교 계정으로 접속하세요.</p>
+        <h2 class="loginFormTitle">접속 정보</h2>
+        <p class="loginFormDesc">운영 계정으로 바로 들어갑니다.</p>
 
         <div class="fieldStack">
           <div>
             <div class="fieldLabel">직원 ID</div>
-            <input class="inp" id="loginId" autocomplete="username" placeholder="예: fubao" />
+            <input class="inp" id="loginId" autocomplete="username" placeholder="직원 ID" />
           </div>
           <div>
             <div class="fieldLabel">비밀번호</div>
@@ -1303,23 +1515,25 @@
         </div>
       </div>
 
-      <div class="sideSectionLabel">Main</div>
-      <nav class="sideNav" aria-label="운영 메뉴">
-        <button class="navBtn on" type="button" data-go="dashboard">홈 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="attendance">출결 <span>›</span></button>
+      <div class="sideSectionLabel">핵심 업무</div>
+      <nav class="sideNav primaryNav" aria-label="핵심 운영 메뉴">
+        <button class="navBtn on" type="button" data-go="dashboard">오늘 <span>›</span></button>
         <button class="navBtn" type="button" data-go="students">학생 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="classes">클래스 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="attendance">출결 <span>›</span></button>
         <button class="navBtn" type="button" data-go="clinic">클리닉 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="words">단어시험 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="messages">문자·알림 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="reports">학부모 리포트 <span>›</span></button>
+        <button class="navBtn" type="button" data-go="words">단어 <span>›</span></button>
       </nav>
 
-      <div class="sideSectionLabel">System</div>
-      <nav class="sideNav" aria-label="시스템 메뉴">
-        <button class="navBtn" type="button" data-go="staff">직원 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="advanced">설정·점검 <span>›</span></button>
-      </nav>
+      <details class="moreNav">
+        <summary>더 보기</summary>
+        <nav class="sideNav" aria-label="보조 메뉴">
+          <button class="navBtn" type="button" data-go="messages">문자 <span>›</span></button>
+          <button class="navBtn" type="button" data-go="classes">클래스 <span>›</span></button>
+          <button class="navBtn" type="button" data-go="reports">리포트 <span>›</span></button>
+          <button class="navBtn" type="button" data-go="staff">직원 <span>›</span></button>
+          <button class="navBtn" type="button" data-go="advanced">설정 <span>›</span></button>
+        </nav>
+      </details>
 
       <div class="sideFooter">
         <div class="userBox">
@@ -1348,141 +1562,81 @@
         <div class="quickDock" id="quickDock" aria-label="원클릭 업무 런처">
           <div class="quickDockMain">
             <div>
-              <div class="quickKicker">One-click Operations</div>
-              <div class="quickSelected" id="quickSelectedStudentText">학생 미선택 · 먼저 학생을 찾으면 대부분 업무가 자동으로 채워집니다.</div>
+              <div class="quickKicker">빠른 처리</div>
+              <div class="quickSelected" id="quickSelectedStudentText">학생을 고르면 출결·클리닉·점수 입력이 자동으로 연결됩니다.</div>
             </div>
             <div class="quickSearch">
               <input class="inp" id="quickStudentQuery" placeholder="어디서든 학생 이름/학번 검색" autocomplete="off" />
               <button class="btn btnPri" id="btnQuickStudentSearch" type="button">학생 찾기</button>
             </div>
           </div>
-          <div class="quickActions">
-            <button class="quickActionBtn primary" id="btnPulseCheck" type="button">오늘 전체 점검</button>
-            <button class="quickActionBtn warn" id="btnQuickFailedAbsent" type="button">미등원 실패</button>
-            <button class="quickActionBtn warn" id="btnQuickClinicCandidates" type="button">클리닉 후보</button>
-            <button class="quickActionBtn" id="btnQuickWordToday" type="button">오늘 단어시험</button>
-            <button class="quickActionBtn" id="btnQuickStudentLogs" type="button">선택학생 로그</button>
-            <button class="quickActionBtn good" id="btnQuickStudentClinic" type="button">선택학생 클리닉</button>
-            <button class="quickActionBtn" id="btnQuickWordInput" type="button">선택학생 점수</button>
+          <div class="quickActions simpleQuickActions">
+            <button class="quickActionBtn primary" id="btnPulseCheck" type="button">오늘 점검</button>
+            <button class="quickActionBtn" id="btnQuickStudentLogs" type="button">출결 보기</button>
+            <button class="quickActionBtn good" id="btnQuickStudentClinic" type="button">클리닉 만들기</button>
+            <button class="quickActionBtn" id="btnQuickWordInput" type="button">점수 입력</button>
           </div>
         </div>
 
-        <section class="portalView active" id="dashboard" data-view-title="홈" data-view-desc="오늘 운영 상태와 우선 처리할 업무만 간단히 확인합니다.">
-          <div class="grid">
-            <div class="grid4">
+        <section class="portalView active" id="dashboard" data-view-title="오늘" data-view-desc="오늘 처리할 일만 봅니다.">
+          <div class="grid compactDashboard">
+            <div class="grid4 slimMetrics">
               <div class="metricCard">
                 <div class="metricLabel">중앙DB</div>
                 <div class="metricValue" id="statReplica">-</div>
                 <div class="metricNote" id="statReplicaNote">조회 전</div>
               </div>
-              <div class="metricCard">
+              <div class="metricCard isFocus">
                 <div class="metricLabel">미등원 실패</div>
                 <div class="metricValue" id="statFailedAbsent">-</div>
-                <div class="metricNote">FAILED ABSENT</div>
+                <div class="metricNote">처리 필요</div>
               </div>
               <div class="metricCard">
                 <div class="metricLabel">등하원 실패</div>
                 <div class="metricValue" id="statFailedAttendance">-</div>
-                <div class="metricNote">FAILED ATTENDANCE</div>
+                <div class="metricNote">문자/알림</div>
               </div>
               <div class="metricCard">
                 <div class="metricLabel">점검 모드</div>
                 <div class="metricValue" id="statSafe">-</div>
                 <div class="metricNote" id="statSafeNote">runtime_config</div>
               </div>
-              <div class="metricCard" id="cardAbsenceCron">
-                <div class="metricLabel">미등원 감지 cron</div>
+              <div class="metricCard compactOnly" id="cardAbsenceCron">
+                <div class="metricLabel">미등원 cron</div>
                 <div class="metricValue" id="statAbsenceCron">-</div>
                 <div class="metricNote" id="statAbsenceCronNote">실행 기록 조회 전</div>
               </div>
-              <div class="metricCard" id="cardWorkerCron">
-                <div class="metricLabel">문자 worker cron</div>
+              <div class="metricCard compactOnly" id="cardWorkerCron">
+                <div class="metricLabel">문자 worker</div>
                 <div class="metricValue" id="statWorkerCron">-</div>
                 <div class="metricNote" id="statWorkerCronNote">실행 기록 조회 전</div>
               </div>
             </div>
 
-            <div class="card cardPad">
+            <div class="card cardPad todayConsole">
               <div class="cardHead">
                 <div>
-                  <div class="sectionTitle">딸깍 업무 처리 보드</div>
-                  <div class="sectionDesc">자주 하는 업무를 입력 최소화 버튼으로 묶었습니다. 누르면 필요한 메뉴로 이동하고 날짜·학생·필터를 자동 채웁니다.</div>
+                  <div class="sectionTitle">오늘 할 일</div>
+                  <div class="sectionDesc">자주 쓰는 버튼만 남겼습니다. 점검 → 실패 처리 → 클리닉 후보 → 단어시험 순서로 보면 됩니다.</div>
                 </div>
-                <span class="statusPill good">원클릭</span>
+                <button class="btn btnPri" id="btnCommandPulse" type="button">전체 점검</button>
               </div>
-              <div class="commandGrid">
-                <button class="commandButton" id="btnCommandPulse" type="button">
-                  <span class="commandBadge">전체</span>
-                  <span class="commandTitle">오늘 전체 점검</span>
-                  <span class="commandDesc">운영 요약, 실패 큐, 클리닉 후보, 오늘 단어시험을 한 번에 새로고침</span>
-                </button>
+              <div class="simpleCommandRow">
                 <button class="commandButton" id="btnCommandAbsent" type="button">
-                  <span class="commandBadge">문자</span>
-                  <span class="commandTitle">미등원 실패만 보기</span>
-                  <span class="commandDesc">FAILED + ABSENT 필터를 자동 설정하고 문자 큐로 이동</span>
+                  <span class="commandTitle">미등원 실패</span>
+                  <span class="commandDesc">실패 문자만 바로 확인</span>
                 </button>
                 <button class="commandButton" id="btnCommandClinic" type="button">
-                  <span class="commandBadge">개입</span>
-                  <span class="commandTitle">클리닉 후보 처리</span>
-                  <span class="commandDesc">CANDIDATE 목록을 바로 열고 상태 변경부터 처리</span>
+                  <span class="commandTitle">클리닉 후보</span>
+                  <span class="commandDesc">처리 대기 학생만 보기</span>
                 </button>
                 <button class="commandButton" id="btnCommandWord" type="button">
-                  <span class="commandBadge">시험</span>
                   <span class="commandTitle">오늘 단어시험</span>
-                  <span class="commandDesc">오늘 날짜 회차 조회 후 선택 학생 점수 입력으로 연결</span>
+                  <span class="commandDesc">회차 조회 후 점수 입력</span>
                 </button>
               </div>
-              <div class="actionLog" id="quickActionLog" style="margin-top:14px;">아직 실행한 원클릭 업무가 없습니다.</div>
-            </div>
-
-            <div class="grid2">
-              <div class="card cardPad">
-                <div class="cardHead">
-                  <div>
-                    <div class="sectionTitle">오늘 처리 흐름</div>
-                    <div class="sectionDesc">홈에는 설명을 많이 넣지 않고, 오늘 확인할 업무만 남겼습니다.</div>
-                  </div>
-                </div>
-                <div class="taskList">
-                  <div class="taskItem">
-                    <div class="taskIcon">1</div>
-                    <div>
-                      <div class="taskTitle">출결 이상 확인</div>
-                      <div class="taskDesc">미등원 실패, 등하원 실패, 상태 불일치를 확인합니다.</div>
-                    </div>
-                  </div>
-                  <div class="taskItem">
-                    <div class="taskIcon">2</div>
-                    <div>
-                      <div class="taskTitle">현장 처리 기록화</div>
-                      <div class="taskDesc">수동 정정, 문자, QR 예외, 메모는 감사 로그 대상입니다.</div>
-                    </div>
-                  </div>
-                  <div class="taskItem">
-                    <div class="taskIcon">3</div>
-                    <div>
-                      <div class="taskTitle">개입 후보 관리</div>
-                      <div class="taskDesc">단어 불통과와 미완료 클리닉을 학생 지원 workflow로 연결합니다.</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card cardPad">
-                <div class="sectionTitle">운영 요약</div>
-                <div class="sectionDesc" id="overviewText">아직 불러오지 않았습니다.</div>
-                <div class="tagRow" style="margin-top:18px;">
-                  <span class="tag tagGood">Information Flow</span>
-                  <span class="tag">Accountability</span>
-                  <span class="tag">Intervention</span>
-                  <span class="tag">Parent Report</span>
-                </div>
-                <div class="btnRow" style="margin-top:20px;">
-                  <button class="btn btnPri" type="button" data-go-link="attendance">출결 확인</button>
-                  <button class="btn btnGhost" type="button" data-go-link="students">학생 검색</button>
-                  <button class="btn btnGhost" type="button" data-go-link="reports">리포트 보기</button>
-                </div>
-              </div>
+              <div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
+              <div class="sectionDesc" id="overviewText" style="margin-top:12px;">아직 불러오지 않았습니다.</div>
             </div>
           </div>
         </section>
@@ -1631,15 +1785,15 @@
                 <button class="btn btnGhost" id="btnReloadStudentProfile" type="button">프로필 새로고침</button>
                 <button class="btn btnGhost" id="btnFillManualFromStudent" type="button">정정 폼에 학번 넣기</button>
               </div>
-              <div class="stickyStudentBar" id="studentOneClickBar">
-                <strong>선택 학생 원클릭</strong>
+              <div class="stickyStudentBar compactStudentActions" id="studentOneClickBar">
+                <strong>선택 학생 처리</strong>
                 <button class="quickActionBtn" id="btnStudentLogsOneClick" type="button">오늘 로그</button>
-                <button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">단어 점수</button>
-                <button class="quickActionBtn warn" id="btnStudentClinicOneClick" type="button">클리닉 생성</button>
-                <button class="quickActionBtn" id="btnStudentReportOneClick" type="button">리포트 보기</button>
+                <button class="quickActionBtn warn" id="btnStudentClinicOneClick" type="button">클리닉</button>
+                <button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">점수</button>
+                <button class="quickActionBtn" id="btnStudentReportOneClick" type="button">리포트</button>
               </div>
-              <div class="presetPanel">
-                <div class="presetPanelTitle">클리닉 프리셋 · 학생 선택 후 한 번 클릭하면 바로 생성</div>
+              <details class="presetPanel compactDetails">
+                <summary>클리닉 프리셋</summary>
                 <div class="quickPresetGrid">
                   <button class="quickActionBtn warn" type="button" data-quick-clinic="WORD_RETEST">단어 재시험</button>
                   <button class="quickActionBtn" type="button" data-quick-clinic="READING_REVIEW">독해 오답</button>
@@ -1647,7 +1801,7 @@
                   <button class="quickActionBtn" type="button" data-quick-clinic="ATTENDANCE_CHECK">출결 상담</button>
                   <button class="quickActionBtn" type="button" data-quick-clinic="MAKEUP_CLASS">보강 필요</button>
                 </div>
-              </div>
+              </details>
             </div>
           </div>
 
@@ -2527,7 +2681,7 @@
       if (quickText) {
         quickText.textContent = App.selectedStudent && App.selectedStudent.student_id
           ? `${label} · 원클릭 업무 준비 완료`
-          : '학생 미선택 · 먼저 학생을 찾으면 대부분 업무가 자동으로 채워집니다.';
+          : '학생을 고르면 출결·클리닉·점수 입력이 자동으로 연결됩니다.';
       }
       const selected = $('#selectedStudent');
       if (selected && App.selectedStudent && App.selectedStudent.student_id) {

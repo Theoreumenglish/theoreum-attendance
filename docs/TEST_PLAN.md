@@ -160,3 +160,22 @@ scripts/smoke-test.mjs
 7. 단어시험 회차 선택 + 학생 선택 후 80점 저장 버튼을 눌러 FAIL 결과와 WORD_FAIL 클리닉 후보가 생성되는지 확인한다.
 8. 문자·알림 화면에서 미등원 실패/등하원 실패 필터 버튼이 상태와 종류를 자동 설정하는지 확인한다.
 9. `npm run verify`에서 중복 id 검사와 원클릭 업무 필수 id/함수 검사가 통과하는지 확인한다.
+
+## Simple Ops UX v2 checks
+
+Run before deployment:
+
+```powershell
+npm run verify
+```
+
+`verify` now includes `npm run ux-check` in addition to syntax, contract, and build checks.
+
+Manual smoke test:
+
+1. Login screen shows only brand, employee ID, password, and login button.
+2. Primary side menu shows only 5 core items.
+3. Secondary menus are under `더 보기`.
+4. Top quick dock has student search plus four action buttons.
+5. Dashboard has at most four buttons and no explanatory marketing board.
+6. Select a student and confirm attendance, clinic, and word-score workflows are auto-filled.
