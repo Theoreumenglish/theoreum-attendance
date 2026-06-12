@@ -97,6 +97,14 @@ if (missingTargets.length) {
   ok(`admin.html data-go 대상 ${navTargets.length}개가 모두 section으로 존재합니다.`);
 }
 
+const adminIds = collect(/\bid=["']([^"']+)["']/g, adminText);
+const duplicateAdminIds = uniq(adminIds.filter((id, idx) => adminIds.indexOf(id) !== idx));
+if (duplicateAdminIds.length) {
+  fail(`admin.html 중복 id가 있습니다: ${duplicateAdminIds.join(', ')}`);
+} else {
+  ok(`admin.html id ${adminIds.length}개가 중복 없이 구성되어 있습니다.`);
+}
+
 const attendanceTable = adminText.match(/<tbody\s+id=["']attendanceLogRows["'][\s\S]*?<\/tbody>/);
 const attendanceHeader = adminText.match(/<section\s+class=["']portalView["']\s+id=["']attendance["'][\s\S]*?<thead>([\s\S]*?)<\/thead>/);
 if (!attendanceHeader) {
@@ -156,6 +164,45 @@ if (missingAdminIds.length) {
   fail(`admin.html 운영 관측성/클래스 필수 id 누락: ${missingAdminIds.join(', ')}`);
 } else {
   ok(`admin.html 운영 관측성/클래스 필수 id ${requiredAdminIds.length}개가 모두 존재합니다.`);
+}
+
+const requiredOneClickIds = [
+  'quickDock',
+  'quickSelectedStudentText',
+  'quickStudentQuery',
+  'btnQuickStudentSearch',
+  'btnPulseCheck',
+  'btnCommandPulse',
+  'btnCommandAbsent',
+  'btnCommandClinic',
+  'btnCommandWord',
+  'quickActionLog',
+  'studentOneClickBar',
+  'btnStudentLogsOneClick',
+  'btnStudentClinicOneClick',
+  'btnStudentWordOneClick'
+];
+const missingOneClickIds = requiredOneClickIds.filter(id => !adminText.includes(`id="${id}"`) && !adminText.includes(`id='${id}'`));
+if (missingOneClickIds.length) {
+  fail(`admin.html 원클릭 업무 UI id 누락: ${missingOneClickIds.join(', ')}`);
+} else {
+  ok(`admin.html 원클릭 업무 UI id ${requiredOneClickIds.length}개가 모두 존재합니다.`);
+}
+
+const requiredOneClickFunctions = [
+  'runTodayPulse',
+  'quickStudentSearch',
+  'quickStudentLogs',
+  'createQuickClinicTask',
+  'quickSaveWordScore',
+  'applyNotifyFilter',
+  'applyClinicFilter'
+];
+const missingOneClickFunctions = requiredOneClickFunctions.filter(name => !adminText.includes(`function ${name}`) && !adminText.includes(`async function ${name}`));
+if (missingOneClickFunctions.length) {
+  fail(`admin.html 원클릭 업무 함수 누락: ${missingOneClickFunctions.join(', ')}`);
+} else {
+  ok(`admin.html 원클릭 업무 함수 ${requiredOneClickFunctions.length}개가 모두 존재합니다.`);
 }
 
 const requiredAdminOps = [

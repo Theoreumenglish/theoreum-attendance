@@ -91,3 +91,15 @@
 - 단어시험 결과가 FAIL이면 기본값으로 `clinic_tasks`에 `source_type = WORD_FAIL` 후보가 자동 생성된다.
 - 내부 메모와 학부모 공개 메모는 각각 `internal_note`, `parent_note`, `parent_visible`로 분리한다.
 - 중앙DB GAS는 이 단계에서 수정하지 않는다. 운영 흐름 검증 후 Google Sheets SSOT/replica 확장을 별도로 진행한다.
+
+## 2026-06-12 One-click Operations UX v1
+
+최신 관리자 포털은 원클릭 업무 런처를 중심으로 이동한다. 상단 quickDock은 모든 화면에서 유지되며, 선택 학생과 연결된 주요 업무를 즉시 실행한다.
+
+주요 확인 포인트:
+
+1. 학생 검색 후 quickSelectedStudentText가 선택 학생으로 바뀌는지 확인한다.
+2. 오늘 전체 점검 버튼이 overview, 문자 queue, 클리닉 후보, 오늘 단어시험을 순차 조회하는지 확인한다.
+3. 학생 선택 후 오늘 로그, 단어 점수, 클리닉 생성 버튼이 각각 해당 화면과 필드를 자동 준비하는지 확인한다.
+4. 클리닉 프리셋 버튼이 clinic_tasks를 생성하고 Student 360에 반영되는지 확인한다.
+5. 단어시험 점수 프리셋 버튼이 word_test_results 저장과 FAIL 시 WORD_FAIL 클리닉 후보 생성을 유지하는지 확인한다.
