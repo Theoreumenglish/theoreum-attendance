@@ -100,3 +100,17 @@
 | `admin.getStaffDailyDetail` | admin 이상 | 특정 직원의 월간 일별 근무 상세 조회 | 직원 화면에서 사용 |
 | `admin.listNotifyQueue` | admin 이상 | 문자 queue 상태별 조회 | 문자·알림 화면에서 사용 |
 | `admin.retryNotifyQueue` | admin 이상 + PIN | FAILED/PROCESSING queue 재처리 | 문자·알림 화면에서 사용 |
+
+## 2026-06-12 Clinic / Word / Audit Schema v1 추가 op
+
+| op | 권한 | 목적 | 비고 |
+| --- | --- | --- | --- |
+| `clinic.listTasks` | assistant 이상 | 상태/학생/반 기준 클리닉 task 조회 | 클리닉 화면 및 Student 360 검수에 사용 |
+| `clinic.createTask` | assistant 이상 | 선택 학생에게 클리닉 task 생성 | 내부 메모와 학부모 공개 메모 분리 |
+| `clinic.updateTaskStatus` | assistant 이상 | 클리닉 상태 변경 | CANDIDATE/PENDING/IN_PROGRESS/DONE/PARTIAL/REJECTED/CANCELLED |
+| `wordTest.listSessions` | assistant 이상 | 단어시험 회차 조회 | 날짜/반 필터 지원 |
+| `wordTest.createSession` | assistant 이상 | 단어시험 회차 생성 | 범위, 기준점수, 만점 저장 |
+| `wordTest.enterResult` | assistant 이상 | 학생별 단어시험 결과 저장 | 불통과 시 `clinic_tasks`에 WORD_FAIL 후보 자동 생성 |
+| `audit.searchLogs` | admin 이상 | 운영 감사 로그 조회 | `portal_audit_logs` 기반 |
+
+이번 단계는 Supabase runtime-first 패치다. 중앙DB GAS/Google Sheets SSOT 확장은 실제 운영 흐름을 검증한 뒤 별도 bridge/replica 패치로 진행한다.

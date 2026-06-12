@@ -83,3 +83,11 @@
 - 문자·알림 화면은 `attendance_notify_queue` 조회와 실패 큐 재처리를 직접 제공한다. 재처리는 관리자 PIN을 요구한다.
 - 직원 화면은 `staff_monthly`, `staff_daily` 기반 월간/일별 근무 조회 화면으로 전환한다.
 - 클리닉, 단어시험, 리포트 화면은 DB 쓰기 전 단계로 운영 흐름과 스키마 방향을 UI에 고정한다.
+
+### 2026-06-12 Clinic / Word / Audit Schema v1 운영 기준
+- SQL 파일 `docs/supabase-clinic-word-report-schema-v1.sql`을 Supabase SQL Editor에서 먼저 실행해야 한다.
+- 앱 배포 전에 SQL이 실행되지 않으면 `clinic_tasks`, `word_test_sessions`, `portal_audit_logs` relation missing 오류가 발생한다.
+- `clinic.createTask`, `clinic.updateTaskStatus`, `wordTest.createSession`, `wordTest.enterResult`는 Supabase runtime table에 먼저 기록한다.
+- 단어시험 결과가 FAIL이면 기본값으로 `clinic_tasks`에 `source_type = WORD_FAIL` 후보가 자동 생성된다.
+- 내부 메모와 학부모 공개 메모는 각각 `internal_note`, `parent_note`, `parent_visible`로 분리한다.
+- 중앙DB GAS는 이 단계에서 수정하지 않는다. 운영 흐름 검증 후 Google Sheets SSOT/replica 확장을 별도로 진행한다.

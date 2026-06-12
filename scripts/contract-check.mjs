@@ -9,7 +9,8 @@ const files = {
   index: 'index.html',
   absentCron: 'api/absent-run-cron.js',
   notifyWorker: 'api/attendance-notify-worker.js',
-  vercel: 'vercel.json'
+  vercel: 'vercel.json',
+  clinicWordSchema: 'docs/supabase-clinic-word-report-schema-v1.sql'
 };
 
 let failed = 0;
@@ -133,7 +134,22 @@ const requiredAdminIds = [
   'btnRetryNotifyQueue',
   'staffMonthlyRows',
   'staffDailyRows',
-  'btnLoadStaffMonthly'
+  'btnLoadStaffMonthly',
+  'studentProfileClinicRows',
+  'studentProfileWordRows',
+  'clinicStudentLabel',
+  'clinicTitle',
+  'clinicTaskRows',
+  'btnCreateClinicTask',
+  'btnLoadClinicTasks',
+  'wordSessionTitle',
+  'wordSessionRows',
+  'wordResultSessionId',
+  'wordResultStudentId',
+  'btnCreateWordSession',
+  'btnListWordSessions',
+  'btnEnterWordResult',
+  'wordResultBox'
 ];
 const missingAdminIds = requiredAdminIds.filter(id => !adminText.includes(`id="${id}"`) && !adminText.includes(`id='${id}'`));
 if (missingAdminIds.length) {
@@ -151,7 +167,13 @@ const requiredAdminOps = [
   'admin.getStaffMonthlySummary',
   'admin.getStaffDailyDetail',
   'admin.listNotifyQueue',
-  'admin.retryNotifyQueue'
+  'admin.retryNotifyQueue',
+  'clinic.listTasks',
+  'clinic.createTask',
+  'clinic.updateTaskStatus',
+  'wordTest.listSessions',
+  'wordTest.createSession',
+  'wordTest.enterResult'
 ];
 const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
 if (missingAdminOps.length) {
@@ -165,6 +187,35 @@ if (!rpcText.includes("op === 'assistant.getStudentProfile'") || !rpcText.includ
   fail('assistant.getStudentProfile op 또는 assistantGetStudentProfileDirect 함수가 누락되었습니다.');
 } else {
   ok('assistant.getStudentProfile 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'clinic.listTasks'") || !rpcText.includes('clinicListTasksDirect')) {
+  fail('clinic.listTasks op 또는 clinicListTasksDirect 함수가 누락되었습니다.');
+} else {
+  ok('clinic.listTasks 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'wordTest.enterResult'") || !rpcText.includes('wordTestEnterResultDirect')) {
+  fail('wordTest.enterResult op 또는 wordTestEnterResultDirect 함수가 누락되었습니다.');
+} else {
+  ok('wordTest.enterResult 서버 op가 존재합니다.');
+}
+
+const schemaText = read(files.clinicWordSchema);
+const requiredSchemaTables = [
+  'clinic_tasks',
+  'clinic_logs',
+  'word_test_sessions',
+  'word_test_results',
+  'portal_audit_logs',
+  'report_snapshots',
+  'report_links'
+];
+const missingSchemaTables = requiredSchemaTables.filter(name => !schemaText.includes(`create table if not exists public.${name}`));
+if (missingSchemaTables.length) {
+  fail(`clinic-word-report schema 테이블 누락: ${missingSchemaTables.join(', ')}`);
+} else {
+  ok(`clinic-word-report schema 필수 테이블 ${requiredSchemaTables.length}개가 모두 있습니다.`);
 }
 
 if (absentCronText.includes('attendance-notify-queue.js') || absentCronText.includes('runAttendanceNotifyWorker')) {

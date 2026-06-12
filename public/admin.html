@@ -1480,6 +1480,62 @@
                 </tbody>
               </table>
             </div>
+
+
+          <div class="grid2" style="margin-top:18px;">
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">최근 클리닉</div>
+                  <div class="sectionDesc">선택 학생의 클리닉 후보/진행/완료 기록입니다.</div>
+                </div>
+                <button class="btn btnGhost" type="button" data-go-link="clinic">클리닉 화면</button>
+              </div>
+              <div class="tableWrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>상태</th>
+                      <th>제목</th>
+                      <th>유형</th>
+                      <th>우선</th>
+                      <th>수정</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentProfileClinicRows">
+                    <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">최근 단어시험</div>
+                  <div class="sectionDesc">선택 학생의 최근 단어시험 결과와 연결된 클리닉 후보입니다.</div>
+                </div>
+                <button class="btn btnGhost" type="button" data-go-link="words">단어시험 화면</button>
+              </div>
+              <div class="tableWrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>날짜</th>
+                      <th>시험</th>
+                      <th>점수</th>
+                      <th>결과</th>
+                      <th>클리닉</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentProfileWordRows">
+                    <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           </div>
         </section>
         <section class="portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 수강생, 담당 선생님을 조회하고 roster를 빠르게 확인합니다.">
@@ -1558,53 +1614,266 @@
           </div>
         </section>
 
-        <section class="portalView" id="clinic" data-view-title="클리닉" data-view-desc="수업·개별·추가·단어 클리닉을 intervention workflow로 관리합니다.">
-          <div class="grid">
+        <section class="portalView" id="clinic" data-view-title="클리닉" data-view-desc="클리닉 후보, 확정, 진행, 완료를 실제 데이터로 관리합니다.">
+          <div class="grid2">
             <div class="card cardPad">
               <div class="cardHead">
                 <div>
-                  <div class="sectionTitle">클리닉 보드 v1 설계</div>
-                  <div class="sectionDesc">아직 DB write는 붙이지 않고, 실제 운영 흐름에 맞는 상태 체계부터 고정합니다.</div>
+                  <div class="sectionTitle">클리닉 생성</div>
+                  <div class="sectionDesc">학생 검색에서 선택한 학생에게 수업·단어·과제·출결 클리닉을 생성합니다.</div>
                 </div>
-                <div class="tagRow">
-                  <span class="tag tagWarn">다음 DB 작업 예정</span>
-                  <span class="tag">학부모 공개 분리</span>
+                <span class="statusPill good">DB 연결</span>
+              </div>
+              <div class="formGrid cols3" style="margin-top:16px;">
+                <div>
+                  <div class="fieldLabel">선택 학생</div>
+                  <input class="inp" id="clinicStudentLabel" disabled placeholder="학생 화면에서 선택" />
+                </div>
+                <div>
+                  <div class="fieldLabel">유형</div>
+                  <select class="select" id="clinicTaskType">
+                    <option value="GENERAL">일반</option>
+                    <option value="WORD">단어</option>
+                    <option value="GRAMMAR">문법</option>
+                    <option value="READING">독해</option>
+                    <option value="WRITING">라이팅</option>
+                    <option value="ATTENDANCE">출결</option>
+                    <option value="HOMEWORK">숙제</option>
+                    <option value="MAKEUP">보강</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="fieldLabel">우선순위</div>
+                  <select class="select" id="clinicPriority">
+                    <option value="NORMAL">보통</option>
+                    <option value="HIGH">높음</option>
+                    <option value="URGENT">긴급</option>
+                    <option value="LOW">낮음</option>
+                  </select>
                 </div>
               </div>
-              <div class="board">
-                <div class="boardCol"><div class="boardTitle">후보</div><div class="boardDesc">단어 불통과, 미완료, 결석, 지각 반복에서 자동 후보 생성</div></div>
-                <div class="boardCol"><div class="boardTitle">대기</div><div class="boardDesc">직원이 확인하고 실제 클리닉으로 확정</div></div>
-                <div class="boardCol"><div class="boardTitle">진행중</div><div class="boardDesc">학생이 수행 중인 개별/공통 클리닉</div></div>
-                <div class="boardCol"><div class="boardTitle">완료</div><div class="boardDesc">완료 시각, 담당자, 공개 메모 저장</div></div>
-                <div class="boardCol"><div class="boardTitle">반려/부분완료</div><div class="boardDesc">사유 메모 필수, 다음 조치 연결</div></div>
+              <div style="margin-top:14px;">
+                <div class="fieldLabel">제목</div>
+                <input class="inp" id="clinicTitle" placeholder="예: Day 12 단어 재시험 / 6월 2주차 독해 오답" />
+              </div>
+              <div class="formGrid cols2" style="margin-top:14px;">
+                <div>
+                  <div class="fieldLabel">마감일</div>
+                  <input class="inp" id="clinicDueDate" type="date" />
+                </div>
+                <div>
+                  <div class="fieldLabel">학부모 공개</div>
+                  <select class="select" id="clinicParentVisible">
+                    <option value="N">비공개</option>
+                    <option value="Y">공개</option>
+                  </select>
+                </div>
+              </div>
+              <div class="formGrid cols2" style="margin-top:14px;">
+                <div>
+                  <div class="fieldLabel">내부 메모</div>
+                  <textarea class="textarea" id="clinicInternalNote" placeholder="직원만 보는 조치 메모"></textarea>
+                </div>
+                <div>
+                  <div class="fieldLabel">학부모 공개 메모</div>
+                  <textarea class="textarea" id="clinicParentNote" placeholder="공개로 선택한 경우 학부모 리포트에 들어갈 문구"></textarea>
+                </div>
+              </div>
+              <div class="btnRow" style="margin-top:16px;">
+                <button class="btn btnPri" id="btnCreateClinicTask" type="button">클리닉 생성</button>
+                <button class="btn btnGhost" type="button" data-go-link="students">학생 선택으로 이동</button>
               </div>
             </div>
-            <div class="grid3">
-              <div class="metricCard"><div class="metricLabel">DB 예정 테이블</div><div class="metricValue">clinic_tasks</div><div class="metricNote">후보/확정/완료 상태 관리</div></div>
-              <div class="metricCard"><div class="metricLabel">공개 메모</div><div class="metricValue">parent</div><div class="metricNote">학부모 공개용 별도 필드</div></div>
-              <div class="metricCard"><div class="metricLabel">내부 메모</div><div class="metricValue">staff</div><div class="metricNote">직원 전용 조치 기록</div></div>
+
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">클리닉 조회</div>
+                  <div class="sectionDesc">상태별 task를 조회하고 바로 상태를 변경합니다.</div>
+                </div>
+                <span class="statusPill warn">상태 관리</span>
+              </div>
+              <div class="formGrid cols3" style="margin-top:16px;">
+                <div>
+                  <div class="fieldLabel">상태</div>
+                  <select class="select" id="clinicStatusFilter">
+                    <option value="CANDIDATE">후보</option>
+                    <option value="PENDING">대기</option>
+                    <option value="IN_PROGRESS">진행중</option>
+                    <option value="DONE">완료</option>
+                    <option value="PARTIAL">부분완료</option>
+                    <option value="REJECTED">반려</option>
+                    <option value="CANCELLED">취소</option>
+                    <option value="">전체</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="fieldLabel">학생 필터</div>
+                  <input class="inp" id="clinicStudentFilter" placeholder="비우면 전체" />
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn btnPri" id="btnLoadClinicTasks" type="button" style="width:100%;">클리닉 조회</button>
+                </div>
+              </div>
+              <div class="emptyPanel" style="margin-top:16px;">
+                <h3>운영 흐름</h3>
+                <p>단어시험 불통과는 자동으로 CANDIDATE 후보가 됩니다. 직원이 확인 후 PENDING 또는 IN_PROGRESS로 넘기면 됩니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card cardPad" style="margin-top:18px;">
+            <div class="cardHead">
+              <div>
+                <div class="sectionTitle">클리닉 목록</div>
+                <div class="sectionDesc" id="clinicTaskSummary">조회 전입니다.</div>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>상태</th>
+                    <th>학생</th>
+                    <th>제목</th>
+                    <th>유형</th>
+                    <th>우선</th>
+                    <th>마감</th>
+                    <th>공개</th>
+                    <th>변경</th>
+                  </tr>
+                </thead>
+                <tbody id="clinicTaskRows">
+                  <tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
-        <section class="portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 결과를 performance data로 저장하고 클리닉 후보와 연결합니다.">
+
+        <section class="portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 회차와 결과를 저장하고 불통과자를 클리닉 후보로 자동 연결합니다.">
           <div class="grid2">
             <div class="card cardPad">
-              <div class="sectionTitle">단어시험 입력 v1 설계</div>
-              <div class="sectionDesc">점수, 범위, 통과 여부, 미제출 여부를 저장하고 불통과자는 클리닉 후보로 보냅니다.</div>
-              <div class="formGrid cols3" style="margin-top:16px; opacity:.72;">
-                <div><div class="fieldLabel">학생</div><input class="inp" disabled placeholder="Student 360에서 선택 예정" /></div>
-                <div><div class="fieldLabel">점수</div><input class="inp" disabled placeholder="예: 86" /></div>
-                <div><div class="fieldLabel">결과</div><select class="select" disabled><option>통과/불통과</option></select></div>
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">시험 회차 생성</div>
+                  <div class="sectionDesc">날짜, 범위, 통과 기준을 저장합니다. 반 ID는 선택 입력입니다.</div>
+                </div>
+                <span class="statusPill good">word_test_sessions</span>
+              </div>
+              <div class="formGrid cols3" style="margin-top:16px;">
+                <div>
+                  <div class="fieldLabel">날짜</div>
+                  <input class="inp" id="wordSessionYmd" inputmode="numeric" placeholder="YYYYMMDD" />
+                </div>
+                <div>
+                  <div class="fieldLabel">반 ID</div>
+                  <input class="inp" id="wordClassId" placeholder="선택" />
+                </div>
+                <div>
+                  <div class="fieldLabel">통과/만점</div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <input class="inp" id="wordPassScore" inputmode="decimal" value="90" />
+                    <input class="inp" id="wordMaxScore" inputmode="decimal" value="100" />
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:14px;">
+                <div class="fieldLabel">제목</div>
+                <input class="inp" id="wordSessionTitle" placeholder="예: 6월 2주차 누적 단어시험" />
+              </div>
+              <div style="margin-top:14px;">
+                <div class="fieldLabel">범위</div>
+                <textarea class="textarea" id="wordScopeText" placeholder="예: Day 12~15 / 수특라이트 6강"></textarea>
+              </div>
+              <div class="btnRow" style="margin-top:16px;">
+                <button class="btn btnPri" id="btnCreateWordSession" type="button">회차 생성</button>
+                <button class="btn btnGhost" id="btnListWordSessions" type="button">회차 조회</button>
               </div>
             </div>
+
             <div class="card cardPad">
-              <div class="sectionTitle">Performance Data 흐름</div>
-              <div class="sectionDesc">단어시험을 단순 점수표가 아니라 학생 개입 workflow의 trigger로 사용합니다.</div>
-              <div class="taskList" style="margin-top:16px;">
-                <div class="taskItem"><div class="taskIcon">W</div><div><div class="taskTitle">word_tests</div><div class="taskDesc">시험 범위, 점수, 통과 여부 저장</div></div></div>
-                <div class="taskItem"><div class="taskIcon">C</div><div><div class="taskTitle">clinic_candidates</div><div class="taskDesc">불통과/미제출 시 클리닉 후보 생성</div></div></div>
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">점수 입력</div>
+                  <div class="sectionDesc">불통과 저장 시 clinic_tasks에 WORD_FAIL 후보가 자동 생성됩니다.</div>
+                </div>
+                <span class="statusPill warn">자동 후보</span>
+              </div>
+              <div class="formGrid cols2" style="margin-top:16px;">
+                <div>
+                  <div class="fieldLabel">회차 ID</div>
+                  <input class="inp" id="wordResultSessionId" placeholder="회차 목록에서 선택" />
+                </div>
+                <div>
+                  <div class="fieldLabel">학생 ID</div>
+                  <input class="inp" id="wordResultStudentId" placeholder="학생 선택 시 자동" />
+                </div>
+              </div>
+              <div class="formGrid cols3" style="margin-top:14px;">
+                <div>
+                  <div class="fieldLabel">점수</div>
+                  <input class="inp" id="wordScore" inputmode="decimal" placeholder="예: 86" />
+                </div>
+                <div>
+                  <div class="fieldLabel">결과</div>
+                  <select class="select" id="wordResultStatus">
+                    <option value="">점수로 자동 판정</option>
+                    <option value="PASS">통과</option>
+                    <option value="FAIL">불통과</option>
+                    <option value="ABSENT">미응시</option>
+                    <option value="EXEMPT">면제</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="fieldLabel">클리닉 후보</div>
+                  <select class="select" id="wordCreateClinic">
+                    <option value="Y">불통과 시 생성</option>
+                    <option value="N">생성 안 함</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:14px;">
+                <div class="fieldLabel">메모</div>
+                <textarea class="textarea" id="wordResultNote" placeholder="예: 철자 실수 많음 / 재시험 필요"></textarea>
+              </div>
+              <div class="btnRow" style="margin-top:16px;">
+                <button class="btn btnPri" id="btnEnterWordResult" type="button">결과 저장</button>
+                <button class="btn btnGhost" type="button" data-go-link="students">학생 선택</button>
               </div>
             </div>
+          </div>
+
+          <div class="card cardPad" style="margin-top:18px;">
+            <div class="cardHead">
+              <div>
+                <div class="sectionTitle">단어시험 회차 목록</div>
+                <div class="sectionDesc" id="wordSessionSummary">조회 전입니다.</div>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>제목</th>
+                    <th>반</th>
+                    <th>범위</th>
+                    <th>기준</th>
+                    <th>선택</th>
+                  </tr>
+                </thead>
+                <tbody id="wordSessionRows">
+                  <tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card cardPad" style="margin-top:18px;">
+            <div class="sectionTitle">최근 저장 결과</div>
+            <div class="sectionDesc" id="wordResultSummary">결과 저장 후 여기에 표시됩니다.</div>
+            <div class="mono" id="wordResultBox" style="margin-top:14px;">아직 저장된 결과가 없습니다.</div>
           </div>
         </section>
         <section class="portalView" id="messages" data-view-title="문자·알림" data-view-desc="미등원, 등하원, 클리닉, 리포트 발송 이력을 관리합니다.">
@@ -1912,6 +2181,87 @@
       const n = Number(min);
       if (!Number.isFinite(n)) return '-';
       return n < 1 ? '방금' : Math.round(n) + '분 전';
+    }
+
+
+    function shortTs(value) {
+      const text = String(value || '').trim();
+      if (!text) return '-';
+      const d = new Date(text);
+      if (Number.isFinite(d.getTime())) {
+        return new Intl.DateTimeFormat('ko-KR', {
+          timeZone: 'Asia/Seoul',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).format(d);
+      }
+      return text.length > 19 ? text.slice(0, 19) : text;
+    }
+
+    function fmtMinutes(value) {
+      const n = Number(value || 0);
+      if (!Number.isFinite(n) || n <= 0) return '0분';
+      const h = Math.floor(n / 60);
+      const m = Math.round(n % 60);
+      return h ? `${h}시간 ${m}분` : `${m}분`;
+    }
+
+    function actionLabel(value) {
+      const v = String(value || '').toUpperCase();
+      const map = {
+        CHECK_IN: '등원',
+        CHECK_OUT: '하원',
+        MOVE: '이동',
+        OUTING_OUT: '외출',
+        OUTING_BACK: '복귀',
+        MANUAL_CHECK_IN: '수동 등원',
+        MANUAL_CHECK_OUT: '수동 하원'
+      };
+      return map[v] || v || '-';
+    }
+
+    function queueStatusClass(value) {
+      const v = String(value || '').toUpperCase();
+      if (['DONE', 'SENT', 'OK'].includes(v)) return 'good';
+      if (['FAILED', 'ERROR'].includes(v)) return 'bad';
+      return 'warn';
+    }
+
+    function clinicStatusLabel(value) {
+      const v = String(value || '').toUpperCase();
+      const map = {
+        CANDIDATE: '후보',
+        PENDING: '대기',
+        IN_PROGRESS: '진행중',
+        DONE: '완료',
+        PARTIAL: '부분완료',
+        REJECTED: '반려',
+        CANCELLED: '취소'
+      };
+      return map[v] || v || '-';
+    }
+
+    function clinicStatusClass(value) {
+      const v = String(value || '').toUpperCase();
+      if (v === 'DONE') return 'good';
+      if (['REJECTED', 'CANCELLED'].includes(v)) return 'bad';
+      return 'warn';
+    }
+
+    function wordStatusLabel(value) {
+      const v = String(value || '').toUpperCase();
+      const map = { PASS: '통과', FAIL: '불통과', ABSENT: '미응시', EXEMPT: '면제' };
+      return map[v] || v || '-';
+    }
+
+    function wordStatusClass(value) {
+      const v = String(value || '').toUpperCase();
+      if (v === 'PASS' || v === 'EXEMPT') return 'good';
+      if (v === 'FAIL') return 'bad';
+      return 'warn';
     }
 
     function showToast(message) {
@@ -2280,9 +2630,13 @@
       const logs = $('#studentProfileLogRows');
       const classes = $('#studentProfileClassRows');
       const excuses = $('#studentProfileExcuseRows');
+      const clinics = $('#studentProfileClinicRows');
+      const words = $('#studentProfileWordRows');
       if (logs) logs.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
       if (classes) classes.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
       if (excuses) excuses.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+      if (clinics) clinics.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+      if (words) words.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
     }
 
     function renderStudentDetail(student) {
@@ -2315,6 +2669,8 @@
       const classes = Array.isArray(profile.classes) ? profile.classes : [];
       const logs = Array.isArray(profile.recent_logs) ? profile.recent_logs : [];
       const excuses = Array.isArray(profile.absence_excuses) ? profile.absence_excuses : [];
+      const clinicTasks = Array.isArray(profile.clinic_tasks) ? profile.clinic_tasks : [];
+      const wordResults = Array.isArray(profile.word_test_results) ? profile.word_test_results : [];
       const warnings = Array.isArray(profile.warnings) ? profile.warnings : [];
 
       $('#studentDetailBody').innerHTML = `
@@ -2390,6 +2746,35 @@
           </tr>
         `).join('') : '<tr><td colspan="5" style="color:var(--muted);">최근 결석예외가 없습니다.</td></tr>';
       }
+
+      const clinicBox = $('#studentProfileClinicRows');
+      if (clinicBox) {
+        clinicBox.innerHTML = clinicTasks.length ? clinicTasks.map(item => `
+          <tr>
+            <td><span class="statusPill ${clinicStatusClass(item.status)}">${esc(clinicStatusLabel(item.status))}</span></td>
+            <td class="wrap">${esc(item.title || '-')}</td>
+            <td>${esc(item.task_type || '-')}</td>
+            <td>${esc(item.priority || '-')}</td>
+            <td class="wrap">${esc(shortTs(item.updated_at || item.created_at || ''))}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" style="color:var(--muted);">최근 클리닉 기록이 없습니다.</td></tr>';
+      }
+
+      const wordBox = $('#studentProfileWordRows');
+      if (wordBox) {
+        wordBox.innerHTML = wordResults.length ? wordResults.map(item => {
+          const scoreText = item.score == null ? '-' : `${item.score}/${item.max_score || 100}`;
+          return `
+            <tr>
+              <td>${esc(item.yyyymmdd || '')}</td>
+              <td class="wrap">${esc(item.session_title || item.session_id || '-')}</td>
+              <td>${esc(scoreText)}</td>
+              <td><span class="statusPill ${wordStatusClass(item.result_status)}">${esc(wordStatusLabel(item.result_status))}</span></td>
+              <td class="wrap">${esc(item.clinic_task_id ? '연결됨' : '-')}</td>
+            </tr>
+          `;
+        }).join('') : '<tr><td colspan="5" style="color:var(--muted);">최근 단어시험 결과가 없습니다.</td></tr>';
+      }
     }
 
     async function loadStudentProfile() {
@@ -2428,6 +2813,12 @@
       $('#selectedStudent').classList.remove('hidden');
       $('#manualSid').value = App.selectedStudent.student_id;
       $('#logSidFilter').value = App.selectedStudent.student_id;
+      const clinicLabel = $('#clinicStudentLabel');
+      if (clinicLabel) clinicLabel.value = label;
+      const clinicFilter = $('#clinicStudentFilter');
+      if (clinicFilter) clinicFilter.value = App.selectedStudent.student_id;
+      const wordSid = $('#wordResultStudentId');
+      if (wordSid) wordSid.value = App.selectedStudent.student_id;
       renderStudentDetail(App.selectedStudent);
       loadStudentProfile();
     }
@@ -2810,6 +3201,203 @@
       $('#staffDailyRows').innerHTML = '<tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>';
     }
 
+
+    function selectedStudentOrToast() {
+      if (!App.selectedStudent || !App.selectedStudent.student_id) {
+        showToast('학생을 먼저 선택하세요.');
+        jumpTo('students');
+        return null;
+      }
+      return App.selectedStudent;
+    }
+
+    function renderClinicTasks(data) {
+      const rows = Array.isArray(data.items) ? data.items : [];
+      const summary = $('#clinicTaskSummary');
+      if (summary) summary.textContent = '조회 ' + rows.length + '건';
+      const box = $('#clinicTaskRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="8" style="color:var(--muted);">조회된 클리닉 task가 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => `
+        <tr>
+          <td><span class="statusPill ${clinicStatusClass(row.status)}">${esc(clinicStatusLabel(row.status))}</span></td>
+          <td class="wrap">${esc(row.student_id || '')} · ${esc(row.student_name || '')}</td>
+          <td class="wrap">${esc(row.title || '-')}<br><span class="smallText">${esc(row.internal_note || '')}</span></td>
+          <td>${esc(row.task_type || '-')}</td>
+          <td>${esc(row.priority || '-')}</td>
+          <td>${esc(row.due_date || '-')}</td>
+          <td>${row.parent_visible ? '공개' : '비공개'}</td>
+          <td>
+            <select class="select" data-clinic-status-for="${esc(row.clinic_task_id || '')}">
+              ${['CANDIDATE','PENDING','IN_PROGRESS','DONE','PARTIAL','REJECTED','CANCELLED'].map(status => `<option value="${status}" ${status === row.status ? 'selected' : ''}>${clinicStatusLabel(status)}</option>`).join('')}
+            </select>
+          </td>
+        </tr>
+      `).join('');
+      $$('[data-clinic-status-for]').forEach(sel => {
+        sel.addEventListener('change', () => updateClinicTaskStatus(sel.dataset.clinicStatusFor || '', sel.value || ''));
+      });
+    }
+
+    async function loadClinicTasks() {
+      const status = ($('#clinicStatusFilter').value || '').trim();
+      const sid = normalizeSid($('#clinicStudentFilter').value || '');
+      const args = { limit: 100 };
+      if (status) args.status = status;
+      if (sid) args.student_id = sid;
+      const r = await rpc('clinic.listTasks', args, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클리닉 조회 실패');
+        showResult('클리닉 조회 실패', r);
+        return;
+      }
+      renderClinicTasks(r.data || {});
+      showToast('클리닉 목록을 조회했습니다.');
+    }
+
+    async function createClinicTask() {
+      const student = selectedStudentOrToast();
+      if (!student) return;
+      const title = ($('#clinicTitle').value || '').trim();
+      if (!title) { showToast('클리닉 제목을 입력하세요.'); return; }
+      const r = await rpc('clinic.createTask', {
+        student_id: student.student_id,
+        title,
+        task_type: $('#clinicTaskType').value || 'GENERAL',
+        priority: $('#clinicPriority').value || 'NORMAL',
+        due_date: $('#clinicDueDate').value || '',
+        internal_note: $('#clinicInternalNote').value || '',
+        parent_note: $('#clinicParentNote').value || '',
+        parent_visible: ($('#clinicParentVisible').value || 'N') === 'Y'
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클리닉 생성 실패');
+        showResult('클리닉 생성 실패', r);
+        return;
+      }
+      $('#clinicTitle').value = '';
+      $('#clinicInternalNote').value = '';
+      $('#clinicParentNote').value = '';
+      showToast('클리닉을 생성했습니다.');
+      showResult('클리닉 생성 완료', r.data || r);
+      await loadClinicTasks();
+      await loadStudentProfile();
+    }
+
+    async function updateClinicTaskStatus(taskId, status) {
+      if (!taskId || !status) return;
+      const r = await rpc('clinic.updateTaskStatus', {
+        clinic_task_id: taskId,
+        status
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클리닉 상태 변경 실패');
+        showResult('클리닉 상태 변경 실패', r);
+        return;
+      }
+      showToast('클리닉 상태를 변경했습니다.');
+      await loadClinicTasks();
+      if (App.selectedStudent && App.selectedStudent.student_id) await loadStudentProfile();
+    }
+
+    function renderWordSessions(data) {
+      const rows = Array.isArray(data.items) ? data.items : [];
+      const summary = $('#wordSessionSummary');
+      if (summary) summary.textContent = '조회 ' + rows.length + '건';
+      const box = $('#wordSessionRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">조회된 회차가 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => `
+        <tr>
+          <td>${esc(row.yyyymmdd || '')}</td>
+          <td class="wrap">${esc(row.title || '-')}</td>
+          <td>${esc(row.class_id || '-')}</td>
+          <td class="wrap">${esc(row.scope_text || '-')}</td>
+          <td>${esc(row.pass_score)} / ${esc(row.max_score)}</td>
+          <td><button class="btn btnGhost" type="button" data-word-session-id="${esc(row.session_id || '')}" data-word-pass="${esc(row.pass_score)}" data-word-max="${esc(row.max_score)}">선택</button></td>
+        </tr>
+      `).join('');
+      $$('[data-word-session-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('#wordResultSessionId').value = btn.dataset.wordSessionId || '';
+          $('#wordPassScore').value = btn.dataset.wordPass || $('#wordPassScore').value || '90';
+          $('#wordMaxScore').value = btn.dataset.wordMax || $('#wordMaxScore').value || '100';
+          if (App.selectedStudent && App.selectedStudent.student_id) $('#wordResultStudentId').value = App.selectedStudent.student_id;
+          showToast('단어시험 회차를 선택했습니다.');
+        });
+      });
+    }
+
+    async function listWordSessions() {
+      const args = { limit: 80 };
+      const ymd = ($('#wordSessionYmd').value || '').trim();
+      const classId = ($('#wordClassId').value || '').trim();
+      if (ymd) args.yyyymmdd = ymd;
+      if (classId) args.class_id = classId;
+      const r = await rpc('wordTest.listSessions', args, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '단어시험 회차 조회 실패');
+        showResult('단어시험 회차 조회 실패', r);
+        return;
+      }
+      renderWordSessions(r.data || {});
+      showToast('단어시험 회차를 조회했습니다.');
+    }
+
+    async function createWordSession() {
+      const title = ($('#wordSessionTitle').value || '').trim();
+      if (!title) { showToast('회차 제목을 입력하세요.'); return; }
+      const ymd = ($('#wordSessionYmd').value || '').trim() || kstYmd(new Date());
+      const r = await rpc('wordTest.createSession', {
+        title,
+        yyyymmdd: ymd,
+        class_id: ($('#wordClassId').value || '').trim(),
+        scope_text: $('#wordScopeText').value || '',
+        pass_score: $('#wordPassScore').value || '90',
+        max_score: $('#wordMaxScore').value || '100'
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '단어시험 회차 생성 실패');
+        showResult('단어시험 회차 생성 실패', r);
+        return;
+      }
+      const item = r.data && r.data.item ? r.data.item : {};
+      if (item.session_id) $('#wordResultSessionId').value = item.session_id;
+      showToast('단어시험 회차를 생성했습니다.');
+      showResult('단어시험 회차 생성 완료', r.data || r);
+      await listWordSessions();
+    }
+
+    async function enterWordResult() {
+      const sessionId = ($('#wordResultSessionId').value || '').trim();
+      const sid = normalizeSid($('#wordResultStudentId').value || '');
+      if (!sessionId || !sid) { showToast('회차 ID와 학생 ID가 필요합니다.'); return; }
+      const r = await rpc('wordTest.enterResult', {
+        session_id: sessionId,
+        student_id: sid,
+        score: $('#wordScore').value || '',
+        result_status: $('#wordResultStatus').value || '',
+        note: $('#wordResultNote').value || '',
+        create_clinic: ($('#wordCreateClinic').value || 'Y') === 'Y'
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '단어시험 결과 저장 실패');
+        showResult('단어시험 결과 저장 실패', r);
+        return;
+      }
+      $('#wordResultSummary').textContent = r.data && r.data.created_clinic ? '저장 완료 · 불통과 클리닉 후보 자동 생성됨' : '저장 완료';
+      $('#wordResultBox').textContent = JSON.stringify(r.data || r, null, 2);
+      showToast(r.data && r.data.created_clinic ? '결과 저장 + 클리닉 후보 생성 완료' : '단어시험 결과를 저장했습니다.');
+      if (App.selectedStudent && App.selectedStudent.student_id === sid) await loadStudentProfile();
+      await loadClinicTasks();
+    }
+
     function bindClick(id, handler) {
       const el = document.getElementById(id);
       if (el) el.addEventListener('click', handler);
@@ -2845,6 +3433,11 @@
       bindClick('btnMessageWorkerRuns', listWorkerRuns);
       bindClick('btnLoadStaffMonthly', loadStaffMonthly);
       bindClick('btnClearStaffDetail', clearStaffDaily);
+      bindClick('btnLoadClinicTasks', loadClinicTasks);
+      bindClick('btnCreateClinicTask', createClinicTask);
+      bindClick('btnCreateWordSession', createWordSession);
+      bindClick('btnListWordSessions', listWordSessions);
+      bindClick('btnEnterWordResult', enterWordResult);
 
       const studentQuery = $('#studentQuery');
       if (studentQuery) studentQuery.addEventListener('input', scheduleStudentSearch);

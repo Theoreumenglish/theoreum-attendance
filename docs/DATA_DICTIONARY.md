@@ -133,3 +133,24 @@
 | `portal_audit_logs.before_json` | 변경 전 | 민감정보 최소화 |
 | `portal_audit_logs.after_json` | 변경 후 | 민감정보 최소화 |
 | `portal_audit_logs.reason` | 사유 | 수동 정정/반려 등 필수 |
+
+## 2026-06-12 확정: Clinic / Word / Audit Schema v1
+
+SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
+
+| 테이블 | 역할 | 핵심 컬럼 |
+| --- | --- | --- |
+| `clinic_item_templates` | 반복 클리닉 항목 템플릿 | `template_id`, `title`, `task_type`, `default_priority`, `is_active` |
+| `clinic_tasks` | 학생별 클리닉 업무 본체 | `clinic_task_id`, `student_id`, `title`, `status`, `priority`, `internal_note`, `parent_note`, `parent_visible` |
+| `clinic_logs` | 클리닉 이벤트 기록 | `clinic_log_id`, `clinic_task_id`, `event_type`, `before_status`, `after_status` |
+| `word_test_sessions` | 단어시험 회차 | `session_id`, `title`, `yyyymmdd`, `class_id`, `scope_text`, `pass_score`, `max_score` |
+| `word_test_results` | 학생별 단어시험 결과 | `result_id`, `session_id`, `student_id`, `score`, `result_status`, `clinic_task_id` |
+| `report_snapshots` | 학부모 리포트 스냅샷 | `report_id`, `student_id`, `period_type`, `summary_json`, `parent_note` |
+| `report_links` | 리포트 공유 링크 | `report_link_id`, `report_id`, `token_hash`, `expires_at`, `revoked_at` |
+| `portal_audit_logs` | 운영 감사 로그 | `audit_id`, `actor_staff_id`, `op`, `target_type`, `target_id`, `before_json`, `after_json` |
+
+메모 분리 원칙:
+
+- `internal_note`: 직원/운영자만 보는 조치 기록.
+- `parent_note`: 학부모에게 보여줄 수 있는 문장.
+- `parent_visible`: true인 경우에만 향후 parent/report 화면에 포함.

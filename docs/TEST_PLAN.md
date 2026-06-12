@@ -132,3 +132,19 @@ scripts/smoke-test.mjs
 | 직원 일별 | 월간 요약에서 직원 선택 시 staff_daily 상세 표시 |
 | 권한 | admin 전용 직원/문자 재처리 기능은 권한 없을 때 서버가 차단 |
 | 정적 계약 | `npm run contract-check`가 신규 id/op를 확인 |
+
+## 10. Clinic / Word / Audit Schema v1 검수
+
+| 항목 | 확인 |
+| --- | --- |
+| SQL 실행 | Supabase SQL Editor에서 `docs/supabase-clinic-word-report-schema-v1.sql` 실행 성공 |
+| 테이블 확인 | `clinic_tasks`, `word_test_sessions`, `word_test_results`, `portal_audit_logs` 존재 |
+| 클리닉 생성 | 학생 선택 후 클리닉 생성 시 `clinic_tasks`에 row 생성 |
+| 클리닉 조회 | 상태별 조회와 학생 필터 조회 가능 |
+| 클리닉 상태 변경 | 목록에서 상태 변경 시 `updated_at`, `updated_by`, `clinic_logs` 반영 |
+| 단어시험 회차 | 회차 생성 후 목록에서 선택 가능 |
+| 점수 입력 | 학생 ID + 회차 ID + 점수 저장 가능 |
+| 불통과 자동 후보 | 기준점수 미만 저장 시 `clinic_tasks.source_type = WORD_FAIL` 후보 생성 |
+| Student 360 | 최근 클리닉과 최근 단어시험 결과 표시 |
+| 감사 로그 | 신규 write op가 `portal_audit_logs`에 best-effort 기록 |
+| 정적 계약 | `npm run contract-check`가 신규 id/op/schema를 확인 |

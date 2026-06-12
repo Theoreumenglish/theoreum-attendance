@@ -143,3 +143,15 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - 클리닉/단어시험/리포트: 아직 쓰기 API를 만들지 않고, 실제 운영 흐름과 DB 설계 방향을 화면에 고정한다.
 
 이 패치는 중앙DB GAS를 수정하지 않는다.
+
+## Clinic / Word / Audit Schema v1
+
+2026-06-12 패치 기준으로 클리닉/단어시험 화면이 placeholder에서 실제 DB 쓰기 화면으로 전환된다.
+
+- 클리닉: `clinic_tasks` 생성, 상태별 조회, 상태 변경을 지원한다.
+- 단어시험: `word_test_sessions` 회차 생성, `word_test_results` 결과 저장을 지원한다.
+- 자동 후보: `wordTest.enterResult`에서 불통과로 저장하면 `clinic_tasks.source_type = WORD_FAIL` 후보가 자동 생성된다.
+- Student 360: 최근 클리닉과 최근 단어시험 결과를 함께 표시한다.
+- 감사 로그: 신규 write op는 `portal_audit_logs`에 best-effort 방식으로 기록한다.
+
+운영 적용 순서는 반드시 `Supabase SQL 실행 → 앱 패치 적용 → npm run verify → 배포`다.
