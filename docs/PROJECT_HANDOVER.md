@@ -70,3 +70,9 @@
 - 발송 중복은 worker의 `PENDING → PROCESSING → DONE/FAILED` 상태 전이와 `queue_id + status=PENDING` claim 조건으로 막는다.
 - 오래된 `PROCESSING` 항목은 `ATT_NOTIFY_STALE_SEC` 기준으로 `PENDING` 복구 후 재처리한다.
 - 오래된 미등원 queue는 `ABSENT_QUEUE_MAX_AGE_MIN`을 초과하면 발송하지 않고 `ABSENT_SEND_WINDOW_EXPIRED`로 실패 처리한다.
+
+### 2026-06-12 운영 관측성/클래스 조회 기준
+- 홈 대시보드는 `admin.getOpsOverview`의 `cron_health`를 표시하여 미등원 감지 cron과 문자 worker cron이 따로 정상 실행되는지 바로 보여준다.
+- 설정·점검 화면의 자동화 실행 기록 버튼은 `admin.listAbsenceRuns`, `admin.listNotifyWorkerRuns`로 최근 실행 이력을 조회한다.
+- 클래스 화면은 더 이상 placeholder가 아니라 `assistant.listClassOptions`와 `assistant.listClassRoster`를 이용하는 조회 전용 운영 화면이다.
+- 클래스 조회는 날짜 입력 시 `class_schedule`, 날짜 미입력 시 `classes`를 확인하는 API 계약을 따른다.

@@ -116,6 +116,36 @@ if (!attendanceTable) {
   ok('attendanceLogRows 초기 빈 행 colspan이 8입니다.');
 }
 
+
+const requiredAdminIds = [
+  'statAbsenceCron',
+  'statWorkerCron',
+  'btnAbsenceRuns',
+  'btnWorkerRuns',
+  'btnLoadClasses',
+  'classRows',
+  'classRosterRows'
+];
+const missingAdminIds = requiredAdminIds.filter(id => !adminText.includes(`id="${id}"`) && !adminText.includes(`id='${id}'`));
+if (missingAdminIds.length) {
+  fail(`admin.html 운영 관측성/클래스 필수 id 누락: ${missingAdminIds.join(', ')}`);
+} else {
+  ok(`admin.html 운영 관측성/클래스 필수 id ${requiredAdminIds.length}개가 모두 존재합니다.`);
+}
+
+const requiredAdminOps = [
+  'admin.listAbsenceRuns',
+  'admin.listNotifyWorkerRuns',
+  'assistant.listClassOptions',
+  'assistant.listClassRoster'
+];
+const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
+if (missingAdminOps.length) {
+  fail(`admin.html 운영 관측성/클래스 필수 RPC 호출 누락: ${missingAdminOps.join(', ')}`);
+} else {
+  ok(`admin.html 운영 관측성/클래스 필수 RPC ${requiredAdminOps.length}개가 모두 호출됩니다.`);
+}
+
 if (absentCronText.includes('attendance-notify-queue.js') || absentCronText.includes('runAttendanceNotifyWorker')) {
   fail('absent-run-cron은 미등원 감지만 수행해야 합니다. 알림 worker 호출/import가 포함되어 있습니다.');
 } else {

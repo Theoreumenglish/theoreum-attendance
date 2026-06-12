@@ -644,6 +644,49 @@
       font-weight: 700;
     }
 
+    .metricCard.isWarn {
+      border-color: rgba(180, 83, 9, 0.24);
+      background: var(--amber-soft);
+    }
+
+    .metricCard.isBad {
+      border-color: rgba(220, 38, 38, 0.22);
+      background: var(--red-soft);
+    }
+
+    .metricCard.isGood {
+      border-color: rgba(5, 150, 105, 0.18);
+      background: var(--green-soft);
+    }
+
+    .statusPill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .statusPill.good {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .statusPill.warn {
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .statusPill.bad {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
     .taskList {
       display: grid;
       gap: 10px;
@@ -1130,6 +1173,16 @@
                 <div class="metricValue" id="statSafe">-</div>
                 <div class="metricNote" id="statSafeNote">runtime_config</div>
               </div>
+              <div class="metricCard" id="cardAbsenceCron">
+                <div class="metricLabel">미등원 감지 cron</div>
+                <div class="metricValue" id="statAbsenceCron">-</div>
+                <div class="metricNote" id="statAbsenceCronNote">실행 기록 조회 전</div>
+              </div>
+              <div class="metricCard" id="cardWorkerCron">
+                <div class="metricLabel">문자 worker cron</div>
+                <div class="metricValue" id="statWorkerCron">-</div>
+                <div class="metricNote" id="statWorkerCronNote">실행 기록 조회 전</div>
+              </div>
             </div>
 
             <div class="grid2">
@@ -1330,10 +1383,79 @@
           </div>
         </section>
 
-        <section class="portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 수강생, 담당 선생님을 관리할 예정입니다.">
-          <div class="emptyPanel">
-            <h3>클래스 화면</h3>
-            <p>지금은 출석 안정화와 학생 상세를 우선하고, 이후 class_schedule, class_students, classes를 연결합니다.</p>
+        <section class="portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 수강생, 담당 선생님을 조회하고 roster를 빠르게 확인합니다.">
+          <div class="grid2">
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">클래스 목록</div>
+                  <div class="sectionDesc">날짜를 입력하면 해당 날짜의 class_schedule을, 비우면 기본 classes 목록을 조회합니다.</div>
+                </div>
+                <span class="statusPill good">조회 전용</span>
+              </div>
+
+              <div class="formGrid cols3">
+                <div>
+                  <div class="fieldLabel">날짜</div>
+                  <input class="inp" id="classYmd" inputmode="numeric" placeholder="YYYYMMDD / 비우면 전체" />
+                </div>
+                <div>
+                  <div class="fieldLabel">상태</div>
+                  <select class="select" id="classIncludeInactive">
+                    <option value="N">예정 수업만</option>
+                    <option value="Y">비활성/취소 포함</option>
+                  </select>
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn btnPri" id="btnLoadClasses" type="button" style="width:100%;">클래스 조회</button>
+                </div>
+              </div>
+
+              <div class="tableWrap" style="margin-top:18px;">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>반 ID</th>
+                      <th>반 이름</th>
+                      <th>담당</th>
+                      <th>시간</th>
+                      <th>교실</th>
+                      <th>알림</th>
+                      <th>상태</th>
+                      <th>명단</th>
+                    </tr>
+                  </thead>
+                  <tbody id="classRows">
+                    <tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle" id="classRosterTitle">수강생 명단</div>
+                  <div class="sectionDesc" id="classRosterDesc">클래스 목록에서 명단을 선택하세요.</div>
+                </div>
+              </div>
+              <div class="tableWrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>학번</th>
+                      <th>이름</th>
+                      <th>학교</th>
+                      <th>학년</th>
+                      <th>상태</th>
+                    </tr>
+                  </thead>
+                  <tbody id="classRosterRows">
+                    <tr><td colspan="5" style="color:var(--muted);">선택된 클래스가 없습니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1501,6 +1623,17 @@
                 <button class="btn btnBad" id="btnFlushCache" type="button">캐시 비우기</button>
               </div>
               <div class="sectionDesc" style="margin-top:16px;">중앙DB GAS를 수정하지 않았으므로 Apps Script 새 Web App 배포는 필요 없습니다.</div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="sectionTitle">자동화 실행 기록</div>
+              <div class="sectionDesc">미등원 감지 cron과 문자 worker cron이 분리되어 정상적으로 따로 기록되는지 확인합니다.</div>
+              <div class="btnRow" style="margin-top:16px;">
+                <button class="btn btnGhost" id="btnAbsenceRuns" type="button">미등원 감지 기록</button>
+                <button class="btn btnGhost" id="btnWorkerRuns" type="button">문자 worker 기록</button>
+                <button class="btn btnGhost" id="btnRefreshCronHealth" type="button">cron 상태 새로고침</button>
+              </div>
+              <div class="sectionDesc" style="margin-top:16px;">정상 구조: absence_detection_runs에는 감지 기록만, notify_worker_runs에는 발송 worker 기록만 쌓입니다.</div>
             </div>
 
             <div class="card cardPad">
@@ -1694,7 +1827,10 @@
     }
 
     async function checkMe() {
-      $('#logYmd').value = kstYmd(new Date());
+      const today = kstYmd(new Date());
+      $('#logYmd').value = today;
+      const classYmd = $('#classYmd');
+      if (classYmd && !classYmd.value) classYmd.value = today;
 
       if (!App.sess) {
         setView(false);
@@ -1762,6 +1898,8 @@
           $('#statFailedAttendance').textContent = '-';
           $('#statSafe').textContent = '-';
           $('#statSafeNote').textContent = '관리자 전용';
+          setCronMetric('cardAbsenceCron', 'statAbsenceCron', 'statAbsenceCronNote', null, '관리자 전용');
+          setCronMetric('cardWorkerCron', 'statWorkerCron', 'statWorkerCronNote', null, '관리자 전용');
           return;
         }
 
@@ -1783,7 +1921,137 @@
       $('#statFailedAttendance').textContent = String(queue.failed_attendance ?? 0);
       $('#statSafe').textContent = String(safe.enabled || safe.value || 'N').toUpperCase() === 'Y' ? 'ON' : 'OFF';
       $('#statSafeNote').textContent = '층 ' + (d.kiosk_floor || '-') + ' · PENDING ' + (queue.pending_all ?? 0);
+      renderCronHealth(d);
       $('#overviewText').textContent = '마지막 확인: ' + (d.checked_at || new Date().toISOString());
+    }
+
+    function setCronMetric(cardId, valueId, noteId, ok, note) {
+      const card = $('#' + cardId);
+      if (card) {
+        card.classList.remove('isGood', 'isWarn', 'isBad');
+        if (ok === true) card.classList.add('isGood');
+        if (ok === false) card.classList.add('isBad');
+        if (ok == null) card.classList.add('isWarn');
+      }
+
+      const valueEl = $('#' + valueId);
+      const noteEl = $('#' + noteId);
+      if (valueEl) valueEl.textContent = ok === true ? '정상' : ok === false ? '점검' : '-';
+      if (noteEl) noteEl.textContent = note || '기록 없음';
+    }
+
+    function renderCronHealth(data) {
+      const health = data && data.cron_health ? data.cron_health : {};
+      const absenceAge = health.absence_age_min;
+      const workerAge = health.notify_worker_age_min;
+
+      const absenceOk = health.absence_stale === false;
+      const workerOk = health.notify_worker_stale === false;
+
+      const absenceNote = absenceAge == null
+        ? '최근 CRON 기록 없음'
+        : '최근 ' + fmtAge(absenceAge) + ' · 기준 ' + (health.absence_max_stale_min || 3) + '분';
+
+      const workerNote = workerAge == null
+        ? '최근 CRON 기록 없음'
+        : '최근 ' + fmtAge(workerAge) + ' · 기준 ' + (health.notify_worker_max_stale_min || 3) + '분';
+
+      setCronMetric('cardAbsenceCron', 'statAbsenceCron', 'statAbsenceCronNote', absenceOk, absenceNote);
+      setCronMetric('cardWorkerCron', 'statWorkerCron', 'statWorkerCronNote', workerOk, workerNote);
+    }
+
+    function renderClassRows(items) {
+      const box = $('#classRows');
+      if (!box) return;
+
+      if (!items.length) {
+        box.innerHTML = '<tr><td colspan="8" class="wrap">조회된 클래스가 없습니다.</td></tr>';
+        return;
+      }
+
+      box.innerHTML = items.map(item => {
+        const classId = String(item.class_id || '');
+        const time = [item.start || '', item.end || ''].filter(Boolean).join('~');
+        const alert = [item.alert_delay || '', item.alert_to || ''].filter(Boolean).join(' / ');
+        return `
+          <tr>
+            <td class="wrap">${esc(classId)}</td>
+            <td class="wrap">${esc(item.class_name || item.name || '')}</td>
+            <td>${esc(item.teacher_name || item.teacher || '')}</td>
+            <td>${esc(time || '-')}</td>
+            <td>${esc(item.room || '-')}</td>
+            <td class="wrap">${esc(alert || '-')}</td>
+            <td>${esc(item.status || '-')}</td>
+            <td><button class="btn btnGhost" type="button" data-class-id="${esc(classId)}" data-class-name="${esc(item.class_name || item.name || classId)}">명단</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      $$('#classRows button[data-class-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          loadClassRoster(btn.dataset.classId || '', btn.dataset.className || '');
+        });
+      });
+    }
+
+    function renderClassRoster(classId, className, items) {
+      $('#classRosterTitle').textContent = className ? '수강생 명단 · ' + className : '수강생 명단';
+      $('#classRosterDesc').textContent = classId ? 'class_id: ' + classId + ' · ' + items.length + '명' : '클래스 목록에서 명단을 선택하세요.';
+
+      const box = $('#classRosterRows');
+      if (!items.length) {
+        box.innerHTML = '<tr><td colspan="5" class="wrap">등록된 수강생이 없습니다.</td></tr>';
+        return;
+      }
+
+      box.innerHTML = items.map(item => `
+        <tr>
+          <td>${esc(normalizeSid(item.student_id))}</td>
+          <td>${esc(item.student_name || '')}</td>
+          <td>${esc(item.school || '-')}</td>
+          <td>${esc(item.grade || '-')}</td>
+          <td>${esc(item.status || '-')}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadClasses() {
+      const yyyymmdd = ($('#classYmd').value || '').trim();
+      const includeInactive = ($('#classIncludeInactive').value || 'N') === 'Y';
+      const args = { limit: 200, include_inactive: includeInactive };
+      if (yyyymmdd) args.yyyymmdd = yyyymmdd;
+
+      const r = await rpc('assistant.listClassOptions', args, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클래스 조회 실패');
+        showResult('클래스 조회 실패', r);
+        return;
+      }
+
+      const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
+      renderClassRows(items);
+      $('#classRosterRows').innerHTML = '<tr><td colspan="5" style="color:var(--muted);">클래스 목록에서 명단을 선택하세요.</td></tr>';
+      $('#classRosterTitle').textContent = '수강생 명단';
+      $('#classRosterDesc').textContent = '클래스 ' + items.length + '개를 불러왔습니다.';
+      showToast('클래스 목록을 조회했습니다.');
+    }
+
+    async function loadClassRoster(classId, className) {
+      if (!classId) {
+        showToast('class_id가 없습니다.');
+        return;
+      }
+
+      const r = await rpc('assistant.listClassRoster', { class_id: classId }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '수강생 명단 조회 실패');
+        showResult('수강생 명단 조회 실패', r);
+        return;
+      }
+
+      const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
+      renderClassRoster(classId, className, items);
+      showToast('수강생 명단을 조회했습니다.');
     }
 
     function renderStudentDetail(student) {
@@ -2041,6 +2309,16 @@
       await loadOverview();
     }
 
+    async function listAbsenceRuns() {
+      const r = await rpc('admin.listAbsenceRuns', { source: 'CRON', limit: 20 }, { timeoutMs: 30000 });
+      showResult(r.ok ? '최근 미등원 감지 cron 기록' : '미등원 감지 기록 조회 실패', r.ok ? r.data : r, { jump: true });
+    }
+
+    async function listWorkerRuns() {
+      const r = await rpc('admin.listNotifyWorkerRuns', { limit: 20 }, { timeoutMs: 30000 });
+      showResult(r.ok ? '최근 문자 worker cron 기록' : '문자 worker 기록 조회 실패', r.ok ? r.data : r, { jump: true });
+    }
+
     function bindClick(id, handler) {
       const el = document.getElementById(id);
       if (el) el.addEventListener('click', handler);
@@ -2050,6 +2328,7 @@
       bindClick('btnLogin', login);
       bindClick('btnLogout', logout);
       bindClick('btnRefreshOverview', loadOverview);
+      bindClick('btnLoadClasses', loadClasses);
       bindClick('btnAllowSid', () => setStudentException('Y'));
       bindClick('btnBlockSid', () => setStudentException('N'));
       bindClick('btnLoadLogs', loadLogs);
@@ -2060,6 +2339,9 @@
       bindClick('btnSyncReplica', runReplicaSync);
       bindClick('btnMismatch', scanMismatch);
       bindClick('btnFlushCache', flushCache);
+      bindClick('btnAbsenceRuns', listAbsenceRuns);
+      bindClick('btnWorkerRuns', listWorkerRuns);
+      bindClick('btnRefreshCronHealth', loadOverview);
 
       const studentQuery = $('#studentQuery');
       if (studentQuery) studentQuery.addEventListener('input', scheduleStudentSearch);

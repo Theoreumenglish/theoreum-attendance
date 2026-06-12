@@ -122,3 +122,13 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - 로그인 화면은 작은 카드가 아니라 직원용 업무 시스템의 첫 화면처럼 크게 구성한다.
 - 홈 화면은 설명을 줄이고 오늘 처리할 일, 운영 요약, 출결 이상, 개입 후보의 자리만 남긴다.
 - 기능 추가보다 화면 밀도, 읽기 흐름, 버튼 수, 정보 우선순위를 먼저 정리한다.
+
+## Operations Visibility v1
+
+2026-06-12 패치 기준으로 운영 포털은 cron/worker가 분리된 뒤의 상태를 UI에서 직접 확인한다.
+
+- 홈: `cron_health` 기반 미등원 감지 cron / 문자 worker cron 상태 표시
+- 설정·점검: 최근 `absence_detection_runs`, `notify_worker_runs` 조회 버튼 제공
+- 클래스: `assistant.listClassOptions`, `assistant.listClassRoster` 기반 조회 전용 화면 제공
+
+이 단계의 목표는 새 쓰기 기능을 늘리는 것이 아니라, 운영자가 “지금 시스템이 정상적으로 돌고 있는지”를 화면에서 판단할 수 있게 만드는 것이다.

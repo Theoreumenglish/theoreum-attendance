@@ -108,3 +108,14 @@ scripts/smoke-test.mjs
 | 미등원 발송 기한 | `ABSENT_QUEUE_MAX_AGE_MIN` 초과 queue는 발송하지 않고 만료 처리 |
 | 감사 로그 | `absence_detection_runs`, `notify_worker_runs`가 각각 분리 기록 |
 
+
+## 8. 운영 관측성 / 클래스 조회 검수
+
+| 항목 | 확인 |
+| --- | --- |
+| 홈 cron health | 미등원 감지 cron과 문자 worker cron 카드가 정상/점검 상태를 분리 표시 |
+| 자동화 기록 | 설정·점검에서 미등원 감지 기록과 문자 worker 기록 조회 가능 |
+| 클래스 목록 | 날짜 입력 시 class_schedule 기준 목록 조회 가능 |
+| 클래스 전체 | 날짜를 비우면 classes 기준 목록 조회 가능 |
+| 수강생 명단 | 클래스 목록에서 명단 버튼 클릭 시 class_students + students 기준 roster 표시 |
+| 권한 | 클래스 조회는 조교 이상, 자동화 기록은 관리자 이상 정책 유지 |
