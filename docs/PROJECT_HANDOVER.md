@@ -109,3 +109,9 @@
 The admin portal was simplified after field feedback that the previous one-click version still felt visually busy. This patch does not change the database or server API. It narrows the visible interface to the daily operating loop and adds `scripts/admin-ux-check.mjs` to prevent future UI bloat.
 
 Key rule: new features should be added behind an existing daily action, a specific student profile, or a collapsed advanced area instead of adding another always-visible button.
+
+## 2026-06-12 Balanced Simple Ops UX v3
+
+This patch corrects over-simplification from the previous UX pass. The login page now keeps necessary guidance while removing non-essential explanation. The side menu is no longer hidden behind a details menu; all operational categories are visible. Complexity is controlled inside each page by reducing duplicated buttons and moving occasional actions into secondary sections.
+
+No Supabase schema changes and no CentralDB GAS changes are required.

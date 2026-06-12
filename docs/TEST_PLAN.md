@@ -179,3 +179,22 @@ Manual smoke test:
 4. Top quick dock has student search plus four action buttons.
 5. Dashboard has at most four buttons and no explanatory marketing board.
 6. Select a student and confirm attendance, clinic, and word-score workflows are auto-filled.
+
+## Balanced Simple Ops UX v3 verification
+
+Run `npm run verify` before deploy. It now includes:
+
+1. JS syntax check
+2. API/UI contract check
+3. Admin UX complexity check
+4. Admin flow simulation
+5. Vite build
+
+Manual simulation after deploy:
+
+1. Login screen shows 직원 로그인 / 직원 ID / 비밀번호.
+2. Side menu shows all 10 menu items without hidden 더 보기.
+3. Select a student and confirm 오늘 로그 / 클리닉 / 점수 / 리포트 flows.
+4. Clinic screen exposes only 생성/조회 as primary buttons.
+5. Word screen exposes only 회차 생성/회차 조회/결과 저장 as primary buttons.
+6. Enter key in 점수 input saves the word-test result.

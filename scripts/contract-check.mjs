@@ -106,7 +106,7 @@ if (duplicateAdminIds.length) {
 }
 
 const attendanceTable = adminText.match(/<tbody\s+id=["']attendanceLogRows["'][\s\S]*?<\/tbody>/);
-const attendanceHeader = adminText.match(/<section\s+class=["']portalView["']\s+id=["']attendance["'][\s\S]*?<thead>([\s\S]*?)<\/thead>/);
+const attendanceHeader = adminText.match(/<section\b(?=[^>]*\bid=["']attendance["'])(?=[^>]*\bclass=["'][^"']*portalView)[\s\S]*?<thead>([\s\S]*?)<\/thead>/);
 if (!attendanceHeader) {
   fail('출결 로그 테이블 thead를 찾지 못했습니다.');
 } else {

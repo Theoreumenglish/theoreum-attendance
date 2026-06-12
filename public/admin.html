@@ -1,12 +1,12 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="robots" content="noindex,nofollow" />
-  <title>더오름 운영 포털</title>
-  
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="noindex,nofollow" name="robots"/>
+<title>더오름 운영 포털</title>
+<style>
     :root {
       --bg: #f5f6f8;
       --panel: #ffffff;
@@ -1282,9 +1282,21 @@
       padding: 18px 34px 34px;
     }
 
-    .loginFormTitle,
+    .loginFormTitle {
+      display: block;
+      margin: 0 0 6px;
+      color: var(--text);
+      font-size: 24px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
     .loginFormDesc {
-      display: none;
+      display: block;
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
     }
 
     .shell {
@@ -1332,6 +1344,30 @@
 
     .moreNav[open] > summary::after {
       content: "⌃";
+    }
+
+    .secondaryNav {
+      margin-top: 8px;
+    }
+
+    .leanHelp {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .subtleActions {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .fieldHint {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
     }
 
     .main {
@@ -1463,1122 +1499,1035 @@
     }
 
   </style>
-
 </head>
-
 <body>
-  <div id="busyBar" class="busyBar"></div>
+<div class="busyBar" id="busyBar"></div>
+<div class="loginWrap hidden" id="loginView">
+<div class="loginCard">
+<div class="loginIntro simpleLoginIntro">
+<div class="loginBrand">
+<div class="brandMark">↑</div>
+<div>
+<div class="brandTitle">더오름 운영 포털</div>
+<div class="brandSub">직원 전용</div>
+</div>
+</div>
+<div class="loginHeadline">
+<h1>더오름 운영 포털</h1>
+<p>출결·클리닉·단어시험을 처리하는 직원 로그인 화면입니다.</p>
+</div>
+</div>
+<div class="loginForm">
+<h2 class="loginFormTitle">직원 로그인</h2>
+<p class="loginFormDesc">직원 ID와 비밀번호를 입력해 주세요.</p>
+<div class="fieldStack">
+<div>
+<div class="fieldLabel">직원 ID</div>
+<input autocomplete="username" class="inp" id="loginId" placeholder="직원 ID"/>
+</div>
+<div>
+<div class="fieldLabel">비밀번호</div>
+<input autocomplete="current-password" class="inp" id="loginPw" placeholder="비밀번호" type="password"/>
+</div>
+<button class="btn btnPri" id="btnLogin" style="height:54px; font-size:16px;" type="button">운영 포털 로그인</button>
+<div class="smallText" id="loginMsg"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="shell hidden" id="appView">
+<aside class="side">
+<div class="sideBrand">
+<div class="brandMark">↑</div>
+<div class="sideBrandText">
+<strong>더오름 운영 포털</strong>
+<span>Staff Operations</span>
+</div>
+</div>
+<div class="sideSectionLabel">핵심 업무</div>
+<nav aria-label="핵심 운영 메뉴" class="sideNav primaryNav">
+<button class="navBtn on" data-go="dashboard" type="button">오늘 <span>›</span></button>
+<button class="navBtn" data-go="students" type="button">학생 <span>›</span></button>
+<button class="navBtn" data-go="attendance" type="button">출결 <span>›</span></button>
+<button class="navBtn" data-go="clinic" type="button">클리닉 <span>›</span></button>
+<button class="navBtn" data-go="words" type="button">단어 <span>›</span></button>
+</nav>
+<div class="sideSectionLabel">관리/확인</div>
+<nav aria-label="관리 및 확인 메뉴" class="sideNav secondaryNav">
+<button class="navBtn" data-go="messages" type="button">문자 <span>›</span></button>
+<button class="navBtn" data-go="classes" type="button">클래스 <span>›</span></button>
+<button class="navBtn" data-go="reports" type="button">리포트 <span>›</span></button>
+<button class="navBtn" data-go="staff" type="button">직원 <span>›</span></button>
+<button class="navBtn" data-go="advanced" type="button">설정 <span>›</span></button>
+</nav>
+<div class="sideFooter">
+<div class="userBox">
+<div class="userName" id="whoText">로그인 전</div>
+<div class="userState"><span class="dot"></span><span id="netText">Online</span></div>
+</div>
+<button class="btn btnGhost" onclick="location.href='/'" type="button">키오스크 열기</button>
+<button class="btn btnGhost hidden" id="btnLogout" type="button">로그아웃</button>
+</div>
+</aside>
+<main class="main">
+<div class="workspace">
+<div class="pageHeader" id="pageHeader">
+<div>
+<div class="pageKicker" id="pageKicker">운영 포털</div>
+<h1 class="pageTitle" id="pageTitle">홈</h1>
+<div class="pageDesc" id="pageDesc">오늘 운영 상태와 빠른 업무를 확인합니다.</div>
+</div>
+<div class="topTools" id="pageTags">
+<button class="btn btnGhost" onclick="location.href='/'" type="button">키오스크</button>
+<button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
+</div>
+</div>
+<div aria-label="원클릭 업무 런처" class="quickDock" id="quickDock">
+<div class="quickDockMain">
+<div>
+<div class="quickKicker">빠른 처리</div>
+<div class="quickSelected" id="quickSelectedStudentText">학생을 고르면 출결·클리닉·점수 입력이 자동으로 연결됩니다.</div>
+</div>
+<div class="quickSearch">
+<input autocomplete="off" class="inp" id="quickStudentQuery" placeholder="어디서든 학생 이름/학번 검색"/>
+<button class="btn btnPri" id="btnQuickStudentSearch" type="button">학생 찾기</button>
+</div>
+</div>
+<div class="quickActions simpleQuickActions">
+<button class="quickActionBtn primary" id="btnPulseCheck" type="button">오늘 점검</button>
+<button class="quickActionBtn" id="btnQuickStudentLogs" type="button">출결 보기</button>
+<button class="quickActionBtn good" id="btnQuickStudentClinic" type="button">클리닉 만들기</button>
+<button class="quickActionBtn" id="btnQuickWordInput" type="button">점수 입력</button>
+</div>
+</div>
+<section class="portalView active" data-view-desc="오늘 처리할 일만 봅니다." data-view-title="오늘" id="dashboard">
+<div class="grid compactDashboard">
+<div class="grid4 slimMetrics">
+<div class="metricCard">
+<div class="metricLabel">중앙DB</div>
+<div class="metricValue" id="statReplica">-</div>
+<div class="metricNote" id="statReplicaNote">조회 전</div>
+</div>
+<div class="metricCard isFocus">
+<div class="metricLabel">미등원 실패</div>
+<div class="metricValue" id="statFailedAbsent">-</div>
+<div class="metricNote">처리 필요</div>
+</div>
+<div class="metricCard">
+<div class="metricLabel">등하원 실패</div>
+<div class="metricValue" id="statFailedAttendance">-</div>
+<div class="metricNote">문자/알림</div>
+</div>
+<div class="metricCard">
+<div class="metricLabel">점검 모드</div>
+<div class="metricValue" id="statSafe">-</div>
+<div class="metricNote" id="statSafeNote">runtime_config</div>
+</div>
+<div class="metricCard compactOnly" id="cardAbsenceCron">
+<div class="metricLabel">미등원 cron</div>
+<div class="metricValue" id="statAbsenceCron">-</div>
+<div class="metricNote" id="statAbsenceCronNote">실행 기록 조회 전</div>
+</div>
+<div class="metricCard compactOnly" id="cardWorkerCron">
+<div class="metricLabel">문자 worker</div>
+<div class="metricValue" id="statWorkerCron">-</div>
+<div class="metricNote" id="statWorkerCronNote">실행 기록 조회 전</div>
+</div>
+</div>
+<div class="card cardPad todayConsole">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">오늘 할 일</div>
+<div class="sectionDesc">자주 쓰는 버튼만 남겼습니다. 점검 → 실패 처리 → 클리닉 후보 → 단어시험 순서로 보면 됩니다.</div>
+</div>
+<button class="btn btnPri" id="btnCommandPulse" type="button">전체 점검</button>
+</div>
+<div class="simpleCommandRow">
+<button class="commandButton" id="btnCommandAbsent" type="button">
+<span class="commandTitle">미등원 실패</span>
+<span class="commandDesc">실패 문자만 바로 확인</span>
+</button>
+<button class="commandButton" id="btnCommandClinic" type="button">
+<span class="commandTitle">클리닉 후보</span>
+<span class="commandDesc">처리 대기 학생만 보기</span>
+</button>
+<button class="commandButton" id="btnCommandWord" type="button">
+<span class="commandTitle">오늘 단어시험</span>
+<span class="commandDesc">회차 조회 후 점수 입력</span>
+</button>
+</div>
+<div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
+<div class="sectionDesc" id="overviewText" style="margin-top:12px;">아직 불러오지 않았습니다.</div>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="출결 로그, 수동 정정, 실패 알림, QR 문제 대응을 처리합니다." data-view-title="출결" id="attendance">
+<div class="grid">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">출결 로그</div>
+<div class="sectionDesc">날짜와 학생 학번으로 최근 출결 기록을 조회합니다.</div>
+</div>
 
-  <div id="loginView" class="loginWrap hidden">
-    <div class="loginCard">
-      <div class="loginIntro simpleLoginIntro">
-        <div class="loginBrand">
-          <div class="brandMark">↑</div>
-          <div>
-            <div class="brandTitle">더오름 운영 포털</div>
-            <div class="brandSub">Staff Login</div>
-          </div>
-        </div>
-        <div class="loginHeadline">
-          <h1>로그인</h1>
-          <p>직원 ID와 비밀번호만 입력하세요.</p>
-        </div>
-      </div>
+</div>
+<div class="formGrid cols3">
+<div>
+<div class="fieldLabel">날짜</div>
+<input class="inp" id="logYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
+</div>
+<div>
+<div class="fieldLabel">학생 학번</div>
+<input class="inp" id="logSidFilter" inputmode="numeric" placeholder="선택 입력"/>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnLoadLogs" style="width:100%;" type="button">로그 조회</button>
+</div>
+</div>
+<div class="tableWrap" style="margin-top:18px;">
+<table class="table">
+<thead>
+<tr>
+<th>시간</th>
+<th>ID</th>
+<th>이름</th>
+<th>동작</th>
+<th>결과</th>
+<th>입력</th>
+<th>trace</th>
+<th>선택</th>
+</tr>
+</thead>
+<tbody id="attendanceLogRows">
+<tr>
+<td colspan="8" style="color:var(--muted);">조회 전입니다.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="grid2">
+<div class="card cardPad">
+<div class="sectionTitle">수동 정정</div>
+<div class="sectionDesc">출결 로그에서 trace를 선택한 뒤 사유와 PIN을 입력합니다.</div>
+<div class="formGrid" style="margin-top:16px;">
+<div class="formGrid cols2">
+<div>
+<div class="fieldLabel">학생 학번</div>
+<input class="inp" id="manualSid" inputmode="numeric" placeholder="0000"/>
+</div>
+<div>
+<div class="fieldLabel">동작</div>
+<select class="select" id="manualAction">
+<option value="">선택</option>
+<option value="CHECK_IN">등원</option>
+<option value="CHECK_OUT">하원</option>
+<option value="OUTING">외출</option>
+<option value="RETURN">복귀</option>
+</select>
+</div>
+</div>
+<div>
+<div class="fieldLabel">원본 trace_id</div>
+<input class="inp" id="manualTraceId" placeholder="로그 선택 시 자동 입력"/>
+</div>
+<div>
+<div class="fieldLabel">정정 사유</div>
+<textarea class="textarea" id="manualReason" placeholder="예: QR 인식 실패로 데스크 확인 후 정정"></textarea>
+</div>
+<div class="formGrid cols2">
+<div>
+<div class="fieldLabel">직원 PIN</div>
+<input class="inp" id="manualPin" inputmode="numeric" placeholder="PIN" type="password"/>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnManualAttendance" style="width:100%;" type="button">정정 저장</button>
+</div>
+</div>
+</div>
+</div>
+<div class="card cardPad">
+<div class="sectionTitle">실패 알림</div>
+<div class="sectionDesc">문자/알림 실패 건을 확인하고 원인을 추적합니다.</div>
+<details class="compactDetails subtleActions"><summary>실패/불일치 확인</summary><div class="btnRow" style="margin-top:16px;">
+<button class="btn btnGhost" id="btnFailedAbsent" type="button">미등원 실패</button>
+<button class="btn btnGhost" id="btnFailedAttendance" type="button">등하원 실패</button>
+<button class="btn btnGhost" id="btnMismatch" type="button">상태 불일치</button>
+</div></details>
+<div class="emptyPanel" style="margin-top:18px;">
+<h3>QR 예외는 학생 화면에서 처리</h3>
+<p>학생 검색 후 QR 예외 허용/해제를 처리하면 됩니다. 포털에는 매일 쓰지 않는 외부 링크를 넣지 않았습니다.</p>
+<div class="btnRow" style="margin-top:16px;">
 
-      <div class="loginForm">
-        <h2 class="loginFormTitle">접속 정보</h2>
-        <p class="loginFormDesc">운영 계정으로 바로 들어갑니다.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="학생 검색, 오늘 상태, 최근 출결, 소속 클래스, 결석예외를 한 화면에서 확인합니다." data-view-title="학생" id="students">
+<div class="grid2">
+<div class="card cardPad">
+<div class="sectionTitle">학생 검색</div>
+<div class="sectionDesc">이름 또는 학번으로 검색합니다. 선택한 학생은 출결 수동 정정과 Student 360 Profile에 자동 반영됩니다.</div>
+<div style="margin-top:16px;">
+<input autocomplete="off" class="inp" id="studentQuery" placeholder="학생 이름 또는 학번"/>
+</div>
+<div class="tag tagGood hidden" id="selectedStudent" style="margin-top:14px;"></div>
+<div class="list" id="studentResults" style="margin-top:16px;">
+<div class="smallText">검색어를 입력하세요.</div>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">Student 360 Profile</div>
+<div class="sectionDesc">학생을 선택하면 오늘 상태, QR 예외, 최근 출결, 소속 클래스가 바로 정리됩니다.</div>
+</div>
+<div class="tagRow">
+<span class="tag">운영용</span>
+<span class="tag">조회 중심</span>
+</div>
+</div>
+<div class="emptyPanel" id="studentDetailBody">
+<h3>학생을 선택하세요</h3>
+<p>출결 요약, QR 예외 여부, 최근 로그, 클리닉·단어시험·메모가 이 화면으로 확장됩니다.</p>
+</div>
+<details class="compactDetails subtleActions"><summary>QR/정정 보조 처리</summary><div class="btnRow" style="margin-top:18px;">
+<button class="btn btnPri" id="btnAllowSid" type="button">QR 예외 허용</button>
+<button class="btn btnGhost" id="btnBlockSid" type="button">QR 예외 해제</button>
+<button class="btn btnGhost" id="btnReloadStudentProfile" type="button">프로필 새로고침</button>
+<button class="btn btnGhost" id="btnFillManualFromStudent" type="button">정정 폼에 학번 넣기</button>
+</div></details>
+<div class="stickyStudentBar compactStudentActions" id="studentOneClickBar">
+<strong>선택 학생 처리</strong>
+<button class="quickActionBtn" id="btnStudentLogsOneClick" type="button">오늘 로그</button>
+<button class="quickActionBtn warn" id="btnStudentClinicOneClick" type="button">클리닉</button>
+<button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">점수</button>
+<button class="quickActionBtn" id="btnStudentReportOneClick" type="button">리포트</button>
+</div>
+</div>
+</div>
+<div class="grid3" style="margin-top:18px;">
+<div class="metricCard" id="studentTodayCard">
+<div class="metricLabel">오늘 출결 상태</div>
+<div class="metricValue" id="studentTodayStatus">-</div>
+<div class="metricNote" id="studentTodayNote">학생 선택 전</div>
+</div>
+<div class="metricCard" id="studentQrCard">
+<div class="metricLabel">QR 예외</div>
+<div class="metricValue" id="studentQrStatus">-</div>
+<div class="metricNote" id="studentQrNote">상시 학번 출결 허용 여부</div>
+</div>
+<div class="metricCard" id="studentClassCard">
+<div class="metricLabel">소속 클래스</div>
+<div class="metricValue" id="studentClassCount">-</div>
+<div class="metricNote" id="studentClassNote">class_students 기준</div>
+</div>
+</div>
+<div class="grid2" style="margin-top:18px;">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">최근 출결</div>
+<div class="sectionDesc">선택 학생의 최근 출결 로그입니다. trace를 정정 원본으로 바로 가져올 수 있습니다.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>시간</th>
+<th>날짜</th>
+<th>동작</th>
+<th>결과</th>
+<th>입력</th>
+<th>trace</th>
+<th>정정</th>
+</tr>
+</thead>
+<tbody id="studentProfileLogRows">
+<tr><td colspan="7" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">소속 클래스</div>
+<div class="sectionDesc">학생이 속한 반과 알림 설정을 빠르게 확인합니다.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>반</th>
+<th>담당</th>
+<th>시간</th>
+<th>교실</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody id="studentProfileClassRows">
+<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">최근 결석예외</div>
+<div class="sectionDesc">카톡 X, 지각 연락, 특정 일자 예외 등 운영 메모성 예외를 확인합니다.</div>
+</div>
 
-        <div class="fieldStack">
-          <div>
-            <div class="fieldLabel">직원 ID</div>
-            <input class="inp" id="loginId" autocomplete="username" placeholder="직원 ID" />
-          </div>
-          <div>
-            <div class="fieldLabel">비밀번호</div>
-            <input class="inp" id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호" />
-          </div>
-          <button class="btn btnPri" id="btnLogin" type="button" style="height:54px; font-size:16px;">운영 포털 로그인</button>
-          <div id="loginMsg" class="smallText"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>날짜</th>
+<th>반</th>
+<th>사유</th>
+<th>유효시간</th>
+<th>수정</th>
+</tr>
+</thead>
+<tbody id="studentProfileExcuseRows">
+<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="grid2" style="margin-top:18px;">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">최근 클리닉</div>
+<div class="sectionDesc">선택 학생의 클리닉 후보/진행/완료 기록입니다.</div>
+</div>
 
-  <div id="appView" class="shell hidden">
-    <aside class="side">
-      <div class="sideBrand">
-        <div class="brandMark">↑</div>
-        <div class="sideBrandText">
-          <strong>더오름 운영 포털</strong>
-          <span>Staff Operations</span>
-        </div>
-      </div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>상태</th>
+<th>제목</th>
+<th>유형</th>
+<th>우선</th>
+<th>수정</th>
+</tr>
+</thead>
+<tbody id="studentProfileClinicRows">
+<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">최근 단어시험</div>
+<div class="sectionDesc">선택 학생의 최근 단어시험 결과와 연결된 클리닉 후보입니다.</div>
+</div>
 
-      <div class="sideSectionLabel">핵심 업무</div>
-      <nav class="sideNav primaryNav" aria-label="핵심 운영 메뉴">
-        <button class="navBtn on" type="button" data-go="dashboard">오늘 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="students">학생 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="attendance">출결 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="clinic">클리닉 <span>›</span></button>
-        <button class="navBtn" type="button" data-go="words">단어 <span>›</span></button>
-      </nav>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>날짜</th>
+<th>시험</th>
+<th>점수</th>
+<th>결과</th>
+<th>클리닉</th>
+</tr>
+</thead>
+<tbody id="studentProfileWordRows">
+<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="반, 시간표, 수강생, 담당 선생님을 조회하고 roster를 빠르게 확인합니다." data-view-title="클래스" id="classes">
+<div class="grid2">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">클래스 목록</div>
+<div class="sectionDesc">날짜를 입력하면 해당 날짜의 class_schedule을, 비우면 기본 classes 목록을 조회합니다.</div>
+</div>
+<span class="statusPill good">조회 전용</span>
+</div>
+<div class="formGrid cols3">
+<div>
+<div class="fieldLabel">날짜</div>
+<input class="inp" id="classYmd" inputmode="numeric" placeholder="YYYYMMDD / 비우면 전체"/>
+</div>
+<div>
+<div class="fieldLabel">상태</div>
+<select class="select" id="classIncludeInactive">
+<option value="N">예정 수업만</option>
+<option value="Y">비활성/취소 포함</option>
+</select>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnLoadClasses" style="width:100%;" type="button">클래스 조회</button>
+</div>
+</div>
+<div class="tableWrap" style="margin-top:18px;">
+<table class="table">
+<thead>
+<tr>
+<th>반 ID</th>
+<th>반 이름</th>
+<th>담당</th>
+<th>시간</th>
+<th>교실</th>
+<th>알림</th>
+<th>상태</th>
+<th>명단</th>
+</tr>
+</thead>
+<tbody id="classRows">
+<tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle" id="classRosterTitle">수강생 명단</div>
+<div class="sectionDesc" id="classRosterDesc">클래스 목록에서 명단을 선택하세요.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>학번</th>
+<th>이름</th>
+<th>학교</th>
+<th>학년</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody id="classRosterRows">
+<tr><td colspan="5" style="color:var(--muted);">선택된 클래스가 없습니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="클리닉 후보, 확정, 진행, 완료를 실제 데이터로 관리합니다." data-view-title="클리닉" id="clinic">
+<div class="grid2">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">클리닉 생성</div>
+<div class="sectionDesc">학생 검색에서 선택한 학생에게 수업·단어·과제·출결 클리닉을 생성합니다.</div>
+</div>
+<span class="statusPill good">DB 연결</span>
+</div>
+<div class="formGrid cols3" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">선택 학생</div>
+<input class="inp" disabled="" id="clinicStudentLabel" placeholder="학생 화면에서 선택"/>
+</div>
+<div>
+<div class="fieldLabel">유형</div>
+<select class="select" id="clinicTaskType">
+<option value="GENERAL">일반</option>
+<option value="WORD">단어</option>
+<option value="GRAMMAR">문법</option>
+<option value="READING">독해</option>
+<option value="WRITING">라이팅</option>
+<option value="ATTENDANCE">출결</option>
+<option value="HOMEWORK">숙제</option>
+<option value="MAKEUP">보강</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">우선순위</div>
+<select class="select" id="clinicPriority">
+<option value="NORMAL">보통</option>
+<option value="HIGH">높음</option>
+<option value="URGENT">긴급</option>
+<option value="LOW">낮음</option>
+</select>
+</div>
+</div>
+<div style="margin-top:14px;">
+<div class="fieldLabel">제목</div>
+<input class="inp" id="clinicTitle" placeholder="예: Day 12 단어 재시험 / 6월 2주차 독해 오답"/>
+</div>
+<div class="formGrid cols2" style="margin-top:14px;">
+<div>
+<div class="fieldLabel">마감일</div>
+<input class="inp" id="clinicDueDate" type="date"/>
+</div>
+<div>
+<div class="fieldLabel">학부모 공개</div>
+<select class="select" id="clinicParentVisible">
+<option value="N">비공개</option>
+<option value="Y">공개</option>
+</select>
+</div>
+</div>
+<div class="formGrid cols2" style="margin-top:14px;">
+<div>
+<div class="fieldLabel">내부 메모</div>
+<textarea class="textarea" id="clinicInternalNote" placeholder="직원만 보는 조치 메모"></textarea>
+</div>
+<div>
+<div class="fieldLabel">학부모 공개 메모</div>
+<textarea class="textarea" id="clinicParentNote" placeholder="공개로 선택한 경우 학부모 리포트에 들어갈 문구"></textarea>
+</div>
+</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnCreateClinicTask" type="button">클리닉 생성</button>
 
-      <details class="moreNav">
-        <summary>더 보기</summary>
-        <nav class="sideNav" aria-label="보조 메뉴">
-          <button class="navBtn" type="button" data-go="messages">문자 <span>›</span></button>
-          <button class="navBtn" type="button" data-go="classes">클래스 <span>›</span></button>
-          <button class="navBtn" type="button" data-go="reports">리포트 <span>›</span></button>
-          <button class="navBtn" type="button" data-go="staff">직원 <span>›</span></button>
-          <button class="navBtn" type="button" data-go="advanced">설정 <span>›</span></button>
-        </nav>
-      </details>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">클리닉 조회</div>
+<div class="sectionDesc">상태와 학생 필터를 정한 뒤 조회합니다. 상태 변경은 목록의 변경 칸에서 처리합니다.</div>
+</div>
+<span class="statusPill warn">상태 관리</span>
+</div>
+<div class="formGrid cols3" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">상태</div>
+<select class="select" id="clinicStatusFilter">
+<option value="CANDIDATE">후보</option>
+<option value="PENDING">대기</option>
+<option value="IN_PROGRESS">진행중</option>
+<option value="DONE">완료</option>
+<option value="PARTIAL">부분완료</option>
+<option value="REJECTED">반려</option>
+<option value="CANCELLED">취소</option>
+<option value="">전체</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">학생 필터</div>
+<input class="inp" id="clinicStudentFilter" placeholder="비우면 전체"/>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnLoadClinicTasks" style="width:100%;" type="button">클리닉 조회</button>
+</div>
+</div>
 
-      <div class="sideFooter">
-        <div class="userBox">
-          <div class="userName" id="whoText">로그인 전</div>
-          <div class="userState"><span class="dot"></span><span id="netText">Online</span></div>
-        </div>
-        <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크 열기</button>
-        <button class="btn btnGhost hidden" id="btnLogout" type="button">로그아웃</button>
-      </div>
-    </aside>
+<div class="emptyPanel" style="margin-top:16px;">
+<h3>운영 흐름</h3>
+<p>단어시험 불통과는 자동으로 CANDIDATE 후보가 됩니다. 직원이 확인 후 PENDING 또는 IN_PROGRESS로 넘기면 됩니다.</p>
+</div>
+</div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">클리닉 목록</div>
+<div class="sectionDesc" id="clinicTaskSummary">조회 전입니다.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>상태</th>
+<th>학생</th>
+<th>제목</th>
+<th>유형</th>
+<th>우선</th>
+<th>마감</th>
+<th>공개</th>
+<th>변경</th>
+</tr>
+</thead>
+<tbody id="clinicTaskRows">
+<tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="단어시험 회차와 결과를 저장하고 불통과자를 클리닉 후보로 자동 연결합니다." data-view-title="단어시험" id="words">
+<div class="grid2">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">시험 회차 생성</div>
+<div class="sectionDesc">날짜, 범위, 통과 기준을 저장합니다. 반 ID는 선택 입력입니다.</div>
+</div>
+<span class="statusPill good">word_test_sessions</span>
+</div>
+<div class="formGrid cols3" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">날짜</div>
+<input class="inp" id="wordSessionYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
+</div>
+<div>
+<div class="fieldLabel">반 ID</div>
+<input class="inp" id="wordClassId" placeholder="선택"/>
+</div>
+<div>
+<div class="fieldLabel">통과/만점</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+<input class="inp" id="wordPassScore" inputmode="decimal" value="90"/>
+<input class="inp" id="wordMaxScore" inputmode="decimal" value="100"/>
+</div>
+</div>
+</div>
+<div style="margin-top:14px;">
+<div class="fieldLabel">제목</div>
+<input class="inp" id="wordSessionTitle" placeholder="예: 6월 2주차 누적 단어시험"/>
+</div>
+<div style="margin-top:14px;">
+<div class="fieldLabel">범위</div>
+<textarea class="textarea" id="wordScopeText" placeholder="예: Day 12~15 / 수특라이트 6강"></textarea>
+</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnCreateWordSession" type="button">회차 생성</button>
+<button class="btn btnGhost" id="btnListWordSessions" type="button">회차 조회</button>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">점수 입력</div>
+<div class="sectionDesc">회차를 선택하고 학생 ID와 점수만 입력합니다. 기준 미달은 자동으로 클리닉 후보가 됩니다.</div>
+</div>
+<span class="statusPill warn">자동 후보</span>
+</div>
+<div class="formGrid cols2" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">회차 ID</div>
+<input class="inp" id="wordResultSessionId" placeholder="회차 목록에서 선택"/>
+</div>
+<div>
+<div class="fieldLabel">학생 ID</div>
+<input class="inp" id="wordResultStudentId" placeholder="학생 선택 시 자동"/>
+</div>
+</div>
+<div class="formGrid cols3" style="margin-top:14px;">
+<div>
+<div class="fieldLabel">점수</div>
+<input class="inp" id="wordScore" inputmode="decimal" placeholder="예: 86"/><div class="fieldHint">Enter를 누르면 결과 저장</div>
+</div>
+<div>
+<div class="fieldLabel">결과</div>
+<select class="select" id="wordResultStatus">
+<option value="">점수로 자동 판정</option>
+<option value="PASS">통과</option>
+<option value="FAIL">불통과</option>
+<option value="ABSENT">미응시</option>
+<option value="EXEMPT">면제</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">클리닉 후보</div>
+<select class="select" id="wordCreateClinic">
+<option value="Y">불통과 시 생성</option>
+<option value="N">생성 안 함</option>
+</select>
+</div>
+</div>
+<div style="margin-top:14px;">
+<div class="fieldLabel">메모</div>
+<textarea class="textarea" id="wordResultNote" placeholder="예: 철자 실수 많음 / 재시험 필요"></textarea>
+</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnEnterWordResult" type="button">결과 저장</button>
 
-    <main class="main">
-      <div class="workspace">
-        <div class="pageHeader" id="pageHeader">
-          <div>
-            <div class="pageKicker" id="pageKicker">운영 포털</div>
-            <h1 class="pageTitle" id="pageTitle">홈</h1>
-            <div class="pageDesc" id="pageDesc">오늘 운영 상태와 빠른 업무를 확인합니다.</div>
-          </div>
-          <div class="topTools" id="pageTags">
-            <button class="btn btnGhost" type="button" onclick="location.href='/'">키오스크</button>
-            <button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
-          </div>
-        </div>
+</div>
+</div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">단어시험 회차 목록</div>
+<div class="sectionDesc" id="wordSessionSummary">조회 전입니다.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>날짜</th>
+<th>제목</th>
+<th>반</th>
+<th>범위</th>
+<th>기준</th>
+<th>선택</th>
+</tr>
+</thead>
+<tbody id="wordSessionRows">
+<tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="sectionTitle">최근 저장 결과</div>
+<div class="sectionDesc" id="wordResultSummary">결과 저장 후 여기에 표시됩니다.</div>
+<div class="mono" id="wordResultBox" style="margin-top:14px;">아직 저장된 결과가 없습니다.</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="미등원, 등하원, 클리닉, 리포트 발송 이력을 관리합니다." data-view-title="문자·알림" id="messages">
+<div class="grid2">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">문자 큐 조회</div>
+<div class="sectionDesc">PENDING, FAILED, DONE 상태별 queue를 조회합니다. 실패 건은 PIN 확인 후 재처리할 수 있습니다.</div>
+</div>
+<span class="statusPill warn">NCP queue</span>
+</div>
+<div class="formGrid cols3">
+<div>
+<div class="fieldLabel">상태</div>
+<select class="select" id="notifyQueueStatus">
+<option value="FAILED">FAILED</option>
+<option value="PENDING">PENDING</option>
+<option value="PROCESSING">PROCESSING</option>
+<option value="DONE">DONE</option>
+<option value="">전체</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">종류</div>
+<select class="select" id="notifyQueueAction">
+<option value="ABSENT">미등원</option>
+<option value="ATTENDANCE">등하원</option>
+<option value="">전체</option>
+</select>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnLoadNotifyQueue" style="width:100%;" type="button">큐 조회</button>
+</div>
+</div>
+<div class="btnRow" style="margin-top:14px;">
+<button class="btn btnGhost" id="btnRetryNotifyQueue" type="button">실패 큐 재처리</button>
+<button class="btn btnGhost" id="btnMessageWorkerRuns" type="button">worker 실행 기록</button>
 
-        <div class="quickDock" id="quickDock" aria-label="원클릭 업무 런처">
-          <div class="quickDockMain">
-            <div>
-              <div class="quickKicker">빠른 처리</div>
-              <div class="quickSelected" id="quickSelectedStudentText">학생을 고르면 출결·클리닉·점수 입력이 자동으로 연결됩니다.</div>
-            </div>
-            <div class="quickSearch">
-              <input class="inp" id="quickStudentQuery" placeholder="어디서든 학생 이름/학번 검색" autocomplete="off" />
-              <button class="btn btnPri" id="btnQuickStudentSearch" type="button">학생 찾기</button>
-            </div>
-          </div>
-          <div class="quickActions simpleQuickActions">
-            <button class="quickActionBtn primary" id="btnPulseCheck" type="button">오늘 점검</button>
-            <button class="quickActionBtn" id="btnQuickStudentLogs" type="button">출결 보기</button>
-            <button class="quickActionBtn good" id="btnQuickStudentClinic" type="button">클리닉 만들기</button>
-            <button class="quickActionBtn" id="btnQuickWordInput" type="button">점수 입력</button>
-          </div>
-        </div>
-
-        <section class="portalView active" id="dashboard" data-view-title="오늘" data-view-desc="오늘 처리할 일만 봅니다.">
-          <div class="grid compactDashboard">
-            <div class="grid4 slimMetrics">
-              <div class="metricCard">
-                <div class="metricLabel">중앙DB</div>
-                <div class="metricValue" id="statReplica">-</div>
-                <div class="metricNote" id="statReplicaNote">조회 전</div>
-              </div>
-              <div class="metricCard isFocus">
-                <div class="metricLabel">미등원 실패</div>
-                <div class="metricValue" id="statFailedAbsent">-</div>
-                <div class="metricNote">처리 필요</div>
-              </div>
-              <div class="metricCard">
-                <div class="metricLabel">등하원 실패</div>
-                <div class="metricValue" id="statFailedAttendance">-</div>
-                <div class="metricNote">문자/알림</div>
-              </div>
-              <div class="metricCard">
-                <div class="metricLabel">점검 모드</div>
-                <div class="metricValue" id="statSafe">-</div>
-                <div class="metricNote" id="statSafeNote">runtime_config</div>
-              </div>
-              <div class="metricCard compactOnly" id="cardAbsenceCron">
-                <div class="metricLabel">미등원 cron</div>
-                <div class="metricValue" id="statAbsenceCron">-</div>
-                <div class="metricNote" id="statAbsenceCronNote">실행 기록 조회 전</div>
-              </div>
-              <div class="metricCard compactOnly" id="cardWorkerCron">
-                <div class="metricLabel">문자 worker</div>
-                <div class="metricValue" id="statWorkerCron">-</div>
-                <div class="metricNote" id="statWorkerCronNote">실행 기록 조회 전</div>
-              </div>
-            </div>
-
-            <div class="card cardPad todayConsole">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">오늘 할 일</div>
-                  <div class="sectionDesc">자주 쓰는 버튼만 남겼습니다. 점검 → 실패 처리 → 클리닉 후보 → 단어시험 순서로 보면 됩니다.</div>
-                </div>
-                <button class="btn btnPri" id="btnCommandPulse" type="button">전체 점검</button>
-              </div>
-              <div class="simpleCommandRow">
-                <button class="commandButton" id="btnCommandAbsent" type="button">
-                  <span class="commandTitle">미등원 실패</span>
-                  <span class="commandDesc">실패 문자만 바로 확인</span>
-                </button>
-                <button class="commandButton" id="btnCommandClinic" type="button">
-                  <span class="commandTitle">클리닉 후보</span>
-                  <span class="commandDesc">처리 대기 학생만 보기</span>
-                </button>
-                <button class="commandButton" id="btnCommandWord" type="button">
-                  <span class="commandTitle">오늘 단어시험</span>
-                  <span class="commandDesc">회차 조회 후 점수 입력</span>
-                </button>
-              </div>
-              <div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
-              <div class="sectionDesc" id="overviewText" style="margin-top:12px;">아직 불러오지 않았습니다.</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="portalView" id="attendance" data-view-title="출결" data-view-desc="출결 로그, 수동 정정, 실패 알림, QR 문제 대응을 처리합니다.">
-          <div class="grid">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">출결 로그</div>
-                  <div class="sectionDesc">날짜와 학생 학번으로 최근 출결 기록을 조회합니다.</div>
-                </div>
-                <button class="btn btnGhost" type="button" data-go-link="qrCenter">QR 문제 대응</button>
-              </div>
-
-              <div class="formGrid cols3">
-                <div>
-                  <div class="fieldLabel">날짜</div>
-                  <input class="inp" id="logYmd" inputmode="numeric" placeholder="YYYYMMDD" />
-                </div>
-                <div>
-                  <div class="fieldLabel">학생 학번</div>
-                  <input class="inp" id="logSidFilter" inputmode="numeric" placeholder="선택 입력" />
-                </div>
-                <div style="display:flex; align-items:end;">
-                  <button class="btn btnPri" id="btnLoadLogs" type="button" style="width:100%;">로그 조회</button>
-                </div>
-              </div>
-
-              <div class="tableWrap" style="margin-top:18px;">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>시간</th>
-                      <th>ID</th>
-                      <th>이름</th>
-                      <th>동작</th>
-                      <th>결과</th>
-                      <th>입력</th>
-                      <th>trace</th>
-                      <th>선택</th>
-                    </tr>
-                  </thead>
-                  <tbody id="attendanceLogRows">
-                    <tr>
-                      <td colspan="8" style="color:var(--muted);">조회 전입니다.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="grid2">
-              <div class="card cardPad">
-                <div class="sectionTitle">수동 정정</div>
-                <div class="sectionDesc">출결 로그에서 trace를 선택한 뒤 사유와 PIN을 입력합니다.</div>
-                <div class="formGrid" style="margin-top:16px;">
-                  <div class="formGrid cols2">
-                    <div>
-                      <div class="fieldLabel">학생 학번</div>
-                      <input class="inp" id="manualSid" inputmode="numeric" placeholder="0000" />
-                    </div>
-                    <div>
-                      <div class="fieldLabel">동작</div>
-                      <select class="select" id="manualAction">
-                        <option value="">선택</option>
-                        <option value="CHECK_IN">등원</option>
-                        <option value="CHECK_OUT">하원</option>
-                        <option value="OUTING">외출</option>
-                        <option value="RETURN">복귀</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <div class="fieldLabel">원본 trace_id</div>
-                    <input class="inp" id="manualTraceId" placeholder="로그 선택 시 자동 입력" />
-                  </div>
-                  <div>
-                    <div class="fieldLabel">정정 사유</div>
-                    <textarea class="textarea" id="manualReason" placeholder="예: QR 인식 실패로 데스크 확인 후 정정"></textarea>
-                  </div>
-                  <div class="formGrid cols2">
-                    <div>
-                      <div class="fieldLabel">직원 PIN</div>
-                      <input class="inp" id="manualPin" type="password" inputmode="numeric" placeholder="PIN" />
-                    </div>
-                    <div style="display:flex; align-items:end;">
-                      <button class="btn btnPri" id="btnManualAttendance" type="button" style="width:100%;">정정 저장</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="card cardPad">
-                <div class="sectionTitle">실패 알림</div>
-                <div class="sectionDesc">문자/알림 실패 건을 확인하고 원인을 추적합니다.</div>
-                <div class="btnRow" style="margin-top:16px;">
-                  <button class="btn btnGhost" id="btnFailedAbsent" type="button">미등원 실패</button>
-                  <button class="btn btnGhost" id="btnFailedAttendance" type="button">등하원 실패</button>
-                  <button class="btn btnGhost" id="btnMismatch" type="button">상태 불일치</button>
-                </div>
-                <div class="emptyPanel" style="margin-top:18px;">
-                  <h3>QR 예외는 학생 화면에서 처리</h3>
-                  <p>학생 검색 후 QR 예외 허용/해제를 처리하면 됩니다. 포털에는 매일 쓰지 않는 외부 링크를 넣지 않았습니다.</p>
-                  <div class="btnRow" style="margin-top:16px;">
-                    <button class="btn btnPri" type="button" data-go-link="students">학생 검색으로 이동</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="portalView" id="students" data-view-title="학생" data-view-desc="학생 검색, 오늘 상태, 최근 출결, 소속 클래스, 결석예외를 한 화면에서 확인합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="sectionTitle">학생 검색</div>
-              <div class="sectionDesc">이름 또는 학번으로 검색합니다. 선택한 학생은 출결 수동 정정과 Student 360 Profile에 자동 반영됩니다.</div>
-              <div style="margin-top:16px;">
-                <input class="inp" id="studentQuery" placeholder="학생 이름 또는 학번" autocomplete="off" />
-              </div>
-              <div class="tag tagGood hidden" id="selectedStudent" style="margin-top:14px;"></div>
-              <div class="list" id="studentResults" style="margin-top:16px;">
-                <div class="smallText">검색어를 입력하세요.</div>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">Student 360 Profile</div>
-                  <div class="sectionDesc">학생을 선택하면 오늘 상태, QR 예외, 최근 출결, 소속 클래스가 바로 정리됩니다.</div>
-                </div>
-                <div class="tagRow">
-                  <span class="tag">운영용</span>
-                  <span class="tag">조회 중심</span>
-                </div>
-              </div>
-              <div id="studentDetailBody" class="emptyPanel">
-                <h3>학생을 선택하세요</h3>
-                <p>출결 요약, QR 예외 여부, 최근 로그, 클리닉·단어시험·메모가 이 화면으로 확장됩니다.</p>
-              </div>
-              <div class="btnRow" style="margin-top:18px;">
-                <button class="btn btnPri" id="btnAllowSid" type="button">QR 예외 허용</button>
-                <button class="btn btnGhost" id="btnBlockSid" type="button">QR 예외 해제</button>
-                <button class="btn btnGhost" id="btnReloadStudentProfile" type="button">프로필 새로고침</button>
-                <button class="btn btnGhost" id="btnFillManualFromStudent" type="button">정정 폼에 학번 넣기</button>
-              </div>
-              <div class="stickyStudentBar compactStudentActions" id="studentOneClickBar">
-                <strong>선택 학생 처리</strong>
-                <button class="quickActionBtn" id="btnStudentLogsOneClick" type="button">오늘 로그</button>
-                <button class="quickActionBtn warn" id="btnStudentClinicOneClick" type="button">클리닉</button>
-                <button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">점수</button>
-                <button class="quickActionBtn" id="btnStudentReportOneClick" type="button">리포트</button>
-              </div>
-              <details class="presetPanel compactDetails">
-                <summary>클리닉 프리셋</summary>
-                <div class="quickPresetGrid">
-                  <button class="quickActionBtn warn" type="button" data-quick-clinic="WORD_RETEST">단어 재시험</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="READING_REVIEW">독해 오답</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="HOMEWORK_MISSING">숙제 미완료</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="ATTENDANCE_CHECK">출결 상담</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="MAKEUP_CLASS">보강 필요</button>
-                </div>
-              </details>
-            </div>
-          </div>
-
-          <div class="grid3" style="margin-top:18px;">
-            <div class="metricCard" id="studentTodayCard">
-              <div class="metricLabel">오늘 출결 상태</div>
-              <div class="metricValue" id="studentTodayStatus">-</div>
-              <div class="metricNote" id="studentTodayNote">학생 선택 전</div>
-            </div>
-            <div class="metricCard" id="studentQrCard">
-              <div class="metricLabel">QR 예외</div>
-              <div class="metricValue" id="studentQrStatus">-</div>
-              <div class="metricNote" id="studentQrNote">상시 학번 출결 허용 여부</div>
-            </div>
-            <div class="metricCard" id="studentClassCard">
-              <div class="metricLabel">소속 클래스</div>
-              <div class="metricValue" id="studentClassCount">-</div>
-              <div class="metricNote" id="studentClassNote">class_students 기준</div>
-            </div>
-          </div>
-
-          <div class="grid2" style="margin-top:18px;">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">최근 출결</div>
-                  <div class="sectionDesc">선택 학생의 최근 출결 로그입니다. trace를 정정 원본으로 바로 가져올 수 있습니다.</div>
-                </div>
-              </div>
-              <div class="tableWrap">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>시간</th>
-                      <th>날짜</th>
-                      <th>동작</th>
-                      <th>결과</th>
-                      <th>입력</th>
-                      <th>trace</th>
-                      <th>정정</th>
-                    </tr>
-                  </thead>
-                  <tbody id="studentProfileLogRows">
-                    <tr><td colspan="7" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">소속 클래스</div>
-                  <div class="sectionDesc">학생이 속한 반과 알림 설정을 빠르게 확인합니다.</div>
-                </div>
-              </div>
-              <div class="tableWrap">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>반</th>
-                      <th>담당</th>
-                      <th>시간</th>
-                      <th>교실</th>
-                      <th>상태</th>
-                    </tr>
-                  </thead>
-                  <tbody id="studentProfileClassRows">
-                    <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div class="card cardPad" style="margin-top:18px;">
-            <div class="cardHead">
-              <div>
-                <div class="sectionTitle">최근 결석예외</div>
-                <div class="sectionDesc">카톡 X, 지각 연락, 특정 일자 예외 등 운영 메모성 예외를 확인합니다.</div>
-              </div>
-              <button class="btn btnGhost" type="button" data-go-link="attendance">출결 화면으로 이동</button>
-            </div>
-            <div class="tableWrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>날짜</th>
-                    <th>반</th>
-                    <th>사유</th>
-                    <th>유효시간</th>
-                    <th>수정</th>
-                  </tr>
-                </thead>
-                <tbody id="studentProfileExcuseRows">
-                  <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-
-          <div class="grid2" style="margin-top:18px;">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">최근 클리닉</div>
-                  <div class="sectionDesc">선택 학생의 클리닉 후보/진행/완료 기록입니다.</div>
-                </div>
-                <button class="btn btnGhost" type="button" data-go-link="clinic">클리닉 화면</button>
-              </div>
-              <div class="tableWrap">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>상태</th>
-                      <th>제목</th>
-                      <th>유형</th>
-                      <th>우선</th>
-                      <th>수정</th>
-                    </tr>
-                  </thead>
-                  <tbody id="studentProfileClinicRows">
-                    <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">최근 단어시험</div>
-                  <div class="sectionDesc">선택 학생의 최근 단어시험 결과와 연결된 클리닉 후보입니다.</div>
-                </div>
-                <button class="btn btnGhost" type="button" data-go-link="words">단어시험 화면</button>
-              </div>
-              <div class="tableWrap">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>날짜</th>
-                      <th>시험</th>
-                      <th>점수</th>
-                      <th>결과</th>
-                      <th>클리닉</th>
-                    </tr>
-                  </thead>
-                  <tbody id="studentProfileWordRows">
-                    <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          </div>
-        </section>
-        <section class="portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 수강생, 담당 선생님을 조회하고 roster를 빠르게 확인합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">클래스 목록</div>
-                  <div class="sectionDesc">날짜를 입력하면 해당 날짜의 class_schedule을, 비우면 기본 classes 목록을 조회합니다.</div>
-                </div>
-                <span class="statusPill good">조회 전용</span>
-              </div>
-
-              <div class="formGrid cols3">
-                <div>
-                  <div class="fieldLabel">날짜</div>
-                  <input class="inp" id="classYmd" inputmode="numeric" placeholder="YYYYMMDD / 비우면 전체" />
-                </div>
-                <div>
-                  <div class="fieldLabel">상태</div>
-                  <select class="select" id="classIncludeInactive">
-                    <option value="N">예정 수업만</option>
-                    <option value="Y">비활성/취소 포함</option>
-                  </select>
-                </div>
-                <div style="display:flex; align-items:end;">
-                  <button class="btn btnPri" id="btnLoadClasses" type="button" style="width:100%;">클래스 조회</button>
-                </div>
-              </div>
-
-              <div class="tableWrap" style="margin-top:18px;">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>반 ID</th>
-                      <th>반 이름</th>
-                      <th>담당</th>
-                      <th>시간</th>
-                      <th>교실</th>
-                      <th>알림</th>
-                      <th>상태</th>
-                      <th>명단</th>
-                    </tr>
-                  </thead>
-                  <tbody id="classRows">
-                    <tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle" id="classRosterTitle">수강생 명단</div>
-                  <div class="sectionDesc" id="classRosterDesc">클래스 목록에서 명단을 선택하세요.</div>
-                </div>
-              </div>
-              <div class="tableWrap">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>학번</th>
-                      <th>이름</th>
-                      <th>학교</th>
-                      <th>학년</th>
-                      <th>상태</th>
-                    </tr>
-                  </thead>
-                  <tbody id="classRosterRows">
-                    <tr><td colspan="5" style="color:var(--muted);">선택된 클래스가 없습니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="portalView" id="clinic" data-view-title="클리닉" data-view-desc="클리닉 후보, 확정, 진행, 완료를 실제 데이터로 관리합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">클리닉 생성</div>
-                  <div class="sectionDesc">학생 검색에서 선택한 학생에게 수업·단어·과제·출결 클리닉을 생성합니다.</div>
-                </div>
-                <span class="statusPill good">DB 연결</span>
-              </div>
-              <div class="formGrid cols3" style="margin-top:16px;">
-                <div>
-                  <div class="fieldLabel">선택 학생</div>
-                  <input class="inp" id="clinicStudentLabel" disabled placeholder="학생 화면에서 선택" />
-                </div>
-                <div>
-                  <div class="fieldLabel">유형</div>
-                  <select class="select" id="clinicTaskType">
-                    <option value="GENERAL">일반</option>
-                    <option value="WORD">단어</option>
-                    <option value="GRAMMAR">문법</option>
-                    <option value="READING">독해</option>
-                    <option value="WRITING">라이팅</option>
-                    <option value="ATTENDANCE">출결</option>
-                    <option value="HOMEWORK">숙제</option>
-                    <option value="MAKEUP">보강</option>
-                  </select>
-                </div>
-                <div>
-                  <div class="fieldLabel">우선순위</div>
-                  <select class="select" id="clinicPriority">
-                    <option value="NORMAL">보통</option>
-                    <option value="HIGH">높음</option>
-                    <option value="URGENT">긴급</option>
-                    <option value="LOW">낮음</option>
-                  </select>
-                </div>
-              </div>
-              <div style="margin-top:14px;">
-                <div class="fieldLabel">제목</div>
-                <input class="inp" id="clinicTitle" placeholder="예: Day 12 단어 재시험 / 6월 2주차 독해 오답" />
-              </div>
-              <div class="formGrid cols2" style="margin-top:14px;">
-                <div>
-                  <div class="fieldLabel">마감일</div>
-                  <input class="inp" id="clinicDueDate" type="date" />
-                </div>
-                <div>
-                  <div class="fieldLabel">학부모 공개</div>
-                  <select class="select" id="clinicParentVisible">
-                    <option value="N">비공개</option>
-                    <option value="Y">공개</option>
-                  </select>
-                </div>
-              </div>
-              <div class="formGrid cols2" style="margin-top:14px;">
-                <div>
-                  <div class="fieldLabel">내부 메모</div>
-                  <textarea class="textarea" id="clinicInternalNote" placeholder="직원만 보는 조치 메모"></textarea>
-                </div>
-                <div>
-                  <div class="fieldLabel">학부모 공개 메모</div>
-                  <textarea class="textarea" id="clinicParentNote" placeholder="공개로 선택한 경우 학부모 리포트에 들어갈 문구"></textarea>
-                </div>
-              </div>
-              <div class="btnRow" style="margin-top:16px;">
-                <button class="btn btnPri" id="btnCreateClinicTask" type="button">클리닉 생성</button>
-                <button class="btn btnGhost" type="button" data-go-link="students">학생 선택으로 이동</button>
-              </div>
-              <div class="presetPanel">
-                <div class="presetPanelTitle">빠른 생성</div>
-                <div class="quickPresetGrid">
-                  <button class="quickActionBtn warn" type="button" data-quick-clinic="WORD_RETEST">단어 재시험</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="READING_REVIEW">독해 오답</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="HOMEWORK_MISSING">숙제 미완료</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="ATTENDANCE_CHECK">출결 상담</button>
-                  <button class="quickActionBtn" type="button" data-quick-clinic="MAKEUP_CLASS">보강 필요</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">클리닉 조회</div>
-                  <div class="sectionDesc">상태별 task를 조회하고 바로 상태를 변경합니다.</div>
-                </div>
-                <span class="statusPill warn">상태 관리</span>
-              </div>
-              <div class="formGrid cols3" style="margin-top:16px;">
-                <div>
-                  <div class="fieldLabel">상태</div>
-                  <select class="select" id="clinicStatusFilter">
-                    <option value="CANDIDATE">후보</option>
-                    <option value="PENDING">대기</option>
-                    <option value="IN_PROGRESS">진행중</option>
-                    <option value="DONE">완료</option>
-                    <option value="PARTIAL">부분완료</option>
-                    <option value="REJECTED">반려</option>
-                    <option value="CANCELLED">취소</option>
-                    <option value="">전체</option>
-                  </select>
-                </div>
-                <div>
-                  <div class="fieldLabel">학생 필터</div>
-                  <input class="inp" id="clinicStudentFilter" placeholder="비우면 전체" />
-                </div>
-                <div style="display:flex; align-items:end;">
-                  <button class="btn btnPri" id="btnLoadClinicTasks" type="button" style="width:100%;">클리닉 조회</button>
-                </div>
-              </div>
-              <div class="quickPresetGrid" style="margin-top:12px;">
-                <button class="quickActionBtn warn" type="button" data-clinic-filter="CANDIDATE">후보만</button>
-                <button class="quickActionBtn" type="button" data-clinic-filter="PENDING">대기만</button>
-                <button class="quickActionBtn" type="button" data-clinic-filter="IN_PROGRESS">진행중</button>
-                <button class="quickActionBtn good" type="button" data-clinic-filter="DONE">완료</button>
-                <button class="quickActionBtn" type="button" data-clinic-filter="">전체</button>
-              </div>
-              <div class="emptyPanel" style="margin-top:16px;">
-                <h3>운영 흐름</h3>
-                <p>단어시험 불통과는 자동으로 CANDIDATE 후보가 됩니다. 직원이 확인 후 PENDING 또는 IN_PROGRESS로 넘기면 됩니다.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="card cardPad" style="margin-top:18px;">
-            <div class="cardHead">
-              <div>
-                <div class="sectionTitle">클리닉 목록</div>
-                <div class="sectionDesc" id="clinicTaskSummary">조회 전입니다.</div>
-              </div>
-            </div>
-            <div class="tableWrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>상태</th>
-                    <th>학생</th>
-                    <th>제목</th>
-                    <th>유형</th>
-                    <th>우선</th>
-                    <th>마감</th>
-                    <th>공개</th>
-                    <th>변경</th>
-                  </tr>
-                </thead>
-                <tbody id="clinicTaskRows">
-                  <tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <section class="portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 회차와 결과를 저장하고 불통과자를 클리닉 후보로 자동 연결합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">시험 회차 생성</div>
-                  <div class="sectionDesc">날짜, 범위, 통과 기준을 저장합니다. 반 ID는 선택 입력입니다.</div>
-                </div>
-                <span class="statusPill good">word_test_sessions</span>
-              </div>
-              <div class="formGrid cols3" style="margin-top:16px;">
-                <div>
-                  <div class="fieldLabel">날짜</div>
-                  <input class="inp" id="wordSessionYmd" inputmode="numeric" placeholder="YYYYMMDD" />
-                </div>
-                <div>
-                  <div class="fieldLabel">반 ID</div>
-                  <input class="inp" id="wordClassId" placeholder="선택" />
-                </div>
-                <div>
-                  <div class="fieldLabel">통과/만점</div>
-                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                    <input class="inp" id="wordPassScore" inputmode="decimal" value="90" />
-                    <input class="inp" id="wordMaxScore" inputmode="decimal" value="100" />
-                  </div>
-                </div>
-              </div>
-              <div style="margin-top:14px;">
-                <div class="fieldLabel">제목</div>
-                <input class="inp" id="wordSessionTitle" placeholder="예: 6월 2주차 누적 단어시험" />
-              </div>
-              <div style="margin-top:14px;">
-                <div class="fieldLabel">범위</div>
-                <textarea class="textarea" id="wordScopeText" placeholder="예: Day 12~15 / 수특라이트 6강"></textarea>
-              </div>
-              <div class="btnRow" style="margin-top:16px;">
-                <button class="btn btnPri" id="btnCreateWordSession" type="button">회차 생성</button>
-                <button class="btn btnGhost" id="btnListWordSessions" type="button">회차 조회</button>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">점수 입력</div>
-                  <div class="sectionDesc">불통과 저장 시 clinic_tasks에 WORD_FAIL 후보가 자동 생성됩니다.</div>
-                </div>
-                <span class="statusPill warn">자동 후보</span>
-              </div>
-              <div class="formGrid cols2" style="margin-top:16px;">
-                <div>
-                  <div class="fieldLabel">회차 ID</div>
-                  <input class="inp" id="wordResultSessionId" placeholder="회차 목록에서 선택" />
-                </div>
-                <div>
-                  <div class="fieldLabel">학생 ID</div>
-                  <input class="inp" id="wordResultStudentId" placeholder="학생 선택 시 자동" />
-                </div>
-              </div>
-              <div class="formGrid cols3" style="margin-top:14px;">
-                <div>
-                  <div class="fieldLabel">점수</div>
-                  <input class="inp" id="wordScore" inputmode="decimal" placeholder="예: 86" />
-                </div>
-                <div>
-                  <div class="fieldLabel">결과</div>
-                  <select class="select" id="wordResultStatus">
-                    <option value="">점수로 자동 판정</option>
-                    <option value="PASS">통과</option>
-                    <option value="FAIL">불통과</option>
-                    <option value="ABSENT">미응시</option>
-                    <option value="EXEMPT">면제</option>
-                  </select>
-                </div>
-                <div>
-                  <div class="fieldLabel">클리닉 후보</div>
-                  <select class="select" id="wordCreateClinic">
-                    <option value="Y">불통과 시 생성</option>
-                    <option value="N">생성 안 함</option>
-                  </select>
-                </div>
-              </div>
-              <div class="presetPanel">
-                <div class="presetPanelTitle">점수 원클릭 저장 · 회차와 학생이 선택되어 있어야 합니다</div>
-                <div class="quickPresetGrid">
-                  <button class="quickActionBtn good" type="button" data-word-score-save="100">100점 저장</button>
-                  <button class="quickActionBtn good" type="button" data-word-score-save="95">95점 저장</button>
-                  <button class="quickActionBtn" type="button" data-word-score-save="90">90점 저장</button>
-                  <button class="quickActionBtn warn" type="button" data-word-score-save="80">80점 저장</button>
-                  <button class="quickActionBtn bad" type="button" data-word-status-save="ABSENT">미응시 저장</button>
-                </div>
-              </div>
-              <div style="margin-top:14px;">
-                <div class="fieldLabel">메모</div>
-                <textarea class="textarea" id="wordResultNote" placeholder="예: 철자 실수 많음 / 재시험 필요"></textarea>
-              </div>
-              <div class="btnRow" style="margin-top:16px;">
-                <button class="btn btnPri" id="btnEnterWordResult" type="button">결과 저장</button>
-                <button class="btn btnGhost" type="button" data-go-link="students">학생 선택</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card cardPad" style="margin-top:18px;">
-            <div class="cardHead">
-              <div>
-                <div class="sectionTitle">단어시험 회차 목록</div>
-                <div class="sectionDesc" id="wordSessionSummary">조회 전입니다.</div>
-              </div>
-            </div>
-            <div class="tableWrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>날짜</th>
-                    <th>제목</th>
-                    <th>반</th>
-                    <th>범위</th>
-                    <th>기준</th>
-                    <th>선택</th>
-                  </tr>
-                </thead>
-                <tbody id="wordSessionRows">
-                  <tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="card cardPad" style="margin-top:18px;">
-            <div class="sectionTitle">최근 저장 결과</div>
-            <div class="sectionDesc" id="wordResultSummary">결과 저장 후 여기에 표시됩니다.</div>
-            <div class="mono" id="wordResultBox" style="margin-top:14px;">아직 저장된 결과가 없습니다.</div>
-          </div>
-        </section>
-        <section class="portalView" id="messages" data-view-title="문자·알림" data-view-desc="미등원, 등하원, 클리닉, 리포트 발송 이력을 관리합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">문자 큐 조회</div>
-                  <div class="sectionDesc">PENDING, FAILED, DONE 상태별 queue를 조회합니다. 실패 건은 PIN 확인 후 재처리할 수 있습니다.</div>
-                </div>
-                <span class="statusPill warn">NCP queue</span>
-              </div>
-              <div class="formGrid cols3">
-                <div>
-                  <div class="fieldLabel">상태</div>
-                  <select class="select" id="notifyQueueStatus">
-                    <option value="FAILED">FAILED</option>
-                    <option value="PENDING">PENDING</option>
-                    <option value="PROCESSING">PROCESSING</option>
-                    <option value="DONE">DONE</option>
-                    <option value="">전체</option>
-                  </select>
-                </div>
-                <div>
-                  <div class="fieldLabel">종류</div>
-                  <select class="select" id="notifyQueueAction">
-                    <option value="ABSENT">미등원</option>
-                    <option value="ATTENDANCE">등하원</option>
-                    <option value="">전체</option>
-                  </select>
-                </div>
-                <div style="display:flex; align-items:end;">
-                  <button class="btn btnPri" id="btnLoadNotifyQueue" type="button" style="width:100%;">큐 조회</button>
-                </div>
-              </div>
-              <div class="btnRow" style="margin-top:14px;">
-                <button class="btn btnGhost" id="btnRetryNotifyQueue" type="button">실패 큐 재처리</button>
-                <button class="btn btnGhost" id="btnMessageWorkerRuns" type="button">worker 실행 기록</button>
-                <button class="btn btnGhost" type="button" data-go-link="advanced">설정·점검으로 이동</button>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="sectionTitle">발송 정책 체크</div>
-              <div class="sectionDesc">중복 발송 방지는 trace_id와 queue status claim 로직으로 처리합니다.</div>
-              <div class="taskList" style="margin-top:16px;">
-                <div class="taskItem"><div class="taskIcon">1</div><div><div class="taskTitle">미등원 감지</div><div class="taskDesc">absent-run-cron은 후보 생성과 queue 등록만 담당합니다.</div></div></div>
-                <div class="taskItem"><div class="taskIcon">2</div><div><div class="taskTitle">문자 worker</div><div class="taskDesc">attendance-notify-worker가 PENDING queue를 처리합니다.</div></div></div>
-                <div class="taskItem"><div class="taskIcon">3</div><div><div class="taskTitle">재처리</div><div class="taskDesc">FAILED 또는 오래된 PROCESSING만 관리자 PIN으로 재처리합니다.</div></div></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card cardPad" style="margin-top:18px;">
-            <div class="cardHead">
-              <div>
-                <div class="sectionTitle">문자 큐 목록</div>
-                <div class="sectionDesc" id="notifyQueueSummary">조회 전입니다.</div>
-              </div>
-            </div>
-            <div class="tableWrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>상태</th>
-                    <th>학생</th>
-                    <th>종류</th>
-                    <th>시각</th>
-                    <th>시도</th>
-                    <th>오류</th>
-                    <th>trace</th>
-                  </tr>
-                </thead>
-                <tbody id="notifyQueueRows">
-                  <tr><td colspan="7" style="color:var(--muted);">조회 전입니다.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-        <section class="portalView" id="reports" data-view-title="학부모 리포트" data-view-desc="일간·주간 리포트, 그래프, 학부모 공유 메모를 준비합니다.">
-          <div class="reportPreview">
-            <div class="phonePreview">
-              <div class="phoneTop"></div>
-              <div class="sectionTitle">이번 주 리포트</div>
-              <div class="sectionDesc">학부모에게는 자녀에게 공개된 정보만 보여줍니다.</div>
-              <div class="grid" style="gap:12px; margin-top:18px;">
-                <div class="metricCard">
-                  <div class="metricLabel">출석</div>
-                  <div class="metricValue">4/4</div>
-                  <div class="metricNote">이번 주 수업 기준</div>
-                </div>
-                <div class="metricCard">
-                  <div class="metricLabel">단어시험 평균</div>
-                  <div class="metricValue">92</div>
-                  <div class="metricNote">최근 결과 예시</div>
-                </div>
-                <div class="metricCard">
-                  <div class="metricLabel">클리닉 완료</div>
-                  <div class="metricValue">5/6</div>
-                  <div class="metricNote">미완료 1건</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="sectionTitle">리포트 구성</div>
-              <div class="sectionDesc">출결, 클리닉, 단어시험, 성적 추이, 선생님 공유 코멘트를 시각화합니다.</div>
-              <div class="grid2" style="margin-top:18px;">
-                <div>
-                  <div class="fieldLabel">단어시험 점수 추이</div>
-                  <div class="miniChart">
-                    <div class="miniBar" style="height:54%;"></div>
-                    <div class="miniBar" style="height:68%;"></div>
-                    <div class="miniBar" style="height:78%;"></div>
-                    <div class="miniBar" style="height:86%;"></div>
-                    <div class="miniBar" style="height:74%;"></div>
-                  </div>
-                </div>
-                <div>
-                  <div class="fieldLabel">클리닉 완료율</div>
-                  <div class="miniChart">
-                    <div class="miniBar" style="height:40%;"></div>
-                    <div class="miniBar" style="height:52%;"></div>
-                    <div class="miniBar" style="height:66%;"></div>
-                    <div class="miniBar" style="height:80%;"></div>
-                    <div class="miniBar" style="height:88%;"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="emptyPanel" style="margin-top:18px;">
-                <h3>공개/비공개 분리</h3>
-                <p>internal_note와 parent_note를 분리하고 parent_visible = true인 기록만 학부모에게 공개합니다.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="portalView" id="staff" data-view-title="직원" data-view-desc="직원 근태와 월간 근무 요약을 확인합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle">월간 근무 요약</div>
-                  <div class="sectionDesc">staff_monthly 기준으로 직원별 월 근무 합계를 조회합니다. 관리자 권한이 필요합니다.</div>
-                </div>
-                <span class="statusPill warn">admin only</span>
-              </div>
-              <div class="formGrid cols3">
-                <div>
-                  <div class="fieldLabel">월</div>
-                  <input class="inp" id="staffYyyymm" inputmode="numeric" placeholder="YYYYMM" />
-                </div>
-                <div style="display:flex; align-items:end;">
-                  <button class="btn btnPri" id="btnLoadStaffMonthly" type="button" style="width:100%;">월간 조회</button>
-                </div>
-                <div style="display:flex; align-items:end;">
-                  <button class="btn btnGhost" id="btnClearStaffDetail" type="button" style="width:100%;">상세 비우기</button>
-                </div>
-              </div>
-              <div class="tableWrap" style="margin-top:18px;">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>직원</th>
-                      <th>이름</th>
-                      <th>근무분</th>
-                      <th>근무시간</th>
-                      <th>상세</th>
-                    </tr>
-                  </thead>
-                  <tbody id="staffMonthlyRows">
-                    <tr><td colspan="5" style="color:var(--muted);">조회 전입니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="cardHead">
-                <div>
-                  <div class="sectionTitle" id="staffDailyTitle">일별 근무 상세</div>
-                  <div class="sectionDesc" id="staffDailyDesc">월간 요약에서 직원을 선택하세요.</div>
-                </div>
-              </div>
-              <div class="tableWrap">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>날짜</th>
-                      <th>첫 출근</th>
-                      <th>마지막 퇴근</th>
-                      <th>근무분</th>
-                      <th>상태</th>
-                    </tr>
-                  </thead>
-                  <tbody id="staffDailyRows">
-                    <tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-        <section class="portalView" id="qrCenter" data-view-title="QR 문제 대응센터" data-view-desc="QR 인식 문제를 진단하고 예외 학번 출결 등록으로 연결합니다.">
-          <div class="grid2">
-            <div class="emptyPanel">
-              <h3>QR 인식 문제 대응</h3>
-              <p>학생 QR이 반복적으로 안 찍히면 학생 화면에서 QR 예외를 허용합니다. 예외학생은 학번 4자리로 상시 출결 가능합니다.</p>
-            </div>
-            <div class="emptyPanel">
-              <h3>체크 순서</h3>
-              <p>화면 밝기, 거리, 각도, QR 재발급, 예외 등록 순서로 확인합니다. 키오스크 로직은 이번 패치에서 건드리지 않습니다.</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="portalView" id="advanced" data-view-title="설정·점검" data-view-desc="중앙DB 점검, replica 동기화, 캐시, 상태 불일치 등 위험 작업을 실행합니다.">
-          <div class="grid2">
-            <div class="card cardPad">
-              <div class="sectionTitle">운영 점검</div>
-              <div class="sectionDesc">위험도가 있는 작업은 이 화면에서만 실행합니다.</div>
-              <div class="btnRow" style="margin-top:16px;">
-                <button class="btn btnPri" id="btnCheckCentral" type="button">중앙DB 점검</button>
-                <button class="btn btnWarn" id="btnSyncReplica" type="button">중앙DB 최신화</button>
-                <button class="btn btnGhost" type="button" data-go-link="attendance">상태 불일치 확인은 출결 화면에서</button>
-                <button class="btn btnBad" id="btnFlushCache" type="button">캐시 비우기</button>
-              </div>
-              <div class="sectionDesc" style="margin-top:16px;">중앙DB GAS를 수정하지 않았으므로 Apps Script 새 Web App 배포는 필요 없습니다.</div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="sectionTitle">자동화 실행 기록</div>
-              <div class="sectionDesc">미등원 감지 cron과 문자 worker cron이 분리되어 정상적으로 따로 기록되는지 확인합니다.</div>
-              <div class="btnRow" style="margin-top:16px;">
-                <button class="btn btnGhost" id="btnAbsenceRuns" type="button">미등원 감지 기록</button>
-                <button class="btn btnGhost" id="btnWorkerRuns" type="button">문자 worker 기록</button>
-                <button class="btn btnGhost" id="btnRefreshCronHealth" type="button">cron 상태 새로고침</button>
-              </div>
-              <div class="sectionDesc" style="margin-top:16px;">정상 구조: absence_detection_runs에는 감지 기록만, notify_worker_runs에는 발송 worker 기록만 쌓입니다.</div>
-            </div>
-
-            <div class="card cardPad">
-              <div class="sectionTitle">작업 결과</div>
-              <div class="sectionDesc">점검/동기화/실패 알림 조회 결과가 표시됩니다.</div>
-              <div class="mono" id="resultBox" style="margin-top:14px;">작업 결과가 여기에 표시됩니다.</div>
-            </div>
-          </div>
-        </section>
-      </div>
-    </main>
-  </div>
-
-  <div id="toast" class="toast hidden"></div>
-
-
-  <script>
+</div>
+</div>
+<div class="card cardPad">
+<div class="sectionTitle">발송 정책 체크</div>
+<div class="sectionDesc">중복 발송 방지는 trace_id와 queue status claim 로직으로 처리합니다.</div>
+<div class="taskList" style="margin-top:16px;">
+<div class="taskItem"><div class="taskIcon">1</div><div><div class="taskTitle">미등원 감지</div><div class="taskDesc">absent-run-cron은 후보 생성과 queue 등록만 담당합니다.</div></div></div>
+<div class="taskItem"><div class="taskIcon">2</div><div><div class="taskTitle">문자 worker</div><div class="taskDesc">attendance-notify-worker가 PENDING queue를 처리합니다.</div></div></div>
+<div class="taskItem"><div class="taskIcon">3</div><div><div class="taskTitle">재처리</div><div class="taskDesc">FAILED 또는 오래된 PROCESSING만 관리자 PIN으로 재처리합니다.</div></div></div>
+</div>
+</div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">문자 큐 목록</div>
+<div class="sectionDesc" id="notifyQueueSummary">조회 전입니다.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>상태</th>
+<th>학생</th>
+<th>종류</th>
+<th>시각</th>
+<th>시도</th>
+<th>오류</th>
+<th>trace</th>
+</tr>
+</thead>
+<tbody id="notifyQueueRows">
+<tr><td colspan="7" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="일간·주간 리포트, 그래프, 학부모 공유 메모를 준비합니다." data-view-title="학부모 리포트" id="reports">
+<div class="reportPreview">
+<div class="phonePreview">
+<div class="phoneTop"></div>
+<div class="sectionTitle">이번 주 리포트</div>
+<div class="sectionDesc">학부모에게는 자녀에게 공개된 정보만 보여줍니다.</div>
+<div class="grid" style="gap:12px; margin-top:18px;">
+<div class="metricCard">
+<div class="metricLabel">출석</div>
+<div class="metricValue">4/4</div>
+<div class="metricNote">이번 주 수업 기준</div>
+</div>
+<div class="metricCard">
+<div class="metricLabel">단어시험 평균</div>
+<div class="metricValue">92</div>
+<div class="metricNote">최근 결과 예시</div>
+</div>
+<div class="metricCard">
+<div class="metricLabel">클리닉 완료</div>
+<div class="metricValue">5/6</div>
+<div class="metricNote">미완료 1건</div>
+</div>
+</div>
+</div>
+<div class="card cardPad">
+<div class="sectionTitle">리포트 구성</div>
+<div class="sectionDesc">출결, 클리닉, 단어시험, 성적 추이, 선생님 공유 코멘트를 시각화합니다.</div>
+<div class="grid2" style="margin-top:18px;">
+<div>
+<div class="fieldLabel">단어시험 점수 추이</div>
+<div class="miniChart">
+<div class="miniBar" style="height:54%;"></div>
+<div class="miniBar" style="height:68%;"></div>
+<div class="miniBar" style="height:78%;"></div>
+<div class="miniBar" style="height:86%;"></div>
+<div class="miniBar" style="height:74%;"></div>
+</div>
+</div>
+<div>
+<div class="fieldLabel">클리닉 완료율</div>
+<div class="miniChart">
+<div class="miniBar" style="height:40%;"></div>
+<div class="miniBar" style="height:52%;"></div>
+<div class="miniBar" style="height:66%;"></div>
+<div class="miniBar" style="height:80%;"></div>
+<div class="miniBar" style="height:88%;"></div>
+</div>
+</div>
+</div>
+<div class="emptyPanel" style="margin-top:18px;">
+<h3>공개/비공개 분리</h3>
+<p>internal_note와 parent_note를 분리하고 parent_visible = true인 기록만 학부모에게 공개합니다.</p>
+</div>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="직원 근태와 월간 근무 요약을 확인합니다." data-view-title="직원" id="staff">
+<div class="grid2">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">월간 근무 요약</div>
+<div class="sectionDesc">staff_monthly 기준으로 직원별 월 근무 합계를 조회합니다. 관리자 권한이 필요합니다.</div>
+</div>
+<span class="statusPill warn">admin only</span>
+</div>
+<div class="formGrid cols3">
+<div>
+<div class="fieldLabel">월</div>
+<input class="inp" id="staffYyyymm" inputmode="numeric" placeholder="YYYYMM"/>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnLoadStaffMonthly" style="width:100%;" type="button">월간 조회</button>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnGhost" id="btnClearStaffDetail" style="width:100%;" type="button">상세 비우기</button>
+</div>
+</div>
+<div class="tableWrap" style="margin-top:18px;">
+<table class="table">
+<thead>
+<tr>
+<th>직원</th>
+<th>이름</th>
+<th>근무분</th>
+<th>근무시간</th>
+<th>상세</th>
+</tr>
+</thead>
+<tbody id="staffMonthlyRows">
+<tr><td colspan="5" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle" id="staffDailyTitle">일별 근무 상세</div>
+<div class="sectionDesc" id="staffDailyDesc">월간 요약에서 직원을 선택하세요.</div>
+</div>
+</div>
+<div class="tableWrap">
+<table class="table">
+<thead>
+<tr>
+<th>날짜</th>
+<th>첫 출근</th>
+<th>마지막 퇴근</th>
+<th>근무분</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody id="staffDailyRows">
+<tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="QR 인식 문제를 진단하고 예외 학번 출결 등록으로 연결합니다." data-view-title="QR 문제 대응센터" id="qrCenter">
+<div class="grid2">
+<div class="emptyPanel">
+<h3>QR 인식 문제 대응</h3>
+<p>학생 QR이 반복적으로 안 찍히면 학생 화면에서 QR 예외를 허용합니다. 예외학생은 학번 4자리로 상시 출결 가능합니다.</p>
+</div>
+<div class="emptyPanel">
+<h3>체크 순서</h3>
+<p>화면 밝기, 거리, 각도, QR 재발급, 예외 등록 순서로 확인합니다. 키오스크 로직은 이번 패치에서 건드리지 않습니다.</p>
+</div>
+</div>
+</section>
+<section class="portalView" data-view-desc="중앙DB 점검, replica 동기화, 캐시, 상태 불일치 등 위험 작업을 실행합니다." data-view-title="설정·점검" id="advanced">
+<div class="grid2">
+<div class="card cardPad">
+<div class="sectionTitle">운영 점검</div>
+<div class="sectionDesc">위험도가 있는 작업은 이 화면에서만 실행합니다.</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnCheckCentral" type="button">중앙DB 점검</button>
+<button class="btn btnWarn" id="btnSyncReplica" type="button">중앙DB 최신화</button>
+<button class="btn btnGhost" data-go-link="attendance" type="button">상태 불일치 확인은 출결 화면에서</button>
+<button class="btn btnBad" id="btnFlushCache" type="button">캐시 비우기</button>
+</div>
+<div class="sectionDesc" style="margin-top:16px;">중앙DB GAS를 수정하지 않았으므로 Apps Script 새 Web App 배포는 필요 없습니다.</div>
+</div>
+<div class="card cardPad">
+<div class="sectionTitle">자동화 실행 기록</div>
+<div class="sectionDesc">미등원 감지 cron과 문자 worker cron이 분리되어 정상적으로 따로 기록되는지 확인합니다.</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnGhost" id="btnAbsenceRuns" type="button">미등원 감지 기록</button>
+<button class="btn btnGhost" id="btnWorkerRuns" type="button">문자 worker 기록</button>
+<button class="btn btnGhost" id="btnRefreshCronHealth" type="button">cron 상태 새로고침</button>
+</div>
+<div class="sectionDesc" style="margin-top:16px;">정상 구조: absence_detection_runs에는 감지 기록만, notify_worker_runs에는 발송 worker 기록만 쌓입니다.</div>
+</div>
+<div class="card cardPad">
+<div class="sectionTitle">작업 결과</div>
+<div class="sectionDesc">점검/동기화/실패 알림 조회 결과가 표시됩니다.</div>
+<div class="mono" id="resultBox" style="margin-top:14px;">작업 결과가 여기에 표시됩니다.</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<div class="toast hidden" id="toast"></div>
+<script>
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -4143,6 +4092,14 @@
           if (e.key === 'Enter') quickStudentSearch();
         });
       }
+
+      ['wordScore', 'wordResultNote'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && (e.ctrlKey || id === 'wordScore')) enterWordResult();
+        });
+      });
 
       $$('[data-quick-clinic]').forEach(btn => {
         btn.addEventListener('click', () => createQuickClinicTask(btn.dataset.quickClinic || 'WORD_RETEST'));
