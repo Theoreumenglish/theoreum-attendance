@@ -127,3 +127,15 @@ No Supabase schema changes and no CentralDB GAS changes are required.
 - 설정·점검 화면의 감사 로그 조회
 
 중앙DB GAS 변경 없음. Apps Script Web App 새 배포 필요 없음.
+
+## 2026-06-12 — First Complete Portal v2
+
+- Added `wordTest.listResults` for post-entry verification of word-test results by session/student/status.
+- Added `report.listSnapshots` so saved parent-report snapshots can be reviewed from the admin portal.
+- Added automatic WORD_FAIL clinic resolution: when a previously failed word-test result linked to a clinic is later saved as PASS or EXEMPT, the linked WORD_FAIL clinic task is marked DONE and logged.
+- Tightened report preview period filtering for clinic tasks with both start and end bounds.
+- Admin portal now includes:
+  - word-test result review table,
+  - report snapshot history table,
+  - snapshot JSON tucked behind a details panel rather than always exposed.
+- Verification expanded through contract-check and flow-sim for the new result-review and snapshot-review flows.

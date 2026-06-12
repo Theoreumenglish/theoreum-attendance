@@ -217,3 +217,16 @@ npm run verify
 6. 단어 평균, 출석일, 공개 클리닉 메모가 표시되는지 확인한다.
 7. `스냅샷 저장` 후 `report_snapshots`에 row가 생기는지 확인한다.
 8. 설정·점검 화면에서 감사 로그를 조회한다.
+
+## First Complete Portal v2 test checklist
+
+1. Run `npm run verify`.
+2. Create or select a word-test session.
+3. Enter one student's score and click **결과 저장**.
+4. Click **결과 확인** and confirm the saved row appears.
+5. Enter a failing score and confirm a WORD_FAIL clinic candidate is created.
+6. Change that same result to PASS or EXEMPT and confirm the linked WORD_FAIL clinic is marked DONE.
+7. Preview a report for a selected student.
+8. Save a report snapshot.
+9. Click **스냅샷 조회** and confirm the saved snapshot appears.
+10. Check **설정 → 감사 로그** for `wordTest.listResults`, `report.listSnapshots`, `clinic.autoResolveWordFail`, and related write operations where applicable.

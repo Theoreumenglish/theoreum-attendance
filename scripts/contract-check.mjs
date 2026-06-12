@@ -164,6 +164,9 @@ const requiredAdminIds = [
   'btnSaveWordBulk',
   'wordBulkRows',
   'wordBulkSummary',
+  'btnLoadWordResults',
+  'wordResultsRows',
+  'wordResultsSummary',
   'reportStudentLabel',
   'reportStartYmd',
   'reportEndYmd',
@@ -175,6 +178,9 @@ const requiredAdminIds = [
   'reportWordRows',
   'reportClinicRows',
   'reportPreviewBox',
+  'btnListReportSnapshots',
+  'reportSnapshotRows',
+  'reportSnapshotSummary',
   'auditOpFilter',
   'auditTargetTypeFilter',
   'auditActorFilter',
@@ -245,8 +251,10 @@ const requiredAdminOps = [
   'wordTest.enterResult',
   'wordTest.bulkEntry',
   'wordTest.bulkEnterResults',
+  'wordTest.listResults',
   'report.previewStudentReport',
   'report.createSnapshot',
+  'report.listSnapshots',
   'audit.searchLogs'
 ];
 const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
@@ -288,6 +296,12 @@ if (!rpcText.includes("op === 'wordTest.bulkEnterResults'") || !rpcText.includes
   ok('wordTest.bulkEnterResults 서버 op가 존재합니다.');
 }
 
+if (!rpcText.includes("op === 'wordTest.listResults'") || !rpcText.includes('wordTestListResultsDirect')) {
+  fail('wordTest.listResults op 또는 wordTestListResultsDirect 함수가 누락되었습니다.');
+} else {
+  ok('wordTest.listResults 서버 op가 존재합니다.');
+}
+
 if (!rpcText.includes("op === 'report.previewStudentReport'") || !rpcText.includes('reportPreviewStudentReportDirect')) {
   fail('report.previewStudentReport op 또는 reportPreviewStudentReportDirect 함수가 누락되었습니다.');
 } else {
@@ -298,6 +312,12 @@ if (!rpcText.includes("op === 'report.createSnapshot'") || !rpcText.includes('re
   fail('report.createSnapshot op 또는 reportCreateSnapshotDirect 함수가 누락되었습니다.');
 } else {
   ok('report.createSnapshot 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'report.listSnapshots'") || !rpcText.includes('reportListSnapshotsDirect')) {
+  fail('report.listSnapshots op 또는 reportListSnapshotsDirect 함수가 누락되었습니다.');
+} else {
+  ok('report.listSnapshots 서버 op가 존재합니다.');
 }
 
 const schemaText = read(files.clinicWordSchema);

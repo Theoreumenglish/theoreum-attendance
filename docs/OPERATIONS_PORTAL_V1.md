@@ -211,3 +211,10 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
   - flow-sim이 단어 일괄 입력, 리포트 생성, 감사 로그 조회 흐름을 확인한다.
 
 이번 단계는 Supabase runtime-first 구현이며 CentralDB GAS와 Google Sheets SSOT 확장은 포함하지 않는다.
+
+## First Complete Portal v2 UX notes
+
+- Word-test entry now has a separate result-review table. After saving individual or bulk scores, staff can click **결과 확인** to verify saved rows without opening Supabase.
+- Parent-report snapshots are now visible in the report screen through **스냅샷 조회**.
+- The raw report JSON is still available for debugging, but it is hidden behind a details panel so the report screen feels less technical in normal use.
+- The UI still avoids score preset buttons; staff enter real scores directly, then use the verification table to review the saved results.

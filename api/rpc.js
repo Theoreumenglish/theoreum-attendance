@@ -2570,6 +2570,63 @@ async function wordTestCreateSessionDirect(args = {}, sessionToken = '') {
   return success({ item: mapWordSessionRow(data || row), audit_warning: audit.ok ? '' : audit.error || '' });
 }
 
+
+
+async function resolveWordFailClinicIfNeeded(supabase, auth, clinicTaskId, resultStatus, meta = {}) {
+  const taskId = String(clinicTaskId || '').trim();
+  const status = String(resultStatus || '').trim().toUpperCase();
+  if (!taskId || !['PASS', 'EXEMPT'].includes(status)) return { ok: true, resolved: false };
+  try {
+    const { data: before, error: beforeErr } = await supabase
+      .from('clinic_tasks')
+      .select('*')
+      .eq('clinic_task_id', taskId)
+      .maybeSingle();
+    if (beforeErr) return { ok: false, resolved: false, error: beforeErr.message || 'clinic_tasks 조회 실패' };
+    if (!before) return { ok: true, resolved: false };
+    const beforeStatus = normalizeClinicStatus(before.status, '');
+    const sourceType = normalizeClinicSourceType(before.source_type, '');
+    if (sourceType !== 'WORD_FAIL' || !['CANDIDATE', 'PENDING', 'IN_PROGRESS'].includes(beforeStatus)) {
+      return { ok: true, resolved: false };
+    }
+    const patch = {
+      status: 'DONE',
+      updated_by: auth.me.staff_id,
+      updated_at: nowIso(),
+      completed_at: nowIso(),
+      internal_note: normalizeLimitedText(`${before.internal_note || ''}\n단어시험 결과가 ${status === 'PASS' ? '통과' : '면제'}로 변경되어 자동 완료 처리되었습니다.`.trim(), 2000)
+    };
+    const { data: after, error } = await supabase
+      .from('clinic_tasks')
+      .update(patch)
+      .eq('clinic_task_id', taskId)
+      .select('*')
+      .single();
+    if (error) return { ok: false, resolved: false, error: error.message || 'WORD_FAIL 클리닉 자동 완료 실패' };
+    await appendClinicLogDirect(supabase, auth, {
+      clinic_task_id: taskId,
+      event_type: 'AUTO_RESOLVED',
+      before_status: beforeStatus,
+      after_status: 'DONE',
+      internal_note: patch.internal_note,
+      parent_note: before.parent_note || '',
+      parent_visible: before.parent_visible === true
+    });
+    await appendPortalAuditLogDirect(supabase, auth, {
+      op: 'clinic.autoResolveWordFail',
+      target_type: 'clinic_task',
+      target_id: taskId,
+      action: 'AUTO_RESOLVE',
+      before_json: before,
+      after_json: after || { ...before, ...patch },
+      meta_json: meta
+    });
+    return { ok: true, resolved: true, item: after || { ...before, ...patch } };
+  } catch (e) {
+    return { ok: false, resolved: false, error: e?.message || 'WORD_FAIL 클리닉 자동 완료 실패' };
+  }
+}
+
 async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
@@ -2674,6 +2731,13 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
 
   if (error) return fail(500, 'DB_UPSERT_FAILED', error.message || 'word_test_results 저장 실패');
 
+  const resolvedClinic = await resolveWordFailClinicIfNeeded(supabase, auth, row.clinic_task_id, resultStatus, {
+    session_id: sessionId,
+    student_id: sid,
+    result_id: resultId,
+    result_status: resultStatus
+  });
+
   const audit = await appendPortalAuditLogDirect(supabase, auth, {
     op: 'wordTest.enterResult',
     target_type: 'word_test_result',
@@ -2685,7 +2749,14 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
   });
 
   const item = mapWordResultRow(saved || row, { [sessionId]: session }, {});
-  return success({ item, clinic_task: clinicTask, created_clinic: !!clinicTask, audit_warning: audit.ok ? '' : audit.error || '' });
+  return success({
+    item,
+    clinic_task: clinicTask,
+    created_clinic: !!clinicTask,
+    resolved_clinic: resolvedClinic.resolved === true,
+    resolve_warning: resolvedClinic.ok ? '' : resolvedClinic.error || '',
+    audit_warning: audit.ok ? '' : audit.error || ''
+  });
 }
 
 async function wordTestBulkEntryDirect(args = {}, sessionToken = '') {
@@ -2900,6 +2971,20 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
 
   if (saveErr) return fail(500, 'DB_UPSERT_FAILED', saveErr.message || 'word_test_results 일괄 저장 실패');
 
+  const resolvedClinics = [];
+  for (const item of normalized) {
+    const existing = existingBySid.get(item.student_id) || null;
+    if (existing?.clinic_task_id && ['PASS', 'EXEMPT'].includes(item.result_status)) {
+      const resolved = await resolveWordFailClinicIfNeeded(supabase, auth, existing.clinic_task_id, item.result_status, {
+        session_id: sessionId,
+        student_id: item.student_id,
+        result_status: item.result_status,
+        bulk: true
+      });
+      if (resolved.resolved) resolvedClinics.push(resolved.item);
+    }
+  }
+
   const studentNameMap = await readStudentNameMap(supabase, studentIds);
   const sessionMap = { [sessionId]: session };
   const items = (Array.isArray(savedRows) ? savedRows : []).map(row => mapWordResultRow(row, sessionMap, studentNameMap));
@@ -2925,9 +3010,64 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
     absent_count: absentCount,
     exempt_count: exemptCount,
     created_clinic_count: clinicItems.length,
+    resolved_clinic_count: resolvedClinics.length,
     items,
     clinic_items: clinicItems,
     audit_warning: audit.ok ? '' : audit.error || ''
+  });
+}
+
+
+
+async function wordTestListResultsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const sessionId = String(args.session_id || args.sessionId || '').trim();
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const status = String(args.result_status || args.resultStatus || '').trim().toUpperCase();
+  const limit = Math.max(1, Math.min(500, toPositiveInt(args.limit, 200)));
+
+  let q = supabase
+    .from('word_test_results')
+    .select('result_id, session_id, student_id, score, max_score, pass_score, result_status, clinic_task_id, note, created_by, created_at, updated_by, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+
+  if (sessionId) q = q.eq('session_id', sessionId);
+  if (sid) q = q.eq('student_id', sid);
+  if (['PASS', 'FAIL', 'ABSENT', 'EXEMPT'].includes(status)) q = q.eq('result_status', status);
+
+  const { data, error } = await q;
+  if (error) return fail(500, 'DB_SELECT_FAILED', error.message || 'word_test_results 조회 실패');
+
+  const rows = Array.isArray(data) ? data : [];
+  const sessionIds = Array.from(new Set(rows.map(row => String(row?.session_id || '').trim()).filter(Boolean)));
+  const studentIds = Array.from(new Set(rows.map(row => normalizeStudentId(row?.student_id)).filter(Boolean)));
+  let sessionMap = {};
+  if (sessionIds.length) {
+    const { data: sessions, error: sessionErr } = await supabase
+      .from('word_test_sessions')
+      .select('session_id, title, yyyymmdd, class_id, scope_text, pass_score, max_score')
+      .in('session_id', sessionIds)
+      .limit(500);
+    if (sessionErr) return fail(500, 'DB_SELECT_FAILED', sessionErr.message || 'word_test_sessions 조회 실패');
+    sessionMap = (Array.isArray(sessions) ? sessions : []).reduce((acc, row) => {
+      const id = String(row?.session_id || '').trim();
+      if (id) acc[id] = row;
+      return acc;
+    }, {});
+  }
+  const studentNameMap = await readStudentNameMap(supabase, studentIds);
+  const items = rows.map(row => mapWordResultRow(row, sessionMap, studentNameMap));
+  return success({
+    count: items.length,
+    pass_count: items.filter(row => row.result_status === 'PASS').length,
+    fail_count: items.filter(row => row.result_status === 'FAIL').length,
+    absent_count: items.filter(row => row.result_status === 'ABSENT').length,
+    exempt_count: items.filter(row => row.result_status === 'EXEMPT').length,
+    items
   });
 }
 
@@ -2974,6 +3114,7 @@ async function buildStudentReportSummary(supabase, sid, periodStart, periodEnd) 
     .select('clinic_task_id, student_id, class_id, title, task_type, source_type, status, priority, due_date, internal_note, parent_note, parent_visible, created_at, updated_at, completed_at')
     .eq('student_id', sid)
     .gte('updated_at', `${periodStart.slice(0,4)}-${periodStart.slice(4,6)}-${periodStart.slice(6,8)}T00:00:00+09:00`)
+    .lte('updated_at', `${periodEnd.slice(0,4)}-${periodEnd.slice(4,6)}-${periodEnd.slice(6,8)}T23:59:59+09:00`)
     .order('updated_at', { ascending: false })
     .limit(80);
 
@@ -3108,6 +3249,54 @@ async function reportCreateSnapshotDirect(args = {}, sessionToken = '') {
   });
 
   return success({ item: data || row, summary, audit_warning: audit.ok ? '' : audit.error || '' });
+}
+
+
+
+async function reportListSnapshotsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const periodType = String(args.period_type || args.periodType || '').trim().toUpperCase();
+  const limit = Math.max(1, Math.min(200, toPositiveInt(args.limit, 50)));
+
+  let q = supabase
+    .from('report_snapshots')
+    .select('report_id, student_id, period_type, period_start, period_end, summary_json, parent_note, created_by, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (sid) q = q.eq('student_id', sid);
+  if (['DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM'].includes(periodType)) q = q.eq('period_type', periodType);
+
+  const { data, error } = await q;
+  if (error) return fail(500, 'DB_SELECT_FAILED', error.message || 'report_snapshots 조회 실패');
+
+  const rows = Array.isArray(data) ? data : [];
+  const studentNameMap = await readStudentNameMap(supabase, rows.map(row => row?.student_id).filter(Boolean));
+  const items = rows.map(row => {
+    const summary = isPlainObject(row?.summary_json) ? row.summary_json : {};
+    const wordAvg = summary?.word?.average_score;
+    const clinicDone = summary?.clinic?.done_count;
+    const clinicOpen = summary?.clinic?.open_count;
+    return {
+      report_id: String(row?.report_id || '').trim(),
+      student_id: normalizeStudentId(row?.student_id),
+      student_name: studentNameMap[normalizeStudentId(row?.student_id)] || summary?.student?.student_name || '',
+      period_type: String(row?.period_type || '').trim(),
+      period_start: String(row?.period_start || '').trim(),
+      period_end: String(row?.period_end || '').trim(),
+      parent_note: String(row?.parent_note || '').trim(),
+      created_by: String(row?.created_by || '').trim(),
+      created_at: String(row?.created_at || '').trim(),
+      word_average_score: Number.isFinite(Number(wordAvg)) ? Number(wordAvg) : null,
+      clinic_summary: `${clinicOpen ?? 0}/${clinicDone ?? 0}`,
+      summary_json: summary
+    };
+  });
+  return success({ count: items.length, items });
 }
 
 async function auditSearchLogsDirect(args = {}, sessionToken = '') {
@@ -4099,6 +4288,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'wordTest.listResults') {
+    const result = await wordTestListResultsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'report.previewStudentReport') {
     const result = await reportPreviewStudentReportDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
@@ -4106,6 +4300,11 @@ export default async function handler(req, res) {
 
   if (op === 'report.createSnapshot') {
     const result = await reportCreateSnapshotDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'report.listSnapshots') {
+    const result = await reportListSnapshotsDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

@@ -126,3 +126,17 @@
 | `audit.searchLogs` | admin+ | 감사 로그 조회. op, target_type, actor_staff_id 필터 지원 |
 
 주의: report 링크 발송과 학부모 로그인은 아직 포함하지 않는다.
+
+## Added in first-complete-portal-v2
+
+### `wordTest.listResults`
+
+Lists saved word-test results for a session, student, or result status. Used by the admin portal after individual or bulk score entry to verify what was actually saved.
+
+### `report.listSnapshots`
+
+Lists saved `report_snapshots`, optionally filtered by selected student and period type. Used by the report screen to review previously generated parent-report snapshots.
+
+### Auto-resolution behavior
+
+When an existing `word_test_results` row has a linked `clinic_task_id` from a `WORD_FAIL` source and the result is updated to `PASS` or `EXEMPT`, the linked open clinic task is automatically marked `DONE`. The action is recorded in both `clinic_logs` and `portal_audit_logs`.

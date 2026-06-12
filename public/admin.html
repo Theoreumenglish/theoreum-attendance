@@ -2322,6 +2322,21 @@
 <div class="sectionDesc" id="wordResultSummary">결과 저장 후 여기에 표시됩니다.</div>
 <div class="mono" id="wordResultBox" style="margin-top:14px;">아직 저장된 결과가 없습니다.</div>
 </div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">회차 결과 검수</div>
+<div class="sectionDesc" id="wordResultsSummary">회차 선택 후 저장 결과를 확인합니다.</div>
+</div>
+<button class="btn btnGhost" id="btnLoadWordResults" type="button">결과 확인</button>
+</div>
+<div class="tableWrap" style="margin-top:14px;">
+<table class="table">
+<thead><tr><th>학생</th><th>점수</th><th>결과</th><th>클리닉</th><th>메모</th><th>수정</th></tr></thead>
+<tbody id="wordResultsRows"><tr><td colspan="6" style="color:var(--muted);">결과 확인 전입니다.</td></tr></tbody>
+</table>
+</div>
+</div>
 </section>
 <section class="portalView" data-view-desc="미등원, 등하원, 클리닉, 리포트 발송 이력을 관리합니다." data-view-title="문자·알림" id="messages">
 <div class="grid2">
@@ -2484,10 +2499,28 @@
 </div>
 </div>
 <div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">저장된 리포트</div>
+<div class="sectionDesc" id="reportSnapshotSummary">스냅샷 저장 후 이력으로 확인합니다.</div>
+</div>
+<button class="btn btnGhost" id="btnListReportSnapshots" type="button">스냅샷 조회</button>
+</div>
+<div class="tableWrap" style="margin-top:14px;">
+<table class="table">
+<thead><tr><th>생성</th><th>학생</th><th>기간</th><th>단어</th><th>클리닉</th><th>메모</th></tr></thead>
+<tbody id="reportSnapshotRows"><tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr></tbody>
+</table>
+</div>
+</div>
+<details class="compactDetails" style="margin-top:18px;">
+<summary>리포트 원본 JSON 보기</summary>
+<div class="card cardPad" style="margin-top:12px;">
 <div class="sectionTitle">리포트 원본 JSON</div>
 <div class="sectionDesc">디버깅과 검수용입니다. 학부모에게 바로 노출되는 화면은 아닙니다.</div>
 <div class="mono" id="reportPreviewBox" style="margin-top:14px;">미리보기 전입니다.</div>
 </div>
+</details>
 </section>
 <section class="portalView" data-view-desc="직원 근태와 월간 근무 요약을 확인합니다." data-view-title="직원" id="staff">
 <div class="grid2">
@@ -3954,11 +3987,62 @@
         showResult('단어시험 결과 저장 실패', r);
         return;
       }
-      $('#wordResultSummary').textContent = r.data && r.data.created_clinic ? '저장 완료 · 불통과 클리닉 후보 자동 생성됨' : '저장 완료';
-      $('#wordResultBox').textContent = JSON.stringify(r.data || r, null, 2);
-      showToast(r.data && r.data.created_clinic ? '결과 저장 + 클리닉 후보 생성 완료' : '단어시험 결과를 저장했습니다.');
+      const savedData = r.data || {};
+      $('#wordResultSummary').textContent = savedData.created_clinic
+        ? '저장 완료 · 불통과 클리닉 후보 자동 생성됨'
+        : savedData.resolved_clinic ? '저장 완료 · 기존 클리닉 자동 완료됨' : '저장 완료';
+      $('#wordResultBox').textContent = JSON.stringify(savedData || r, null, 2);
+      showToast(savedData.created_clinic ? '결과 저장 + 클리닉 후보 생성 완료' : savedData.resolved_clinic ? '결과 저장 + 클리닉 자동 완료' : '단어시험 결과를 저장했습니다.');
       if (App.selectedStudent && App.selectedStudent.student_id === sid) await loadStudentProfile();
       await loadClinicTasks();
+      await loadWordResults();
+    }
+
+
+    function renderWordResults(data) {
+      const rows = Array.isArray(data.items) ? data.items : [];
+      const summary = $('#wordResultsSummary');
+      if (summary) summary.textContent = rows.length
+        ? `결과 ${rows.length}명 · 통과 ${data.pass_count || 0} · 불통과 ${data.fail_count || 0} · 미응시 ${data.absent_count || 0}`
+        : '저장된 결과가 없습니다.';
+      const box = $('#wordResultsRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">저장된 결과가 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => `
+        <tr>
+          <td class="wrap">${esc(row.student_id || '')} ${esc(row.student_name || '')}</td>
+          <td>${row.score == null ? '-' : esc(row.score)} / ${esc(row.max_score || '')}</td>
+          <td><span class="statusPill ${wordStatusClass(row.result_status)}">${wordStatusLabel(row.result_status)}</span></td>
+          <td>${row.clinic_task_id ? '<span class="statusPill warn">연결</span>' : '-'}</td>
+          <td class="wrap">${esc(row.note || '')}</td>
+          <td><button class="btn btnGhost" type="button" data-word-result-edit="${esc(row.student_id || '')}" data-word-result-score="${row.score == null ? '' : esc(row.score)}" data-word-result-status="${esc(row.result_status || '')}" data-word-result-note="${esc(row.note || '')}">수정</button></td>
+        </tr>
+      `).join('');
+      $$('[data-word-result-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('#wordResultStudentId').value = btn.dataset.wordResultEdit || '';
+          $('#wordScore').value = btn.dataset.wordResultScore || '';
+          $('#wordResultStatus').value = btn.dataset.wordResultStatus || '';
+          $('#wordResultNote').value = btn.dataset.wordResultNote || '';
+          showToast('개별 점수 입력 폼으로 불러왔습니다. 수정 후 결과 저장을 누르세요.');
+        });
+      });
+    }
+
+    async function loadWordResults() {
+      const sessionId = ($('#wordBulkSessionId').value || $('#wordResultSessionId').value || '').trim();
+      if (!sessionId) { showToast('결과를 확인할 회차 ID가 필요합니다.'); return; }
+      const r = await rpc('wordTest.listResults', { session_id: sessionId, limit: 300 }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '단어시험 결과 조회 실패');
+        showResult('단어시험 결과 조회 실패', r);
+        return;
+      }
+      renderWordResults(r.data || {});
+      showToast('단어시험 결과를 확인했습니다.');
     }
 
 
@@ -4038,10 +4122,11 @@
         return;
       }
       const data = r.data || {};
-      $('#wordResultSummary').textContent = `일괄 저장 ${data.count || 0}명 · 통과 ${data.pass_count || 0} · 불통과 ${data.fail_count || 0} · 클리닉 ${data.created_clinic_count || 0}`;
+      $('#wordResultSummary').textContent = `일괄 저장 ${data.count || 0}명 · 통과 ${data.pass_count || 0} · 불통과 ${data.fail_count || 0} · 클리닉 생성 ${data.created_clinic_count || 0} · 자동완료 ${data.resolved_clinic_count || 0}`;
       $('#wordResultBox').textContent = JSON.stringify(data, null, 2);
       showToast('단어시험 결과를 일괄 저장했습니다.');
       await loadWordBulkEntry();
+      await loadWordResults();
       await loadClinicTasks();
       if (App.selectedStudent && App.selectedStudent.student_id) await loadStudentProfile();
     }
@@ -4114,7 +4199,47 @@
       renderReportPreview((r.data || {}).summary || null);
       showResult('리포트 스냅샷 저장 완료', r.data || r);
       showToast('리포트 스냅샷을 저장했습니다.');
+      await listReportSnapshots();
     }
+
+    function renderReportSnapshots(data) {
+      const rows = Array.isArray(data.items) ? data.items : [];
+      const summary = $('#reportSnapshotSummary');
+      if (summary) summary.textContent = rows.length ? `저장된 스냅샷 ${rows.length}건` : '저장된 스냅샷이 없습니다.';
+      const box = $('#reportSnapshotRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">저장된 리포트가 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => `
+        <tr>
+          <td>${shortTs(row.created_at)}</td>
+          <td class="wrap">${esc(row.student_id || '')} ${esc(row.student_name || '')}</td>
+          <td>${esc(row.period_type || '')}<br><span class="smallText">${esc(row.period_start || '')}~${esc(row.period_end || '')}</span></td>
+          <td>${row.word_average_score == null ? '-' : esc(row.word_average_score)}</td>
+          <td>${esc(row.clinic_summary || '')}</td>
+          <td class="wrap">${esc(row.parent_note || '')}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function listReportSnapshots() {
+      const student = App.selectedStudent;
+      const r = await rpc('report.listSnapshots', {
+        student_id: student && student.student_id ? student.student_id : '',
+        period_type: $('#reportPeriodType').value || '',
+        limit: 80
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '리포트 스냅샷 조회 실패');
+        showResult('리포트 스냅샷 조회 실패', r);
+        return;
+      }
+      renderReportSnapshots(r.data || {});
+      showToast('리포트 스냅샷을 조회했습니다.');
+    }
+
 
     async function loadAuditLogs() {
       const r = await rpc('audit.searchLogs', {
@@ -4357,8 +4482,10 @@
       bindClick('btnEnterWordResult', enterWordResult);
       bindClick('btnLoadWordBulk', loadWordBulkEntry);
       bindClick('btnSaveWordBulk', saveWordBulkResults);
+      bindClick('btnLoadWordResults', loadWordResults);
       bindClick('btnPreviewReport', previewReport);
       bindClick('btnSaveReportSnapshot', saveReportSnapshot);
+      bindClick('btnListReportSnapshots', listReportSnapshots);
       bindClick('btnLoadAuditLogs', loadAuditLogs);
       bindClick('btnQuickStudentSearch', quickStudentSearch);
       bindClick('btnPulseCheck', runTodayPulse);

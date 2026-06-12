@@ -164,3 +164,9 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 - `portal_audit_logs`: 클리닉, 단어시험, 리포트 주요 작업 감사 로그 저장.
 
 아직 미구현: `report_links` 기반 학부모 공유 링크, CentralDB GAS sync 확장.
+
+## first-complete-portal-v2 behavior notes
+
+- `word_test_results.clinic_task_id`: links a failed word-test result to the auto-created WORD_FAIL clinic task.
+- If a linked failed result is later changed to PASS or EXEMPT, the corresponding WORD_FAIL clinic task is automatically completed with `status = DONE`.
+- `report_snapshots.summary_json`: stores the exact report preview summary used at the time of snapshot creation.
