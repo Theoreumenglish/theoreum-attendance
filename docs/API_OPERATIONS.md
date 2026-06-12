@@ -114,3 +114,15 @@
 | `audit.searchLogs` | admin 이상 | 운영 감사 로그 조회 | `portal_audit_logs` 기반 |
 
 이번 단계는 Supabase runtime-first 패치다. 중앙DB GAS/Google Sheets SSOT 확장은 실제 운영 흐름을 검증한 뒤 별도 bridge/replica 패치로 진행한다.
+
+## First Complete Portal v1 추가 op
+
+| op | 권한 | 설명 |
+|---|---:|---|
+| `wordTest.bulkEntry` | assistant+ | 회차와 반 ID 기준 수강생 명단 및 기존 단어시험 결과 조회 |
+| `wordTest.bulkEnterResults` | assistant+ | 단어시험 결과 일괄 저장. 불통과 시 클리닉 후보 자동 생성 |
+| `report.previewStudentReport` | assistant+ | 학생별 기간 리포트 미리보기 생성 |
+| `report.createSnapshot` | assistant+ | 리포트 미리보기 내용을 `report_snapshots`에 저장 |
+| `audit.searchLogs` | admin+ | 감사 로그 조회. op, target_type, actor_staff_id 필터 지원 |
+
+주의: report 링크 발송과 학부모 로그인은 아직 포함하지 않는다.

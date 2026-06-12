@@ -188,3 +188,26 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - 학생 화면은 오늘 로그/클리닉/점수/리포트만 직접 노출하고, QR 예외/정정 보조 처리는 보조 영역으로 분리한다.
 - 클리닉 화면은 프리셋 버튼을 제거하고 학생·유형·상태·마감·메모 입력 후 생성/조회 흐름으로 고정한다.
 - 단어시험 화면은 점수 프리셋 버튼을 제거하고 회차 선택 → 학생 선택 → 점수 입력 → 결과 저장 흐름으로 고정한다.
+
+## First Complete Portal v1 (2026-06-12)
+
+목표: 주요 업무를 일단 모두 실제 데이터 흐름으로 연결한 1차 완성본.
+
+추가 구현:
+
+- 단어시험 일괄 입력
+  - `wordTest.bulkEntry`: 회차 + 반 ID 기준 수강생 명단과 기존 결과를 조회한다.
+  - `wordTest.bulkEnterResults`: 여러 학생의 점수/상태/메모를 한 번에 저장한다.
+  - 불통과 학생은 `clinic_tasks.source_type = WORD_FAIL` 후보로 자동 생성된다.
+- 학부모 리포트 실제화
+  - `report.previewStudentReport`: 선택 학생의 기간별 출결·단어시험·클리닉 공개 메모를 요약한다.
+  - `report.createSnapshot`: 미리보기 내용을 `report_snapshots`에 저장한다.
+  - `parent_visible = true`인 클리닉 메모만 리포트 공개 영역에 포함한다.
+- 감사 로그 화면
+  - 설정·점검 화면에서 `audit.searchLogs`를 조회한다.
+  - op, target_type, actor_staff_id 필터를 지원한다.
+- 검사 강화
+  - contract-check가 신규 report/word bulk op 및 UI id를 확인한다.
+  - flow-sim이 단어 일괄 입력, 리포트 생성, 감사 로그 조회 흐름을 확인한다.
+
+이번 단계는 Supabase runtime-first 구현이며 CentralDB GAS와 Google Sheets SSOT 확장은 포함하지 않는다.

@@ -38,6 +38,17 @@ requireFunction('단어 결과 저장', 'enterWordResult', ['wordTest.enterResul
 requireIds('오늘 점검 흐름', ['btnPulseCheck', 'btnCommandPulse', 'quickActionLog']);
 requireFunction('오늘 점검 흐름', 'runTodayPulse', ['loadOverview', 'loadNotifyQueue', 'loadClinicTasks', 'listWordSessions']);
 
+requireIds('단어시험 일괄 입력 흐름', ['wordBulkSessionId', 'wordBulkClassId', 'btnLoadWordBulk', 'btnSaveWordBulk', 'wordBulkRows']);
+requireFunction('단어시험 일괄 명단', 'loadWordBulkEntry', ['wordTest.bulkEntry', 'renderWordBulkRows']);
+requireFunction('단어시험 일괄 저장', 'saveWordBulkResults', ['wordTest.bulkEnterResults', 'loadClinicTasks']);
+
+requireIds('리포트 생성 흐름', ['reportStudentLabel', 'reportStartYmd', 'reportEndYmd', 'btnPreviewReport', 'btnSaveReportSnapshot', 'reportPreviewBox']);
+requireFunction('리포트 미리보기', 'previewReport', ['report.previewStudentReport', 'renderReportPreview']);
+requireFunction('리포트 스냅샷 저장', 'saveReportSnapshot', ['report.createSnapshot', 'renderReportPreview']);
+
+requireIds('감사 로그 흐름', ['auditOpFilter', 'auditTargetTypeFilter', 'auditActorFilter', 'btnLoadAuditLogs', 'auditLogRows']);
+requireFunction('감사 로그 조회', 'loadAuditLogs', ['audit.searchLogs', 'auditLogRows']);
+
 const forbiddenButtonTexts = ['100점 저장', '95점 저장', '80점 저장', '후보만', '대기만', '80점 저장'];
 const visibleMarkup = html.split('<script>')[0];
 const foundForbidden = forbiddenButtonTexts.filter(text => new RegExp(`<button[^>]*>[\s\S]*?${text}[\s\S]*?<\/button>`, 'i').test(visibleMarkup));

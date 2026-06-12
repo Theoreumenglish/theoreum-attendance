@@ -115,3 +115,15 @@ Key rule: new features should be added behind an existing daily action, a specif
 This patch corrects over-simplification from the previous UX pass. The login page now keeps necessary guidance while removing non-essential explanation. The side menu is no longer hidden behind a details menu; all operational categories are visible. Complexity is controlled inside each page by reducing duplicated buttons and moving occasional actions into secondary sections.
 
 No Supabase schema changes and no CentralDB GAS changes are required.
+
+## 2026-06-12 First Complete Portal v1
+
+이번 버전은 1차 완성본 방향으로 다음 업무를 실제 데이터에 연결했다.
+
+- 단어시험 반 전체 일괄 입력
+- 불통과 자동 클리닉 후보 생성
+- 학생별 학부모 리포트 미리보기
+- 리포트 스냅샷 저장
+- 설정·점검 화면의 감사 로그 조회
+
+중앙DB GAS 변경 없음. Apps Script Web App 새 배포 필요 없음.

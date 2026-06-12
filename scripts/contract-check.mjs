@@ -157,7 +157,29 @@ const requiredAdminIds = [
   'btnCreateWordSession',
   'btnListWordSessions',
   'btnEnterWordResult',
-  'wordResultBox'
+  'wordResultBox',
+  'wordBulkSessionId',
+  'wordBulkClassId',
+  'btnLoadWordBulk',
+  'btnSaveWordBulk',
+  'wordBulkRows',
+  'wordBulkSummary',
+  'reportStudentLabel',
+  'reportStartYmd',
+  'reportEndYmd',
+  'btnPreviewReport',
+  'btnSaveReportSnapshot',
+  'reportMetricAttendance',
+  'reportMetricWordAvg',
+  'reportMetricClinic',
+  'reportWordRows',
+  'reportClinicRows',
+  'reportPreviewBox',
+  'auditOpFilter',
+  'auditTargetTypeFilter',
+  'auditActorFilter',
+  'btnLoadAuditLogs',
+  'auditLogRows'
 ];
 const missingAdminIds = requiredAdminIds.filter(id => !adminText.includes(`id="${id}"`) && !adminText.includes(`id='${id}'`));
 if (missingAdminIds.length) {
@@ -220,7 +242,12 @@ const requiredAdminOps = [
   'clinic.updateTaskStatus',
   'wordTest.listSessions',
   'wordTest.createSession',
-  'wordTest.enterResult'
+  'wordTest.enterResult',
+  'wordTest.bulkEntry',
+  'wordTest.bulkEnterResults',
+  'report.previewStudentReport',
+  'report.createSnapshot',
+  'audit.searchLogs'
 ];
 const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
 if (missingAdminOps.length) {
@@ -246,6 +273,31 @@ if (!rpcText.includes("op === 'wordTest.enterResult'") || !rpcText.includes('wor
   fail('wordTest.enterResult op 또는 wordTestEnterResultDirect 함수가 누락되었습니다.');
 } else {
   ok('wordTest.enterResult 서버 op가 존재합니다.');
+}
+
+
+if (!rpcText.includes("op === 'wordTest.bulkEntry'") || !rpcText.includes('wordTestBulkEntryDirect')) {
+  fail('wordTest.bulkEntry op 또는 wordTestBulkEntryDirect 함수가 누락되었습니다.');
+} else {
+  ok('wordTest.bulkEntry 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'wordTest.bulkEnterResults'") || !rpcText.includes('wordTestBulkEnterResultsDirect')) {
+  fail('wordTest.bulkEnterResults op 또는 wordTestBulkEnterResultsDirect 함수가 누락되었습니다.');
+} else {
+  ok('wordTest.bulkEnterResults 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'report.previewStudentReport'") || !rpcText.includes('reportPreviewStudentReportDirect')) {
+  fail('report.previewStudentReport op 또는 reportPreviewStudentReportDirect 함수가 누락되었습니다.');
+} else {
+  ok('report.previewStudentReport 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'report.createSnapshot'") || !rpcText.includes('reportCreateSnapshotDirect')) {
+  fail('report.createSnapshot op 또는 reportCreateSnapshotDirect 함수가 누락되었습니다.');
+} else {
+  ok('report.createSnapshot 서버 op가 존재합니다.');
 }
 
 const schemaText = read(files.clinicWordSchema);

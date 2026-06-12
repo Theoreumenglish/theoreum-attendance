@@ -198,3 +198,22 @@ Manual simulation after deploy:
 4. Clinic screen exposes only 생성/조회 as primary buttons.
 5. Word screen exposes only 회차 생성/회차 조회/결과 저장 as primary buttons.
 6. Enter key in 점수 input saves the word-test result.
+
+## First Complete Portal v1 테스트
+
+배포 전 자동 검사:
+
+```powershell
+npm run verify
+```
+
+수동 테스트:
+
+1. 단어시험 회차를 생성한다.
+2. 회차 선택 후 반 ID를 확인하고 `명단 불러오기`를 누른다.
+3. 여러 학생 점수를 입력하고 `전체 저장`을 누른다.
+4. 불통과 학생이 `clinic_tasks` 후보로 생성되는지 확인한다.
+5. 학생을 선택한 뒤 리포트 화면에서 기간을 입력하고 `리포트 미리보기`를 누른다.
+6. 단어 평균, 출석일, 공개 클리닉 메모가 표시되는지 확인한다.
+7. `스냅샷 저장` 후 `report_snapshots`에 row가 생기는지 확인한다.
+8. 설정·점검 화면에서 감사 로그를 조회한다.

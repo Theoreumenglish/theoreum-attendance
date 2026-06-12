@@ -2688,6 +2688,428 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
   return success({ item, clinic_task: clinicTask, created_clinic: !!clinicTask, audit_warning: audit.ok ? '' : audit.error || '' });
 }
 
+async function wordTestBulkEntryDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const sessionId = String(args.session_id || args.sessionId || '').trim();
+  const classIdArg = normalizeLimitedText(args.class_id || args.classId, 80);
+  if (!sessionId) return fail(400, 'INVALID_INPUT', 'session_id가 필요합니다.');
+
+  const supabase = getSupabaseAdmin();
+  const { data: session, error: sessionErr } = await supabase
+    .from('word_test_sessions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (sessionErr) return fail(500, 'DB_SELECT_FAILED', sessionErr.message || 'word_test_sessions 조회 실패');
+  if (!session) return fail(404, 'NOT_FOUND', '단어시험 회차를 찾지 못했습니다.');
+
+  const classId = classIdArg || String(session.class_id || '').trim();
+  if (!classId) return fail(400, 'INVALID_INPUT', '일괄 입력에는 class_id가 필요합니다.');
+
+  const { data: relRows, error: relErr } = await supabase
+    .from('class_students')
+    .select('student_id')
+    .eq('class_id', classId)
+    .limit(500);
+
+  if (relErr) return fail(500, 'DB_SELECT_FAILED', relErr.message || 'class_students 조회 실패');
+
+  const studentIds = Array.from(new Set((Array.isArray(relRows) ? relRows : [])
+    .map(row => normalizeStudentId(row?.student_id))
+    .filter(Boolean)));
+
+  if (!studentIds.length) {
+    return success({ session: mapWordSessionRow(session), class_id: classId, count: 0, items: [] });
+  }
+
+  const studentNameMap = await readStudentNameMap(supabase, studentIds);
+  const { data: existingRows, error: existingErr } = await supabase
+    .from('word_test_results')
+    .select('result_id, session_id, student_id, score, max_score, pass_score, result_status, clinic_task_id, note, created_at, updated_at')
+    .eq('session_id', sessionId)
+    .in('student_id', studentIds);
+
+  if (existingErr) return fail(500, 'DB_SELECT_FAILED', existingErr.message || 'word_test_results 조회 실패');
+
+  const existingBySid = new Map();
+  for (const row of Array.isArray(existingRows) ? existingRows : []) {
+    existingBySid.set(normalizeStudentId(row?.student_id), row);
+  }
+
+  const sessionMap = { [sessionId]: session };
+  const items = studentIds.map(sid => {
+    const existing = existingBySid.get(sid) || {};
+    return {
+      student_id: sid,
+      student_name: studentNameMap[sid] || '',
+      result_id: String(existing.result_id || '').trim(),
+      score: existing.score == null ? null : Number(existing.score),
+      max_score: Number(existing.max_score ?? session.max_score ?? 100),
+      pass_score: Number(existing.pass_score ?? session.pass_score ?? 90),
+      result_status: String(existing.result_status || '').trim(),
+      clinic_task_id: String(existing.clinic_task_id || '').trim(),
+      note: String(existing.note || '').trim(),
+      updated_at: String(existing.updated_at || '')
+    };
+  });
+
+  return success({ session: mapWordSessionRow(session), class_id: classId, count: items.length, items });
+}
+
+async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const sessionId = String(args.session_id || args.sessionId || '').trim();
+  const inputRows = Array.isArray(args.results) ? args.results : [];
+  if (!sessionId) return fail(400, 'INVALID_INPUT', 'session_id가 필요합니다.');
+  if (!inputRows.length) return fail(400, 'INVALID_INPUT', '저장할 결과가 없습니다.');
+
+  const supabase = getSupabaseAdmin();
+  const { data: session, error: sessionErr } = await supabase
+    .from('word_test_sessions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (sessionErr) return fail(500, 'DB_SELECT_FAILED', sessionErr.message || 'word_test_sessions 조회 실패');
+  if (!session) return fail(404, 'NOT_FOUND', '단어시험 회차를 찾지 못했습니다.');
+
+  const passScore = Number(session.pass_score || 90);
+  const maxScore = Number(session.max_score || 100);
+  const normalized = [];
+  const seen = new Set();
+
+  for (const raw of inputRows) {
+    const sid = normalizeStudentId(raw?.student_id || raw?.sid || '');
+    if (!sid || seen.has(sid)) continue;
+    const score = normalizeScore(raw?.score, null);
+    const statusText = String(raw?.result_status || raw?.resultStatus || '').trim().toUpperCase();
+    if (score === null && !statusText && !String(raw?.note || '').trim()) continue;
+    const resultStatus = normalizeWordResultStatus(statusText, score, passScore);
+    if ((resultStatus === 'PASS' || resultStatus === 'FAIL') && score === null) {
+      return fail(400, 'INVALID_INPUT', `${sid} 학생의 통과/불통과 결과에는 점수가 필요합니다.`);
+    }
+    normalized.push({
+      student_id: sid,
+      score,
+      result_status: resultStatus,
+      note: normalizeLimitedText(raw?.note, 1000),
+      create_clinic: normalizeBool(raw?.create_clinic ?? raw?.createClinic, true)
+    });
+    seen.add(sid);
+  }
+
+  if (!normalized.length) return fail(400, 'INVALID_INPUT', '점수 또는 상태가 입력된 학생이 없습니다.');
+
+  const studentIds = normalized.map(row => row.student_id);
+  const { data: existingRows, error: existingErr } = await supabase
+    .from('word_test_results')
+    .select('*')
+    .eq('session_id', sessionId)
+    .in('student_id', studentIds);
+
+  if (existingErr) return fail(500, 'DB_SELECT_FAILED', existingErr.message || 'word_test_results 기존 결과 조회 실패');
+
+  const existingBySid = new Map();
+  for (const row of Array.isArray(existingRows) ? existingRows : []) {
+    existingBySid.set(normalizeStudentId(row?.student_id), row);
+  }
+
+  const now = nowIso();
+  const rowsToUpsert = [];
+  const clinicRows = [];
+  const beforeJson = {};
+
+  for (const item of normalized) {
+    const existing = existingBySid.get(item.student_id) || null;
+    const resultId = existing?.result_id || randomUUID();
+    beforeJson[item.student_id] = existing || {};
+    const row = {
+      result_id: resultId,
+      session_id: sessionId,
+      student_id: item.student_id,
+      score: item.score,
+      max_score: maxScore,
+      pass_score: passScore,
+      result_status: item.result_status,
+      clinic_task_id: existing?.clinic_task_id || null,
+      note: item.note,
+      created_by: existing?.created_by || auth.me.staff_id,
+      created_at: existing?.created_at || now,
+      updated_by: auth.me.staff_id,
+      updated_at: now
+    };
+
+    if (item.result_status === 'FAIL' && item.create_clinic && !row.clinic_task_id) {
+      const clinicTaskId = randomUUID();
+      row.clinic_task_id = clinicTaskId;
+      clinicRows.push({
+        clinic_task_id: clinicTaskId,
+        student_id: item.student_id,
+        class_id: String(session.class_id || '').trim() || null,
+        title: `단어시험 불통과: ${session.title}`.slice(0, 160),
+        task_type: 'WORD',
+        source_type: 'WORD_FAIL',
+        source_id: resultId,
+        status: 'CANDIDATE',
+        priority: Number(item.score) < passScore - 20 ? 'HIGH' : 'NORMAL',
+        due_date: null,
+        assigned_staff_id: null,
+        internal_note: `점수 ${item.score}/${maxScore}, 기준 ${passScore}. ${item.note}`.trim(),
+        parent_note: '',
+        parent_visible: false,
+        created_by: auth.me.staff_id,
+        created_at: now,
+        updated_by: auth.me.staff_id,
+        updated_at: now,
+        completed_at: null
+      });
+    }
+
+    rowsToUpsert.push(row);
+  }
+
+  let clinicItems = [];
+  if (clinicRows.length) {
+    const { data: insertedClinics, error: clinicErr } = await supabase
+      .from('clinic_tasks')
+      .insert(clinicRows)
+      .select('*');
+    if (clinicErr) return fail(500, 'DB_INSERT_FAILED', clinicErr.message || '불통과 클리닉 후보 일괄 생성 실패');
+
+    clinicItems = await hydrateClinicTasks(supabase, insertedClinics || clinicRows);
+
+    for (const clinicRow of clinicRows) {
+      await appendClinicLogDirect(supabase, auth, {
+        clinic_task_id: clinicRow.clinic_task_id,
+        event_type: 'AUTO_CREATED',
+        after_status: 'CANDIDATE',
+        internal_note: clinicRow.internal_note
+      });
+    }
+  }
+
+  const { data: savedRows, error: saveErr } = await supabase
+    .from('word_test_results')
+    .upsert(rowsToUpsert, { onConflict: 'session_id,student_id' })
+    .select('*');
+
+  if (saveErr) return fail(500, 'DB_UPSERT_FAILED', saveErr.message || 'word_test_results 일괄 저장 실패');
+
+  const studentNameMap = await readStudentNameMap(supabase, studentIds);
+  const sessionMap = { [sessionId]: session };
+  const items = (Array.isArray(savedRows) ? savedRows : []).map(row => mapWordResultRow(row, sessionMap, studentNameMap));
+  const passCount = items.filter(row => row.result_status === 'PASS').length;
+  const failCount = items.filter(row => row.result_status === 'FAIL').length;
+  const absentCount = items.filter(row => row.result_status === 'ABSENT').length;
+  const exemptCount = items.filter(row => row.result_status === 'EXEMPT').length;
+
+  const audit = await appendPortalAuditLogDirect(supabase, auth, {
+    op: 'wordTest.bulkEnterResults',
+    target_type: 'word_test_session',
+    target_id: sessionId,
+    action: 'BULK_UPSERT',
+    before_json: beforeJson,
+    after_json: { items },
+    meta_json: { count: items.length, pass_count: passCount, fail_count: failCount, absent_count: absentCount, exempt_count: exemptCount, clinic_count: clinicItems.length }
+  });
+
+  return success({
+    count: items.length,
+    pass_count: passCount,
+    fail_count: failCount,
+    absent_count: absentCount,
+    exempt_count: exemptCount,
+    created_clinic_count: clinicItems.length,
+    items,
+    clinic_items: clinicItems,
+    audit_warning: audit.ok ? '' : audit.error || ''
+  });
+}
+
+async function buildStudentReportSummary(supabase, sid, periodStart, periodEnd) {
+  const { data: student } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, status, teacher')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  const studentOut = {
+    student_id: sid,
+    student_name: String(student?.student_name || '').trim(),
+    school: String(student?.school || '').trim(),
+    grade: String(student?.grade || '').trim(),
+    status: String(student?.status || '').trim(),
+    teacher: String(student?.teacher || '').trim()
+  };
+
+  const warnings = [];
+  const { data: attendanceRows, error: attendanceErr } = await supabase
+    .from('attendance_logs')
+    .select('ts, yyyymmdd, action_type, result, deny_reason, trace_id')
+    .eq('student_id', sid)
+    .gte('yyyymmdd', periodStart)
+    .lte('yyyymmdd', periodEnd)
+    .order('ts', { ascending: false })
+    .limit(200);
+
+  if (attendanceErr) warnings.push({ area: 'attendance_logs', message: attendanceErr.message || '출결 로그 조회 실패' });
+
+  const okLogs = (Array.isArray(attendanceRows) ? attendanceRows : []).filter(row => String(row?.result || '').toUpperCase() === 'OK');
+  const checkInDays = Array.from(new Set(okLogs
+    .filter(row => String(row?.action_type || '').toUpperCase().includes('CHECK_IN'))
+    .map(row => String(row?.yyyymmdd || '').trim())
+    .filter(Boolean)));
+  const checkOutDays = Array.from(new Set(okLogs
+    .filter(row => String(row?.action_type || '').toUpperCase().includes('CHECK_OUT'))
+    .map(row => String(row?.yyyymmdd || '').trim())
+    .filter(Boolean)));
+
+  const { data: clinicRows, error: clinicErr } = await supabase
+    .from('clinic_tasks')
+    .select('clinic_task_id, student_id, class_id, title, task_type, source_type, status, priority, due_date, internal_note, parent_note, parent_visible, created_at, updated_at, completed_at')
+    .eq('student_id', sid)
+    .gte('updated_at', `${periodStart.slice(0,4)}-${periodStart.slice(4,6)}-${periodStart.slice(6,8)}T00:00:00+09:00`)
+    .order('updated_at', { ascending: false })
+    .limit(80);
+
+  if (clinicErr) warnings.push({ area: 'clinic_tasks', message: clinicErr.message || '클리닉 조회 실패' });
+  const clinics = await hydrateClinicTasks(supabase, clinicRows || []);
+
+  const { data: wordRows, error: wordErr } = await supabase
+    .from('word_test_results')
+    .select('result_id, session_id, student_id, score, max_score, pass_score, result_status, clinic_task_id, note, created_at, updated_at')
+    .eq('student_id', sid)
+    .order('updated_at', { ascending: false })
+    .limit(60);
+
+  if (wordErr) warnings.push({ area: 'word_test_results', message: wordErr.message || '단어시험 조회 실패' });
+
+  const sessionIds = Array.from(new Set((Array.isArray(wordRows) ? wordRows : []).map(row => String(row?.session_id || '').trim()).filter(Boolean)));
+  let sessionMap = {};
+  if (sessionIds.length) {
+    const { data: sessions, error: sessionErr } = await supabase
+      .from('word_test_sessions')
+      .select('session_id, title, yyyymmdd, class_id, scope_text, pass_score, max_score')
+      .in('session_id', sessionIds)
+      .limit(100);
+    if (sessionErr) warnings.push({ area: 'word_test_sessions', message: sessionErr.message || '단어시험 회차 조회 실패' });
+    else {
+      sessionMap = (Array.isArray(sessions) ? sessions : []).reduce((acc, row) => {
+        const sessionId = String(row?.session_id || '').trim();
+        if (sessionId) acc[sessionId] = row;
+        return acc;
+      }, {});
+    }
+  }
+
+  const wordItems = (Array.isArray(wordRows) ? wordRows : [])
+    .map(row => mapWordResultRow(row, sessionMap, {}))
+    .filter(row => !row.yyyymmdd || (row.yyyymmdd >= periodStart && row.yyyymmdd <= periodEnd));
+
+  const numericScores = wordItems.map(row => Number(row.score)).filter(Number.isFinite);
+  const avgScore = numericScores.length ? Math.round((numericScores.reduce((a, b) => a + b, 0) / numericScores.length) * 10) / 10 : null;
+  const publicClinics = clinics.filter(row => row.parent_visible && row.parent_note);
+  const openStatuses = new Set(['CANDIDATE', 'PENDING', 'IN_PROGRESS']);
+  const doneStatuses = new Set(['DONE', 'PARTIAL']);
+
+  return {
+    student: studentOut,
+    period: { start: periodStart, end: periodEnd },
+    attendance: {
+      log_count: Array.isArray(attendanceRows) ? attendanceRows.length : 0,
+      check_in_days: checkInDays.length,
+      check_out_days: checkOutDays.length,
+      recent: (Array.isArray(attendanceRows) ? attendanceRows : []).slice(0, 12).map(mapProfileLogRow)
+    },
+    word: {
+      count: wordItems.length,
+      average_score: avgScore,
+      pass_count: wordItems.filter(row => row.result_status === 'PASS').length,
+      fail_count: wordItems.filter(row => row.result_status === 'FAIL').length,
+      absent_count: wordItems.filter(row => row.result_status === 'ABSENT').length,
+      recent: wordItems.slice(0, 12)
+    },
+    clinic: {
+      count: clinics.length,
+      open_count: clinics.filter(row => openStatuses.has(row.status)).length,
+      done_count: clinics.filter(row => doneStatuses.has(row.status)).length,
+      public_note_count: publicClinics.length,
+      recent: clinics.slice(0, 12),
+      public_notes: publicClinics.slice(0, 8).map(row => ({ title: row.title, parent_note: row.parent_note, status: row.status, updated_at: row.updated_at }))
+    },
+    warnings
+  };
+}
+
+async function reportPreviewStudentReportDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const periodStart = String(args.period_start || args.periodStart || args.start || '').trim();
+  const periodEnd = String(args.period_end || args.periodEnd || args.end || '').trim();
+  if (!sid) return fail(400, 'INVALID_INPUT', 'student_id 4자리가 필요합니다.');
+  if (!isStrictYmd(periodStart) || !isStrictYmd(periodEnd)) return fail(400, 'INVALID_INPUT', 'period_start와 period_end는 YYYYMMDD 형식이어야 합니다.');
+  if (periodStart > periodEnd) return fail(400, 'INVALID_INPUT', '시작일은 종료일보다 늦을 수 없습니다.');
+
+  const supabase = getSupabaseAdmin();
+  const summary = await buildStudentReportSummary(supabase, sid, periodStart, periodEnd);
+  return success({ summary });
+}
+
+async function reportCreateSnapshotDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const periodType = String(args.period_type || args.periodType || 'WEEKLY').trim().toUpperCase();
+  const periodStart = String(args.period_start || args.periodStart || args.start || '').trim();
+  const periodEnd = String(args.period_end || args.periodEnd || args.end || '').trim();
+  if (!sid) return fail(400, 'INVALID_INPUT', 'student_id 4자리가 필요합니다.');
+  if (!['DAILY', 'WEEKLY', 'MONTHLY', 'CUSTOM'].includes(periodType)) return fail(400, 'INVALID_INPUT', 'period_type이 올바르지 않습니다.');
+  if (!isStrictYmd(periodStart) || !isStrictYmd(periodEnd)) return fail(400, 'INVALID_INPUT', 'period_start와 period_end는 YYYYMMDD 형식이어야 합니다.');
+  if (periodStart > periodEnd) return fail(400, 'INVALID_INPUT', '시작일은 종료일보다 늦을 수 없습니다.');
+
+  const supabase = getSupabaseAdmin();
+  const summary = await buildStudentReportSummary(supabase, sid, periodStart, periodEnd);
+  const parentNote = normalizeLimitedText(args.parent_note || args.parentNote || summary.clinic.public_notes.map(row => row.parent_note).filter(Boolean).join('\n'), 2000);
+  const row = {
+    report_id: randomUUID(),
+    student_id: sid,
+    period_type: periodType,
+    period_start: periodStart,
+    period_end: periodEnd,
+    summary_json: summary,
+    parent_note: parentNote,
+    created_by: auth.me.staff_id,
+    created_at: nowIso()
+  };
+
+  const { data, error } = await supabase
+    .from('report_snapshots')
+    .insert(row)
+    .select('*')
+    .single();
+
+  if (error) return fail(500, 'DB_INSERT_FAILED', error.message || 'report_snapshots 저장 실패');
+
+  const audit = await appendPortalAuditLogDirect(supabase, auth, {
+    op: 'report.createSnapshot',
+    target_type: 'report_snapshot',
+    target_id: row.report_id,
+    action: 'CREATE',
+    after_json: row,
+    meta_json: { student_id: sid, period_start: periodStart, period_end: periodEnd }
+  });
+
+  return success({ item: data || row, summary, audit_warning: audit.ok ? '' : audit.error || '' });
+}
+
 async function auditSearchLogsDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -2696,6 +3118,7 @@ async function auditSearchLogsDirect(args = {}, sessionToken = '') {
   const opFilter = normalizeLimitedText(args.op, 120);
   const targetType = normalizeLimitedText(args.target_type || args.targetType, 120);
   const targetId = normalizeLimitedText(args.target_id || args.targetId, 160);
+  const actorStaffId = normalizeLimitedText(args.actor_staff_id || args.actorStaffId || args.actor || '', 120);
   const limit = Math.max(1, Math.min(200, toPositiveInt(args.limit, 80)));
 
   let q = supabase
@@ -2707,6 +3130,7 @@ async function auditSearchLogsDirect(args = {}, sessionToken = '') {
   if (opFilter) q = q.eq('op', opFilter);
   if (targetType) q = q.eq('target_type', targetType);
   if (targetId) q = q.eq('target_id', targetId);
+  if (actorStaffId) q = q.eq('actor_staff_id', actorStaffId);
 
   const { data, error } = await q;
   if (error) return fail(500, 'DB_SELECT_FAILED', error.message || 'portal_audit_logs 조회 실패');
@@ -3662,6 +4086,26 @@ export default async function handler(req, res) {
 
   if (op === 'wordTest.enterResult') {
     const result = await wordTestEnterResultDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'wordTest.bulkEntry') {
+    const result = await wordTestBulkEntryDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'wordTest.bulkEnterResults') {
+    const result = await wordTestBulkEnterResultsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'report.previewStudentReport') {
+    const result = await reportPreviewStudentReportDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'report.createSnapshot') {
+    const result = await reportCreateSnapshotDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

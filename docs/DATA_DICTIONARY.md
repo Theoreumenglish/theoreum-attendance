@@ -154,3 +154,13 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 - `internal_note`: 직원/운영자만 보는 조치 기록.
 - `parent_note`: 학부모에게 보여줄 수 있는 문장.
 - `parent_visible`: true인 경우에만 향후 parent/report 화면에 포함.
+
+## First Complete Portal v1 운영 테이블 사용 상태
+
+- `word_test_sessions`: 단어시험 회차 저장 및 일괄 입력 기준 회차로 사용.
+- `word_test_results`: 개별/일괄 점수 입력 결과 저장. `(session_id, student_id)` unique upsert.
+- `clinic_tasks`: 수동 클리닉 및 단어시험 불통과 자동 후보 저장.
+- `report_snapshots`: 학생별 기간 리포트 미리보기 결과를 JSON snapshot으로 저장.
+- `portal_audit_logs`: 클리닉, 단어시험, 리포트 주요 작업 감사 로그 저장.
+
+아직 미구현: `report_links` 기반 학부모 공유 링크, CentralDB GAS sync 확장.

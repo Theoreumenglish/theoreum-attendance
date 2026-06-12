@@ -62,7 +62,7 @@ const thresholds = {
   students: 5,
   attendance: 3,
   clinic: 3,
-  words: 3,
+  words: 5,
   messages: 4
 };
 for (const [id, maxButtons] of Object.entries(thresholds)) {
