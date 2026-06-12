@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -43,7 +43,11 @@ New-Item -ItemType Directory -Path $temp | Out-Null
 Get-ChildItem -Path $root -Force | ForEach-Object {
   $name = $_.Name
 
-  if ($_.PSIsContainer -and ($excludeDirs -contains $name)) {
+  if ($_.PSIsContainer -and (
+    ($excludeDirs -contains $name) -or
+    ($name -like "_patch*") -or
+    ($name -like "_backup*")
+  )) {
     return
   }
 

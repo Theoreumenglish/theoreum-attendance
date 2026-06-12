@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 Write-Host "== TheOreum preflight =="
 
@@ -37,11 +37,8 @@ if ($ignoredStatus) {
   }
 }
 
-Write-Host "Running syntax checks..."
-npm run check
-
-Write-Host "Running build..."
-npm run build
+Write-Host "Running full verification..."
+npm run verify
 
 Write-Host ""
 Write-Host "Preflight OK."

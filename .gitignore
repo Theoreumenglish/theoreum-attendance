@@ -7,3 +7,5 @@ _release/
 .env.*
 *.log
 *.zip
+_patch*/
+_backup*/
