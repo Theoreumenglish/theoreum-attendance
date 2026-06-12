@@ -1,5 +1,4 @@
 import { runAbsenceDetectionDirect } from '../lib/absent-direct.js';
-import { runAttendanceNotifyWorker } from '../lib/attendance-notify-queue.js';
 import { recordAbsenceRunDirect } from '../lib/absence-run-audit.js';
 
 function sendJson(res, status, body) {
@@ -15,12 +14,6 @@ function getAuthHeader(req) {
     req.headers?.Authorization ||
     ''
   ).trim();
-}
-
-function toPositiveInt(value, fallback, min = 1, max = 100) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return fallback;
-  return Math.max(min, Math.min(max, Math.floor(n)));
 }
 
 function cronAllowed(req) {
@@ -68,12 +61,7 @@ export default async function handler(req, res) {
   }
 
   const startedAt = new Date();
-  const workerLimit = toPositiveInt(
-    process.env.ABSENT_CRON_WORKER_LIMIT,
-    20,
-    1,
-    50
-  );
+  const workerMode = 'SEPARATE_WORKER_CRON';
 
   try {
     const detection = await runAbsenceDetectionDirect({
@@ -96,7 +84,7 @@ export default async function handler(req, res) {
         finished_at: finishedAt.toISOString(),
         meta: {
           stage: 'DETECTION',
-          workerLimit
+          workerMode
         }
       });
 
@@ -106,43 +94,7 @@ export default async function handler(req, res) {
           code: detection.error?.code || 'ABSENT_DETECTION_FAILED',
           message: errorMessage
         },
-        audit,
-        started_at: startedAt.toISOString(),
-        finished_at: finishedAt.toISOString()
-      });
-    }
-
-    const worker = await runAttendanceNotifyWorker({
-      limit: workerLimit,
-      source: 'CRON'
-    });
-
-    if (!worker.ok) {
-      const finishedAt = new Date();
-      const errorMessage = worker.error?.message || '알림 queue worker 실패';
-
-      const audit = await recordAbsenceRunDirect({
-        source: 'CRON',
-        status: 'FAILED',
-        run_by: '__CRON__',
-        detection: detection.data || {},
-        worker,
-        error: errorMessage,
-        started_at: startedAt.toISOString(),
-        finished_at: finishedAt.toISOString(),
-        meta: {
-          stage: 'WORKER',
-          workerLimit
-        }
-      });
-
-      return sendJson(res, 500, {
-        ok: false,
-        error: {
-          code: worker.error?.code || 'NOTIFY_WORKER_FAILED',
-          message: errorMessage
-        },
-        detection: detection.data || null,
+        worker_mode: workerMode,
         audit,
         started_at: startedAt.toISOString(),
         finished_at: finishedAt.toISOString()
@@ -155,11 +107,11 @@ export default async function handler(req, res) {
       status: 'OK',
       run_by: '__CRON__',
       detection: detection.data || {},
-      worker,
+      worker: null,
       started_at: startedAt.toISOString(),
       finished_at: finishedAt.toISOString(),
       meta: {
-        workerLimit
+        workerMode
       }
     });
 
@@ -167,8 +119,8 @@ export default async function handler(req, res) {
       ok: true,
       data: {
         detection: detection.data || {},
-        worker: worker.data || {},
-        worker_limit: workerLimit,
+        worker: null,
+        worker_mode: workerMode,
         audit,
         started_at: startedAt.toISOString(),
         finished_at: finishedAt.toISOString()
@@ -189,7 +141,7 @@ export default async function handler(req, res) {
       finished_at: finishedAt.toISOString(),
       meta: {
         stage: 'THROWN',
-        workerLimit
+        workerMode
       }
     });
 
@@ -199,6 +151,7 @@ export default async function handler(req, res) {
         code: 'SERVER_ERROR',
         message: errorMessage
       },
+      worker_mode: workerMode,
       audit,
       started_at: startedAt.toISOString(),
       finished_at: finishedAt.toISOString()

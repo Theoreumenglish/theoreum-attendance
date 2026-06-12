@@ -97,3 +97,14 @@ scripts/smoke-test.mjs
 - 배포 후 화면 이상: service worker/cache를 먼저 의심한다.
 - 출석/QR 로직 이상: 최신 안정화 태그와 diff 비교한다.
 - 중앙DB GAS 수정 시: Apps Script 새 Web App 버전 배포가 필요하다.
+## 7. Cron / Worker 안정화 검수
+
+| 항목 | 확인 |
+| --- | --- |
+| 미등원 감지 cron | `/api/absent-run-cron`은 detection과 queue 생성만 수행 |
+| 문자 worker cron | `/api/attendance-notify-worker`가 queue 발송만 수행 |
+| 중복 실행 방지 | worker claim 조건이 `queue_id + status=PENDING`인지 확인 |
+| stale 복구 | `PROCESSING` 장기 방치 항목이 `ATT_NOTIFY_STALE_SEC` 이후 PENDING 복구 |
+| 미등원 발송 기한 | `ABSENT_QUEUE_MAX_AGE_MIN` 초과 queue는 발송하지 않고 만료 처리 |
+| 감사 로그 | `absence_detection_runs`, `notify_worker_runs`가 각각 분리 기록 |
+

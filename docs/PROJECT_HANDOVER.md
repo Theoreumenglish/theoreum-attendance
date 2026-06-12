@@ -61,3 +61,12 @@
 - 중앙DB 직접 수정 경로는 selective replica patch를 우선 적용하고, 실패/복구가 필요할 때만 전체 `중앙DB 최신화 반영`을 사용한다.
 - 직원 화면은 운영 상태 요약 카드, 결석예외 반 roster 다중선택, queue 범주 선택(미등원/등하원)을 기준 UI로 삼는다.
 - 전체 replica sync는 중복 실행 방지와 마지막 상태 확인을 전제로 운영한다.
+
+### 2026-06-12 cron/worker 운영 기준
+- `/api/absent-run-cron`은 미등원 감지와 queue 생성만 수행한다.
+- `/api/attendance-notify-worker`는 `attendance_notify_queue` 발송만 수행한다.
+- 두 cron이 모두 매분 실행되더라도 역할은 분리되어야 하며, 감지 cron 내부에서 worker를 직접 호출하지 않는다.
+- 중복 queue는 `attendance_notify_queue(trace_id, action_type)` unique index와 duplicate 처리로 막는다.
+- 발송 중복은 worker의 `PENDING → PROCESSING → DONE/FAILED` 상태 전이와 `queue_id + status=PENDING` claim 조건으로 막는다.
+- 오래된 `PROCESSING` 항목은 `ATT_NOTIFY_STALE_SEC` 기준으로 `PENDING` 복구 후 재처리한다.
+- 오래된 미등원 queue는 `ABSENT_QUEUE_MAX_AGE_MIN`을 초과하면 발송하지 않고 `ABSENT_SEND_WINDOW_EXPIRED`로 실패 처리한다.

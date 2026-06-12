@@ -6,7 +6,10 @@ const read = file => readFileSync(join(root, file), 'utf8');
 const files = {
   rpc: 'api/rpc.js',
   admin: 'public/admin.html',
-  index: 'index.html'
+  index: 'index.html',
+  absentCron: 'api/absent-run-cron.js',
+  notifyWorker: 'api/attendance-notify-worker.js',
+  vercel: 'vercel.json'
 };
 
 let failed = 0;
@@ -35,6 +38,9 @@ for (const file of Object.values(files)) {
 const rpcText = read(files.rpc);
 const adminText = read(files.admin);
 const indexText = read(files.index);
+const absentCronText = read(files.absentCron);
+const notifyWorkerText = read(files.notifyWorker);
+const vercelText = read(files.vercel);
 const uiText = `${adminText}\n${indexText}`;
 
 const handledOps = uniq(collect(/\bop\s*={2,3}\s*['"]([^'"]+)['"]/g, rpcText));
@@ -108,6 +114,32 @@ if (!attendanceTable) {
   fail('attendanceLogRows 초기 빈 행 colspan이 8이 아닙니다.');
 } else {
   ok('attendanceLogRows 초기 빈 행 colspan이 8입니다.');
+}
+
+if (absentCronText.includes('attendance-notify-queue.js') || absentCronText.includes('runAttendanceNotifyWorker')) {
+  fail('absent-run-cron은 미등원 감지만 수행해야 합니다. 알림 worker 호출/import가 포함되어 있습니다.');
+} else {
+  ok('absent-run-cron이 detection-only로 분리되어 있습니다.');
+}
+
+if (!notifyWorkerText.includes('runAttendanceNotifyWorker')) {
+  fail('attendance-notify-worker가 runAttendanceNotifyWorker를 호출하지 않습니다.');
+} else {
+  ok('attendance-notify-worker가 queue 발송 전용 worker를 호출합니다.');
+}
+
+try {
+  const vercel = JSON.parse(vercelText);
+  const cronPaths = new Set((vercel.crons || []).map(item => item.path));
+  const requiredCronPaths = ['/api/absent-run-cron', '/api/attendance-notify-worker'];
+  const missingCronPaths = requiredCronPaths.filter(item => !cronPaths.has(item));
+  if (missingCronPaths.length) {
+    fail('vercel.json cron path 누락: ' + missingCronPaths.join(', '));
+  } else {
+    ok('vercel.json에 detection cron과 worker cron이 모두 있습니다.');
+  }
+} catch (e) {
+  fail('vercel.json 파싱 실패: ' + (e?.message || e));
 }
 
 if (failed > 0) {
