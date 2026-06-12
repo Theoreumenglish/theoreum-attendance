@@ -1346,11 +1346,11 @@
           </div>
         </section>
 
-        <section class="portalView" id="students" data-view-title="학생" data-view-desc="학생을 검색하고 QR 예외, 최근 출결, 메모 확장 위치를 확인합니다.">
+        <section class="portalView" id="students" data-view-title="학생" data-view-desc="학생 검색, 오늘 상태, 최근 출결, 소속 클래스, 결석예외를 한 화면에서 확인합니다.">
           <div class="grid2">
             <div class="card cardPad">
               <div class="sectionTitle">학생 검색</div>
-              <div class="sectionDesc">이름 또는 학번으로 검색합니다. 선택한 학생은 출결 수동 정정에도 자동 반영됩니다.</div>
+              <div class="sectionDesc">이름 또는 학번으로 검색합니다. 선택한 학생은 출결 수동 정정과 Student 360 Profile에 자동 반영됩니다.</div>
               <div style="margin-top:16px;">
                 <input class="inp" id="studentQuery" placeholder="학생 이름 또는 학번" autocomplete="off" />
               </div>
@@ -1363,12 +1363,12 @@
             <div class="card cardPad">
               <div class="cardHead">
                 <div>
-                  <div class="sectionTitle">학생 상세</div>
-                  <div class="sectionDesc">Student 360 Profile의 시작점입니다.</div>
+                  <div class="sectionTitle">Student 360 Profile</div>
+                  <div class="sectionDesc">학생을 선택하면 오늘 상태, QR 예외, 최근 출결, 소속 클래스가 바로 정리됩니다.</div>
                 </div>
                 <div class="tagRow">
-                  <span class="tag">내부 메모 분리</span>
-                  <span class="tag">학부모 공유 메모 분리</span>
+                  <span class="tag">운영용</span>
+                  <span class="tag">조회 중심</span>
                 </div>
               </div>
               <div id="studentDetailBody" class="emptyPanel">
@@ -1378,11 +1378,110 @@
               <div class="btnRow" style="margin-top:18px;">
                 <button class="btn btnPri" id="btnAllowSid" type="button">QR 예외 허용</button>
                 <button class="btn btnGhost" id="btnBlockSid" type="button">QR 예외 해제</button>
+                <button class="btn btnGhost" id="btnReloadStudentProfile" type="button">프로필 새로고침</button>
+                <button class="btn btnGhost" id="btnFillManualFromStudent" type="button">정정 폼에 학번 넣기</button>
               </div>
             </div>
           </div>
-        </section>
 
+          <div class="grid3" style="margin-top:18px;">
+            <div class="metricCard" id="studentTodayCard">
+              <div class="metricLabel">오늘 출결 상태</div>
+              <div class="metricValue" id="studentTodayStatus">-</div>
+              <div class="metricNote" id="studentTodayNote">학생 선택 전</div>
+            </div>
+            <div class="metricCard" id="studentQrCard">
+              <div class="metricLabel">QR 예외</div>
+              <div class="metricValue" id="studentQrStatus">-</div>
+              <div class="metricNote" id="studentQrNote">상시 학번 출결 허용 여부</div>
+            </div>
+            <div class="metricCard" id="studentClassCard">
+              <div class="metricLabel">소속 클래스</div>
+              <div class="metricValue" id="studentClassCount">-</div>
+              <div class="metricNote" id="studentClassNote">class_students 기준</div>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:18px;">
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">최근 출결</div>
+                  <div class="sectionDesc">선택 학생의 최근 출결 로그입니다. trace를 정정 원본으로 바로 가져올 수 있습니다.</div>
+                </div>
+              </div>
+              <div class="tableWrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>시간</th>
+                      <th>날짜</th>
+                      <th>동작</th>
+                      <th>결과</th>
+                      <th>입력</th>
+                      <th>trace</th>
+                      <th>정정</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentProfileLogRows">
+                    <tr><td colspan="7" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">소속 클래스</div>
+                  <div class="sectionDesc">학생이 속한 반과 알림 설정을 빠르게 확인합니다.</div>
+                </div>
+              </div>
+              <div class="tableWrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>반</th>
+                      <th>담당</th>
+                      <th>시간</th>
+                      <th>교실</th>
+                      <th>상태</th>
+                    </tr>
+                  </thead>
+                  <tbody id="studentProfileClassRows">
+                    <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card cardPad" style="margin-top:18px;">
+            <div class="cardHead">
+              <div>
+                <div class="sectionTitle">최근 결석예외</div>
+                <div class="sectionDesc">카톡 X, 지각 연락, 특정 일자 예외 등 운영 메모성 예외를 확인합니다.</div>
+              </div>
+              <button class="btn btnGhost" type="button" data-go-link="attendance">출결 화면으로 이동</button>
+            </div>
+            <div class="tableWrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>반</th>
+                    <th>사유</th>
+                    <th>유효시간</th>
+                    <th>수정</th>
+                  </tr>
+                </thead>
+                <tbody id="studentProfileExcuseRows">
+                  <tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
         <section class="portalView" id="classes" data-view-title="클래스" data-view-desc="반, 시간표, 수강생, 담당 선생님을 조회하고 roster를 빠르게 확인합니다.">
           <div class="grid2">
             <div class="card cardPad">
@@ -1464,69 +1563,128 @@
             <div class="card cardPad">
               <div class="cardHead">
                 <div>
-                  <div class="sectionTitle">클리닉 보드</div>
-                  <div class="sectionDesc">단어 불통과, 미완료, 출결 위험 신호가 후보로 생성되고 확인 후 확정되는 구조입니다.</div>
+                  <div class="sectionTitle">클리닉 보드 v1 설계</div>
+                  <div class="sectionDesc">아직 DB write는 붙이지 않고, 실제 운영 흐름에 맞는 상태 체계부터 고정합니다.</div>
                 </div>
                 <div class="tagRow">
-                  <span class="tag tagWarn">후보 생성 후 확인</span>
-                  <span class="tag">공통 + 개인 항목</span>
+                  <span class="tag tagWarn">다음 DB 작업 예정</span>
+                  <span class="tag">학부모 공개 분리</span>
                 </div>
               </div>
               <div class="board">
-                <div class="boardCol">
-                  <div class="boardTitle">후보</div>
-                  <div class="boardDesc">단어 불통과, 미완료, 결석 등에서 자동 후보 생성</div>
-                </div>
-                <div class="boardCol">
-                  <div class="boardTitle">대기</div>
-                  <div class="boardDesc">직원이 확인하고 실제 클리닉으로 배정</div>
-                </div>
-                <div class="boardCol">
-                  <div class="boardTitle">진행중</div>
-                  <div class="boardDesc">학생이 처리 중인 클리닉</div>
-                </div>
-                <div class="boardCol">
-                  <div class="boardTitle">완료</div>
-                  <div class="boardDesc">완료 기록과 학부모 공개 여부 선택</div>
-                </div>
-                <div class="boardCol">
-                  <div class="boardTitle">반려/부분완료</div>
-                  <div class="boardDesc">메모 필수, 다음 조치 연결</div>
-                </div>
+                <div class="boardCol"><div class="boardTitle">후보</div><div class="boardDesc">단어 불통과, 미완료, 결석, 지각 반복에서 자동 후보 생성</div></div>
+                <div class="boardCol"><div class="boardTitle">대기</div><div class="boardDesc">직원이 확인하고 실제 클리닉으로 확정</div></div>
+                <div class="boardCol"><div class="boardTitle">진행중</div><div class="boardDesc">학생이 수행 중인 개별/공통 클리닉</div></div>
+                <div class="boardCol"><div class="boardTitle">완료</div><div class="boardDesc">완료 시각, 담당자, 공개 메모 저장</div></div>
+                <div class="boardCol"><div class="boardTitle">반려/부분완료</div><div class="boardDesc">사유 메모 필수, 다음 조치 연결</div></div>
+              </div>
+            </div>
+            <div class="grid3">
+              <div class="metricCard"><div class="metricLabel">DB 예정 테이블</div><div class="metricValue">clinic_tasks</div><div class="metricNote">후보/확정/완료 상태 관리</div></div>
+              <div class="metricCard"><div class="metricLabel">공개 메모</div><div class="metricValue">parent</div><div class="metricNote">학부모 공개용 별도 필드</div></div>
+              <div class="metricCard"><div class="metricLabel">내부 메모</div><div class="metricValue">staff</div><div class="metricNote">직원 전용 조치 기록</div></div>
+            </div>
+          </div>
+        </section>
+        <section class="portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 결과를 performance data로 저장하고 클리닉 후보와 연결합니다.">
+          <div class="grid2">
+            <div class="card cardPad">
+              <div class="sectionTitle">단어시험 입력 v1 설계</div>
+              <div class="sectionDesc">점수, 범위, 통과 여부, 미제출 여부를 저장하고 불통과자는 클리닉 후보로 보냅니다.</div>
+              <div class="formGrid cols3" style="margin-top:16px; opacity:.72;">
+                <div><div class="fieldLabel">학생</div><input class="inp" disabled placeholder="Student 360에서 선택 예정" /></div>
+                <div><div class="fieldLabel">점수</div><input class="inp" disabled placeholder="예: 86" /></div>
+                <div><div class="fieldLabel">결과</div><select class="select" disabled><option>통과/불통과</option></select></div>
+              </div>
+            </div>
+            <div class="card cardPad">
+              <div class="sectionTitle">Performance Data 흐름</div>
+              <div class="sectionDesc">단어시험을 단순 점수표가 아니라 학생 개입 workflow의 trigger로 사용합니다.</div>
+              <div class="taskList" style="margin-top:16px;">
+                <div class="taskItem"><div class="taskIcon">W</div><div><div class="taskTitle">word_tests</div><div class="taskDesc">시험 범위, 점수, 통과 여부 저장</div></div></div>
+                <div class="taskItem"><div class="taskIcon">C</div><div><div class="taskTitle">clinic_candidates</div><div class="taskDesc">불통과/미제출 시 클리닉 후보 생성</div></div></div>
               </div>
             </div>
           </div>
         </section>
-
-        <section class="portalView" id="words" data-view-title="단어시험" data-view-desc="단어시험 결과를 performance data로 저장하고 클리닉 후보와 연결합니다.">
-          <div class="grid2">
-            <div class="emptyPanel">
-              <h3>단어시험 결과 입력</h3>
-              <p>점수, 통과/불통과, 틀린 개수, 누적 범위를 입력하고 클리닉 후보로 연결합니다.</p>
-            </div>
-            <div class="emptyPanel">
-              <h3>Performance Data</h3>
-              <p>단어시험을 단순 점수표가 아니라 학생 개입 workflow의 trigger로 사용합니다.</p>
-            </div>
-          </div>
-        </section>
-
         <section class="portalView" id="messages" data-view-title="문자·알림" data-view-desc="미등원, 등하원, 클리닉, 리포트 발송 이력을 관리합니다.">
           <div class="grid2">
             <div class="card cardPad">
-              <div class="sectionTitle">실패 알림 조회</div>
-              <div class="sectionDesc">NCP 템플릿 문구는 유지하고, 실패한 발송만 추적합니다.</div>
-              <div class="btnRow" style="margin-top:16px;">
-                <button class="btn btnGhost" type="button" data-go-link="attendance">출결 화면에서 실패 알림 조회</button>
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">문자 큐 조회</div>
+                  <div class="sectionDesc">PENDING, FAILED, DONE 상태별 queue를 조회합니다. 실패 건은 PIN 확인 후 재처리할 수 있습니다.</div>
                 </div>
+                <span class="statusPill warn">NCP queue</span>
+              </div>
+              <div class="formGrid cols3">
+                <div>
+                  <div class="fieldLabel">상태</div>
+                  <select class="select" id="notifyQueueStatus">
+                    <option value="FAILED">FAILED</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="PROCESSING">PROCESSING</option>
+                    <option value="DONE">DONE</option>
+                    <option value="">전체</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="fieldLabel">종류</div>
+                  <select class="select" id="notifyQueueAction">
+                    <option value="ABSENT">미등원</option>
+                    <option value="ATTENDANCE">등하원</option>
+                    <option value="">전체</option>
+                  </select>
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn btnPri" id="btnLoadNotifyQueue" type="button" style="width:100%;">큐 조회</button>
+                </div>
+              </div>
+              <div class="btnRow" style="margin-top:14px;">
+                <button class="btn btnGhost" id="btnRetryNotifyQueue" type="button">실패 큐 재처리</button>
+                <button class="btn btnGhost" id="btnMessageWorkerRuns" type="button">worker 실행 기록</button>
+                <button class="btn btnGhost" type="button" data-go-link="advanced">설정·점검으로 이동</button>
+              </div>
             </div>
-            <div class="emptyPanel">
-              <h3>문자 발송 정책</h3>
-              <p>관리자·강사·조교 모두 현장 발송 가능 방향입니다. 발송 이력은 감사 로그 대상입니다.</p>
+
+            <div class="card cardPad">
+              <div class="sectionTitle">발송 정책 체크</div>
+              <div class="sectionDesc">중복 발송 방지는 trace_id와 queue status claim 로직으로 처리합니다.</div>
+              <div class="taskList" style="margin-top:16px;">
+                <div class="taskItem"><div class="taskIcon">1</div><div><div class="taskTitle">미등원 감지</div><div class="taskDesc">absent-run-cron은 후보 생성과 queue 등록만 담당합니다.</div></div></div>
+                <div class="taskItem"><div class="taskIcon">2</div><div><div class="taskTitle">문자 worker</div><div class="taskDesc">attendance-notify-worker가 PENDING queue를 처리합니다.</div></div></div>
+                <div class="taskItem"><div class="taskIcon">3</div><div><div class="taskTitle">재처리</div><div class="taskDesc">FAILED 또는 오래된 PROCESSING만 관리자 PIN으로 재처리합니다.</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card cardPad" style="margin-top:18px;">
+            <div class="cardHead">
+              <div>
+                <div class="sectionTitle">문자 큐 목록</div>
+                <div class="sectionDesc" id="notifyQueueSummary">조회 전입니다.</div>
+              </div>
+            </div>
+            <div class="tableWrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>상태</th>
+                    <th>학생</th>
+                    <th>종류</th>
+                    <th>시각</th>
+                    <th>시도</th>
+                    <th>오류</th>
+                    <th>trace</th>
+                  </tr>
+                </thead>
+                <tbody id="notifyQueueRows">
+                  <tr><td colspan="7" style="color:var(--muted);">조회 전입니다.</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
-
         <section class="portalView" id="reports" data-view-title="학부모 리포트" data-view-desc="일간·주간 리포트, 그래프, 학부모 공유 메모를 준비합니다.">
           <div class="reportPreview">
             <div class="phonePreview">
@@ -1585,19 +1743,72 @@
           </div>
         </section>
 
-        <section class="portalView" id="staff" data-view-title="직원" data-view-desc="직원 근태와 업무 처리량은 HR operations module로 확장합니다.">
+        <section class="portalView" id="staff" data-view-title="직원" data-view-desc="직원 근태와 월간 근무 요약을 확인합니다.">
           <div class="grid2">
-            <div class="emptyPanel">
-              <h3>직원 근태 요약</h3>
-              <p>이 화면은 향후 월간 근무 요약, 누락 탐지, 처리 업무 로그 중심으로 확장합니다.</p>
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle">월간 근무 요약</div>
+                  <div class="sectionDesc">staff_monthly 기준으로 직원별 월 근무 합계를 조회합니다. 관리자 권한이 필요합니다.</div>
+                </div>
+                <span class="statusPill warn">admin only</span>
+              </div>
+              <div class="formGrid cols3">
+                <div>
+                  <div class="fieldLabel">월</div>
+                  <input class="inp" id="staffYyyymm" inputmode="numeric" placeholder="YYYYMM" />
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn btnPri" id="btnLoadStaffMonthly" type="button" style="width:100%;">월간 조회</button>
+                </div>
+                <div style="display:flex; align-items:end;">
+                  <button class="btn btnGhost" id="btnClearStaffDetail" type="button" style="width:100%;">상세 비우기</button>
+                </div>
+              </div>
+              <div class="tableWrap" style="margin-top:18px;">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>직원</th>
+                      <th>이름</th>
+                      <th>근무분</th>
+                      <th>근무시간</th>
+                      <th>상세</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffMonthlyRows">
+                    <tr><td colspan="5" style="color:var(--muted);">조회 전입니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="emptyPanel">
-              <h3>책임성 지표</h3>
-              <p>출결 정정, 문자 발송, 클리닉 처리, 메모 작성 등 주요 행동을 actor 기준으로 추적합니다.</p>
+
+            <div class="card cardPad">
+              <div class="cardHead">
+                <div>
+                  <div class="sectionTitle" id="staffDailyTitle">일별 근무 상세</div>
+                  <div class="sectionDesc" id="staffDailyDesc">월간 요약에서 직원을 선택하세요.</div>
+                </div>
+              </div>
+              <div class="tableWrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>날짜</th>
+                      <th>첫 출근</th>
+                      <th>마지막 퇴근</th>
+                      <th>근무분</th>
+                      <th>상태</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staffDailyRows">
+                    <tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
-
         <section class="portalView" id="qrCenter" data-view-title="QR 문제 대응센터" data-view-desc="QR 인식 문제를 진단하고 예외 학번 출결 등록으로 연결합니다.">
           <div class="grid2">
             <div class="emptyPanel">
@@ -1660,6 +1871,8 @@
       selectedStudent: null,
       searchTimer: null,
       searchSeq: 0,
+      studentProfileSeq: 0,
+      staffMonthlyItems: [],
       busyCount: 0,
       currentView: 'dashboard'
     };
@@ -1831,6 +2044,8 @@
       $('#logYmd').value = today;
       const classYmd = $('#classYmd');
       if (classYmd && !classYmd.value) classYmd.value = today;
+      const staffYyyymm = $('#staffYyyymm');
+      if (staffYyyymm && !staffYyyymm.value) staffYyyymm.value = today.slice(0, 6);
 
       if (!App.sess) {
         setView(false);
@@ -2054,6 +2269,22 @@
       showToast('수강생 명단을 조회했습니다.');
     }
 
+    function resetStudentProfilePanels() {
+      const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+      set('studentTodayStatus', '-');
+      set('studentTodayNote', '학생 선택 전');
+      set('studentQrStatus', '-');
+      set('studentQrNote', '상시 학번 출결 허용 여부');
+      set('studentClassCount', '-');
+      set('studentClassNote', 'class_students 기준');
+      const logs = $('#studentProfileLogRows');
+      const classes = $('#studentProfileClassRows');
+      const excuses = $('#studentProfileExcuseRows');
+      if (logs) logs.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+      if (classes) classes.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+      if (excuses) excuses.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+    }
+
     function renderStudentDetail(student) {
       const sid = normalizeSid(student.student_id);
       $('#studentDetailBody').innerHTML = `
@@ -2062,10 +2293,125 @@
           <div class="timeDesc">
             학교/학년: ${esc(student.school || '-')} ${esc(student.grade || '')}<br>
             상태: ${esc(student.status || '-')}<br>
-            다음 확장: 출결 이력 · 클리닉 이력 · 단어시험 · 내부 메모 · 학부모 공유 메모
+            오늘 출결, QR 예외, 최근 로그를 불러오는 중입니다.
           </div>
         </div>
       `;
+    }
+
+    function todayStateText(state) {
+      if (!state) return { label: '기록 없음', note: 'today_student_state 없음' };
+      if (state.outingActive) return { label: '외출중', note: '마지막 동작: ' + actionLabel(state.lastActionType) };
+      if (state.checkedOut) return { label: '하원', note: '마지막 동작: ' + actionLabel(state.lastActionType) };
+      if (state.checkedIn) return { label: '등원중', note: '마지막 동작: ' + actionLabel(state.lastActionType) };
+      return { label: '미등원', note: '마지막 동작: ' + actionLabel(state.lastActionType) };
+    }
+
+    function renderStudentProfile(profile) {
+      const student = profile.student || App.selectedStudent || {};
+      const sid = normalizeSid(student.student_id);
+      const stateText = todayStateText(profile.today_state || null);
+      const isException = String(student.is_exception || '').toUpperCase() === 'Y';
+      const classes = Array.isArray(profile.classes) ? profile.classes : [];
+      const logs = Array.isArray(profile.recent_logs) ? profile.recent_logs : [];
+      const excuses = Array.isArray(profile.absence_excuses) ? profile.absence_excuses : [];
+      const warnings = Array.isArray(profile.warnings) ? profile.warnings : [];
+
+      $('#studentDetailBody').innerHTML = `
+        <div class="timeItem">
+          <div class="timeTitle">${esc(sid)} · ${esc(student.student_name || '')}</div>
+          <div class="timeDesc">
+            학교/학년: ${esc(student.school || '-')} ${esc(student.grade || '')}<br>
+            상태: ${esc(student.status || '-')} · 담당: ${esc(student.teacher || '-')}<br>
+            조회일: ${esc(profile.yyyymmdd || '')} · 상태 소스: ${esc(profile.today_state_source || '-')}
+          </div>
+        </div>
+        ${warnings.length ? `<div class="tag tagWarn" style="margin-top:12px;">부분 조회 경고 ${warnings.length}건</div>` : ''}
+      `;
+
+      $('#studentTodayStatus').textContent = stateText.label;
+      $('#studentTodayNote').textContent = stateText.note;
+      $('#studentQrStatus').textContent = isException ? '허용' : '일반';
+      $('#studentQrNote').textContent = isException
+        ? (student.exception_note || '상시 학번 출결 허용')
+        : 'QR 또는 정상 출결 흐름 사용';
+      $('#studentClassCount').textContent = String(classes.length);
+      $('#studentClassNote').textContent = classes.length ? classes.map(x => x.name || x.class_id).filter(Boolean).slice(0, 2).join(', ') : '소속 클래스 없음';
+
+      const logBox = $('#studentProfileLogRows');
+      if (logBox) {
+        logBox.innerHTML = logs.length ? logs.map(row => `
+          <tr>
+            <td class="wrap">${esc(shortTs(row.ts))}</td>
+            <td>${esc(row.yyyymmdd || '')}</td>
+            <td>${esc(actionLabel(row.action_type))}</td>
+            <td>${esc(row.result || '')}</td>
+            <td>${esc(row.input_mode || '-')}${row.exception === 'Y' ? ' / 예외' : ''}</td>
+            <td class="wrap">${esc(row.trace_id || '')}</td>
+            <td><button class="btn btnGhost" type="button" data-stu-trace="${esc(row.trace_id || '')}" data-stu-sid="${esc(sid)}">원본</button></td>
+          </tr>
+        `).join('') : '<tr><td colspan="7" style="color:var(--muted);">최근 출결 로그가 없습니다.</td></tr>';
+
+        $$('#studentProfileLogRows button[data-stu-trace]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            $('#manualTraceId').value = btn.dataset.stuTrace || '';
+            $('#manualSid').value = btn.dataset.stuSid || sid;
+            showToast('학생 최근 로그를 정정 원본으로 선택했습니다.');
+            jumpTo('attendance');
+          });
+        });
+      }
+
+      const classBox = $('#studentProfileClassRows');
+      if (classBox) {
+        classBox.innerHTML = classes.length ? classes.map(item => {
+          const time = [item.start || '', item.end || ''].filter(Boolean).join('~');
+          return `
+            <tr>
+              <td class="wrap">${esc(item.name || item.class_id || '')}</td>
+              <td>${esc(item.teacher_name || item.teacher || '-')}</td>
+              <td>${esc(time || '-')}</td>
+              <td>${esc(item.room || '-')}</td>
+              <td>${esc(item.status || '-')}</td>
+            </tr>
+          `;
+        }).join('') : '<tr><td colspan="5" style="color:var(--muted);">소속 클래스가 없습니다.</td></tr>';
+      }
+
+      const excuseBox = $('#studentProfileExcuseRows');
+      if (excuseBox) {
+        excuseBox.innerHTML = excuses.length ? excuses.map(item => `
+          <tr>
+            <td>${esc(item.yyyymmdd || '')}</td>
+            <td class="wrap">${esc(item.class_name || item.class_id || '-')}</td>
+            <td class="wrap">${esc(item.reason || '-')}</td>
+            <td class="wrap">${esc(shortTs(item.until_ts || ''))}</td>
+            <td class="wrap">${esc(shortTs(item.updated_at || item.created_at || ''))}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" style="color:var(--muted);">최근 결석예외가 없습니다.</td></tr>';
+      }
+    }
+
+    async function loadStudentProfile() {
+      const student = App.selectedStudent;
+      if (!student || !student.student_id) {
+        showToast('학생을 먼저 선택하세요.');
+        return;
+      }
+      const seq = ++App.studentProfileSeq;
+      renderStudentDetail(student);
+      const r = await rpc('assistant.getStudentProfile', {
+        student_id: student.student_id,
+        yyyymmdd: kstYmd(new Date()),
+        log_limit: 12
+      }, { timeoutMs: 30000 });
+      if (seq !== App.studentProfileSeq) return;
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '학생 프로필 조회 실패');
+        showResult('학생 프로필 조회 실패', r);
+        return;
+      }
+      renderStudentProfile(r.data || {});
     }
 
     function selectStudent(student) {
@@ -2083,7 +2429,9 @@
       $('#manualSid').value = App.selectedStudent.student_id;
       $('#logSidFilter').value = App.selectedStudent.student_id;
       renderStudentDetail(App.selectedStudent);
+      loadStudentProfile();
     }
+
 
     function renderStudents(items) {
       const box = $('#studentResults');
@@ -2319,6 +2667,149 @@
       showResult(r.ok ? '최근 문자 worker cron 기록' : '문자 worker 기록 조회 실패', r.ok ? r.data : r, { jump: true });
     }
 
+    function renderNotifyQueue(data) {
+      const rows = Array.isArray(data.items) ? data.items : [];
+      const counts = data.counts && typeof data.counts === 'object' ? data.counts : {};
+      const summary = $('#notifyQueueSummary');
+      if (summary) {
+        summary.textContent = '조회 ' + rows.length + '건 · ' + Object.entries(counts).map(([k, v]) => k + ' ' + v).join(' / ');
+      }
+      const box = $('#notifyQueueRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">조회된 queue가 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => `
+        <tr>
+          <td><span class="statusPill ${queueStatusClass(row.status)}">${esc(row.status || '-')}</span></td>
+          <td class="wrap">${esc(row.student_id || '')} · ${esc(row.student_name || '')}</td>
+          <td>${esc(row.action_type || '')}</td>
+          <td class="wrap">${esc(shortTs(row.occurred_at || row.created_at || ''))}</td>
+          <td>${esc(row.attempts || 0)}</td>
+          <td class="wrap">${esc(row.last_error || '-')}</td>
+          <td class="wrap">${esc(row.trace_id || '')}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadNotifyQueue() {
+      const status = ($('#notifyQueueStatus').value || '').trim();
+      const actionPrefix = ($('#notifyQueueAction').value || '').trim();
+      const r = await rpc('admin.listNotifyQueue', {
+        status,
+        action_prefix: actionPrefix,
+        limit: 80
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '문자 큐 조회 실패');
+        showResult('문자 큐 조회 실패', r);
+        return;
+      }
+      renderNotifyQueue(r.data || {});
+      showToast('문자 큐를 조회했습니다.');
+    }
+
+    async function retryNotifyQueueFromUi() {
+      const status = ($('#notifyQueueStatus').value || 'FAILED').trim() || 'FAILED';
+      const actionPrefix = ($('#notifyQueueAction').value || '').trim();
+      if (!actionPrefix) {
+        showToast('재처리는 미등원 또는 등하원 종류를 선택해야 합니다.');
+        return;
+      }
+      const pin = prompt('실패 큐 재처리를 실행하려면 관리자 PIN을 입력하세요.');
+      if (!pin) return;
+      const r = await rpc('admin.retryNotifyQueue', {
+        status,
+        action_prefix: actionPrefix,
+        limit: 50,
+        worker_limit: 20,
+        pin
+      }, { timeoutMs: 65000 });
+      showResult(r.ok ? '문자 큐 재처리 완료' : '문자 큐 재처리 실패', r.ok ? r.data : r, { jump: true });
+      await loadNotifyQueue();
+      await loadOverview();
+    }
+
+    function renderStaffMonthly(data) {
+      const rows = Array.isArray(data.items) ? data.items : [];
+      App.staffMonthlyItems = rows;
+      const box = $('#staffMonthlyRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">조회된 직원 근무 요약이 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => {
+        const staffId = String(row.staff_id || row.id || '').trim();
+        const name = String(row.name || row.staff_name || '').trim();
+        const minutes = Number(row.worked_minutes || row.total_minutes || 0) || 0;
+        return `
+          <tr>
+            <td class="wrap">${esc(staffId)}</td>
+            <td>${esc(name || '-')}</td>
+            <td>${esc(minutes)}</td>
+            <td>${esc(fmtMinutes(minutes))}</td>
+            <td><button class="btn btnGhost" type="button" data-staff-id="${esc(staffId)}" data-staff-name="${esc(name || staffId)}">일별</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      $$('#staffMonthlyRows button[data-staff-id]').forEach(btn => {
+        btn.addEventListener('click', () => loadStaffDaily(btn.dataset.staffId || '', btn.dataset.staffName || ''));
+      });
+    }
+
+    async function loadStaffMonthly() {
+      const yyyymm = ($('#staffYyyymm').value || kstYmd(new Date()).slice(0, 6)).trim();
+      $('#staffYyyymm').value = yyyymm;
+      const r = await rpc('admin.getStaffMonthlySummary', { yyyymm }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '직원 월간 요약 조회 실패');
+        showResult('직원 월간 요약 조회 실패', r);
+        return;
+      }
+      renderStaffMonthly(r.data || {});
+      showToast('직원 월간 요약을 조회했습니다.');
+    }
+
+    async function loadStaffDaily(staffId, staffName) {
+      const yyyymm = ($('#staffYyyymm').value || kstYmd(new Date()).slice(0, 6)).trim();
+      $('#staffDailyTitle').textContent = '일별 근무 상세 · ' + (staffName || staffId);
+      $('#staffDailyDesc').textContent = yyyymm + ' · staff_id: ' + staffId;
+      const r = await rpc('admin.getStaffDailyDetail', { yyyymm, staff_id: staffId }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '직원 일별 상세 조회 실패');
+        showResult('직원 일별 상세 조회 실패', r);
+        return;
+      }
+      const rows = Array.isArray(r.data && r.data.items) ? r.data.items : [];
+      const box = $('#staffDailyRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">일별 근무 기록이 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map(row => {
+        const minutes = Number(row.worked_minutes || 0) || 0;
+        return `
+          <tr>
+            <td>${esc(row.yyyymmdd || '')}</td>
+            <td class="wrap">${esc(shortTs(row.first_in_ts || ''))}</td>
+            <td class="wrap">${esc(shortTs(row.last_out_ts || ''))}</td>
+            <td>${esc(minutes)} / ${esc(fmtMinutes(minutes))}</td>
+            <td>${esc(row.status || row.work_status || '-')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function clearStaffDaily() {
+      $('#staffDailyTitle').textContent = '일별 근무 상세';
+      $('#staffDailyDesc').textContent = '월간 요약에서 직원을 선택하세요.';
+      $('#staffDailyRows').innerHTML = '<tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>';
+    }
+
     function bindClick(id, handler) {
       const el = document.getElementById(id);
       if (el) el.addEventListener('click', handler);
@@ -2328,6 +2819,13 @@
       bindClick('btnLogin', login);
       bindClick('btnLogout', logout);
       bindClick('btnRefreshOverview', loadOverview);
+      bindClick('btnReloadStudentProfile', loadStudentProfile);
+      bindClick('btnFillManualFromStudent', () => {
+        if (!App.selectedStudent || !App.selectedStudent.student_id) { showToast('학생을 먼저 선택하세요.'); return; }
+        $('#manualSid').value = App.selectedStudent.student_id;
+        jumpTo('attendance');
+        showToast('정정 폼에 선택 학생 학번을 넣었습니다.');
+      });
       bindClick('btnLoadClasses', loadClasses);
       bindClick('btnAllowSid', () => setStudentException('Y'));
       bindClick('btnBlockSid', () => setStudentException('N'));
@@ -2342,6 +2840,11 @@
       bindClick('btnAbsenceRuns', listAbsenceRuns);
       bindClick('btnWorkerRuns', listWorkerRuns);
       bindClick('btnRefreshCronHealth', loadOverview);
+      bindClick('btnLoadNotifyQueue', loadNotifyQueue);
+      bindClick('btnRetryNotifyQueue', retryNotifyQueueFromUi);
+      bindClick('btnMessageWorkerRuns', listWorkerRuns);
+      bindClick('btnLoadStaffMonthly', loadStaffMonthly);
+      bindClick('btnClearStaffDetail', clearStaffDaily);
 
       const studentQuery = $('#studentQuery');
       if (studentQuery) studentQuery.addEventListener('input', scheduleStudentSearch);

@@ -124,7 +124,16 @@ const requiredAdminIds = [
   'btnWorkerRuns',
   'btnLoadClasses',
   'classRows',
-  'classRosterRows'
+  'classRosterRows',
+  'studentProfileLogRows',
+  'studentProfileClassRows',
+  'studentProfileExcuseRows',
+  'notifyQueueRows',
+  'btnLoadNotifyQueue',
+  'btnRetryNotifyQueue',
+  'staffMonthlyRows',
+  'staffDailyRows',
+  'btnLoadStaffMonthly'
 ];
 const missingAdminIds = requiredAdminIds.filter(id => !adminText.includes(`id="${id}"`) && !adminText.includes(`id='${id}'`));
 if (missingAdminIds.length) {
@@ -137,13 +146,25 @@ const requiredAdminOps = [
   'admin.listAbsenceRuns',
   'admin.listNotifyWorkerRuns',
   'assistant.listClassOptions',
-  'assistant.listClassRoster'
+  'assistant.listClassRoster',
+  'assistant.getStudentProfile',
+  'admin.getStaffMonthlySummary',
+  'admin.getStaffDailyDetail',
+  'admin.listNotifyQueue',
+  'admin.retryNotifyQueue'
 ];
 const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
 if (missingAdminOps.length) {
   fail(`admin.html 운영 관측성/클래스 필수 RPC 호출 누락: ${missingAdminOps.join(', ')}`);
 } else {
   ok(`admin.html 운영 관측성/클래스 필수 RPC ${requiredAdminOps.length}개가 모두 호출됩니다.`);
+}
+
+
+if (!rpcText.includes("op === 'assistant.getStudentProfile'") || !rpcText.includes('assistantGetStudentProfileDirect')) {
+  fail('assistant.getStudentProfile op 또는 assistantGetStudentProfileDirect 함수가 누락되었습니다.');
+} else {
+  ok('assistant.getStudentProfile 서버 op가 존재합니다.');
 }
 
 if (absentCronText.includes('attendance-notify-queue.js') || absentCronText.includes('runAttendanceNotifyWorker')) {

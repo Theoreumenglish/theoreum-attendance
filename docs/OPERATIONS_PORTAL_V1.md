@@ -132,3 +132,14 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - 클래스: `assistant.listClassOptions`, `assistant.listClassRoster` 기반 조회 전용 화면 제공
 
 이 단계의 목표는 새 쓰기 기능을 늘리는 것이 아니라, 운영자가 “지금 시스템이 정상적으로 돌고 있는지”를 화면에서 판단할 수 있게 만드는 것이다.
+
+## Batch Portal v1
+
+2026-06-12 Batch Portal v1은 운영 포털을 “조회 가능한 업무 앱”에 가깝게 전진시키는 단계다.
+
+- 학생: Student 360 Profile v1 도입. 학생 선택 후 기본 정보, 오늘 출결 상태, QR 예외, 최근 출결, 소속 클래스, 결석예외를 한 화면에서 본다.
+- 문자·알림: 실패 알림 버튼 중심에서 queue 운영 화면으로 전환. 상태와 종류별 조회, 관리자 PIN 기반 재처리를 제공한다.
+- 직원: placeholder를 제거하고 staff_monthly / staff_daily 기반 근무 조회 화면으로 전환한다.
+- 클리닉/단어시험/리포트: 아직 쓰기 API를 만들지 않고, 실제 운영 흐름과 DB 설계 방향을 화면에 고정한다.
+
+이 패치는 중앙DB GAS를 수정하지 않는다.

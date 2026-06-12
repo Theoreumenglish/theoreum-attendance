@@ -2172,6 +2172,195 @@ async function assistantListClassRosterDirect(args = {}, sessionToken = '') {
   });
 }
 
+
+function parseProfileMetaJson(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+  return {};
+}
+
+function mapProfileLogRow(row) {
+  const meta = parseProfileMetaJson(row?.meta_json);
+  return {
+    ts: String(row?.ts || ''),
+    yyyymmdd: String(row?.yyyymmdd || ''),
+    student_id: normalizeStudentId(row?.student_id),
+    action_type: String(row?.action_type || ''),
+    kiosk_floor: String(row?.kiosk_floor || ''),
+    result: String(row?.result || ''),
+    input_mode: String(meta.input_mode || ''),
+    exception: String(meta.exception || ''),
+    deny_reason: String(row?.deny_reason || ''),
+    trace_id: String(row?.trace_id || '')
+  };
+}
+
+async function assistantGetStudentProfileDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || kstYmd(new Date())).trim();
+  const logLimit = Math.max(1, Math.min(40, toPositiveInt(args.log_limit || args.logLimit, 10)));
+
+  if (!sid) {
+    return fail(400, 'INVALID_INPUT', 'student_id 4자리가 필요합니다.');
+  }
+  if (!isStrictYmd(yyyymmdd)) {
+    return fail(400, 'INVALID_INPUT', 'yyyymmdd는 8자리 숫자여야 합니다.');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const warnings = [];
+
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select('*')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (studentErr) {
+    return fail(500, 'DB_SELECT_FAILED', studentErr.message || 'students 조회 실패');
+  }
+  if (!student) {
+    return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+  }
+
+  const todayOut = await loadManualTodayState(supabase, sid, yyyymmdd);
+  if (!todayOut.ok) {
+    warnings.push({ area: 'today_state', message: todayOut.error || 'today_student_state 조회 실패' });
+  }
+
+  let recentLogs = [];
+  const { data: logs, error: logErr } = await supabase
+    .from('attendance_logs')
+    .select('ts, yyyymmdd, student_id, action_type, kiosk_floor, meta_json, result, deny_reason, trace_id')
+    .eq('student_id', sid)
+    .order('ts', { ascending: false })
+    .limit(logLimit);
+
+  if (logErr) {
+    warnings.push({ area: 'attendance_logs', message: logErr.message || 'recent attendance_logs 조회 실패' });
+  } else {
+    recentLogs = (Array.isArray(logs) ? logs : []).map(mapProfileLogRow);
+  }
+
+  let classes = [];
+  const { data: relRows, error: relErr } = await supabase
+    .from('class_students')
+    .select('class_id')
+    .eq('student_id', sid)
+    .limit(200);
+
+  if (relErr) {
+    warnings.push({ area: 'class_students', message: relErr.message || 'class_students 조회 실패' });
+  } else {
+    const classIds = Array.from(new Set(
+      (Array.isArray(relRows) ? relRows : [])
+        .map(row => String(row?.class_id || '').trim())
+        .filter(Boolean)
+    ));
+
+    if (classIds.length) {
+      const { data: classRows, error: classErr } = await supabase
+        .from('classes')
+        .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
+        .in('class_id', classIds)
+        .limit(200);
+
+      if (classErr) {
+        warnings.push({ area: 'classes', message: classErr.message || 'classes 조회 실패' });
+        classes = classIds.map(classId => ({ class_id: classId, name: '', teacher: '', start: '', end: '', room: '', status: '' }));
+      } else {
+        const classMap = new Map();
+        for (const row of Array.isArray(classRows) ? classRows : []) {
+          const classId = String(row?.class_id || '').trim();
+          if (classId) classMap.set(classId, row);
+        }
+        const staffNameMap = await readStaffNameMap(
+          supabase,
+          (Array.isArray(classRows) ? classRows : []).map(row => row?.teacher).filter(Boolean)
+        );
+        classes = classIds.map(classId => {
+          const row = classMap.get(classId) || {};
+          const teacher = String(row?.teacher || '').trim();
+          return {
+            class_id: classId,
+            name: String(row?.name || '').trim(),
+            teacher,
+            teacher_name: staffNameMap[String(teacher).toLowerCase()] || teacher,
+            start: String(row?.start || '').trim(),
+            end: String(row?.end || '').trim(),
+            room: String(row?.room || '').trim(),
+            alert_delay: String(row?.alert_delay || '').trim(),
+            alert_to: String(row?.alert_to || '').trim(),
+            status: String(row?.status || '').trim()
+          };
+        });
+      }
+    }
+  }
+
+  let absenceExcuses = [];
+  const { data: excuseRows, error: excuseErr } = await supabase
+    .from('absence_excuses')
+    .select('excuse_id, yyyymmdd, class_id, student_id, reason, until_ts, created_at, updated_at')
+    .eq('student_id', sid)
+    .order('yyyymmdd', { ascending: false })
+    .limit(20);
+
+  if (excuseErr) {
+    warnings.push({ area: 'absence_excuses', message: excuseErr.message || 'absence_excuses 조회 실패' });
+  } else {
+    const classNameMap = await readClassNameMap(
+      supabase,
+      (Array.isArray(excuseRows) ? excuseRows : []).map(row => row?.class_id).filter(Boolean)
+    );
+    absenceExcuses = (Array.isArray(excuseRows) ? excuseRows : []).map(row => {
+      const classId = String(row?.class_id || '').trim();
+      return {
+        excuse_id: String(row?.excuse_id || '').trim(),
+        yyyymmdd: String(row?.yyyymmdd || '').trim(),
+        class_id: classId,
+        class_name: classNameMap[classId] || '',
+        reason: String(row?.reason || '').trim(),
+        until_ts: String(row?.until_ts || ''),
+        created_at: String(row?.created_at || ''),
+        updated_at: String(row?.updated_at || '')
+      };
+    });
+  }
+
+  const studentOut = {
+    student_id: sid,
+    student_name: String(student?.student_name || '').trim(),
+    school: String(student?.school || '').trim(),
+    grade: String(student?.grade || '').trim(),
+    status: String(student?.status || '').trim(),
+    is_exception: String(student?.is_exception || '').trim(),
+    exception_note: String(student?.exception_note || '').trim(),
+    teacher: String(student?.teacher || student?.teacher_id || student?.teacher_name || '').trim()
+  };
+
+  return success({
+    yyyymmdd,
+    student: studentOut,
+    today_state: todayOut.ok ? todayOut.state : null,
+    today_state_source: todayOut.source || '',
+    classes,
+    recent_logs: recentLogs,
+    absence_excuses: absenceExcuses,
+    warnings
+  });
+}
+
 function bulkEndOfKstDayIso(yyyymmdd) {
   const y = Number(String(yyyymmdd || '').slice(0, 4));
   const m = Number(String(yyyymmdd || '').slice(4, 6));
@@ -2848,6 +3037,11 @@ export default async function handler(req, res) {
 
   if (op === 'assistant.searchStudents') {
     const result = await assistantSearchStudentsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.getStudentProfile') {
+    const result = await assistantGetStudentProfileDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

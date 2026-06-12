@@ -90,3 +90,13 @@
 2. `admin.setStudentException`/`teacher.setException`의 정책명을 정리한다.
 3. write action에 `actor_id`, `actor_role`, `reason` 전달을 표준화한다.
 4. `portal_audit_logs` 도입 후 모든 주요 write op에 audit hook을 추가한다.
+
+## 2026-06-12 Batch Portal v1 추가 op
+
+| op | 권한 | 목적 | 비고 |
+| --- | --- | --- | --- |
+| `assistant.getStudentProfile` | assistant 이상 | 학생 기본 정보, 오늘 상태, 최근 출결, 소속 클래스, 최근 결석예외를 한 번에 조회 | Student 360 Profile v1 화면에서 사용 |
+| `admin.getStaffMonthlySummary` | admin 이상 | 직원 월간 근무 요약 조회 | 직원 화면에서 사용 |
+| `admin.getStaffDailyDetail` | admin 이상 | 특정 직원의 월간 일별 근무 상세 조회 | 직원 화면에서 사용 |
+| `admin.listNotifyQueue` | admin 이상 | 문자 queue 상태별 조회 | 문자·알림 화면에서 사용 |
+| `admin.retryNotifyQueue` | admin 이상 + PIN | FAILED/PROCESSING queue 재처리 | 문자·알림 화면에서 사용 |

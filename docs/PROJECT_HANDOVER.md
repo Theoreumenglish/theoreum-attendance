@@ -76,3 +76,10 @@
 - 설정·점검 화면의 자동화 실행 기록 버튼은 `admin.listAbsenceRuns`, `admin.listNotifyWorkerRuns`로 최근 실행 이력을 조회한다.
 - 클래스 화면은 더 이상 placeholder가 아니라 `assistant.listClassOptions`와 `assistant.listClassRoster`를 이용하는 조회 전용 운영 화면이다.
 - 클래스 조회는 날짜 입력 시 `class_schedule`, 날짜 미입력 시 `classes`를 확인하는 API 계약을 따른다.
+
+### 2026-06-12 Batch Portal v1 운영 기준
+- 학생 화면은 `assistant.getStudentProfile`을 사용해 Student 360 Profile v1로 전환한다.
+- Student 360 Profile v1은 기본 정보, 오늘 출결 상태, QR 예외, 최근 출결, 소속 클래스, 최근 결석예외를 한 화면에 표시한다.
+- 문자·알림 화면은 `attendance_notify_queue` 조회와 실패 큐 재처리를 직접 제공한다. 재처리는 관리자 PIN을 요구한다.
+- 직원 화면은 `staff_monthly`, `staff_daily` 기반 월간/일별 근무 조회 화면으로 전환한다.
+- 클리닉, 단어시험, 리포트 화면은 DB 쓰기 전 단계로 운영 흐름과 스키마 방향을 UI에 고정한다.

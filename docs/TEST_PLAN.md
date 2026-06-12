@@ -119,3 +119,16 @@ scripts/smoke-test.mjs
 | 클래스 전체 | 날짜를 비우면 classes 기준 목록 조회 가능 |
 | 수강생 명단 | 클래스 목록에서 명단 버튼 클릭 시 class_students + students 기준 roster 표시 |
 | 권한 | 클래스 조회는 조교 이상, 자동화 기록은 관리자 이상 정책 유지 |
+
+## 9. Batch Portal v1 검수
+
+| 항목 | 확인 |
+| --- | --- |
+| 학생 360 | 학생 검색 후 오늘 상태, QR 예외, 최근 출결, 소속 클래스, 최근 결석예외 표시 |
+| 학생 정정 연결 | 학생 최근 출결의 원본 버튼 클릭 시 수동 정정 폼에 student_id와 trace_id 반영 |
+| 문자 queue | 상태/종류별 queue 조회 가능 |
+| 문자 재처리 | FAILED + ABSENT/ATTENDANCE 선택 후 관리자 PIN으로 재처리 가능 |
+| 직원 월간 | staff_monthly 월간 요약 조회 가능 |
+| 직원 일별 | 월간 요약에서 직원 선택 시 staff_daily 상세 표시 |
+| 권한 | admin 전용 직원/문자 재처리 기능은 권한 없을 때 서버가 차단 |
+| 정적 계약 | `npm run contract-check`가 신규 id/op를 확인 |
