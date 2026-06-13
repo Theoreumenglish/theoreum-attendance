@@ -2064,11 +2064,33 @@
 <div class="fieldLabel">제목</div>
 <input class="inp" id="clinicTitle" placeholder="예: 6월 2주차 수업 클리닉 / 단어 재시험"/>
 </div>
-<div class="formGrid cols2" style="margin-top:14px;">
+<div class="formGrid cols4" style="margin-top:14px;">
 <div>
-<div class="fieldLabel">마감일</div>
+<div class="fieldLabel">예정일</div>
 <input class="inp" id="clinicDueDate" type="date"/>
 </div>
+<div>
+<div class="fieldLabel">예정시간</div>
+<input class="inp" id="clinicDueTime" placeholder="예: 19:00"/>
+<div class="fieldHint">오프라인 미등원 자동 안내 기준</div>
+</div>
+<div>
+<div class="fieldLabel">방식</div>
+<select class="select" id="clinicMode">
+<option value="OFFLINE">오프라인</option>
+<option value="ONLINE">온라인/제출형</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">자동 알림</div>
+<select class="select" id="clinicAutoNotice">
+<option value="Y">즉시+오전8시+미등원</option>
+<option value="N">자동 알림 안 함</option>
+</select>
+<div class="fieldHint">오프라인 수동 생성 클리닉에 적용</div>
+</div>
+</div>
+<div class="formGrid cols2" style="margin-top:14px;">
 <div>
 <div class="fieldLabel">학부모 공개</div>
 <select class="select" id="clinicParentVisible">
@@ -3070,6 +3092,8 @@
       if (wordEnd && !wordEnd.value) wordEnd.value = today;
       const clinicDue = $('#clinicDueDate');
       if (clinicDue && !clinicDue.value) clinicDue.value = kstDateInput(1);
+      const clinicDueTime = $('#clinicDueTime');
+      if (clinicDueTime && !clinicDueTime.value) clinicDueTime.value = '19:00';
       syncSelectedStudentUi();
 
       if (!App.sess) {
@@ -3961,6 +3985,9 @@
         task_type: $('#clinicTaskType').value || 'INDIVIDUAL_CLINIC',
         priority: $('#clinicPriority').value || 'NORMAL',
         due_date: $('#clinicDueDate').value || '',
+        due_time: $('#clinicDueTime').value || '',
+        clinic_mode: $('#clinicMode').value || 'OFFLINE',
+        auto_notice_enabled: ($('#clinicAutoNotice').value || 'Y') === 'Y',
         internal_note: $('#clinicInternalNote').value || '',
         parent_note: $('#clinicParentNote').value || '',
         parent_visible: ($('#clinicParentVisible').value || 'N') === 'Y'
@@ -3973,7 +4000,10 @@
       $('#clinicTitle').value = '';
       $('#clinicInternalNote').value = '';
       $('#clinicParentNote').value = '';
-      showToast('클리닉을 생성했습니다.');
+      const autoItems = (r.data && r.data.auto_notice && Array.isArray(r.data.auto_notice.items)) ? r.data.auto_notice.items : [];
+      const autoOk = autoItems.filter(x => x && x.ok).length;
+      const autoSkip = autoItems.filter(x => x && x.skipped).length;
+      showToast(autoItems.length ? `클리닉 생성 · 자동 알림 ${autoOk}건 예약${autoSkip ? ` · ${autoSkip}건 제외` : ''}` : '클리닉을 생성했습니다.');
       showResult('클리닉 생성 완료', r.data || r);
       await loadClinicTasks();
       await loadStudentProfile();
@@ -4023,12 +4053,7 @@
         if (hhmm === null) return;
         if (String(hhmm || '').trim()) args.clinic_time_hhmm = String(hhmm || '').trim();
       }
-      if (String(noticeType || '').toUpperCase().endsWith('_STUDENT')) {
-        const phone = prompt(`${label}을 받을 학생 휴대폰 번호를 입력하세요.`, '');
-        if (phone === null) return;
-        if (!String(phone || '').replace(/[^0-9]/g, '')) { showToast('학생 휴대폰 번호가 필요합니다.'); return; }
-        args.target_phone = phone;
-      }
+      // 학생용 알림은 중앙DB에서 동기화된 students.student_phone을 서버가 자동 사용합니다.
       const okSend = confirm(`${label}를 예약할까요?`);
       if (!okSend) return;
       const r = await rpc('clinic.queueNotice', args, { timeoutMs: 30000 });

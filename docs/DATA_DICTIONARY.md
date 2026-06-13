@@ -204,3 +204,17 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 - `TPL_CLINIC_ABSENCE_PARENT=offlineclinicabsence`
 
 `clinic_time_hhmm`은 `HH:MM` 형태로 입력받아 queue의 `occurred_at`에 KST ISO 시간으로 저장한다.
+
+
+## Clinic auto notification fields
+
+`clinic_tasks` now uses these runtime fields for offline clinic automation:
+
+- `due_time`: clinic scheduled time in `HH:mm`.
+- `due_at`: full scheduled timestamp.
+- `clinic_mode`: `OFFLINE` or `ONLINE`.
+- `auto_notice_enabled`: whether the automatic clinic notification chain is enabled.
+
+`students.student_phone` is the student KakaoTalk/SMS target. It is synced from CentralDB and is used for student clinic reservation/reminder messages.
+
+`attendance_notify_queue.occurred_at` is treated as the send time for scheduled clinic notifications. The worker only claims rows whose `occurred_at <= now()`.

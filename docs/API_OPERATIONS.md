@@ -202,3 +202,17 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 학생용 알림은 학생 휴대폰 번호가 기본 테이블에 확정되어 있지 않으므로 `target_phone`을 직접 받아 queue의 수신번호로 사용한다. 학부모용 알림은 `students.parent_phone`을 기본값으로 사용하되, 필요하면 `target_phone`으로 재지정할 수 있다.
 
 중복 방지 기준은 `attendance_notify_queue(trace_id = clinic_task_id, action_type = notice_type)`이다.
+
+
+## Clinic auto notifications v1
+
+- `clinic.createTask` supports offline clinic automatic notifications.
+- New/updated args: `clinic_mode` (`OFFLINE`/`ONLINE`), `due_time` (`HH:mm`), `due_at`, `auto_notice_enabled`.
+- Manual OFFLINE clinic creation with `auto_notice_enabled=true` automatically queues:
+  - `CLINIC_RESERVATION_PARENT` immediately using `clinicreservationforparents`
+  - `CLINIC_RESERVATION_STUDENT` immediately using `clinicreservationforstudents` and `students.student_phone`
+  - `CLINIC_REMINDER_PARENT` at the clinic date 08:00 using `clinicreservationforparents`
+  - `CLINIC_REMINDER_STUDENT` at the clinic date 08:00 using `clinicreservationforstudents` and `students.student_phone`
+  - `CLINIC_ABSENCE_PARENT` after the scheduled clinic time when the clinic is still not handled, using `offlineclinicabsence`
+- `clinic.queueNotice` remains available for manual reservation/missing/absence queueing.
+- Apply `docs/supabase-clinic-auto-notify-v1.sql` before deploying this feature.

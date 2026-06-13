@@ -13,6 +13,15 @@ function mustExist(path) {
   else ok(`${path} 존재`);
 }
 function read(path) { return readFileSync(path, 'utf8'); }
+function checkFile(path, label) {
+  if (existsSync(path)) ok(label);
+  else fail(label + ' 파일 누락: ' + path);
+}
+function checkText(path, snippet, label) {
+  if (!existsSync(path)) { fail(label + ' 파일 누락: ' + path); return; }
+  if (read(path).includes(snippet)) ok(label);
+  else fail(label + ' 기준 미충족');
+}
 
 const requiredFiles = [
   'api/rpc.js',
@@ -52,6 +61,13 @@ for (const [label, passed] of checklist) {
 }
 
 if (!/SMOKE_BASE_URL/.test(read('scripts/smoke-test.mjs'))) warn('smoke-test는 SMOKE_BASE_URL 지정 후 실행해야 합니다.');
+
+
+checkFile('docs/supabase-clinic-auto-notify-v1.sql', '클리닉 자동 알림 SQL');
+checkText('api/rpc.js', 'enqueueOfflineClinicAutoNoticesDirect', '오프라인 클리닉 자동 알림 예약');
+checkText('api/rpc.js', 'student_phone', '학생 전화번호 자동 사용');
+checkText('lib/attendance-notify-queue.js', "lte('occurred_at'", '예약 시각 기반 queue 처리');
+checkText('public/admin.html', 'clinicDueTime', '클리닉 예정시간 UI');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

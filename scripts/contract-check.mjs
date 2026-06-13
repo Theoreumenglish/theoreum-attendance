@@ -10,7 +10,8 @@ const files = {
   absentCron: 'api/absent-run-cron.js',
   notifyWorker: 'api/attendance-notify-worker.js',
   vercel: 'vercel.json',
-  clinicWordSchema: 'docs/supabase-clinic-word-report-schema-v1.sql'
+  clinicWordSchema: 'docs/supabase-clinic-word-report-schema-v1.sql',
+  clinicAutoNotifySchema: 'docs/supabase-clinic-auto-notify-v1.sql'
 };
 
 let failed = 0;
@@ -451,6 +452,37 @@ if (!adminText.includes('QR 인식 문제 대응 순서') || adminText.includes(
   fail('QR Center가 출결 화면으로 정리되지 않았습니다.');
 } else {
   ok('QR Center가 출결 화면 안으로 정리되었습니다.');
+}
+
+
+const clinicAutoNotifyRequiredIds = ['clinicDueTime', 'clinicMode', 'clinicAutoNotice'];
+const missingClinicAutoNotifyIds = clinicAutoNotifyRequiredIds.filter(id => !adminIds.includes(id));
+if (missingClinicAutoNotifyIds.length) {
+  fail(`오프라인 클리닉 자동 알림 UI id 누락: ${missingClinicAutoNotifyIds.join(', ')}`);
+} else {
+  ok('오프라인 클리닉 자동 알림 UI가 있습니다.');
+}
+
+const clinicAutoActions = ['CLINIC_REMINDER_PARENT', 'CLINIC_REMINDER_STUDENT', 'CLINIC_ABSENCE_PARENT'];
+const missingClinicAutoActions = clinicAutoActions.filter(action => !rpcText.includes(action) || !notifyText.includes(action));
+if (missingClinicAutoActions.length) {
+  fail(`클리닉 자동 알림 action 라우팅 누락: ${missingClinicAutoActions.join(', ')}`);
+} else {
+  ok('클리닉 즉시/오전8시/미등원 자동 알림 action 라우팅이 있습니다.');
+}
+
+const autoSchemaPath = join(root, 'docs/supabase-clinic-auto-notify-v1.sql');
+if (!existsSync(autoSchemaPath)) {
+  fail('docs/supabase-clinic-auto-notify-v1.sql 파일이 없습니다.');
+} else {
+  const autoSchemaText = readFileSync(autoSchemaPath, 'utf8');
+  const autoSchemaTokens = ['student_phone', 'due_time', 'due_at', 'clinic_mode', 'auto_notice_enabled', 'attendance_notify_queue_status_occurred_idx'];
+  const missingAutoSchemaTokens = autoSchemaTokens.filter(token => !autoSchemaText.includes(token));
+  if (missingAutoSchemaTokens.length) {
+    fail(`클리닉 자동 알림 SQL 필수 항목 누락: ${missingAutoSchemaTokens.join(', ')}`);
+  } else {
+    ok('클리닉 자동 알림 SQL이 학생전화/예정시간/스케줄 queue를 보강합니다.');
+  }
 }
 
 if (failed > 0) {

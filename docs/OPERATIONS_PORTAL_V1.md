@@ -247,3 +247,16 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 5. 알림 예약 후 문자 메뉴에서 `CLINIC / PENDING`으로 확인
 
 학부모용 예약 안내는 기본적으로 `students.parent_phone`을 사용한다. 학생용 알림은 학생 연락처 컬럼이 확정되기 전까지 화면 prompt로 받은 번호를 사용한다.
+
+
+## Offline clinic automatic notification flow
+
+When a staff member creates an OFFLINE manual clinic task with automatic notice enabled:
+
+1. Parent reservation notice is queued immediately.
+2. Student reservation notice is queued immediately using `students.student_phone`.
+3. Parent reminder notice is queued for 08:00 on the clinic date.
+4. Student reminder notice is queued for 08:00 on the clinic date.
+5. Parent absence notice is queued after the scheduled clinic time if the clinic remains unhandled.
+
+The clinic screen now asks for scheduled date/time and defaults to offline automatic notice.

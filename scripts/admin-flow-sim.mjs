@@ -56,6 +56,7 @@ requireFunction('감사 로그 조회', 'loadAuditLogs', ['audit.searchLogs', 'a
 
 requireIds('클리닉 문자 예약 흐름', ['notifyQueueAction', 'notifyQueueRows']);
 requireFunction('클리닉 알림 5종 예약', 'queueClinicNotice', ['clinic.queueNotice', 'loadNotifyQueue', 'CLINIC_RESERVATION_PARENT', 'CLINIC_RESERVATION_STUDENT', 'CLINIC_MISSING_PARENT', 'CLINIC_MISSING_STUDENT', 'CLINIC_ABSENCE_PARENT']);
+requireFunction('오프라인 클리닉 자동 알림 생성', 'createClinicTask', ['clinicDueTime', 'clinicAutoNotice', 'auto_notice_enabled', 'clinic_mode']);
 
 const forbiddenButtonTexts = ['100점 저장', '95점 저장', '80점 저장', '후보만', '대기만', '80점 저장'];
 const visibleMarkup = html.split('<script>')[0];

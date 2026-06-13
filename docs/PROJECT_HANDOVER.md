@@ -172,3 +172,8 @@ npm run smoke-test
 - worker가 `CLINIC_*` action을 템플릿별 문구/템플릿 코드로 라우팅
 - UI는 알림 유형 선택 + 알림 예약 버튼 1개로 유지해 버튼 난립을 방지
 - verify에서 클리닉 알림톡 5종 action/template code를 검사
+
+
+## Latest clinic notification decision
+
+Student phone is part of CentralDB (`student_phone`) and must be treated as an established field. Student clinic notices should use this synced column automatically. Offline clinic creation now queues immediate reservation notices, 08:00 same-day reminders, and parent absence follow-up notices.

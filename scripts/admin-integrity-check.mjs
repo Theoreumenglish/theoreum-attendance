@@ -3,6 +3,12 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync('public/admin.html', 'utf8');
 const rpc = readFileSync('api/rpc.js', 'utf8');
 const notify = readFileSync('lib/attendance-notify.js', 'utf8');
+const queue = readFileSync('lib/attendance-notify-queue.js', 'utf8');
+const admin = html;
+function assertIncludes(text, snippet, message) {
+  if (!String(text || '').includes(snippet)) fail(message + ' 기준 미충족');
+  else ok(message);
+}
 const visible = html.split('<script>')[0];
 let failed = 0;
 const ok = msg => console.log('OK', msg);
@@ -90,6 +96,16 @@ const staleUiHooks = ['data-word-score-save', 'data-word-status-save', 'data-qui
   .filter(hook => visible.includes(hook));
 if (staleUiHooks.length) fail(`화면에 제거된 원클릭/필터 hook이 남아 있습니다: ${staleUiHooks.join(', ')}`);
 else ok('화면에 제거된 원클릭/필터 hook이 남아 있지 않습니다.');
+
+
+assertIncludes(admin, 'clinicDueTime', '오프라인 클리닉 예정시간 입력이 있습니다.');
+assertIncludes(admin, 'clinicAutoNotice', '오프라인 클리닉 자동 알림 선택이 있습니다.');
+assertIncludes(rpc, 'student_phone', '학생용 클리닉 알림이 중앙DB 학생전화 컬럼을 사용합니다.');
+assertIncludes(rpc, 'enqueueOfflineClinicAutoNoticesDirect', '오프라인 클리닉 생성 시 자동 알림 예약 함수가 있습니다.');
+assertIncludes(rpc, 'CLINIC_REMINDER_PARENT', '오전 8시 학부모 리마인드 action이 있습니다.');
+assertIncludes(rpc, 'CLINIC_REMINDER_STUDENT', '오전 8시 학생 리마인드 action이 있습니다.');
+assertIncludes(queue, "lte('occurred_at'", '문자 worker가 예약 시각이 된 queue만 처리합니다.');
+assertIncludes(queue, 'clinicSkipReason', '클리닉 완료/진행 상태에서는 미등원 알림을 건너뜁니다.');
 
 if (failed) {
   console.error(`\nAdmin integrity check failed: ${failed} issue(s)`);

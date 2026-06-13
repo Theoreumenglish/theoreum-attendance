@@ -283,3 +283,13 @@ npm run smoke-test
    - `clinic.queueAbsenceParent`
 
 정적 검사는 `npm run verify`에 포함되어 있다. 실제 NCP 발송은 배포 후 `npm run smoke-test`와 화면 queue 테스트로 확인한다.
+
+
+## Offline clinic auto-notification test
+
+1. Run `docs/supabase-clinic-auto-notify-v1.sql` in Supabase.
+2. Create an offline clinic with due date and due time.
+3. Confirm queue rows are created for immediate reservation, 08:00 reminder, and absence follow-up.
+4. Confirm student notices use `students.student_phone` without prompting for a phone number.
+5. Confirm future reminder/absence rows remain PENDING until `occurred_at`.
+6. Mark clinic DONE before absence time and confirm the absence row is skipped by the worker.
