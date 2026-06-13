@@ -218,3 +218,13 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 `students.student_phone` is the student KakaoTalk/SMS target. It is synced from CentralDB and is used for student clinic reservation/reminder messages.
 
 `attendance_notify_queue.occurred_at` is treated as the send time for scheduled clinic notifications. The worker only claims rows whose `occurred_at <= now()`.
+
+## Clinic semantics v2
+
+`clinic_tasks.task_type` values:
+
+- `CLASS_CLINIC`: 수업 클리닉. class_id 기준 반 전체에 학생별 row 생성.
+- `INDIVIDUAL_CLINIC`: 개별 클리닉. 당일 특정 학생용.
+- `EXTRA_CLINIC`: 추가 클리닉. 별도 일정/등원 및 자동 알림 대상.
+
+`clinic_tasks.clinic_mode`는 현재 DB 제약에 맞춰 `ONLINE` 또는 `OFFLINE`을 사용한다. 수업/개별 클리닉은 `ONLINE`으로 저장하여 자동 문자에서 제외하고, 추가 클리닉은 `OFFLINE` 일정 기반 알림을 사용한다.

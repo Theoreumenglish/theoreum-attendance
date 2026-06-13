@@ -260,3 +260,10 @@ When a staff member creates an OFFLINE manual clinic task with automatic notice 
 5. Parent absence notice is queued after the scheduled clinic time if the clinic remains unhandled.
 
 The clinic screen now asks for scheduled date/time and defaults to offline automatic notice.
+
+## Clinic semantics v2
+
+- 수업 클리닉: 선생님이 반 ID를 기준으로 입력하면 class_students 전체 학생에게 당일 할 일이 생성된다. 자동 문자는 보내지 않으며, 조교는 “오늘 할 일 보기”에서 확인한다. 미완료 시 다른 날 등원 또는 숙제로 이어진다.
+- 개별 클리닉: 당일 특정 학생만 해야 하는 클리닉이다. 클리닉 메뉴 내부 학생 검색으로 학생을 선택해서 생성한다.
+- 추가 클리닉: 별도 일정을 잡는 클리닉이다. OFFLINE + 자동 알림 사용 시 학생/학부모 예약 안내, 당일 08:00 리마인드, 예정시간 이후 미등원 안내 queue가 자동 생성된다.
+- 클리닉 메뉴는 더 이상 전역 Student 360 선택에 의존하지 않는다. 각 메뉴에서 반 또는 학생을 직접 선택해 업무를 처리한다.

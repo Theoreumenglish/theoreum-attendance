@@ -293,3 +293,11 @@ npm run smoke-test
 4. Confirm student notices use `students.student_phone` without prompting for a phone number.
 5. Confirm future reminder/absence rows remain PENDING until `occurred_at`.
 6. Mark clinic DONE before absence time and confirm the absence row is skipped by the worker.
+
+## Clinic semantics v2 tests
+
+1. 클리닉 메뉴에서 수업 클리닉 선택 → 반 ID 입력 → 반 명단 확인 → 생성 → 해당 반 학생 수만큼 clinic_tasks 생성 확인.
+2. 오늘 할 일 보기 → due_date=오늘, terminal 상태 제외 목록 표시 확인.
+3. 개별 클리닉 선택 → 클리닉 메뉴 내부 학생 검색 → 학생 선택 → 생성 → 해당 학생에게만 row 생성 확인.
+4. 추가 클리닉 선택 → 학생 선택 → 예정일/예정시간/OFFLINE/자동 알림 → 생성 → CLINIC_RESERVATION_*, CLINIC_REMINDER_*, CLINIC_ABSENCE_PARENT queue 확인.
+5. 수업/개별 클리닉은 자동 알림이 생성되지 않는지 확인.

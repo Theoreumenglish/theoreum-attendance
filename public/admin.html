@@ -2027,27 +2027,31 @@
 </div>
 </div>
 </section>
-<section class="portalView" data-view-desc="클리닉 후보, 확정, 진행, 완료를 실제 데이터로 관리합니다." data-view-title="클리닉" id="clinic">
+<section class="portalView" data-view-desc="수업/개별/추가 클리닉을 실제 운영 기준으로 관리합니다." data-view-title="클리닉" id="clinic">
 <div class="grid2">
 <div class="card cardPad">
 <div class="cardHead">
 <div>
 <div class="sectionTitle">클리닉 생성</div>
-<div class="sectionDesc">학생 검색에서 선택한 학생에게 수업 클리닉, 추가 클리닉, 개별 클리닉 중 하나를 생성합니다.</div>
+<div class="sectionDesc">수업 클리닉은 반 전체에 당일 할 일을 생성합니다. 개별 클리닉은 특정 학생의 당일 할 일, 추가 클리닉은 별도 일정과 자동 안내를 관리합니다.</div>
 </div>
-<span class="statusPill good">DB 연결</span>
+<span class="statusPill good">운영 기준</span>
 </div>
 <div class="formGrid cols3" style="margin-top:16px;">
 <div>
-<div class="fieldLabel">선택 학생</div>
-<input class="inp" disabled="" id="clinicStudentLabel" placeholder="학생 화면에서 선택"/>
+<div class="fieldLabel">클리닉 종류</div>
+<select class="select" id="clinicTaskType">
+<option value="CLASS_CLINIC">수업 클리닉 · 반 전체 당일 과제</option>
+<option value="INDIVIDUAL_CLINIC">개별 클리닉 · 특정 학생 당일 과제</option>
+<option value="EXTRA_CLINIC">추가 클리닉 · 별도 일정/등원</option>
+</select>
 </div>
 <div>
-<div class="fieldLabel">유형</div>
-<select class="select" id="clinicTaskType">
-<option value="CLASS_CLINIC">수업 클리닉</option>
-<option value="EXTRA_CLINIC">추가 클리닉</option>
-<option value="INDIVIDUAL_CLINIC">개별 클리닉</option>
+<div class="fieldLabel">상태</div>
+<select class="select" id="clinicCreateStatus">
+<option value="PENDING">해야 함</option>
+<option value="IN_PROGRESS">진행중</option>
+<option value="CANDIDATE">후보</option>
 </select>
 </div>
 <div>
@@ -2060,34 +2064,63 @@
 </select>
 </div>
 </div>
+<div class="emptyPanel" id="clinicTargetHelp" style="margin-top:14px;">
+<h3>대상 선택</h3>
+<p>수업 클리닉은 반 ID를 넣으면 그 클래스 전체 학생에게 각각 생성됩니다. 개별/추가 클리닉은 이 화면에서 학생을 검색해서 선택하세요.</p>
+</div>
+<div class="formGrid cols2" style="margin-top:14px;">
+<div id="clinicClassTargetBox">
+<div class="fieldLabel">반 ID</div>
+<input class="inp" id="clinicClassId" placeholder="예: CLASS001"/>
+<div class="btnRow" style="margin-top:8px;">
+<button class="btn btnGhost" id="btnClinicClassRosterPreview" type="button">반 명단 확인</button>
+</div>
+<div class="sectionDesc" id="clinicClassRosterSummary" style="margin-top:8px;">수업 클리닉은 반 전체 학생에게 생성됩니다.</div>
+</div>
+<div id="clinicStudentTargetBox">
+<div class="fieldLabel">학생 선택</div>
+<div style="display:flex; gap:8px;">
+<input class="inp" id="clinicLocalStudentQuery" placeholder="이름 또는 학번"/>
+<button class="btn btnGhost" id="btnClinicLocalStudentSearch" type="button">검색</button>
+</div>
+<input class="inp" id="clinicStudentId" placeholder="선택 학생 ID" style="margin-top:8px;"/>
+<input class="inp" disabled="" id="clinicStudentLabel" placeholder="이 메뉴에서 학생을 선택하세요" style="margin-top:8px;"/>
+</div>
+</div>
+<div class="tableWrap" id="clinicLocalStudentBox" style="margin-top:10px; display:none;">
+<table class="table">
+<thead><tr><th>ID</th><th>이름</th><th>학교</th><th>선택</th></tr></thead>
+<tbody id="clinicLocalStudentRows"><tr><td colspan="4" style="color:var(--muted);">검색 전입니다.</td></tr></tbody>
+</table>
+</div>
 <div style="margin-top:14px;">
 <div class="fieldLabel">제목</div>
 <input class="inp" id="clinicTitle" placeholder="예: 6월 2주차 수업 클리닉 / 단어 재시험"/>
 </div>
 <div class="formGrid cols4" style="margin-top:14px;">
 <div>
-<div class="fieldLabel">예정일</div>
+<div class="fieldLabel">해야 하는 날짜</div>
 <input class="inp" id="clinicDueDate" type="date"/>
 </div>
 <div>
 <div class="fieldLabel">예정시간</div>
-<input class="inp" id="clinicDueTime" placeholder="예: 19:00"/>
-<div class="fieldHint">오프라인 미등원 자동 안내 기준</div>
+<input class="inp" id="clinicDueTime" placeholder="추가 클리닉만 예: 19:00"/>
+<div class="fieldHint">추가 클리닉 미등원 자동 안내 기준</div>
 </div>
 <div>
 <div class="fieldLabel">방식</div>
 <select class="select" id="clinicMode">
-<option value="OFFLINE">오프라인</option>
-<option value="ONLINE">온라인/제출형</option>
+<option value="ONLINE">수업중/숙제형</option>
+<option value="OFFLINE">별도 등원 일정</option>
 </select>
 </div>
 <div>
 <div class="fieldLabel">자동 알림</div>
 <select class="select" id="clinicAutoNotice">
-<option value="Y">즉시+오전8시+미등원</option>
 <option value="N">자동 알림 안 함</option>
+<option value="Y">즉시+오전8시+미등원</option>
 </select>
-<div class="fieldHint">오프라인 수동 생성 클리닉에 적용</div>
+<div class="fieldHint">추가 클리닉 OFFLINE일 때 사용</div>
 </div>
 </div>
 <div class="formGrid cols2" style="margin-top:14px;">
@@ -2111,14 +2144,14 @@
 </div>
 <div class="btnRow" style="margin-top:16px;">
 <button class="btn btnPri" id="btnCreateClinicTask" type="button">클리닉 생성</button>
-
+<button class="btn btnGhost" id="btnLoadTodayClinicTasks" type="button">오늘 할 일 보기</button>
 </div>
 </div>
 <div class="card cardPad">
 <div class="cardHead">
 <div>
 <div class="sectionTitle">클리닉 조회</div>
-<div class="sectionDesc">상태와 학생 필터를 정한 뒤 조회합니다. 상태 변경은 목록의 변경 칸에서 처리합니다.</div>
+<div class="sectionDesc">조교는 오늘 할 일을 먼저 보고, 선생님은 반/학생/상태별로 확인합니다.</div>
 </div>
 <span class="statusPill warn">상태 관리</span>
 </div>
@@ -2126,28 +2159,48 @@
 <div>
 <div class="fieldLabel">상태</div>
 <select class="select" id="clinicStatusFilter">
-<option value="CANDIDATE">후보</option>
-<option value="PENDING">대기</option>
+<option value="">전체</option>
+<option value="PENDING">해야 함</option>
 <option value="IN_PROGRESS">진행중</option>
+<option value="CANDIDATE">후보</option>
 <option value="DONE">완료</option>
 <option value="PARTIAL">부분완료</option>
 <option value="REJECTED">반려</option>
 <option value="CANCELLED">취소</option>
-<option value="">전체</option>
 </select>
 </div>
 <div>
-<div class="fieldLabel">학생 필터</div>
+<div class="fieldLabel">유형</div>
+<select class="select" id="clinicTypeFilter">
+<option value="">전체</option>
+<option value="CLASS_CLINIC">수업 클리닉</option>
+<option value="INDIVIDUAL_CLINIC">개별 클리닉</option>
+<option value="EXTRA_CLINIC">추가 클리닉</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">해야 하는 날짜</div>
+<input class="inp" id="clinicDueDateFilter" type="date"/>
+</div>
+</div>
+<div class="formGrid cols3" style="margin-top:12px;">
+<div>
+<div class="fieldLabel">학생 ID</div>
 <input class="inp" id="clinicStudentFilter" placeholder="비우면 전체"/>
 </div>
-<div style="display:flex; align-items:end;">
-<button class="btn btnPri" id="btnLoadClinicTasks" style="width:100%;" type="button">클리닉 조회</button>
+<div>
+<div class="fieldLabel">반 ID</div>
+<input class="inp" id="clinicClassFilter" placeholder="비우면 전체"/>
+</div>
+<div style="display:flex; align-items:end; gap:8px;">
+<button class="btn btnPri" id="btnLoadClinicTasks" style="flex:1;" type="button">클리닉 조회</button>
 </div>
 </div>
-
 <div class="emptyPanel" style="margin-top:16px;">
-<h3>운영 흐름</h3>
-<p>단어시험 불통과는 추가 클리닉 후보가 됩니다. 직원은 수업/추가/개별 3종만 기준으로 관리하면 됩니다.</p>
+<h3>클리닉 기준</h3>
+<p><b>수업 클리닉</b>: 선생님이 반 전체에 입력하는 당일 할 일입니다. 못 하면 다른 날 등원하거나 숙제로 이어집니다.</p>
+<p><b>개별 클리닉</b>: 당일 특정 학생만 해야 하는 클리닉입니다.</p>
+<p><b>추가 클리닉</b>: 별도 일정을 잡는 클리닉이며 자동 예약/리마인드/미등원 안내가 적용됩니다.</p>
 </div>
 </div>
 </div>
@@ -2163,18 +2216,18 @@
 <thead>
 <tr>
 <th>상태</th>
-<th>학생</th>
+<th>대상</th>
 <th>제목</th>
 <th>유형</th>
 <th>우선</th>
-<th>마감</th>
+<th>날짜</th>
 <th>공개</th>
 <th>문자</th>
 <th>변경</th>
 </tr>
 </thead>
 <tbody id="clinicTaskRows">
-<tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
+<tr><td colspan="9" style="color:var(--muted);">조회 전입니다.</td></tr>
 </tbody>
 </table>
 </div>
@@ -2811,6 +2864,12 @@
       }
       const reportLabel = $('#reportStudentLabel');
       if (reportLabel) reportLabel.value = App.selectedStudent && App.selectedStudent.student_id ? label : '';
+      const clinicLocalLabel = $('#clinicStudentLabel');
+      const clinicLocalId = $('#clinicStudentId');
+      if (clinicLocalLabel && App.selectedStudent && App.selectedStudent.student_id && !clinicLocalId?.value) {
+        clinicLocalLabel.value = label;
+        if (clinicLocalId) clinicLocalId.value = App.selectedStudent.student_id;
+      }
     }
 
     function writeActionLog(message, detail = '') {
@@ -2872,6 +2931,29 @@
       if (v === 'DONE') return 'good';
       if (['REJECTED', 'CANCELLED'].includes(v)) return 'bad';
       return 'warn';
+    }
+
+    function clinicTaskTypeLabel(value) {
+      const v = String(value || '').toUpperCase();
+      const map = {
+        CLASS_CLINIC: '수업 클리닉',
+        EXTRA_CLINIC: '추가 클리닉',
+        INDIVIDUAL_CLINIC: '개별 클리닉'
+      };
+      return map[v] || v || '-';
+    }
+
+    function clinicModeLabel(value) {
+      const v = String(value || '').toUpperCase();
+      if (v === 'OFFLINE') return '별도 등원';
+      if (v === 'ONLINE') return '수업중/숙제형';
+      return v || '-';
+    }
+
+    function ymdToDateInput(ymd) {
+      const raw = String(ymd || '').replace(/[^0-9]/g, '');
+      if (raw.length !== 8) return '';
+      return `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}`;
     }
 
     function wordStatusLabel(value) {
@@ -3091,9 +3173,12 @@
       }
       if (wordEnd && !wordEnd.value) wordEnd.value = today;
       const clinicDue = $('#clinicDueDate');
-      if (clinicDue && !clinicDue.value) clinicDue.value = kstDateInput(1);
+      if (clinicDue && !clinicDue.value) clinicDue.value = kstDateInput(0);
       const clinicDueTime = $('#clinicDueTime');
-      if (clinicDueTime && !clinicDueTime.value) clinicDueTime.value = '19:00';
+      if (clinicDueTime && !clinicDueTime.value) clinicDueTime.value = '';
+      const clinicDueFilter = $('#clinicDueDateFilter');
+      if (clinicDueFilter && !clinicDueFilter.value) clinicDueFilter.value = kstDateInput(0);
+      syncClinicCreateMode();
       syncSelectedStudentUi();
 
       if (!App.sess) {
@@ -3920,32 +4005,37 @@
         box.innerHTML = '<tr><td colspan="9" style="color:var(--muted);">조회된 클리닉 task가 없습니다.</td></tr>';
         return;
       }
-      box.innerHTML = rows.map(row => `
+      box.innerHTML = rows.map(row => {
+        const target = row.class_id
+          ? `${esc(row.class_id || '')}${row.class_name ? ' · ' + esc(row.class_name) : ''}<br><span class="smallText">${esc(row.student_id || '')} · ${esc(row.student_name || '')}</span>`
+          : `${esc(row.student_id || '')} · ${esc(row.student_name || '')}`;
+        const noticeDisabled = row.task_type !== 'EXTRA_CLINIC' ? 'disabled' : '';
+        return `
         <tr>
           <td><span class="statusPill ${clinicStatusClass(row.status)}">${esc(clinicStatusLabel(row.status))}</span></td>
-          <td class="wrap">${esc(row.student_id || '')} · ${esc(row.student_name || '')}</td>
+          <td class="wrap">${target}</td>
           <td class="wrap">${esc(row.title || '-')}<br><span class="smallText">${esc(row.internal_note || '')}</span></td>
-          <td>${esc(row.task_type || '-')}</td>
+          <td>${esc(clinicTaskTypeLabel(row.task_type))}<br><span class="smallText">${esc(clinicModeLabel(row.clinic_mode))}</span></td>
           <td>${esc(row.priority || '-')}</td>
-          <td>${esc(row.due_date || '-')}</td>
+          <td>${esc(row.due_date || '-')} ${esc(row.due_time || '')}</td>
           <td>${row.parent_visible ? '공개' : '비공개'}</td>
           <td>
-            <select class="select" data-clinic-notice-type-for="${esc(row.clinic_task_id || '')}" style="min-width:150px;">
+            <select class="select" data-clinic-notice-type-for="${esc(row.clinic_task_id || '')}" style="min-width:150px;" ${noticeDisabled}>
               <option value="CLINIC_RESERVATION_PARENT">학부모 예약</option>
               <option value="CLINIC_RESERVATION_STUDENT">학생 예약</option>
               <option value="CLINIC_MISSING_PARENT">학부모 미제출</option>
               <option value="CLINIC_MISSING_STUDENT">학생 미제출</option>
               <option value="CLINIC_ABSENCE_PARENT">학부모 미등원</option>
             </select>
-            <button class="btn btnGhost" type="button" data-clinic-notice="${esc(row.clinic_task_id || '')}">알림 예약</button>
+            <button class="btn btnGhost" type="button" data-clinic-notice="${esc(row.clinic_task_id || '')}" ${noticeDisabled}>알림 예약</button>
           </td>
           <td>
             <select class="select" data-clinic-status-for="${esc(row.clinic_task_id || '')}">
               ${['CANDIDATE','PENDING','IN_PROGRESS','DONE','PARTIAL','REJECTED','CANCELLED'].map(status => `<option value="${status}" ${status === row.status ? 'selected' : ''}>${clinicStatusLabel(status)}</option>`).join('')}
             </select>
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
+      }).join('');
       $$('[data-clinic-status-for]').forEach(sel => {
         sel.addEventListener('change', () => updateClinicTaskStatus(sel.dataset.clinicStatusFor || '', sel.value || ''));
       });
@@ -3958,12 +4048,18 @@
       });
     }
 
-    async function loadClinicTasks() {
+    async function loadClinicTasks(extraArgs = {}) {
       const status = ($('#clinicStatusFilter').value || '').trim();
       const sid = normalizeSid($('#clinicStudentFilter').value || '');
-      const args = { limit: 100 };
-      if (status) args.status = status;
-      if (sid) args.student_id = sid;
+      const classId = ($('#clinicClassFilter').value || '').trim();
+      const taskType = ($('#clinicTypeFilter').value || '').trim();
+      const dueDate = ($('#clinicDueDateFilter').value || '').trim();
+      const args = { limit: 150, ...extraArgs };
+      if (status && !args.status) args.status = status;
+      if (sid && !args.student_id) args.student_id = sid;
+      if (classId && !args.class_id) args.class_id = classId;
+      if (taskType && !args.task_type) args.task_type = taskType;
+      if (dueDate && !args.due_date) args.due_date = dueDate;
       const r = await rpc('clinic.listTasks', args, { timeoutMs: 30000 });
       if (!r.ok) {
         showToast(r.error && r.error.message ? r.error.message : '클리닉 조회 실패');
@@ -3974,20 +4070,113 @@
       showToast('클리닉 목록을 조회했습니다.');
     }
 
+    async function loadTodayClinicTasks() {
+      const today = kstYmd(new Date());
+      $('#clinicDueDateFilter').value = ymdToDateInput(today);
+      $('#clinicStatusFilter').value = '';
+      $('#clinicTypeFilter').value = '';
+      await loadClinicTasks({ due_ymd: today, open_only: true, limit: 200 });
+      writeActionLog('오늘 클리닉 할 일 조회', today);
+    }
+
+    async function searchClinicLocalStudents() {
+      const q = ($('#clinicLocalStudentQuery').value || '').trim();
+      if (!q) { showToast('학생 이름이나 학번을 입력하세요.'); return; }
+      const box = $('#clinicLocalStudentBox');
+      const rows = $('#clinicLocalStudentRows');
+      if (box) box.style.display = '';
+      if (rows) rows.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">검색 중...</td></tr>';
+      const r = await rpc('assistant.searchStudents', { q, limit: 20 }, { timeoutMs: 20000 });
+      if (!r.ok) {
+        if (rows) rows.innerHTML = '<tr><td colspan="4" style="color:var(--bad);">검색 실패</td></tr>';
+        showToast(r.error?.message || '학생 검색 실패');
+        return;
+      }
+      const items = Array.isArray(r.data?.items) ? r.data.items : [];
+      if (!rows) return;
+      rows.innerHTML = items.length ? items.map(st => `
+        <tr>
+          <td>${esc(st.student_id || '')}</td>
+          <td>${esc(st.student_name || '')}</td>
+          <td>${esc(st.school || '')}</td>
+          <td><button class="btn btnGhost" type="button" data-clinic-pick-student="${esc(st.student_id || '')}" data-clinic-pick-name="${esc(st.student_name || '')}">선택</button></td>
+        </tr>
+      `).join('') : '<tr><td colspan="4" style="color:var(--muted);">검색 결과가 없습니다.</td></tr>';
+      $$('[data-clinic-pick-student]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sid = btn.dataset.clinicPickStudent || '';
+          const name = btn.dataset.clinicPickName || '';
+          $('#clinicStudentId').value = sid;
+          $('#clinicStudentLabel').value = `${sid} · ${name}`;
+          $('#clinicStudentFilter').value = sid;
+          if (box) box.style.display = 'none';
+          showToast('클리닉 대상 학생을 선택했습니다.');
+        });
+      });
+    }
+
+    async function previewClinicClassRoster() {
+      const classId = ($('#clinicClassId').value || '').trim();
+      if (!classId) { showToast('반 ID를 입력하세요.'); return; }
+      const r = await rpc('assistant.listClassRoster', { class_id: classId }, { timeoutMs: 20000 });
+      if (!r.ok) {
+        $('#clinicClassRosterSummary').textContent = r.error?.message || '반 명단 확인 실패';
+        showToast('반 명단 확인 실패');
+        return;
+      }
+      $('#clinicClassRosterSummary').textContent = `반 ${classId} · ${r.data?.count || 0}명에게 수업 클리닉이 생성됩니다.`;
+      $('#clinicClassFilter').value = classId;
+      showToast('반 명단을 확인했습니다.');
+    }
+
+    function syncClinicCreateMode() {
+      const type = ($('#clinicTaskType').value || 'INDIVIDUAL_CLINIC').trim();
+      const isClass = type === 'CLASS_CLINIC';
+      const isExtra = type === 'EXTRA_CLINIC';
+      const classBox = $('#clinicClassTargetBox');
+      const studentBox = $('#clinicStudentTargetBox');
+      if (classBox) classBox.style.display = isClass ? '' : 'none';
+      if (studentBox) studentBox.style.display = isClass ? 'none' : '';
+      const mode = $('#clinicMode');
+      const auto = $('#clinicAutoNotice');
+      const time = $('#clinicDueTime');
+      if (isExtra) {
+        if (mode) mode.value = 'OFFLINE';
+        if (auto) auto.value = 'Y';
+        if (time && !time.value) time.value = '19:00';
+        $('#clinicTargetHelp').querySelector('p').textContent = '추가 클리닉은 별도 일정을 잡는 클리닉입니다. 생성 시 학생/학부모 예약 안내, 당일 오전 8시 리마인드, 미등원 안내가 자동 예약됩니다.';
+      } else if (isClass) {
+        if (mode) mode.value = 'ONLINE';
+        if (auto) auto.value = 'N';
+        if (time) time.value = '';
+        $('#clinicTargetHelp').querySelector('p').textContent = '수업 클리닉은 반 전체 학생에게 당일 해야 할 일을 한 번에 생성합니다. 못 하면 다른 날 등원하거나 숙제로 이어집니다.';
+      } else {
+        if (mode) mode.value = 'ONLINE';
+        if (auto) auto.value = 'N';
+        if (time) time.value = '';
+        $('#clinicTargetHelp').querySelector('p').textContent = '개별 클리닉은 당일 특정 학생만 해야 하는 클리닉입니다. 이 메뉴에서 학생을 검색해 선택하세요.';
+      }
+    }
+
     async function createClinicTask() {
-      const student = selectedStudentOrToast();
-      if (!student) return;
+      const type = ($('#clinicTaskType').value || 'INDIVIDUAL_CLINIC').trim();
       const title = ($('#clinicTitle').value || '').trim();
       if (!title) { showToast('클리닉 제목을 입력하세요.'); return; }
+      const classId = ($('#clinicClassId').value || '').trim();
+      const sid = normalizeSid($('#clinicStudentId').value || $('#clinicStudentFilter').value || '');
+      if (type === 'CLASS_CLINIC' && !classId) { showToast('수업 클리닉은 반 ID가 필요합니다.'); return; }
+      if (type !== 'CLASS_CLINIC' && !sid) { showToast('개별/추가 클리닉은 이 메뉴에서 학생을 선택하세요.'); return; }
       const r = await rpc('clinic.createTask', {
-        student_id: student.student_id,
+        student_id: type === 'CLASS_CLINIC' ? '' : sid,
+        class_id: type === 'CLASS_CLINIC' ? classId : ($('#clinicClassFilter').value || '').trim(),
         title,
-        task_type: $('#clinicTaskType').value || 'INDIVIDUAL_CLINIC',
+        task_type: type,
+        status: $('#clinicCreateStatus').value || 'PENDING',
         priority: $('#clinicPriority').value || 'NORMAL',
         due_date: $('#clinicDueDate').value || '',
         due_time: $('#clinicDueTime').value || '',
-        clinic_mode: $('#clinicMode').value || 'OFFLINE',
-        auto_notice_enabled: ($('#clinicAutoNotice').value || 'Y') === 'Y',
+        clinic_mode: $('#clinicMode').value || (type === 'EXTRA_CLINIC' ? 'OFFLINE' : 'ONLINE'),
+        auto_notice_enabled: ($('#clinicAutoNotice').value || 'N') === 'Y',
         internal_note: $('#clinicInternalNote').value || '',
         parent_note: $('#clinicParentNote').value || '',
         parent_visible: ($('#clinicParentVisible').value || 'N') === 'Y'
@@ -4000,12 +4189,17 @@
       $('#clinicTitle').value = '';
       $('#clinicInternalNote').value = '';
       $('#clinicParentNote').value = '';
-      const autoItems = (r.data && r.data.auto_notice && Array.isArray(r.data.auto_notice.items)) ? r.data.auto_notice.items : [];
+      const data = r.data || {};
+      const autoItems = data.auto_notice && Array.isArray(data.auto_notice.items) ? data.auto_notice.items : [];
       const autoOk = autoItems.filter(x => x && x.ok).length;
       const autoSkip = autoItems.filter(x => x && x.skipped).length;
-      showToast(autoItems.length ? `클리닉 생성 · 자동 알림 ${autoOk}건 예약${autoSkip ? ` · ${autoSkip}건 제외` : ''}` : '클리닉을 생성했습니다.');
-      showResult('클리닉 생성 완료', r.data || r);
-      await loadClinicTasks();
+      const createdCount = data.count || (data.item ? 1 : 0);
+      const suffix = autoItems.length ? ` · 자동 알림 ${autoOk}건 예약${autoSkip ? ` · ${autoSkip}건 제외` : ''}` : '';
+      showToast(`${clinicTaskTypeLabel(type)} ${createdCount || 1}건 생성${suffix}`);
+      showResult('클리닉 생성 완료', data);
+      if (type === 'CLASS_CLINIC') $('#clinicClassFilter').value = classId;
+      if (type !== 'CLASS_CLINIC') $('#clinicStudentFilter').value = sid;
+      await loadClinicTasks(type === 'CLASS_CLINIC' ? { class_id: classId, task_type: 'CLASS_CLINIC' } : {});
       await loadStudentProfile();
     }
 
@@ -4510,7 +4704,11 @@
       const student = selectedStudentOrToast();
       if (!student) return;
       $('#clinicStudentFilter').value = student.student_id;
+      $('#clinicStudentId').value = student.student_id;
+      $('#clinicStudentLabel').value = selectedStudentLabel();
+      $('#clinicTaskType').value = 'INDIVIDUAL_CLINIC';
       $('#clinicStatusFilter').value = '';
+      syncClinicCreateMode();
       jumpTo('clinic');
       writeActionLog('선택 학생 클리닉 화면으로 이동', selectedStudentLabel());
       loadClinicTasks();
@@ -4605,6 +4803,9 @@
       bindClick('btnLoadStaffMonthly', loadStaffMonthly);
       bindClick('btnClearStaffDetail', clearStaffDaily);
       bindClick('btnLoadClinicTasks', loadClinicTasks);
+      bindClick('btnLoadTodayClinicTasks', loadTodayClinicTasks);
+      bindClick('btnClinicLocalStudentSearch', searchClinicLocalStudents);
+      bindClick('btnClinicClassRosterPreview', previewClinicClassRoster);
       bindClick('btnCreateClinicTask', createClinicTask);
       bindClick('btnCreateWordSession', createWordSession);
       bindClick('btnListWordSessions', listWordSessions);
@@ -4640,6 +4841,21 @@
       if (quickStudentQuery) {
         quickStudentQuery.addEventListener('keydown', e => {
           if (e.key === 'Enter') quickStudentSearch();
+        });
+      }
+
+      const clinicType = $('#clinicTaskType');
+      if (clinicType) clinicType.addEventListener('change', syncClinicCreateMode);
+      const clinicLocalStudentQuery = $('#clinicLocalStudentQuery');
+      if (clinicLocalStudentQuery) {
+        clinicLocalStudentQuery.addEventListener('keydown', e => {
+          if (e.key === 'Enter') searchClinicLocalStudents();
+        });
+      }
+      const clinicClassId = $('#clinicClassId');
+      if (clinicClassId) {
+        clinicClassId.addEventListener('keydown', e => {
+          if (e.key === 'Enter') previewClinicClassRoster();
         });
       }
 

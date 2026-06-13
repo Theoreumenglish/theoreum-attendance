@@ -68,6 +68,11 @@ checkText('api/rpc.js', 'enqueueOfflineClinicAutoNoticesDirect', '오프라인 �
 checkText('api/rpc.js', 'student_phone', '학생 전화번호 자동 사용');
 checkText('lib/attendance-notify-queue.js', "lte('occurred_at'", '예약 시각 기반 queue 처리');
 checkText('public/admin.html', 'clinicDueTime', '클리닉 예정시간 UI');
+checkText('public/admin.html', 'clinicClassId', '수업 클리닉 반 전체 생성 UI');
+checkText('public/admin.html', 'clinicLocalStudentQuery', '클리닉 메뉴 내부 학생 선택 UI');
+checkText('public/admin.html', 'btnLoadTodayClinicTasks', '오늘 클리닉 할 일 UI');
+checkText('api/rpc.js', 'readClassStudentIdsForClinic', '반 명단 기반 수업 클리닉 생성');
+checkText('api/rpc.js', 'open_only', '열린 오늘 클리닉 조회 필터');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

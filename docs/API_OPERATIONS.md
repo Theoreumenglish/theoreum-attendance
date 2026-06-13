@@ -216,3 +216,11 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
   - `CLINIC_ABSENCE_PARENT` after the scheduled clinic time when the clinic is still not handled, using `offlineclinicabsence`
 - `clinic.queueNotice` remains available for manual reservation/missing/absence queueing.
 - Apply `docs/supabase-clinic-auto-notify-v1.sql` before deploying this feature.
+
+### Clinic semantics v2
+
+- `clinic.createTask`
+  - `task_type=CLASS_CLINIC` + `class_id`: class_students 전체 학생에게 clinic_tasks를 bulk 생성한다. `auto_notice_enabled`는 강제로 false이며 `clinic_mode=ONLINE`으로 저장한다.
+  - `task_type=INDIVIDUAL_CLINIC` + `student_id`: 특정 학생 당일 클리닉을 생성한다. 기본 자동 알림은 꺼져 있다.
+  - `task_type=EXTRA_CLINIC` + `student_id`: 별도 일정 클리닉을 생성한다. OFFLINE + 자동 알림이면 예약/리마인드/미등원 queue를 생성한다.
+- `clinic.listTasks` supports `class_id`, `student_id`, `task_type`, `due_date|due_ymd`, and `open_only`.

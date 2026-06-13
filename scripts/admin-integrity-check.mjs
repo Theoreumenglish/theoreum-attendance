@@ -107,6 +107,16 @@ assertIncludes(rpc, 'CLINIC_REMINDER_STUDENT', '오전 8시 학생 리마인드 
 assertIncludes(queue, "lte('occurred_at'", '문자 worker가 예약 시각이 된 queue만 처리합니다.');
 assertIncludes(queue, 'clinicSkipReason', '클리닉 완료/진행 상태에서는 미등원 알림을 건너뜁니다.');
 
+
+
+assertIncludes(admin, 'clinicClassId', '수업 클리닉 반 ID 입력이 있습니다.');
+assertIncludes(admin, 'clinicLocalStudentQuery', '클리닉 메뉴 내부 학생 검색이 있습니다.');
+assertIncludes(admin, 'btnLoadTodayClinicTasks', '조교용 오늘 클리닉 할 일 조회가 있습니다.');
+assertIncludes(rpc, 'readClassStudentIdsForClinic', '수업 클리닉 반 전체 생성 명단 조회 함수가 있습니다.');
+assertIncludes(rpc, 'bulk_created', '수업 클리닉 반 전체 생성 응답이 있습니다.');
+assertIncludes(rpc, 'CLASS_CLINIC_NO_AUTO_NOTICE', '수업 클리닉 자동 문자 제외 기준이 있습니다.');
+assertIncludes(rpc, 'open_only', '오늘 할 일 open_only 조회 필터가 있습니다.');
+
 if (failed) {
   console.error(`\nAdmin integrity check failed: ${failed} issue(s)`);
   process.exit(1);

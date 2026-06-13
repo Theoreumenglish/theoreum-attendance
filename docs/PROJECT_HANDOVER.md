@@ -177,3 +177,7 @@ npm run smoke-test
 ## Latest clinic notification decision
 
 Student phone is part of CentralDB (`student_phone`) and must be treated as an established field. Student clinic notices should use this synced column automatically. Offline clinic creation now queues immediate reservation notices, 08:00 same-day reminders, and parent absence follow-up notices.
+
+## 2026-06-13 Clinic workflow correction
+
+초기 클리닉 정의를 복구했다. CLASS_CLINIC은 반 전체 당일 할 일, INDIVIDUAL_CLINIC은 당일 특정 학생 할 일, EXTRA_CLINIC은 별도 일정 클리닉이다. CLASS_CLINIC 생성 시 class_students 명단을 읽어 학생별 clinic_tasks row를 생성한다. EXTRA_CLINIC만 자동 예약/리마인드/미등원 알림을 사용한다.

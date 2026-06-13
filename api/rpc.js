@@ -2396,17 +2396,25 @@ async function clinicListTasksDirect(args = {}, sessionToken = '') {
   const status = String(args.status || '').trim().toUpperCase();
   const sid = normalizeStudentId(args.student_id || args.sid || '');
   const classId = String(args.class_id || args.classId || '').trim();
-  const limit = Math.max(1, Math.min(200, toPositiveInt(args.limit, 80)));
+  const taskType = normalizeClinicTaskType(args.task_type || args.taskType || '', '');
+  const rawDue = String(args.due_date || args.dueDate || args.due_ymd || args.dueYmd || '').replace(/[^0-9]/g, '');
+  const dueDate = rawDue.length === 8 ? `${rawDue.slice(0,4)}-${rawDue.slice(4,6)}-${rawDue.slice(6,8)}` : String(args.due_date || args.dueDate || '').trim();
+  const openOnly = normalizeBool(args.open_only ?? args.openOnly, false);
+  const limit = Math.max(1, Math.min(300, toPositiveInt(args.limit, 100)));
 
   let q = supabase
     .from('clinic_tasks')
     .select('clinic_task_id, student_id, class_id, title, task_type, source_type, source_id, status, priority, due_date, due_time, due_at, clinic_mode, auto_notice_enabled, assigned_staff_id, internal_note, parent_note, parent_visible, created_by, created_at, updated_by, updated_at, completed_at')
+    .order('due_date', { ascending: true, nullsFirst: false })
     .order('updated_at', { ascending: false })
     .limit(limit);
 
   if (status) q = q.eq('status', normalizeClinicStatus(status));
   if (sid) q = q.eq('student_id', sid);
   if (classId) q = q.eq('class_id', classId);
+  if (taskType) q = q.eq('task_type', taskType);
+  if (dueDate) q = q.eq('due_date', dueDate);
+  if (openOnly) q = q.not('status', 'in', '(DONE,PARTIAL,REJECTED,CANCELLED)');
 
   const { data, error } = await q;
   if (error) return fail(500, 'DB_SELECT_FAILED', error.message || 'clinic_tasks 조회 실패');
@@ -2521,32 +2529,72 @@ async function enqueueOfflineClinicAutoNoticesDirect(supabase, auth, task = {}, 
   return { enabled: true, due_at: dueAt, reminder_at: reminderAt, absence_at: absenceAt, items };
 }
 
+
+function defaultClinicStatusForCreate(args = {}, taskType = 'INDIVIDUAL_CLINIC', sourceType = 'MANUAL') {
+  if ('status' in args || 'clinic_status' in args || 'clinicStatus' in args) {
+    return normalizeClinicStatus(args.status || args.clinic_status || args.clinicStatus, 'PENDING');
+  }
+  if (sourceType === 'WORD_FAIL') return 'CANDIDATE';
+  return 'PENDING';
+}
+
+function defaultClinicModeForTaskType(taskType = 'INDIVIDUAL_CLINIC') {
+  const type = normalizeClinicTaskType(taskType);
+  return type === 'EXTRA_CLINIC' ? 'OFFLINE' : 'ONLINE';
+}
+
+function defaultClinicAutoNoticeForTaskType(taskType = 'INDIVIDUAL_CLINIC', clinicMode = 'ONLINE', sourceType = 'MANUAL') {
+  const type = normalizeClinicTaskType(taskType);
+  return sourceType === 'MANUAL' && type === 'EXTRA_CLINIC' && normalizeClinicMode(clinicMode, 'ONLINE') === 'OFFLINE';
+}
+
+async function readClassStudentIdsForClinic(supabase, classId) {
+  const cid = String(classId || '').trim();
+  if (!cid) return { ok: false, error: 'class_id가 필요합니다.', studentIds: [] };
+  const { data, error } = await supabase
+    .from('class_students')
+    .select('student_id')
+    .eq('class_id', cid)
+    .limit(2000);
+  if (error) return { ok: false, error: error.message || 'class_students 조회 실패', studentIds: [] };
+  const studentIds = Array.from(new Set((Array.isArray(data) ? data : [])
+    .map(row => normalizeStudentId(row?.student_id))
+    .filter(Boolean)));
+  return { ok: true, studentIds };
+}
+
 async function clinicCreateTaskDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
 
-  const sid = normalizeStudentId(args.student_id || args.sid || '');
-  const title = normalizeLimitedText(args.title, 160);
-  if (!sid || !title) return fail(400, 'INVALID_INPUT', 'student_id와 title이 필요합니다.');
-
   const supabase = getSupabaseAdmin();
-  const dueDateText = normalizeLimitedText(args.due_date || args.dueDate, 10) || null;
-  const dueTimeText = normalizeHhmm(args.due_time || args.dueTime || args.clinic_time || args.clinicTime);
-  const dueAtText = String(args.due_at || args.dueAt || '').trim() || (dueDateText && dueTimeText ? kstDateTimeFromYmdHhmm(dueDateText, dueTimeText) : '');
-  const clinicMode = normalizeClinicMode(args.clinic_mode || args.clinicMode, 'OFFLINE');
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const classId = normalizeLimitedText(args.class_id || args.classId, 80) || '';
+  const title = normalizeLimitedText(args.title, 160);
+  const taskType = normalizeClinicTaskType(args.task_type || args.taskType);
   const sourceTypeForAuto = normalizeClinicSourceType(args.source_type || args.sourceType);
-  const autoNoticeEnabled = normalizeBool(args.auto_notice_enabled ?? args.autoNoticeEnabled, sourceTypeForAuto === 'MANUAL' && clinicMode === 'OFFLINE');
-  const row = {
-    clinic_task_id: randomUUID(),
-    student_id: sid,
-    class_id: normalizeLimitedText(args.class_id || args.classId, 80) || null,
+  if (!title) return fail(400, 'INVALID_INPUT', '클리닉 제목이 필요합니다.');
+
+  const safeDueDate = normalizeLimitedText(args.due_date || args.dueDate, 10) || null;
+  const dueTimeText = normalizeHhmm(args.due_time || args.dueTime || args.clinic_time || args.clinicTime);
+  const requestedMode = args.clinic_mode || args.clinicMode || defaultClinicModeForTaskType(taskType);
+  const clinicMode = normalizeClinicMode(requestedMode, defaultClinicModeForTaskType(taskType));
+  const dueAtText = String(args.due_at || args.dueAt || '').trim() || (safeDueDate && dueTimeText ? kstDateTimeFromYmdHhmm(safeDueDate, dueTimeText) : '');
+  const autoNoticeEnabled = normalizeBool(
+    args.auto_notice_enabled ?? args.autoNoticeEnabled,
+    defaultClinicAutoNoticeForTaskType(taskType, clinicMode, sourceTypeForAuto)
+  );
+  const statusForCreate = defaultClinicStatusForCreate(args, taskType, sourceTypeForAuto);
+
+  const baseRow = {
+    class_id: classId || null,
     title,
-    task_type: normalizeClinicTaskType(args.task_type || args.taskType),
+    task_type: taskType,
     source_type: sourceTypeForAuto,
     source_id: normalizeLimitedText(args.source_id || args.sourceId, 120) || null,
-    status: normalizeClinicStatus(args.status, 'CANDIDATE'),
+    status: statusForCreate,
     priority: normalizeClinicPriority(args.priority),
-    due_date: dueDateText,
+    due_date: safeDueDate,
     due_time: dueTimeText,
     due_at: dueAtText || null,
     clinic_mode: clinicMode,
@@ -2559,7 +2607,50 @@ async function clinicCreateTaskDirect(args = {}, sessionToken = '') {
     updated_by: auth.me.staff_id,
     created_at: nowIso(),
     updated_at: nowIso(),
-    completed_at: terminalClinicStatus(args.status) ? nowIso() : null
+    completed_at: terminalClinicStatus(statusForCreate) ? nowIso() : null
+  };
+
+  if (taskType === 'CLASS_CLINIC') {
+    if (!classId) return fail(400, 'INVALID_INPUT', '수업 클리닉은 class_id가 필요합니다.');
+    const roster = await readClassStudentIdsForClinic(supabase, classId);
+    if (!roster.ok) return fail(500, 'DB_SELECT_FAILED', roster.error || '반 명단 조회 실패');
+    if (!roster.studentIds.length) return fail(400, 'EMPTY_ROSTER', '해당 클래스에 등록된 학생이 없습니다.');
+    const groupId = normalizeLimitedText(args.source_id || args.sourceId, 120) || `CLASS_CLINIC_${randomUUID()}`;
+    const rows = roster.studentIds.map(studentId => ({
+      ...baseRow,
+      clinic_task_id: randomUUID(),
+      student_id: studentId,
+      class_id: classId,
+      source_id: groupId,
+      clinic_mode: 'ONLINE',
+      auto_notice_enabled: false,
+      due_time: '',
+      due_at: null,
+      parent_visible: false
+    }));
+    const { data, error } = await supabase
+      .from('clinic_tasks')
+      .insert(rows)
+      .select('*');
+    if (error) return fail(500, 'DB_INSERT_FAILED', error.message || '수업 클리닉 일괄 생성 실패');
+    await appendPortalAuditLogDirect(supabase, auth, {
+      op: 'clinic.createClassTasks',
+      target_type: 'class',
+      target_id: classId,
+      action: 'BULK_CREATE',
+      after_json: { class_id: classId, count: rows.length, title, group_id: groupId, due_date: safeDueDate },
+      meta_json: { task_type: 'CLASS_CLINIC', source_id: groupId }
+    });
+    const items = await hydrateClinicTasks(supabase, data || rows);
+    return success({ bulk_created: true, count: items.length, items, class_id: classId, source_id: groupId, auto_notice: { enabled: false, reason: 'CLASS_CLINIC_NO_AUTO_NOTICE', items: [] } });
+  }
+
+  if (!sid) return fail(400, 'INVALID_INPUT', '개별/추가 클리닉은 student_id가 필요합니다.');
+
+  const row = {
+    ...baseRow,
+    clinic_task_id: randomUUID(),
+    student_id: sid
   };
 
   const { data, error } = await supabase
@@ -2588,7 +2679,7 @@ async function clinicCreateTaskDirect(args = {}, sessionToken = '') {
   });
 
   let auto_notice = { enabled: false, reason: 'NOT_REQUESTED', items: [] };
-  if (row.auto_notice_enabled === true && row.clinic_mode === 'OFFLINE' && row.source_type === 'MANUAL') {
+  if (row.auto_notice_enabled === true && row.clinic_mode === 'OFFLINE' && row.source_type === 'MANUAL' && row.task_type === 'EXTRA_CLINIC') {
     const { data: studentForNotice } = await supabase
       .from('students')
       .select('student_id, student_name, school, grade, student_phone, parent_phone')
@@ -2600,6 +2691,7 @@ async function clinicCreateTaskDirect(args = {}, sessionToken = '') {
   const items = await hydrateClinicTasks(supabase, [data || row]);
   return success({ item: items[0] || mapClinicTaskRow(data || row), auto_notice, audit_warning: audit.ok ? '' : audit.error || '' });
 }
+
 
 async function clinicUpdateTaskStatusDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');

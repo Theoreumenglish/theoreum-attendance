@@ -27,9 +27,14 @@ requireFunction('학생 검색', 'quickStudentSearch', ['jumpTo(\'students\')', 
 requireIds('선택 학생 출결 흐름', ['btnQuickStudentLogs', 'btnStudentLogsOneClick', 'logYmd', 'logSidFilter', 'btnLoadLogs']);
 requireFunction('선택 학생 출결 흐름', 'quickStudentLogs', ['logSidFilter', 'jumpTo(\'attendance\')', 'loadLogs']);
 
-requireIds('선택 학생 클리닉 흐름', ['btnQuickStudentClinic', 'btnStudentClinicOneClick', 'clinicStudentFilter', 'clinicTitle', 'clinicTaskType', 'btnCreateClinicTask']);
+requireIds('선택 학생 클리닉 흐름', ['btnQuickStudentClinic', 'btnStudentClinicOneClick', 'clinicStudentFilter', 'clinicTitle', 'clinicTaskType', 'btnCreateClinicTask', 'clinicStudentId', 'clinicLocalStudentQuery']);
 requireFunction('선택 학생 클리닉 흐름', 'quickStudentClinicView', ['clinicStudentFilter', 'jumpTo(\'clinic\')', 'loadClinicTasks']);
 requireFunction('클리닉 생성', 'createClinicTask', ['clinic.createTask', 'loadClinicTasks']);
+requireIds('수업 클리닉 반 전체 생성 흐름', ['clinicClassId', 'btnClinicClassRosterPreview', 'clinicClassRosterSummary', 'btnLoadTodayClinicTasks', 'clinicDueDateFilter', 'clinicTypeFilter']);
+requireFunction('수업 클리닉 반 명단 확인', 'previewClinicClassRoster', ['assistant.listClassRoster', 'clinicClassRosterSummary']);
+requireFunction('오늘 클리닉 할 일', 'loadTodayClinicTasks', ['open_only', 'due_ymd', 'loadClinicTasks']);
+requireFunction('클리닉 화면 내부 학생 검색', 'searchClinicLocalStudents', ['assistant.searchStudents', 'clinicStudentId', 'clinicStudentLabel']);
+
 
 requireIds('선택 학생 단어 흐름', ['btnQuickWordInput', 'btnStudentWordOneClick', 'wordResultStudentId', 'wordResultSessionId', 'wordScore', 'btnEnterWordResult']);
 requireFunction('선택 학생 단어 흐름', 'quickStudentWordInput', ['wordResultStudentId', 'jumpTo(\'words\')']);

@@ -61,7 +61,7 @@ const thresholds = {
   dashboard: 4,
   students: 5,
   attendance: 3,
-  clinic: 3,
+  clinic: 5,
   words: 6,
   messages: 4
 };
