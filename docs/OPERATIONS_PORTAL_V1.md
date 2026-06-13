@@ -267,3 +267,11 @@ The clinic screen now asks for scheduled date/time and defaults to offline autom
 - 개별 클리닉: 당일 특정 학생만 해야 하는 클리닉이다. 클리닉 메뉴 내부 학생 검색으로 학생을 선택해서 생성한다.
 - 추가 클리닉: 별도 일정을 잡는 클리닉이다. OFFLINE + 자동 알림 사용 시 학생/학부모 예약 안내, 당일 08:00 리마인드, 예정시간 이후 미등원 안내 queue가 자동 생성된다.
 - 클리닉 메뉴는 더 이상 전역 Student 360 선택에 의존하지 않는다. 각 메뉴에서 반 또는 학생을 직접 선택해 업무를 처리한다.
+
+## 2차 완성본 v2: 클리닉 업무판과 일괄 처리
+
+- 클리닉 메뉴에 `오늘 클리닉 업무판`을 추가한다.
+- 조교는 오늘 열린 수업/개별/추가 클리닉을 묶음 단위로 확인한다.
+- 수업 클리닉은 반 전체에 생성된 개별 task를 `source_id + class_id + 날짜 + 제목` 단위로 묶어 진행률을 본다.
+- 열린 건 전체 완료는 `clinic.bulkUpdateStatus`를 사용하며, 변경 이력은 `clinic_logs`와 `portal_audit_logs`에 남긴다.
+- 성능 보강 SQL은 `docs/supabase-clinic-performance-v2.sql`에 둔다.

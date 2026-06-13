@@ -117,6 +117,15 @@ assertIncludes(rpc, 'bulk_created', '수업 클리닉 반 전체 생성 응답�
 assertIncludes(rpc, 'CLASS_CLINIC_NO_AUTO_NOTICE', '수업 클리닉 자동 문자 제외 기준이 있습니다.');
 assertIncludes(rpc, 'open_only', '오늘 할 일 open_only 조회 필터가 있습니다.');
 
+
+
+assertIncludes(admin, 'clinicBoardRows', '조교/선생님용 오늘 클리닉 업무판이 있습니다.');
+assertIncludes(admin, 'bulkUpdateClinicGroup', '클리닉 그룹 일괄 완료 함수가 있습니다.');
+assertIncludes(rpc, 'clinicTodayBoardDirect', '클리닉 오늘 업무판 서버 조회가 있습니다.');
+assertIncludes(rpc, 'clinicBulkUpdateStatusDirect', '클리닉 일괄 상태 변경 서버 함수가 있습니다.');
+assertIncludes(rpc, 'clinic.createClassTasks', '수업 클리닉 반 전체 생성 감사 로그가 있습니다.');
+assertIncludes(rpc, 'clinic.bulkUpdateStatus', '클리닉 일괄 변경 감사 로그가 있습니다.');
+
 if (failed) {
   console.error(`\nAdmin integrity check failed: ${failed} issue(s)`);
   process.exit(1);

@@ -2207,6 +2207,32 @@
 <div class="card cardPad" style="margin-top:18px;">
 <div class="cardHead">
 <div>
+<div class="sectionTitle">오늘 클리닉 업무판</div>
+<div class="sectionDesc" id="clinicBoardSummary">위의 “오늘 할 일 보기”를 누르면 수업/개별/추가 클리닉이 묶음으로 정리됩니다.</div>
+</div>
+<span class="statusPill good">업무판</span>
+</div>
+<div class="tableWrap" style="margin-top:12px;">
+<table class="table">
+<thead>
+<tr>
+<th>유형</th>
+<th>대상</th>
+<th>제목</th>
+<th>진행</th>
+<th>샘플 학생</th>
+<th>처리</th>
+</tr>
+</thead>
+<tbody id="clinicBoardRows">
+<tr><td colspan="6" style="color:var(--muted);">업무판 조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
 <div class="sectionTitle">클리닉 목록</div>
 <div class="sectionDesc" id="clinicTaskSummary">조회 전입니다.</div>
 </div>
@@ -3995,6 +4021,125 @@
       return App.selectedStudent;
     }
 
+    function renderClinicWorkBoard(data) {
+      const summary = data.summary || {};
+      const groups = Array.isArray(data.groups) ? data.groups : [];
+      const ymd = data.yyyymmdd || kstYmd(new Date());
+      const summaryEl = $('#clinicBoardSummary');
+      if (summaryEl) {
+        summaryEl.textContent = `${ymd} · 열린 할 일 ${summary.open_count || 0}건 · 수업 ${summary.class_count || 0}건 · 개별 ${summary.individual_count || 0}건 · 추가 ${summary.extra_count || 0}건`;
+      }
+      const box = $('#clinicBoardRows');
+      if (!box) return;
+      if (!groups.length) {
+        box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">오늘 열린 클리닉 할 일이 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = groups.map(group => {
+        const type = group.task_type || '';
+        const openCount = Number(group.open_count || 0) || 0;
+        const totalCount = Number(group.total_count || 0) || 0;
+        const target = type === 'CLASS_CLINIC'
+          ? `${group.class_id || '-'} ${group.class_name ? '· ' + group.class_name : ''}`
+          : type === 'EXTRA_CLINIC'
+            ? '별도 일정'
+            : '개별 학생';
+        const sample = Array.isArray(group.sample_students) && group.sample_students.length
+          ? group.sample_students.map(st => `${st.student_id || ''}${st.student_name ? '·' + st.student_name : ''}`).join(', ')
+          : '-';
+        const progress = `열림 ${openCount}/${totalCount} · 진행 ${group.in_progress_count || 0} · 완료 ${group.done_count || 0} · 부분 ${group.partial_count || 0}`;
+        const canBulk = openCount > 0 && (group.source_id || type === 'CLASS_CLINIC');
+        return `
+          <tr>
+            <td>${esc(clinicTaskTypeLabel(type))}</td>
+            <td class="wrap">${esc(target)}</td>
+            <td class="wrap">${esc(group.title || '-')}<br><span class="smallText">${esc(group.due_date || '')} ${esc(group.due_time || '')}</span></td>
+            <td class="wrap">${esc(progress)}</td>
+            <td class="wrap smallText">${esc(sample)}</td>
+            <td>
+              <div class="btnRow" style="gap:6px;">
+                <button class="btn btnGhost" type="button" data-clinic-board-filter="${esc(group.group_key || '')}">목록</button>
+                <button class="btn btnGhost" type="button" data-clinic-board-done="${esc(group.group_key || '')}" ${canBulk ? '' : 'disabled'}>열린 건 완료</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      $$('[data-clinic-board-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.clinicBoardFilter || '';
+          const group = groups.find(x => x.group_key === key);
+          if (!group) return;
+          $('#clinicDueDateFilter').value = group.due_date || ymdToDateInput(ymd);
+          $('#clinicTypeFilter').value = group.task_type || '';
+          $('#clinicClassFilter').value = group.class_id || '';
+          $('#clinicStatusFilter').value = '';
+          loadClinicTasks({
+            due_date: group.due_date || '',
+            task_type: group.task_type || '',
+            class_id: group.class_id || '',
+            source_id: group.source_id || '',
+            title: group.title || '',
+            open_only: true,
+            limit: 200
+          });
+        });
+      });
+      $$('[data-clinic-board-done]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.clinicBoardDone || '';
+          const group = groups.find(x => x.group_key === key);
+          if (!group) return;
+          bulkUpdateClinicGroup(group, 'DONE');
+        });
+      });
+    }
+
+    async function loadClinicWorkBoard(loadRows = false) {
+      const dueDateInput = ($('#clinicDueDateFilter').value || $('#clinicDueDate').value || kstDateInput(0)).trim();
+      const ymd = dateInputToYmd(dueDateInput) || kstYmd(new Date());
+      const r = await rpc('clinic.todayBoard', { yyyymmdd: ymd, open_only: true, limit: 800 }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '오늘 클리닉 업무판 조회 실패');
+        showResult('오늘 클리닉 업무판 조회 실패', r);
+        return;
+      }
+      renderClinicWorkBoard(r.data || {});
+      writeActionLog('오늘 클리닉 업무판 조회', ymd);
+      if (loadRows) {
+        $('#clinicDueDateFilter').value = ymdToDateInput(ymd);
+        $('#clinicStatusFilter').value = '';
+        $('#clinicTypeFilter').value = '';
+        await loadClinicTasks({ due_ymd: ymd, open_only: true, limit: 200 });
+      }
+    }
+
+    async function bulkUpdateClinicGroup(group, status) {
+      if (!group) return;
+      const count = Number(group.open_count || 0) || 0;
+      if (!count) { showToast('변경할 열린 클리닉이 없습니다.'); return; }
+      const ok = confirm(`${clinicTaskTypeLabel(group.task_type)} · ${group.title || ''}\n열린 ${count}건을 ${clinicStatusLabel(status)} 처리할까요?`);
+      if (!ok) return;
+      const r = await rpc('clinic.bulkUpdateStatus', {
+        source_id: group.source_id || '',
+        class_id: group.class_id || '',
+        task_type: group.task_type || '',
+        due_date: group.due_date || '',
+        title: group.title || '',
+        status,
+        open_only: true,
+        internal_note: `${clinicStatusLabel(status)} 일괄 처리`
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클리닉 일괄 변경 실패');
+        showResult('클리닉 일괄 변경 실패', r);
+        return;
+      }
+      showToast(`클리닉 ${r.data?.count || 0}건을 ${clinicStatusLabel(status)} 처리했습니다.`);
+      await loadClinicWorkBoard(false);
+      await loadClinicTasks({ due_date: group.due_date || '', task_type: group.task_type || '', class_id: group.class_id || '', source_id: group.source_id || '', open_only: true, limit: 200 });
+    }
+
     function renderClinicTasks(data) {
       const rows = Array.isArray(data.items) ? data.items : [];
       const summary = $('#clinicTaskSummary');
@@ -4075,6 +4220,7 @@
       $('#clinicDueDateFilter').value = ymdToDateInput(today);
       $('#clinicStatusFilter').value = '';
       $('#clinicTypeFilter').value = '';
+      await loadClinicWorkBoard(false);
       await loadClinicTasks({ due_ymd: today, open_only: true, limit: 200 });
       writeActionLog('오늘 클리닉 할 일 조회', today);
     }

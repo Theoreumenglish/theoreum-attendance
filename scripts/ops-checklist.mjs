@@ -74,6 +74,13 @@ checkText('public/admin.html', 'btnLoadTodayClinicTasks', '오늘 클리닉 할 
 checkText('api/rpc.js', 'readClassStudentIdsForClinic', '반 명단 기반 수업 클리닉 생성');
 checkText('api/rpc.js', 'open_only', '열린 오늘 클리닉 조회 필터');
 
+
+checkText('public/admin.html', 'clinicBoardRows', '오늘 클리닉 업무판 UI');
+checkText('public/admin.html', 'bulkUpdateClinicGroup', '클리닉 그룹 일괄 처리 UI');
+checkText('api/rpc.js', 'clinicTodayBoardDirect', '오늘 클리닉 업무판 API');
+checkText('api/rpc.js', 'clinicBulkUpdateStatusDirect', '클리닉 일괄 상태 변경 API');
+checkText('api/rpc.js', 'BULK_STATUS_CHANGE', '클리닉 일괄 처리 로그');
+
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
   process.exit(1);

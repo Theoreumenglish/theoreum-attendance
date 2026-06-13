@@ -224,3 +224,17 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
   - `task_type=INDIVIDUAL_CLINIC` + `student_id`: 특정 학생 당일 클리닉을 생성한다. 기본 자동 알림은 꺼져 있다.
   - `task_type=EXTRA_CLINIC` + `student_id`: 별도 일정 클리닉을 생성한다. OFFLINE + 자동 알림이면 예약/리마인드/미등원 queue를 생성한다.
 - `clinic.listTasks` supports `class_id`, `student_id`, `task_type`, `due_date|due_ymd`, and `open_only`.
+
+## Clinic v2 board ops
+
+### clinic.todayBoard
+- 권한: assistant 이상
+- 목적: 지정일의 열린 클리닉을 업무판 형태로 묶어 조회한다.
+- args: `yyyymmdd`, `open_only`, `limit`
+- 반환: `summary`, `groups`, `items`
+
+### clinic.bulkUpdateStatus
+- 권한: assistant 이상
+- 목적: 수업 클리닉 묶음 또는 지정 task 목록을 일괄 상태 변경한다.
+- args: `source_id` 또는 `clinic_task_ids`, `status`, `class_id`, `task_type`, `due_date`, `title`, `open_only`
+- 감사 로그: `clinic.bulkUpdateStatus`

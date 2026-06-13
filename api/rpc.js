@@ -2755,6 +2755,210 @@ async function clinicUpdateTaskStatusDirect(args = {}, sessionToken = '') {
 }
 
 
+function clinicOpenStatusFilter(q) {
+  return q.not('status', 'in', '(DONE,PARTIAL,REJECTED,CANCELLED)');
+}
+
+function clinicDueDateFromArgs(args = {}) {
+  const raw = String(args.due_date || args.dueDate || args.due_ymd || args.dueYmd || args.yyyymmdd || args.ymd || kstYmd(new Date())).replace(/[^0-9]/g, '');
+  if (raw.length !== 8) return { ymd: kstYmd(new Date()), due_date: `${kstYmd(new Date()).slice(0,4)}-${kstYmd(new Date()).slice(4,6)}-${kstYmd(new Date()).slice(6,8)}` };
+  return { ymd: raw, due_date: `${raw.slice(0,4)}-${raw.slice(4,6)}-${raw.slice(6,8)}` };
+}
+
+function clinicGroupKey(row = {}) {
+  const taskType = normalizeClinicTaskType(row.task_type || 'INDIVIDUAL_CLINIC');
+  const sourceId = String(row.source_id || '').trim();
+  const classId = String(row.class_id || '').trim();
+  const dueDate = String(row.due_date || '').trim();
+  const title = String(row.title || '').trim();
+  return [taskType, sourceId || '-', classId || '-', dueDate || '-', title || '-'].join('|');
+}
+
+function buildClinicBoardGroups(rows = [], studentNameMap = {}, classNameMap = {}) {
+  const groups = new Map();
+  for (const row of rows) {
+    const key = clinicGroupKey(row);
+    if (!groups.has(key)) {
+      groups.set(key, {
+        group_key: key,
+        task_type: normalizeClinicTaskType(row.task_type || ''),
+        source_id: String(row.source_id || '').trim(),
+        class_id: String(row.class_id || '').trim(),
+        class_name: classNameMap[String(row.class_id || '').trim()] || '',
+        title: String(row.title || '').trim(),
+        due_date: String(row.due_date || '').trim(),
+        due_time: String(row.due_time || '').trim(),
+        clinic_mode: String(row.clinic_mode || '').trim(),
+        priority: String(row.priority || '').trim(),
+        total_count: 0,
+        open_count: 0,
+        candidate_count: 0,
+        pending_count: 0,
+        in_progress_count: 0,
+        done_count: 0,
+        partial_count: 0,
+        closed_count: 0,
+        first_task_id: '',
+        student_ids: [],
+        sample_students: []
+      });
+    }
+    const group = groups.get(key);
+    const status = normalizeClinicStatus(row.status || 'PENDING');
+    const sid = normalizeStudentId(row.student_id || '');
+    group.total_count += 1;
+    if (!group.first_task_id) group.first_task_id = String(row.clinic_task_id || '').trim();
+    if (sid) group.student_ids.push(sid);
+    if (sid && group.sample_students.length < 5) {
+      group.sample_students.push({ student_id: sid, student_name: studentNameMap[sid] || '' });
+    }
+    if (status === 'CANDIDATE') group.candidate_count += 1;
+    if (status === 'PENDING') group.pending_count += 1;
+    if (status === 'IN_PROGRESS') group.in_progress_count += 1;
+    if (status === 'DONE') group.done_count += 1;
+    if (status === 'PARTIAL') group.partial_count += 1;
+    if (terminalClinicStatus(status)) group.closed_count += 1;
+    else group.open_count += 1;
+  }
+  return Array.from(groups.values()).sort((a, b) => {
+    const typeOrder = { CLASS_CLINIC: 0, INDIVIDUAL_CLINIC: 1, EXTRA_CLINIC: 2 };
+    const ad = String(a.due_date || '9999-12-31');
+    const bd = String(b.due_date || '9999-12-31');
+    if (ad !== bd) return ad.localeCompare(bd);
+    if ((typeOrder[a.task_type] ?? 9) !== (typeOrder[b.task_type] ?? 9)) return (typeOrder[a.task_type] ?? 9) - (typeOrder[b.task_type] ?? 9);
+    return String(a.title || '').localeCompare(String(b.title || ''));
+  });
+}
+
+async function clinicTodayBoardDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const { ymd, due_date: dueDate } = clinicDueDateFromArgs(args);
+  const openOnly = normalizeBool(args.open_only ?? args.openOnly, true);
+  const limit = Math.max(1, Math.min(1000, toPositiveInt(args.limit, 500)));
+
+  let q = supabase
+    .from('clinic_tasks')
+    .select('clinic_task_id, student_id, class_id, title, task_type, source_type, source_id, status, priority, due_date, due_time, due_at, clinic_mode, auto_notice_enabled, updated_at, created_at')
+    .eq('due_date', dueDate)
+    .order('task_type', { ascending: true })
+    .order('class_id', { ascending: true, nullsFirst: false })
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  if (openOnly) q = clinicOpenStatusFilter(q);
+
+  const { data, error } = await q;
+  if (error) return fail(500, 'DB_SELECT_FAILED', error.message || '오늘 클리닉 업무판 조회 실패');
+
+  const rows = Array.isArray(data) ? data : [];
+  const studentNameMap = await readStudentNameMap(supabase, rows.map(row => row?.student_id).filter(Boolean));
+  const classNameMap = await readClassNameMap(supabase, rows.map(row => row?.class_id).filter(Boolean));
+  const groups = buildClinicBoardGroups(rows, studentNameMap, classNameMap);
+  const items = rows.slice(0, 120).map(row => mapClinicTaskRow(row, studentNameMap, classNameMap));
+  const summary = groups.reduce((acc, group) => {
+    acc.total_count += group.total_count;
+    acc.open_count += group.open_count;
+    acc.class_count += group.task_type === 'CLASS_CLINIC' ? group.open_count : 0;
+    acc.individual_count += group.task_type === 'INDIVIDUAL_CLINIC' ? group.open_count : 0;
+    acc.extra_count += group.task_type === 'EXTRA_CLINIC' ? group.open_count : 0;
+    acc.group_count += 1;
+    return acc;
+  }, { total_count: 0, open_count: 0, class_count: 0, individual_count: 0, extra_count: 0, group_count: 0 });
+
+  return success({ yyyymmdd: ymd, due_date: dueDate, summary, groups, items });
+}
+
+async function clinicBulkUpdateStatusDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const nextStatus = normalizeClinicStatus(args.status, '');
+  if (!nextStatus) return fail(400, 'INVALID_INPUT', '변경할 status가 필요합니다.');
+
+  const rawIds = Array.isArray(args.clinic_task_ids) ? args.clinic_task_ids : Array.isArray(args.clinicTaskIds) ? args.clinicTaskIds : [];
+  const taskIds = Array.from(new Set(rawIds.map(x => String(x || '').trim()).filter(Boolean))).slice(0, 500);
+  const sourceId = normalizeLimitedText(args.source_id || args.sourceId, 120);
+  const classId = normalizeLimitedText(args.class_id || args.classId, 80);
+  const title = normalizeLimitedText(args.title, 160);
+  const taskType = normalizeClinicTaskType(args.task_type || args.taskType || '', '');
+  const { due_date: dueDate } = clinicDueDateFromArgs(args);
+  const openOnly = normalizeBool(args.open_only ?? args.openOnly, true);
+
+  if (!taskIds.length && !sourceId) {
+    return fail(400, 'INVALID_INPUT', '일괄 변경은 clinic_task_ids 또는 source_id가 필요합니다.');
+  }
+
+  let selectQ = supabase
+    .from('clinic_tasks')
+    .select('*')
+    .limit(500);
+  if (taskIds.length) selectQ = selectQ.in('clinic_task_id', taskIds);
+  if (sourceId) selectQ = selectQ.eq('source_id', sourceId);
+  if (classId) selectQ = selectQ.eq('class_id', classId);
+  if (taskType) selectQ = selectQ.eq('task_type', taskType);
+  if (dueDate) selectQ = selectQ.eq('due_date', dueDate);
+  if (title) selectQ = selectQ.eq('title', title);
+  if (openOnly) selectQ = clinicOpenStatusFilter(selectQ);
+
+  const { data: beforeRows, error: beforeErr } = await selectQ;
+  if (beforeErr) return fail(500, 'DB_SELECT_FAILED', beforeErr.message || '일괄 변경 대상 조회 실패');
+  const before = Array.isArray(beforeRows) ? beforeRows : [];
+  if (!before.length) return success({ count: 0, items: [], message: '변경 대상이 없습니다.' });
+
+  const ids = before.map(row => String(row.clinic_task_id || '').trim()).filter(Boolean);
+  const patch = {
+    status: nextStatus,
+    updated_by: auth.me.staff_id,
+    updated_at: nowIso(),
+    completed_at: terminalClinicStatus(nextStatus) ? nowIso() : null
+  };
+  if ('internal_note' in args || 'internalNote' in args) patch.internal_note = normalizeLimitedText(args.internal_note || args.internalNote, 2000);
+  if ('parent_note' in args || 'parentNote' in args) patch.parent_note = normalizeLimitedText(args.parent_note || args.parentNote, 1000);
+  if ('parent_visible' in args || 'parentVisible' in args) patch.parent_visible = normalizeBool(args.parent_visible ?? args.parentVisible, false);
+
+  const { data: afterRows, error } = await supabase
+    .from('clinic_tasks')
+    .update(patch)
+    .in('clinic_task_id', ids)
+    .select('*');
+  if (error) return fail(500, 'DB_UPDATE_FAILED', error.message || '클리닉 일괄 상태 변경 실패');
+
+  const logRows = before.map(row => ({
+    clinic_log_id: randomUUID(),
+    clinic_task_id: row.clinic_task_id,
+    event_type: 'BULK_STATUS_CHANGE',
+    before_status: row.status || '',
+    after_status: nextStatus,
+    internal_note: patch.internal_note ?? row.internal_note ?? '',
+    parent_note: patch.parent_note ?? row.parent_note ?? '',
+    parent_visible: patch.parent_visible ?? row.parent_visible === true,
+    actor_staff_id: auth.me.staff_id,
+    actor_role: auth.me.role,
+    actor_name: auth.me.name || '',
+    created_at: nowIso()
+  }));
+  if (logRows.length) {
+    await supabase.from('clinic_logs').insert(logRows);
+  }
+
+  const audit = await appendPortalAuditLogDirect(supabase, auth, {
+    op: 'clinic.bulkUpdateStatus',
+    target_type: sourceId ? 'clinic_group' : 'clinic_tasks',
+    target_id: sourceId || ids.slice(0, 5).join(','),
+    action: 'BULK_STATUS_CHANGE',
+    before_json: { count: before.length, status_from: Array.from(new Set(before.map(row => row.status || ''))) },
+    after_json: { count: before.length, status: nextStatus },
+    meta_json: { source_id: sourceId, class_id: classId, task_type: taskType, due_date: dueDate, title, open_only: openOnly }
+  });
+
+  const items = await hydrateClinicTasks(supabase, afterRows || []);
+  return success({ count: items.length, items, audit_warning: audit.ok ? '' : audit.error || '' });
+}
+
+
 function normalizeClinicNoticeAction(raw) {
   const s = String(raw || '').trim().toUpperCase();
   const aliases = {
@@ -4776,6 +4980,16 @@ export default async function handler(req, res) {
 
   if (op === 'clinic.updateTaskStatus') {
     const result = await clinicUpdateTaskStatusDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'clinic.todayBoard') {
+    const result = await clinicTodayBoardDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'clinic.bulkUpdateStatus') {
+    const result = await clinicBulkUpdateStatusDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

@@ -181,3 +181,10 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 ## 2026-06-13 Clinic workflow correction
 
 초기 클리닉 정의를 복구했다. CLASS_CLINIC은 반 전체 당일 할 일, INDIVIDUAL_CLINIC은 당일 특정 학생 할 일, EXTRA_CLINIC은 별도 일정 클리닉이다. CLASS_CLINIC 생성 시 class_students 명단을 읽어 학생별 clinic_tasks row를 생성한다. EXTRA_CLINIC만 자동 예약/리마인드/미등원 알림을 사용한다.
+
+## Handover note: 2차 완성본 v2
+
+- 클리닉 업무판은 조교의 당일 처리 화면이다.
+- 선생님이 만든 수업 클리닉은 반 학생별 task로 생성되고, 업무판에서는 묶음으로 진행률을 본다.
+- 일괄 완료는 열린 task만 변경한다.
+- 배포 전 SQL Editor에서 `docs/supabase-clinic-performance-v2.sql`을 실행하면 운영 조회가 더 안정적이다.

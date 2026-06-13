@@ -228,3 +228,7 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 - `EXTRA_CLINIC`: 추가 클리닉. 별도 일정/등원 및 자동 알림 대상.
 
 `clinic_tasks.clinic_mode`는 현재 DB 제약에 맞춰 `ONLINE` 또는 `OFFLINE`을 사용한다. 수업/개별 클리닉은 `ONLINE`으로 저장하여 자동 문자에서 제외하고, 추가 클리닉은 `OFFLINE` 일정 기반 알림을 사용한다.
+
+## Performance indexes v2
+
+`docs/supabase-clinic-performance-v2.sql`은 운영 조회 속도 개선용 인덱스를 추가한다. 기존 데이터 구조를 바꾸지 않으며 재실행해도 안전하다.

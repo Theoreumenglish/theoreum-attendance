@@ -301,3 +301,14 @@ npm run smoke-test
 3. 개별 클리닉 선택 → 클리닉 메뉴 내부 학생 검색 → 학생 선택 → 생성 → 해당 학생에게만 row 생성 확인.
 4. 추가 클리닉 선택 → 학생 선택 → 예정일/예정시간/OFFLINE/자동 알림 → 생성 → CLINIC_RESERVATION_*, CLINIC_REMINDER_*, CLINIC_ABSENCE_PARENT queue 확인.
 5. 수업/개별 클리닉은 자동 알림이 생성되지 않는지 확인.
+
+## 2차 완성본 v2 테스트
+
+1. `npm run verify` 통과.
+2. Supabase SQL Editor에서 `docs/supabase-clinic-performance-v2.sql` 실행.
+3. 수업 클리닉을 반 전체로 생성한다.
+4. 클리닉 메뉴에서 오늘 업무판을 조회한다.
+5. 수업 클리닉 묶음의 `목록` 버튼으로 개별 task가 필터링되는지 확인한다.
+6. `열린 건 완료`로 해당 묶음이 DONE 처리되는지 확인한다.
+7. Supabase `clinic_logs`, `portal_audit_logs`에서 `BULK_STATUS_CHANGE`, `clinic.bulkUpdateStatus` 기록을 확인한다.
+8. 배포 후 `npm run smoke-test`에서 `clinic.todayBoard`까지 통과하는지 확인한다.
