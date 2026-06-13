@@ -181,3 +181,26 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 - `status`: PENDING / PROCESSING / DONE / FAILED
 
 `CLINIC_NOTICE`는 별도 신규 테이블 없이 기존 queue/worker 구조를 사용한다.
+
+
+## 클리닉 알림톡 action_type v4
+
+`attendance_notify_queue.action_type`은 클리닉 알림에서 다음 5개 값을 사용한다.
+
+- `CLINIC_RESERVATION_PARENT`: 학부모용 클리닉 예약 안내
+- `CLINIC_RESERVATION_STUDENT`: 학생용 클리닉 예약 안내
+- `CLINIC_MISSING_PARENT`: 학부모용 온라인 클리닉 미제출 안내
+- `CLINIC_MISSING_STUDENT`: 학생용 온라인 클리닉 미제출 안내
+- `CLINIC_ABSENCE_PARENT`: 학부모용 오프라인 클리닉 미등원 안내
+
+호환을 위해 기존 `CLINIC_NOTICE`는 서버에서 `CLINIC_RESERVATION_PARENT`로 정규화한다.
+
+템플릿 환경변수 기본명:
+
+- `TPL_CLINIC_RESERVATION_PARENT=clinicreservationforparents`
+- `TPL_CLINIC_RESERVATION_STUDENT=clinicreservationforstudents`
+- `TPL_CLINIC_MISSING_PARENT=onlineclinicabsenceforparents`
+- `TPL_CLINIC_MISSING_STUDENT=onlineclinicabsenceforstudents`
+- `TPL_CLINIC_ABSENCE_PARENT=offlineclinicabsence`
+
+`clinic_time_hhmm`은 `HH:MM` 형태로 입력받아 queue의 `occurred_at`에 KST ISO 시간으로 저장한다.

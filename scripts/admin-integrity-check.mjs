@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('public/admin.html', 'utf8');
 const rpc = readFileSync('api/rpc.js', 'utf8');
+const notify = readFileSync('lib/attendance-notify.js', 'utf8');
 const visible = html.split('<script>')[0];
 let failed = 0;
 const ok = msg => console.log('OK', msg);
@@ -73,9 +74,17 @@ if (!html.includes('auditOpLabel') || !html.includes('auditTargetLabel')) {
   fail('감사 로그 화면 문구 변환 함수가 없습니다.');
 } else ok('감사 로그 화면 문구 변환이 있습니다.');
 
-if (!rpc.includes("clinic.queueParentNotice") || !html.includes('queueClinicNotice')) {
-  fail('클리닉 문자 예약 흐름이 없습니다.');
-} else ok('클리닉 문자 예약 흐름이 있습니다.');
+if (!rpc.includes("clinic.queueNotice") || !html.includes('queueClinicNotice')) {
+  fail('클리닉 알림 예약 흐름이 없습니다.');
+} else ok('클리닉 알림 예약 흐름이 있습니다.');
+const clinicNoticeActions = ['CLINIC_RESERVATION_PARENT','CLINIC_RESERVATION_STUDENT','CLINIC_MISSING_PARENT','CLINIC_MISSING_STUDENT','CLINIC_ABSENCE_PARENT'];
+const missingClinicNoticeActions = clinicNoticeActions.filter(v => !rpc.includes(v) || !html.includes(v));
+if (missingClinicNoticeActions.length) fail('클리닉 알림톡 5종 action 누락: ' + missingClinicNoticeActions.join(', '));
+else ok('클리닉 알림톡 5종 action이 모두 반영됐습니다.');
+const clinicTemplateCodes = ['clinicreservationforparents','clinicreservationforstudents','onlineclinicabsenceforparents','onlineclinicabsenceforstudents','offlineclinicabsence'];
+const missingClinicTemplateCodes = clinicTemplateCodes.filter(v => !notify.includes(v));
+if (missingClinicTemplateCodes.length) fail('클리닉 알림톡 템플릿 코드 누락: ' + missingClinicTemplateCodes.join(', '));
+else ok('클리닉 알림톡 템플릿 5개 코드가 모두 반영됐습니다.');
 
 const staleUiHooks = ['data-word-score-save', 'data-word-status-save', 'data-quick-clinic', 'data-clinic-filter', 'data-notify-filter']
   .filter(hook => visible.includes(hook));

@@ -170,3 +170,35 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 ```
 
 `yyyymmdd`가 없고 `start_ymd` 또는 `end_ymd`가 있으면 기간 조회를 수행한다.
+
+
+## Complete Ops v4: 클리닉 알림톡 5종 라우팅
+
+### `clinic.queueNotice`
+
+클리닉 task를 기준으로 상황별 알림톡/SMS queue를 예약한다. 기존 `clinic.queueParentNotice`는 호환용으로 남기고, 신규 화면은 `clinic.queueNotice`를 사용한다.
+
+요청 인자:
+
+```json
+{
+  "clinic_task_id": "...",
+  "notice_type": "CLINIC_RESERVATION_PARENT",
+  "clinic_time_hhmm": "19:00",
+  "target_phone": "01012345678"
+}
+```
+
+`notice_type` 허용값:
+
+| 값 | 템플릿 코드 | 용도 | 대상 |
+|---|---|---|---|
+| `CLINIC_RESERVATION_PARENT` | `clinicreservationforparents` | 클리닉 예약/일정 안내 | 학부모 |
+| `CLINIC_RESERVATION_STUDENT` | `clinicreservationforstudents` | 클리닉 예약/일정 안내 | 학생 |
+| `CLINIC_MISSING_PARENT` | `onlineclinicabsenceforparents` | 온라인 클리닉 미제출 안내 | 학부모 |
+| `CLINIC_MISSING_STUDENT` | `onlineclinicabsenceforstudents` | 온라인 클리닉 미제출 안내 | 학생 |
+| `CLINIC_ABSENCE_PARENT` | `offlineclinicabsence` | 오프라인 클리닉 미등원/결석 안내 | 학부모 |
+
+학생용 알림은 학생 휴대폰 번호가 기본 테이블에 확정되어 있지 않으므로 `target_phone`을 직접 받아 queue의 수신번호로 사용한다. 학부모용 알림은 `students.parent_phone`을 기본값으로 사용하되, 필요하면 `target_phone`으로 재지정할 수 있다.
+
+중복 방지 기준은 `attendance_notify_queue(trace_id = clinic_task_id, action_type = notice_type)`이다.

@@ -55,7 +55,7 @@ requireIds('감사 로그 흐름', ['auditOpFilter', 'auditTargetTypeFilter', 'a
 requireFunction('감사 로그 조회', 'loadAuditLogs', ['audit.searchLogs', 'auditLogRows', 'auditOpLabel', 'auditTargetLabel']);
 
 requireIds('클리닉 문자 예약 흐름', ['notifyQueueAction', 'notifyQueueRows']);
-requireFunction('클리닉 문자 예약', 'queueClinicNotice', ['clinic.queueParentNotice', 'loadNotifyQueue']);
+requireFunction('클리닉 알림 5종 예약', 'queueClinicNotice', ['clinic.queueNotice', 'loadNotifyQueue', 'CLINIC_RESERVATION_PARENT', 'CLINIC_RESERVATION_STUDENT', 'CLINIC_MISSING_PARENT', 'CLINIC_MISSING_STUDENT', 'CLINIC_ABSENCE_PARENT']);
 
 const forbiddenButtonTexts = ['100점 저장', '95점 저장', '80점 저장', '후보만', '대기만', '80점 저장'];
 const visibleMarkup = html.split('<script>')[0];

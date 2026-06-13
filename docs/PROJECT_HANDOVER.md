@@ -152,3 +152,23 @@ npm run smoke-test
 ```
 
 `npm run smoke-test`는 실제 배포 URL이 필요하므로 배포 후 `SMOKE_BASE_URL`을 지정해서 실행한다.
+
+
+## 2026-06-13 Complete Ops v4: 클리닉 알림톡 템플릿 5종
+
+적용된 템플릿 코드:
+
+- `offlineclinicabsence`
+- `onlineclinicabsenceforstudents`
+- `onlineclinicabsenceforparents`
+- `clinicreservationforparents`
+- `clinicreservationforstudents`
+
+핵심 변경:
+
+- `clinic.queueNotice` 신규 op 추가
+- 기존 `clinic.queueParentNotice`는 학부모 예약 안내 호환 op로 유지
+- `attendance_notify_queue.action_type`을 상황별 5종으로 분리
+- worker가 `CLINIC_*` action을 템플릿별 문구/템플릿 코드로 라우팅
+- UI는 알림 유형 선택 + 알림 예약 버튼 1개로 유지해 버튼 난립을 방지
+- verify에서 클리닉 알림톡 5종 action/template code를 검사

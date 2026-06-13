@@ -37,6 +37,7 @@ for (const file of Object.values(files)) {
 }
 
 const rpcText = read(files.rpc);
+const notifyText = read('lib/attendance-notify.js');
 const adminText = read(files.admin);
 const indexText = read(files.index);
 const absentCronText = read(files.absentCron);
@@ -258,7 +259,7 @@ const requiredAdminOps = [
   'report.createSnapshot',
   'report.listSnapshots',
   'audit.searchLogs',
-  'clinic.queueParentNotice'
+  'clinic.queueNotice'
 ];
 const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
 if (missingAdminOps.length) {
@@ -286,10 +287,15 @@ if (!rpcText.includes("op === 'wordTest.enterResult'") || !rpcText.includes('wor
   ok('wordTest.enterResult 서버 op가 존재합니다.');
 }
 
-if (!rpcText.includes("op === 'clinic.queueParentNotice'") || !rpcText.includes('clinicQueueParentNoticeDirect')) {
-  fail('clinic.queueParentNotice op 또는 clinicQueueParentNoticeDirect 함수가 누락되었습니다.');
+if (!rpcText.includes("op === 'clinic.queueNotice'") || !rpcText.includes('clinicQueueNoticeDirect')) {
+  fail('clinic.queueNotice op 또는 clinicQueueNoticeDirect 함수가 누락되었습니다.');
 } else {
-  ok('clinic.queueParentNotice 서버 op가 존재합니다.');
+  ok('clinic.queueNotice 서버 op가 존재합니다.');
+}
+if (!rpcText.includes("op === 'clinic.queueParentNotice'") || !rpcText.includes('clinicQueueParentNoticeDirect')) {
+  fail('clinic.queueParentNotice 호환 op 또는 clinicQueueParentNoticeDirect 함수가 누락되었습니다.');
+} else {
+  ok('clinic.queueParentNotice 호환 서버 op가 존재합니다.');
 }
 
 
@@ -400,6 +406,34 @@ if (!rpcText.includes('normalizeWordCount') || !rpcText.includes('correct_count'
   ok('서버가 맞은개수/전체개수와 WORD_FAIL 추가 클리닉 기준을 반영합니다.');
 }
 
+
+
+const clinicNoticeActions = [
+  'CLINIC_RESERVATION_PARENT',
+  'CLINIC_RESERVATION_STUDENT',
+  'CLINIC_MISSING_PARENT',
+  'CLINIC_MISSING_STUDENT',
+  'CLINIC_ABSENCE_PARENT'
+];
+const missingClinicNoticeActions = clinicNoticeActions.filter(v => !rpcText.includes(v) || !adminText.includes(v));
+if (missingClinicNoticeActions.length) {
+  fail(`클리닉 알림톡 5종 action 라우팅 누락: ${missingClinicNoticeActions.join(', ')}`);
+} else {
+  ok('클리닉 알림톡 5종 action 라우팅이 서버와 화면에 모두 있습니다.');
+}
+const clinicTemplateCodes = [
+  'clinicreservationforparents',
+  'clinicreservationforstudents',
+  'onlineclinicabsenceforparents',
+  'onlineclinicabsenceforstudents',
+  'offlineclinicabsence'
+];
+const missingClinicTemplateCodes = clinicTemplateCodes.filter(v => !notifyText.includes(v));
+if (missingClinicTemplateCodes.length) {
+  fail(`클리닉 알림톡 템플릿 코드 누락: ${missingClinicTemplateCodes.join(', ')}`);
+} else {
+  ok('클리닉 알림톡 5개 템플릿 코드가 발송 라우터에 반영되었습니다.');
+}
 
 if (!existsSync(join(root, 'scripts/smoke-test.mjs'))) {
   fail('실제 API smoke-test 스크립트가 없습니다.');

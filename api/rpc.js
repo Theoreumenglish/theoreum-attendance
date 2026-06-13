@@ -2532,17 +2532,84 @@ async function clinicUpdateTaskStatusDirect(args = {}, sessionToken = '') {
   return success({ item: items[0] || mapClinicTaskRow(after), audit_warning: audit.ok ? '' : audit.error || '' });
 }
 
-async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
+
+function normalizeClinicNoticeAction(raw) {
+  const s = String(raw || '').trim().toUpperCase();
+  const aliases = {
+    CLINIC: 'CLINIC_RESERVATION_PARENT',
+    CLINIC_NOTICE: 'CLINIC_RESERVATION_PARENT',
+    CLINIC_RESERVATION: 'CLINIC_RESERVATION_PARENT',
+    CLINIC_RESERVATION_PARENTS: 'CLINIC_RESERVATION_PARENT',
+    CLINIC_RESERVATION_FOR_PARENTS: 'CLINIC_RESERVATION_PARENT',
+    CLINIC_RESERVATION_STUDENTS: 'CLINIC_RESERVATION_STUDENT',
+    CLINIC_RESERVATION_FOR_STUDENTS: 'CLINIC_RESERVATION_STUDENT',
+    CLINIC_MISSING: 'CLINIC_MISSING_PARENT',
+    CLINIC_MISSING_PARENTS: 'CLINIC_MISSING_PARENT',
+    CLINIC_MISSING_STUDENTS: 'CLINIC_MISSING_STUDENT',
+    CLINIC_ABSENCE: 'CLINIC_ABSENCE_PARENT',
+    CLINIC_OFFLINE_ABSENCE: 'CLINIC_ABSENCE_PARENT'
+  };
+  const normalized = aliases[s] || s || 'CLINIC_RESERVATION_PARENT';
+  return [
+    'CLINIC_RESERVATION_PARENT',
+    'CLINIC_RESERVATION_STUDENT',
+    'CLINIC_MISSING_PARENT',
+    'CLINIC_MISSING_STUDENT',
+    'CLINIC_ABSENCE_PARENT'
+  ].includes(normalized) ? normalized : 'CLINIC_RESERVATION_PARENT';
+}
+
+function clinicNoticeAudience(actionType) {
+  return normalizeClinicNoticeAction(actionType).endsWith('_STUDENT') ? 'STUDENT' : 'PARENT';
+}
+
+function clinicNoticeAuditOp(actionType) {
+  const action = normalizeClinicNoticeAction(actionType);
+  if (action === 'CLINIC_RESERVATION_PARENT') return 'clinic.queueReservationParent';
+  if (action === 'CLINIC_RESERVATION_STUDENT') return 'clinic.queueReservationStudent';
+  if (action === 'CLINIC_MISSING_PARENT') return 'clinic.queueMissingParent';
+  if (action === 'CLINIC_MISSING_STUDENT') return 'clinic.queueMissingStudent';
+  if (action === 'CLINIC_ABSENCE_PARENT') return 'clinic.queueAbsenceParent';
+  return 'clinic.queueParentNotice';
+}
+
+function clinicNoticeLabel(actionType) {
+  const action = normalizeClinicNoticeAction(actionType);
+  if (action === 'CLINIC_RESERVATION_PARENT') return '학부모 예약 안내';
+  if (action === 'CLINIC_RESERVATION_STUDENT') return '학생 예약 안내';
+  if (action === 'CLINIC_MISSING_PARENT') return '학부모 미제출 안내';
+  if (action === 'CLINIC_MISSING_STUDENT') return '학생 미제출 안내';
+  if (action === 'CLINIC_ABSENCE_PARENT') return '학부모 미등원 안내';
+  return '클리닉 안내';
+}
+
+function kstDateTimeFromYmdHhmm(ymdLike, hhmmRaw) {
+  const hhmm = String(hhmmRaw || '').trim();
+  if (!hhmm) return '';
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return '';
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (!Number.isInteger(hh) || !Number.isInteger(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) return '';
+  const raw = String(ymdLike || '').replace(/[^0-9]/g, '');
+  let ymd = raw.length === 8 ? raw : kstYmd(new Date());
+  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00+09:00`;
+}
+
+async function clinicQueueNoticeDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
 
   const clinicTaskId = String(args.clinic_task_id || args.clinicTaskId || '').trim();
   if (!clinicTaskId) return fail(400, 'INVALID_INPUT', 'clinic_task_id가 필요합니다.');
 
+  const actionType = normalizeClinicNoticeAction(args.notice_type || args.noticeType || args.action_type || args.actionType);
+  const audience = clinicNoticeAudience(actionType);
+
   const supabase = getSupabaseAdmin();
   const { data: task, error: taskErr } = await supabase
     .from('clinic_tasks')
-    .select('clinic_task_id, student_id, title, status, parent_note, parent_visible, due_date')
+    .select('clinic_task_id, student_id, title, task_type, source_type, status, parent_note, parent_visible, due_date')
     .eq('clinic_task_id', clinicTaskId)
     .maybeSingle();
   if (taskErr) return fail(500, 'DB_SELECT_FAILED', taskErr.message || 'clinic_tasks 조회 실패');
@@ -2558,9 +2625,22 @@ async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
   if (!student) return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
 
   const parentPhone = String(student.parent_phone || '').replace(/[^0-9]/g, '').trim();
-  if (!parentPhone) return fail(400, 'NO_PARENT_PHONE', '학부모 전화번호가 없어 문자를 예약할 수 없습니다.');
+  const directTargetPhone = String(args.target_phone || args.targetPhone || args.to_phone || args.toPhone || args.student_phone || args.studentPhone || '').replace(/[^0-9]/g, '').trim();
+  const targetPhone = audience === 'STUDENT' ? directTargetPhone : (directTargetPhone || parentPhone);
+  if (!targetPhone) {
+    return fail(
+      400,
+      audience === 'STUDENT' ? 'NO_STUDENT_PHONE' : 'NO_PARENT_PHONE',
+      audience === 'STUDENT'
+        ? '학생용 클리닉 알림은 학생 휴대폰 번호를 직접 입력해야 합니다.'
+        : '학부모 전화번호가 없어 문자를 예약할 수 없습니다.'
+    );
+  }
 
-  const actionType = 'CLINIC_NOTICE';
+  const clinicAt = String(args.clinic_at || args.clinicAt || '').trim();
+  const clinicTimeHhmm = String(args.clinic_time_hhmm || args.clinicTimeHhmm || args.clinic_time || args.clinicTime || '').trim();
+  const occurredAt = clinicAt || kstDateTimeFromYmdHhmm(task.due_date || '', clinicTimeHhmm) || null;
+
   const { data: existing, error: existingErr } = await supabase
     .from('attendance_notify_queue')
     .select('queue_id, status, attempts, last_error, created_at, processed_at')
@@ -2574,7 +2654,9 @@ async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
       duplicate: true,
       queue_id: existing.queue_id,
       status: existing.status,
-      message: '이미 예약된 클리닉 문자가 있습니다.'
+      action_type: actionType,
+      notice_label: clinicNoticeLabel(actionType),
+      message: '이미 예약된 클리닉 알림이 있습니다.'
     });
   }
 
@@ -2583,11 +2665,11 @@ async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
     trace_id: clinicTaskId,
     student_id: sid,
     action_type: actionType,
-    parent_phone: parentPhone,
+    parent_phone: targetPhone,
     school: String(student.school || '').trim(),
     grade: String(student.grade || '').trim(),
     student_name: String(student.student_name || '').trim(),
-    occurred_at: nowIso(),
+    occurred_at: occurredAt,
     status: 'PENDING',
     attempts: 0,
     sent_channel: '',
@@ -2600,15 +2682,21 @@ async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
     .insert(row)
     .select('queue_id, status, action_type, created_at')
     .single();
-  if (error) return fail(500, 'DB_INSERT_FAILED', error.message || '클리닉 문자 queue 생성 실패');
+  if (error) return fail(500, 'DB_INSERT_FAILED', error.message || '클리닉 알림 queue 생성 실패');
 
   const audit = await appendPortalAuditLogDirect(supabase, auth, {
-    op: 'clinic.queueParentNotice',
+    op: clinicNoticeAuditOp(actionType),
     target_type: 'clinic_task',
     target_id: clinicTaskId,
     action: 'QUEUE_MESSAGE',
-    after_json: { queue_id: row.queue_id, action_type: actionType, student_id: sid },
-    meta_json: { title: task.title || '', parent_visible: task.parent_visible === true }
+    after_json: { queue_id: row.queue_id, action_type: actionType, student_id: sid, audience, occurred_at: occurredAt },
+    meta_json: {
+      title: task.title || '',
+      task_type: task.task_type || '',
+      source_type: task.source_type || '',
+      parent_visible: task.parent_visible === true,
+      notice_label: clinicNoticeLabel(actionType)
+    }
   });
 
   return success({
@@ -2617,9 +2705,15 @@ async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
     queue_id: data?.queue_id || row.queue_id,
     status: data?.status || 'PENDING',
     action_type: actionType,
-    message: '클리닉 문자를 예약했습니다.',
+    notice_label: clinicNoticeLabel(actionType),
+    audience,
+    message: `${clinicNoticeLabel(actionType)}를 예약했습니다.`,
     audit_warning: audit.ok ? '' : audit.error || ''
   });
+}
+
+async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
+  return await clinicQueueNoticeDirect({ ...args, notice_type: args.notice_type || args.noticeType || 'CLINIC_RESERVATION_PARENT' }, sessionToken);
 }
 
 
@@ -4414,6 +4508,11 @@ export default async function handler(req, res) {
 
   if (op === 'clinic.updateTaskStatus') {
     const result = await clinicUpdateTaskStatusDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'clinic.queueNotice') {
+    const result = await clinicQueueNoticeDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

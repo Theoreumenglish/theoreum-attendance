@@ -262,3 +262,24 @@ npm run smoke-test
 - report.listSnapshots
 
 운영 체크리스트 자동화는 `scripts/ops-checklist.mjs`에서 수행한다. 이 검사는 외부 API를 호출하지 않으므로 `npm run verify`에 포함된다.
+
+
+## 클리닉 알림톡 5종 테스트
+
+배포 후 다음 순서로 확인한다.
+
+1. 클리닉 메뉴에서 task 조회
+2. 알림 유형을 `학부모 예약`으로 선택하고 `알림 예약` 클릭
+3. `HH:MM` 예정시간 입력
+4. 문자 메뉴에서 `CLINIC / PENDING` queue 확인
+5. 같은 task에 대해 `학생 예약`, `학부모 미제출`, `학생 미제출`, `학부모 미등원`도 각각 예약
+6. 학생용 알림은 prompt에 테스트 학생 번호 입력
+7. worker 실행 후 `DONE` 또는 실패 원인 확인
+8. 감사 로그에서 다음 op 확인
+   - `clinic.queueReservationParent`
+   - `clinic.queueReservationStudent`
+   - `clinic.queueMissingParent`
+   - `clinic.queueMissingStudent`
+   - `clinic.queueAbsenceParent`
+
+정적 검사는 `npm run verify`에 포함되어 있다. 실제 NCP 발송은 배포 후 `npm run smoke-test`와 화면 queue 테스트로 확인한다.

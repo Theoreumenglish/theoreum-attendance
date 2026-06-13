@@ -43,7 +43,7 @@ const checklist = [
   ['리포트 학부모용 문구', admin.includes('reportParentTextBox') && admin.includes('학부모 전달 문구')],
   ['QR Center 출결 화면 흡수', !admin.includes('id="qrCenter"') && admin.includes('QR 인식 문제 대응 순서')],
   ['감사 로그 문구 변환', admin.includes('auditOpLabel') && admin.includes('auditTargetLabel')],
-  ['클리닉 문자 queue', rpc.includes("op === 'clinic.queueParentNotice'") && queue.includes('CLINIC_') && notify.includes('notifyParentOnClinicDirect')],
+  ['클리닉 알림톡 5종 queue', rpc.includes("op === 'clinic.queueNotice'") && queue.includes('CLINIC_') && notify.includes('clinicreservationforparents') && notify.includes('clinicreservationforstudents') && notify.includes('onlineclinicabsenceforparents') && notify.includes('onlineclinicabsenceforstudents') && notify.includes('offlineclinicabsence')],
   ['실제 API smoke-test 스크립트', existsSync('scripts/smoke-test.mjs')]
 ];
 for (const [label, passed] of checklist) {
