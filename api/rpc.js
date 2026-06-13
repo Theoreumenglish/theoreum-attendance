@@ -2532,14 +2532,112 @@ async function clinicUpdateTaskStatusDirect(args = {}, sessionToken = '') {
   return success({ item: items[0] || mapClinicTaskRow(after), audit_warning: audit.ok ? '' : audit.error || '' });
 }
 
+async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const clinicTaskId = String(args.clinic_task_id || args.clinicTaskId || '').trim();
+  if (!clinicTaskId) return fail(400, 'INVALID_INPUT', 'clinic_task_id가 필요합니다.');
+
+  const supabase = getSupabaseAdmin();
+  const { data: task, error: taskErr } = await supabase
+    .from('clinic_tasks')
+    .select('clinic_task_id, student_id, title, status, parent_note, parent_visible, due_date')
+    .eq('clinic_task_id', clinicTaskId)
+    .maybeSingle();
+  if (taskErr) return fail(500, 'DB_SELECT_FAILED', taskErr.message || 'clinic_tasks 조회 실패');
+  if (!task) return fail(404, 'NOT_FOUND', '클리닉을 찾지 못했습니다.');
+
+  const sid = normalizeStudentId(task.student_id);
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, parent_phone')
+    .eq('student_id', sid)
+    .maybeSingle();
+  if (studentErr) return fail(500, 'DB_SELECT_FAILED', studentErr.message || 'students 조회 실패');
+  if (!student) return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+
+  const parentPhone = String(student.parent_phone || '').replace(/[^0-9]/g, '').trim();
+  if (!parentPhone) return fail(400, 'NO_PARENT_PHONE', '학부모 전화번호가 없어 문자를 예약할 수 없습니다.');
+
+  const actionType = 'CLINIC_NOTICE';
+  const { data: existing, error: existingErr } = await supabase
+    .from('attendance_notify_queue')
+    .select('queue_id, status, attempts, last_error, created_at, processed_at')
+    .eq('trace_id', clinicTaskId)
+    .eq('action_type', actionType)
+    .maybeSingle();
+  if (existingErr) return fail(500, 'DB_SELECT_FAILED', existingErr.message || '문자 queue 중복 조회 실패');
+  if (existing) {
+    return success({
+      queued: true,
+      duplicate: true,
+      queue_id: existing.queue_id,
+      status: existing.status,
+      message: '이미 예약된 클리닉 문자가 있습니다.'
+    });
+  }
+
+  const row = {
+    queue_id: randomUUID(),
+    trace_id: clinicTaskId,
+    student_id: sid,
+    action_type: actionType,
+    parent_phone: parentPhone,
+    school: String(student.school || '').trim(),
+    grade: String(student.grade || '').trim(),
+    student_name: String(student.student_name || '').trim(),
+    occurred_at: nowIso(),
+    status: 'PENDING',
+    attempts: 0,
+    sent_channel: '',
+    last_error: '',
+    processed_at: null
+  };
+
+  const { data, error } = await supabase
+    .from('attendance_notify_queue')
+    .insert(row)
+    .select('queue_id, status, action_type, created_at')
+    .single();
+  if (error) return fail(500, 'DB_INSERT_FAILED', error.message || '클리닉 문자 queue 생성 실패');
+
+  const audit = await appendPortalAuditLogDirect(supabase, auth, {
+    op: 'clinic.queueParentNotice',
+    target_type: 'clinic_task',
+    target_id: clinicTaskId,
+    action: 'QUEUE_MESSAGE',
+    after_json: { queue_id: row.queue_id, action_type: actionType, student_id: sid },
+    meta_json: { title: task.title || '', parent_visible: task.parent_visible === true }
+  });
+
+  return success({
+    queued: true,
+    duplicate: false,
+    queue_id: data?.queue_id || row.queue_id,
+    status: data?.status || 'PENDING',
+    action_type: actionType,
+    message: '클리닉 문자를 예약했습니다.',
+    audit_warning: audit.ok ? '' : audit.error || ''
+  });
+}
+
+
 async function wordTestListSessionsDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
 
   const supabase = getSupabaseAdmin();
   const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const startYmd = String(args.start_ymd || args.startYmd || args.period_start || args.periodStart || '').trim();
+  const endYmd = String(args.end_ymd || args.endYmd || args.period_end || args.periodEnd || '').trim();
   const classId = String(args.class_id || args.classId || '').trim();
-  const limit = Math.max(1, Math.min(100, toPositiveInt(args.limit, 40)));
+  const limit = Math.max(1, Math.min(200, toPositiveInt(args.limit, 80)));
+
+  if (yyyymmdd && !isStrictYmd(yyyymmdd)) return fail(400, 'INVALID_INPUT', 'yyyymmdd는 YYYYMMDD 형식이어야 합니다.');
+  if (startYmd && !isStrictYmd(startYmd)) return fail(400, 'INVALID_INPUT', '조회 시작일은 YYYYMMDD 형식이어야 합니다.');
+  if (endYmd && !isStrictYmd(endYmd)) return fail(400, 'INVALID_INPUT', '조회 종료일은 YYYYMMDD 형식이어야 합니다.');
+  if (startYmd && endYmd && startYmd > endYmd) return fail(400, 'INVALID_INPUT', '조회 시작일은 종료일보다 늦을 수 없습니다.');
 
   let q = supabase
     .from('word_test_sessions')
@@ -2549,13 +2647,17 @@ async function wordTestListSessionsDirect(args = {}, sessionToken = '') {
     .limit(limit);
 
   if (yyyymmdd) q = q.eq('yyyymmdd', yyyymmdd);
+  else {
+    if (startYmd) q = q.gte('yyyymmdd', startYmd);
+    if (endYmd) q = q.lte('yyyymmdd', endYmd);
+  }
   if (classId) q = q.eq('class_id', classId);
 
   const { data, error } = await q;
   if (error) return fail(500, 'DB_SELECT_FAILED', error.message || 'word_test_sessions 조회 실패');
 
   const items = (Array.isArray(data) ? data : []).map(mapWordSessionRow);
-  return success({ count: items.length, items });
+  return success({ count: items.length, items, filter: { yyyymmdd, start_ymd: startYmd, end_ymd: endYmd, class_id: classId, limit } });
 }
 
 async function wordTestCreateSessionDirect(args = {}, sessionToken = '') {
@@ -4312,6 +4414,11 @@ export default async function handler(req, res) {
 
   if (op === 'clinic.updateTaskStatus') {
     const result = await clinicUpdateTaskStatusDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'clinic.queueParentNotice') {
+    const result = await clinicQueueParentNoticeDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

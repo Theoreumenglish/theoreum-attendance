@@ -139,3 +139,16 @@ No Supabase schema changes and no CentralDB GAS changes are required.
   - report snapshot history table,
   - snapshot JSON tucked behind a details panel rather than always exposed.
 - Verification expanded through contract-check and flow-sim for the new result-review and snapshot-review flows.
+
+## 2026-06-13 handover note
+
+이번 패치는 Supabase SQL과 CentralDB GAS를 변경하지 않는다.
+
+추가된 실행 명령:
+
+```powershell
+npm run ops-checklist
+npm run smoke-test
+```
+
+`npm run smoke-test`는 실제 배포 URL이 필요하므로 배포 후 `SMOKE_BASE_URL`을 지정해서 실행한다.

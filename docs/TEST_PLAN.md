@@ -230,3 +230,35 @@ npm run verify
 8. Save a report snapshot.
 9. Click **스냅샷 조회** and confirm the saved snapshot appears.
 10. Check **설정 → 감사 로그** for `wordTest.listResults`, `report.listSnapshots`, `clinic.autoResolveWordFail`, and related write operations where applicable.
+
+## 2026-06-13 Integrity / Smoke / Clinic Notice v2
+
+추가 검증 루틴:
+
+```powershell
+npm run verify
+npm run smoke-test
+```
+
+`npm run verify`는 정적 검사, UI 계약 검사, UX 검사, 업무 흐름 시뮬레이션, 무결성 검사, 운영 체크리스트, 빌드를 순서대로 실행한다.
+
+실제 API smoke-test는 배포 후 아래 환경변수를 지정해 실행한다.
+
+```powershell
+$env:SMOKE_BASE_URL="https://<배포도메인>"
+$env:SMOKE_STAFF_ID="<직원ID>"
+$env:SMOKE_PASSWORD="<비밀번호>"
+npm run smoke-test
+```
+
+확인 대상:
+
+- meta.ping
+- auth.me
+- auth.login / auth.logout
+- admin.getOpsOverview
+- clinic.listTasks
+- wordTest.listSessions
+- report.listSnapshots
+
+운영 체크리스트 자동화는 `scripts/ops-checklist.mjs`에서 수행한다. 이 검사는 외부 API를 호출하지 않으므로 `npm run verify`에 포함된다.

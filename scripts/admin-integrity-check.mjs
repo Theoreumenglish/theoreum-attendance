@@ -52,6 +52,31 @@ if (/점수 \$\{|점수 \${|기준점수/.test(rpc)) {
   fail('서버 메시지에 점수 중심 문구가 남아 있습니다.');
 } else ok('서버 메시지는 맞은 개수 중심입니다.');
 
+
+if (!words.includes('wordStartYmd') || !words.includes('wordEndYmd')) {
+  fail('단어시험 회차 조회 기간 필터가 없습니다.');
+} else ok('단어시험 회차 조회 기간 필터가 있습니다.');
+
+if (!words.includes('wordBulkLiveSummary') || !html.includes('updateWordBulkLiveSummary')) {
+  fail('단어시험 일괄 입력 실시간 요약이 없습니다.');
+} else ok('단어시험 일괄 입력 실시간 요약이 있습니다.');
+
+if (!html.includes('reportParentTextBox') || !html.includes('학부모 전달 문구')) {
+  fail('리포트 학부모 전달 문구 영역이 없습니다.');
+} else ok('리포트 학부모 전달 문구 영역이 있습니다.');
+
+if (html.includes('id="qrCenter"')) {
+  fail('QR Center 별도 화면이 아직 남아 있습니다.');
+} else ok('QR Center 별도 화면을 정리했습니다.');
+
+if (!html.includes('auditOpLabel') || !html.includes('auditTargetLabel')) {
+  fail('감사 로그 화면 문구 변환 함수가 없습니다.');
+} else ok('감사 로그 화면 문구 변환이 있습니다.');
+
+if (!rpc.includes("clinic.queueParentNotice") || !html.includes('queueClinicNotice')) {
+  fail('클리닉 문자 예약 흐름이 없습니다.');
+} else ok('클리닉 문자 예약 흐름이 있습니다.');
+
 const staleUiHooks = ['data-word-score-save', 'data-word-status-save', 'data-quick-clinic', 'data-clinic-filter', 'data-notify-filter']
   .filter(hook => visible.includes(hook));
 if (staleUiHooks.length) fail(`화면에 제거된 원클릭/필터 hook이 남아 있습니다: ${staleUiHooks.join(', ')}`);

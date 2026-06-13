@@ -140,3 +140,33 @@ Lists saved `report_snapshots`, optionally filtered by selected student and peri
 ### Auto-resolution behavior
 
 When an existing `word_test_results` row has a linked `clinic_task_id` from a `WORD_FAIL` source and the result is updated to `PASS` or `EXEMPT`, the linked open clinic task is automatically marked `DONE`. The action is recorded in both `clinic_logs` and `portal_audit_logs`.
+
+## 2026-06-13 추가/보강 op
+
+### `clinic.queueParentNotice`
+
+선택한 클리닉 task를 기준으로 학부모 문자 queue를 생성한다.
+
+입력:
+
+```json
+{"clinic_task_id":"..."}
+```
+
+동작:
+
+- `clinic_tasks`에서 클리닉 조회
+- `students.parent_phone` 확인
+- `attendance_notify_queue`에 `action_type = CLINIC_NOTICE`로 PENDING queue 생성
+- 중복 기준은 `trace_id = clinic_task_id` + `action_type = CLINIC_NOTICE`
+- `portal_audit_logs`에 `clinic.queueParentNotice` 기록
+
+### `wordTest.listSessions` 기간 필터
+
+다음 입력을 지원한다.
+
+```json
+{"start_ymd":"20260601", "end_ymd":"20260613", "class_id":"C001"}
+```
+
+`yyyymmdd`가 없고 `start_ymd` 또는 `end_ymd`가 있으면 기간 조회를 수행한다.

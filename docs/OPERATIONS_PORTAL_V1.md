@@ -218,3 +218,12 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - Parent-report snapshots are now visible in the report screen through **스냅샷 조회**.
 - The raw report JSON is still available for debugging, but it is hidden behind a details panel so the report screen feels less technical in normal use.
 - The UI still avoids score preset buttons; staff enter correct/total counts directly, then use the verification table to review the saved results.
+
+## 2026-06-13 운영 UX 보강
+
+- 단어시험 회차 조회에 시작일/종료일 필터를 추가했다.
+- 단어시험 일괄 입력 화면에 입력 현황 실시간 요약을 추가했다.
+- 리포트 화면에 학부모 전달 문구를 별도로 표시한다.
+- QR Center 별도 화면은 제거하고 출결 화면 안의 안내로 흡수했다.
+- 감사 로그는 raw op만 보여주지 않고 업무 문구와 원본 op를 함께 표시한다.
+- 클리닉 목록에서 학부모 클리닉 문자 예약을 할 수 있다.

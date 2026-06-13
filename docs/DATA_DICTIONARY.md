@@ -170,3 +170,14 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 - `word_test_results.clinic_task_id`: links a failed word-test result to the auto-created WORD_FAIL clinic task.
 - If a linked failed result is later changed to PASS or EXEMPT, the corresponding WORD_FAIL clinic task is automatically completed with `status = DONE`.
 - `report_snapshots.summary_json`: stores the exact report preview summary used at the time of snapshot creation.
+
+## 2026-06-13 queue 확장
+
+`attendance_notify_queue.action_type`에 `CLINIC_NOTICE`를 추가로 사용한다.
+
+- `trace_id`: clinic_task_id
+- `student_id`: 대상 학생 ID
+- `parent_phone`: students.parent_phone
+- `status`: PENDING / PROCESSING / DONE / FAILED
+
+`CLINIC_NOTICE`는 별도 신규 테이블 없이 기존 queue/worker 구조를 사용한다.

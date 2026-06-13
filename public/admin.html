@@ -1755,8 +1755,8 @@
 <button class="btn btnGhost" id="btnMismatch" type="button">상태 불일치</button>
 </div></details>
 <div class="emptyPanel" style="margin-top:18px;">
-<h3>QR 예외는 학생 화면에서 처리</h3>
-<p>학생 검색 후 QR 예외 허용/해제를 처리하면 됩니다. 포털에는 매일 쓰지 않는 외부 링크를 넣지 않았습니다.</p>
+<h3>QR 인식 문제 대응 순서</h3>
+<p>화면 밝기 → 거리/각도 → QR 재발급 → 학생 화면 QR 예외 허용 순서로 확인합니다. 별도 QR Center 화면은 출결 화면 안으로 정리했습니다.</p>
 <div class="btnRow" style="margin-top:16px;">
 
 </div>
@@ -1996,7 +1996,7 @@
 </tr>
 </thead>
 <tbody id="classRows">
-<tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
+<tr><td colspan="9" style="color:var(--muted);">조회 전입니다.</td></tr>
 </tbody>
 </table>
 </div>
@@ -2147,6 +2147,7 @@
 <th>우선</th>
 <th>마감</th>
 <th>공개</th>
+<th>문자</th>
 <th>변경</th>
 </tr>
 </thead>
@@ -2169,7 +2170,7 @@
 </div>
 <div class="formGrid cols3" style="margin-top:16px;">
 <div>
-<div class="fieldLabel">날짜</div>
+<div class="fieldLabel">시험 날짜</div>
 <input class="inp" id="wordSessionYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
 </div>
 <div>
@@ -2182,6 +2183,16 @@
 <input class="inp" id="wordPassScore" inputmode="numeric" value="90" placeholder="통과"/>
 <input class="inp" id="wordMaxScore" inputmode="numeric" value="100" placeholder="전체"/>
 </div>
+</div>
+</div>
+<div class="formGrid cols2" style="margin-top:14px;">
+<div>
+<div class="fieldLabel">회차 조회 시작일</div>
+<input class="inp" id="wordStartYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
+</div>
+<div>
+<div class="fieldLabel">회차 조회 종료일</div>
+<input class="inp" id="wordEndYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
 </div>
 </div>
 <div style="margin-top:14px;">
@@ -2277,6 +2288,7 @@
 <div>
 <div class="sectionTitle">반 전체 일괄 입력</div>
 <div class="sectionDesc" id="wordBulkSummary">회차 선택 후 명단 불러오기를 누르면 수강생 맞은 개수를 한 번에 저장합니다.</div>
+<div class="sectionDesc" id="wordBulkLiveSummary" style="margin-top:6px;">입력 전입니다.</div>
 </div>
 <span class="statusPill good">bulk</span>
 </div>
@@ -2359,6 +2371,7 @@
 <select class="select" id="notifyQueueAction">
 <option value="ABSENT">미등원</option>
 <option value="ATTENDANCE">등하원</option>
+<option value="CLINIC">클리닉</option>
 <option value="">전체</option>
 </select>
 </div>
@@ -2462,7 +2475,7 @@
 </div>
 <div class="grid" style="gap:12px; margin-top:18px; grid-template-columns:repeat(3, minmax(0, 1fr));">
 <div class="metricCard"><div class="metricLabel">출석일</div><div class="metricValue" id="reportMetricAttendance">-</div><div class="metricNote">등원 로그 기준</div></div>
-<div class="metricCard"><div class="metricLabel">단어 평균</div><div class="metricValue" id="reportMetricWordAvg">-</div><div class="metricNote">기간 내 결과</div></div>
+<div class="metricCard"><div class="metricLabel">단어 누적</div><div class="metricValue" id="reportMetricWordAvg">-</div><div class="metricNote">맞은개수/전체개수</div></div>
 <div class="metricCard"><div class="metricLabel">클리닉</div><div class="metricValue" id="reportMetricClinic">-</div><div class="metricNote">진행/완료</div></div>
 </div>
 <div class="emptyPanel" style="margin-top:18px;">
@@ -2474,7 +2487,7 @@
 <div class="grid2" style="margin-top:18px;">
 <div class="card cardPad">
 <div class="sectionTitle">최근 단어시험</div>
-<div class="sectionDesc">기간 내 단어시험 결과입니다.</div>
+<div class="sectionDesc">기간 내 단어시험을 맞은개수/전체개수로 표시합니다.</div>
 <div class="tableWrap" style="margin-top:14px;">
 <table class="table">
 <thead><tr><th>날짜</th><th>시험</th><th>맞은/전체</th><th>결과</th></tr></thead>
@@ -2492,6 +2505,11 @@
 </table>
 </div>
 </div>
+</div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="sectionTitle">학부모 전달 문구</div>
+<div class="sectionDesc">미리보기 결과를 학부모에게 전달하기 쉬운 문장으로 정리합니다.</div>
+<div class="mono" id="reportParentTextBox" style="margin-top:14px;">리포트 미리보기 후 생성됩니다.</div>
 </div>
 <div class="card cardPad" style="margin-top:18px;">
 <div class="cardHead">
@@ -2582,18 +2600,6 @@
 </div>
 </div>
 </section>
-<section class="portalView" data-view-desc="QR 인식 문제를 진단하고 예외 학번 출결 등록으로 연결합니다." data-view-title="QR 문제 대응센터" id="qrCenter">
-<div class="grid2">
-<div class="emptyPanel">
-<h3>QR 인식 문제 대응</h3>
-<p>학생 QR이 반복적으로 안 찍히면 학생 화면에서 QR 예외를 허용합니다. 예외학생은 학번 4자리로 상시 출결 가능합니다.</p>
-</div>
-<div class="emptyPanel">
-<h3>체크 순서</h3>
-<p>화면 밝기, 거리, 각도, QR 재발급, 예외 등록 순서로 확인합니다. 키오스크 로직은 이번 패치에서 건드리지 않습니다.</p>
-</div>
-</div>
-</section>
 <section class="portalView" data-view-desc="중앙DB 점검, replica 동기화, 캐시, 상태 불일치 등 위험 작업을 실행합니다." data-view-title="설정·점검" id="advanced">
 <div class="grid2">
 <div class="card cardPad">
@@ -2623,11 +2629,25 @@
 <div class="formGrid cols3" style="margin-top:16px;">
 <div>
 <div class="fieldLabel">op</div>
-<input class="inp" id="auditOpFilter" placeholder="예: wordTest.bulkEnterResults"/>
+<select class="select" id="auditOpFilter">
+<option value="">전체</option>
+<option value="wordTest.bulkEnterResults">단어시험 일괄 저장</option>
+<option value="wordTest.enterResult">단어시험 개별 저장</option>
+<option value="clinic.createTask">클리닉 생성</option>
+<option value="clinic.updateTaskStatus">클리닉 상태 변경</option>
+<option value="clinic.queueParentNotice">클리닉 문자 예약</option>
+<option value="report.createSnapshot">리포트 저장</option>
+</select>
 </div>
 <div>
 <div class="fieldLabel">대상 유형</div>
-<input class="inp" id="auditTargetTypeFilter" placeholder="예: word_test_session"/>
+<select class="select" id="auditTargetTypeFilter">
+<option value="">전체</option>
+<option value="word_test_session">단어시험 회차</option>
+<option value="word_test_result">단어시험 결과</option>
+<option value="clinic_task">클리닉</option>
+<option value="report_snapshot">리포트</option>
+</select>
 </div>
 <div>
 <div class="fieldLabel">작업자 ID</div>
@@ -2793,7 +2813,8 @@
         OUTING_OUT: '외출',
         OUTING_BACK: '복귀',
         MANUAL_CHECK_IN: '수동 등원',
-        MANUAL_CHECK_OUT: '수동 하원'
+        MANUAL_CHECK_OUT: '수동 하원',
+        CLINIC_NOTICE: '클리닉 문자'
       };
       return map[v] || v || '-';
     }
@@ -2837,6 +2858,62 @@
       if (v === 'PASS' || v === 'EXEMPT') return 'good';
       if (v === 'FAIL') return 'bad';
       return 'warn';
+    }
+
+    function wordFractionText(row) {
+      const correct = row && row.correct_count != null ? row.correct_count : row && row.score != null ? row.score : '';
+      const total = row && row.total_count != null ? row.total_count : row && row.max_score != null ? row.max_score : '';
+      if (correct === '' && total === '') return '-';
+      return `${correct === '' ? '-' : correct}/${total === '' ? '-' : total}`;
+    }
+
+    function auditOpLabel(value) {
+      const v = String(value || '').trim();
+      const map = {
+        'wordTest.bulkEnterResults': '단어시험 일괄 저장',
+        'wordTest.enterResult': '단어시험 개별 저장',
+        'wordTest.createSession': '단어시험 회차 생성',
+        'clinic.createTask': '클리닉 생성',
+        'clinic.updateTaskStatus': '클리닉 상태 변경',
+        'clinic.queueParentNotice': '클리닉 문자 예약',
+        'clinic.autoResolveWordFail': '단어 통과 후 클리닉 자동 완료',
+        'report.createSnapshot': '리포트 저장'
+      };
+      return map[v] || v || '-';
+    }
+
+    function auditTargetLabel(value) {
+      const v = String(value || '').trim();
+      const map = {
+        word_test_session: '단어시험 회차',
+        word_test_result: '단어시험 결과',
+        clinic_task: '클리닉',
+        report_snapshot: '리포트'
+      };
+      return map[v] || v || '-';
+    }
+
+    function buildReportParentText(summary) {
+      if (!summary) return '리포트 미리보기 후 생성됩니다.';
+      const student = summary.student || {};
+      const attendance = summary.attendance || {};
+      const word = summary.word || {};
+      const clinic = summary.clinic || {};
+      const publicNotes = Array.isArray(clinic.public_notes) ? clinic.public_notes : [];
+      const name = student.student_name || '학생';
+      const period = summary.period ? `${summary.period.start || ''}~${summary.period.end || ''}` : '';
+      const lines = [
+        `[더오름영어 학습 리포트] ${name}`,
+        period ? `기간: ${period}` : '',
+        `출결: 등원 ${attendance.check_in_days ?? 0}일`,
+        word.total_sum ? `단어: ${word.correct_sum || 0}/${word.total_sum} (${word.average_rate ?? '-'}%)` : '단어: 기간 내 기록 없음',
+        `클리닉: 진행 ${clinic.open_count || 0}건 / 완료 ${clinic.done_count || 0}건`
+      ].filter(Boolean);
+      if (publicNotes.length) {
+        lines.push('공유 메모:');
+        publicNotes.slice(0, 3).forEach(item => lines.push(`- ${item.parent_note || item.title || ''}`));
+      }
+      return lines.join('\\n');
     }
 
     function showToast(message) {
@@ -2973,6 +3050,14 @@
       if (staffYyyymm && !staffYyyymm.value) staffYyyymm.value = today.slice(0, 6);
       const wordYmd = $('#wordSessionYmd');
       if (wordYmd && !wordYmd.value) wordYmd.value = today;
+      const wordStart = $('#wordStartYmd');
+      const wordEnd = $('#wordEndYmd');
+      if (wordStart && !wordStart.value) {
+        const d = new Date();
+        d.setDate(d.getDate() - 13);
+        wordStart.value = kstYmd(d);
+      }
+      if (wordEnd && !wordEnd.value) wordEnd.value = today;
       const clinicDue = $('#clinicDueDate');
       if (clinicDue && !clinicDue.value) clinicDue.value = kstDateInput(1);
       syncSelectedStudentUi();
@@ -3512,7 +3597,7 @@
             <td>${esc(row.ts || '')}</td>
             <td>${esc(sid)}</td>
             <td>${esc(row.student_name || '')}</td>
-            <td>${esc(row.action_type || '')}</td>
+            <td>${esc(actionTypeLabel(row.action_type || ''))}</td>
             <td>${esc(row.result || '')}</td>
             <td>${esc(row.input_mode || '')}${row.exception === 'Y' ? ' / 예외' : ''}</td>
             <td class="wrap">${esc(traceId)}</td>
@@ -3655,7 +3740,7 @@
         <tr>
           <td><span class="statusPill ${queueStatusClass(row.status)}">${esc(row.status || '-')}</span></td>
           <td class="wrap">${esc(row.student_id || '')} · ${esc(row.student_name || '')}</td>
-          <td>${esc(row.action_type || '')}</td>
+          <td>${esc(actionTypeLabel(row.action_type || ''))}</td>
           <td class="wrap">${esc(shortTs(row.occurred_at || row.created_at || ''))}</td>
           <td>${esc(row.attempts || 0)}</td>
           <td class="wrap">${esc(row.last_error || '-')}</td>
@@ -3685,7 +3770,7 @@
       const status = ($('#notifyQueueStatus').value || 'FAILED').trim() || 'FAILED';
       const actionPrefix = ($('#notifyQueueAction').value || '').trim();
       if (!actionPrefix) {
-        showToast('재처리는 미등원 또는 등하원 종류를 선택해야 합니다.');
+        showToast('재처리할 문자 종류를 선택하세요.');
         return;
       }
       const pin = prompt('실패 큐 재처리를 실행하려면 관리자 PIN을 입력하세요.');
@@ -3798,7 +3883,7 @@
       const box = $('#clinicTaskRows');
       if (!box) return;
       if (!rows.length) {
-        box.innerHTML = '<tr><td colspan="8" style="color:var(--muted);">조회된 클리닉 task가 없습니다.</td></tr>';
+        box.innerHTML = '<tr><td colspan="9" style="color:var(--muted);">조회된 클리닉 task가 없습니다.</td></tr>';
         return;
       }
       box.innerHTML = rows.map(row => `
@@ -3810,6 +3895,7 @@
           <td>${esc(row.priority || '-')}</td>
           <td>${esc(row.due_date || '-')}</td>
           <td>${row.parent_visible ? '공개' : '비공개'}</td>
+          <td><button class="btn btnGhost" type="button" data-clinic-notice="${esc(row.clinic_task_id || '')}">문자 예약</button></td>
           <td>
             <select class="select" data-clinic-status-for="${esc(row.clinic_task_id || '')}">
               ${['CANDIDATE','PENDING','IN_PROGRESS','DONE','PARTIAL','REJECTED','CANCELLED'].map(status => `<option value="${status}" ${status === row.status ? 'selected' : ''}>${clinicStatusLabel(status)}</option>`).join('')}
@@ -3819,6 +3905,9 @@
       `).join('');
       $$('[data-clinic-status-for]').forEach(sel => {
         sel.addEventListener('change', () => updateClinicTaskStatus(sel.dataset.clinicStatusFor || '', sel.value || ''));
+      });
+      $$('[data-clinic-notice]').forEach(btn => {
+        btn.addEventListener('click', () => queueClinicNotice(btn.dataset.clinicNotice || ''));
       });
     }
 
@@ -3883,6 +3972,22 @@
       if (App.selectedStudent && App.selectedStudent.student_id) await loadStudentProfile();
     }
 
+    async function queueClinicNotice(taskId) {
+      if (!taskId) return;
+      const okSend = confirm('이 클리닉 안내 문자를 학부모에게 예약할까요?');
+      if (!okSend) return;
+      const r = await rpc('clinic.queueParentNotice', { clinic_task_id: taskId }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클리닉 문자 예약 실패');
+        showResult('클리닉 문자 예약 실패', r);
+        return;
+      }
+      showToast((r.data && r.data.duplicate) ? '이미 예약된 클리닉 문자입니다.' : '클리닉 문자를 예약했습니다.');
+      $('#notifyQueueAction').value = 'CLINIC';
+      $('#notifyQueueStatus').value = 'PENDING';
+      await loadNotifyQueue();
+    }
+
     function renderWordSessions(data) {
       const rows = Array.isArray(data.items) ? data.items : [];
       const summary = $('#wordSessionSummary');
@@ -3922,10 +4027,15 @@
     }
 
     async function listWordSessions() {
-      const args = { limit: 80 };
+      const args = { limit: 120 };
       const ymd = ($('#wordSessionYmd').value || '').trim();
+      const startYmd = ($('#wordStartYmd').value || '').trim();
+      const endYmd = ($('#wordEndYmd').value || '').trim();
       const classId = ($('#wordClassId').value || '').trim();
-      if (ymd) args.yyyymmdd = ymd;
+      if (startYmd || endYmd) {
+        if (startYmd) args.start_ymd = startYmd;
+        if (endYmd) args.end_ymd = endYmd;
+      } else if (ymd) args.yyyymmdd = ymd;
       if (classId) args.class_id = classId;
       const r = await rpc('wordTest.listSessions', args, { timeoutMs: 30000 });
       if (!r.ok) {
@@ -4075,6 +4185,43 @@
           </td>
         </tr>
       `).join('');
+      $$('[data-word-bulk-score], [data-word-bulk-status]').forEach(el => {
+        el.addEventListener('input', updateWordBulkLiveSummary);
+        el.addEventListener('change', updateWordBulkLiveSummary);
+        el.addEventListener('keydown', ev => {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            const inputs = Array.from(document.querySelectorAll('[data-word-bulk-score]'));
+            const idx = inputs.indexOf(el);
+            if (idx >= 0 && inputs[idx + 1]) inputs[idx + 1].focus();
+          }
+        });
+      });
+      updateWordBulkLiveSummary();
+    }
+
+    function updateWordBulkLiveSummary() {
+      const rows = $$('[data-word-bulk-sid]');
+      const passCount = Number($('#wordPassScore')?.value || 0) || 0;
+      let entered = 0;
+      let pass = 0;
+      let fail = 0;
+      let absent = 0;
+      rows.forEach(row => {
+        const sid = row.dataset.wordBulkSid || '';
+        const scoreRaw = (document.querySelector(`[data-word-bulk-score="${CSS.escape(sid)}"]`)?.value || '').trim();
+        const status = (document.querySelector(`[data-word-bulk-status="${CSS.escape(sid)}"]`)?.value || '').trim().toUpperCase();
+        if (scoreRaw || status) entered += 1;
+        if (status === 'ABSENT') absent += 1;
+        else if (status === 'PASS') pass += 1;
+        else if (status === 'FAIL') fail += 1;
+        else if (scoreRaw !== '') {
+          const n = Number(scoreRaw);
+          if (Number.isFinite(n)) (n >= passCount ? pass++ : fail++);
+        }
+      });
+      const el = $('#wordBulkLiveSummary');
+      if (el) el.textContent = `입력 ${entered}/${rows.length}명 · 예상 통과 ${pass}명 · 예상 불통과 ${fail}명 · 미응시 ${absent}명`;
     }
 
     async function loadWordBulkEntry() {
@@ -4157,6 +4304,8 @@
       $('#reportClinicRows').innerHTML = publicRows.length ? publicRows.map(row => `
         <tr><td class="wrap">${esc(row.title || '')}</td><td>${clinicStatusLabel(row.status)}</td><td class="wrap">${esc(row.parent_note || '')}</td></tr>
       `).join('') : '<tr><td colspan="3" style="color:var(--muted);">학부모 공개 클리닉 메모가 없습니다.</td></tr>';
+      const parentTextBox = $('#reportParentTextBox');
+      if (parentTextBox) parentTextBox.textContent = buildReportParentText(summary);
       $('#reportPreviewBox').textContent = JSON.stringify(summary, null, 2);
     }
 
@@ -4253,7 +4402,7 @@
       }
       const rows = Array.isArray(r.data?.items) ? r.data.items : [];
       $('#auditLogRows').innerHTML = rows.length ? rows.map(row => `
-        <tr><td>${shortTs(row.created_at)}</td><td class="wrap">${esc(row.actor_name || row.actor_staff_id || '')}</td><td class="wrap">${esc(row.op || '')}</td><td class="wrap">${esc(row.target_type || '')}<br><span class="smallText">${esc(row.target_id || '')}</span></td><td>${esc(row.action || '')}</td><td class="mono">${esc(row.trace_id || '')}</td></tr>
+        <tr><td>${shortTs(row.created_at)}</td><td class="wrap">${esc(row.actor_name || row.actor_staff_id || '')}</td><td class="wrap">${esc(auditOpLabel(row.op))}<br><span class="smallText">${esc(row.op || '')}</span></td><td class="wrap">${esc(auditTargetLabel(row.target_type))}<br><span class="smallText">${esc(row.target_id || '')}</span></td><td>${esc(row.action || '')}</td><td class="mono">${esc(row.trace_id || '')}</td></tr>
       `).join('') : '<tr><td colspan="6" style="color:var(--muted);">감사 로그가 없습니다.</td></tr>';
       showToast('감사 로그를 조회했습니다.');
     }
@@ -4316,6 +4465,8 @@
 
     async function openTodayWordSessions() {
       $('#wordSessionYmd').value = kstYmd(new Date());
+      if ($('#wordStartYmd')) $('#wordStartYmd').value = '';
+      if ($('#wordEndYmd')) $('#wordEndYmd').value = '';
       jumpTo('words');
       writeActionLog('오늘 단어시험 회차 조회', $('#wordSessionYmd').value);
       await listWordSessions();
@@ -4331,6 +4482,8 @@
       $('#clinicStudentFilter').value = '';
       await loadClinicTasks();
       $('#wordSessionYmd').value = kstYmd(new Date());
+      if ($('#wordStartYmd')) $('#wordStartYmd').value = '';
+      if ($('#wordEndYmd')) $('#wordEndYmd').value = '';
       await listWordSessions();
       writeActionLog('오늘 전체 점검 완료', '필요한 화면: 문자·알림 / 클리닉 / 단어시험에서 이어서 처리');
       showToast('오늘 전체 점검을 완료했습니다.');

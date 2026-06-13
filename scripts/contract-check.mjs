@@ -185,7 +185,11 @@ const requiredAdminIds = [
   'auditTargetTypeFilter',
   'auditActorFilter',
   'btnLoadAuditLogs',
-  'auditLogRows'
+  'auditLogRows',
+  'wordStartYmd',
+  'wordEndYmd',
+  'wordBulkLiveSummary',
+  'reportParentTextBox'
 ];
 const missingAdminIds = requiredAdminIds.filter(id => !adminText.includes(`id="${id}"`) && !adminText.includes(`id='${id}'`));
 if (missingAdminIds.length) {
@@ -253,7 +257,8 @@ const requiredAdminOps = [
   'report.previewStudentReport',
   'report.createSnapshot',
   'report.listSnapshots',
-  'audit.searchLogs'
+  'audit.searchLogs',
+  'clinic.queueParentNotice'
 ];
 const missingAdminOps = requiredAdminOps.filter(op => !uiOps.includes(op));
 if (missingAdminOps.length) {
@@ -279,6 +284,12 @@ if (!rpcText.includes("op === 'wordTest.enterResult'") || !rpcText.includes('wor
   fail('wordTest.enterResult op 또는 wordTestEnterResultDirect 함수가 누락되었습니다.');
 } else {
   ok('wordTest.enterResult 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'clinic.queueParentNotice'") || !rpcText.includes('clinicQueueParentNoticeDirect')) {
+  fail('clinic.queueParentNotice op 또는 clinicQueueParentNoticeDirect 함수가 누락되었습니다.');
+} else {
+  ok('clinic.queueParentNotice 서버 op가 존재합니다.');
 }
 
 
@@ -387,6 +398,25 @@ if (!rpcText.includes('normalizeWordCount') || !rpcText.includes('correct_count'
   fail('서버가 맞은개수 또는 추가 클리닉 자동 생성 기준을 충분히 반영하지 못했습니다.');
 } else {
   ok('서버가 맞은개수/전체개수와 WORD_FAIL 추가 클리닉 기준을 반영합니다.');
+}
+
+
+if (!existsSync(join(root, 'scripts/smoke-test.mjs'))) {
+  fail('실제 API smoke-test 스크립트가 없습니다.');
+} else {
+  ok('실제 API smoke-test 스크립트가 존재합니다.');
+}
+
+if (!existsSync(join(root, 'scripts/ops-checklist.mjs'))) {
+  fail('운영 테스트 체크리스트 자동화 스크립트가 없습니다.');
+} else {
+  ok('운영 테스트 체크리스트 자동화 스크립트가 존재합니다.');
+}
+
+if (!adminText.includes('QR 인식 문제 대응 순서') || adminText.includes('id="qrCenter"')) {
+  fail('QR Center가 출결 화면으로 정리되지 않았습니다.');
+} else {
+  ok('QR Center가 출결 화면 안으로 정리되었습니다.');
 }
 
 if (failed > 0) {
