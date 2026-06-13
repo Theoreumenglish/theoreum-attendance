@@ -12,9 +12,10 @@
     "preview": "vite preview",
     "check": "node scripts/check-js.mjs",
     "contract-check": "node scripts/contract-check.mjs",
-    "verify": "npm run check && npm run contract-check && npm run ux-check && npm run flow-sim && npm run build",
+    "verify": "npm run check && npm run contract-check && npm run ux-check && npm run flow-sim && npm run integrity-check && npm run build",
     "ux-check": "node scripts/admin-ux-check.mjs",
-    "flow-sim": "node scripts/admin-flow-sim.mjs"
+    "flow-sim": "node scripts/admin-flow-sim.mjs",
+    "integrity-check": "node scripts/admin-integrity-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

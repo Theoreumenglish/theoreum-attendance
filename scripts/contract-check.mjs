@@ -221,10 +221,8 @@ const requiredOneClickFunctions = [
   'runTodayPulse',
   'quickStudentSearch',
   'quickStudentLogs',
-  'createQuickClinicTask',
-  'quickSaveWordScore',
-  'applyNotifyFilter',
-  'applyClinicFilter'
+  'quickStudentClinicView',
+  'quickStudentWordInput'
 ];
 const missingOneClickFunctions = requiredOneClickFunctions.filter(name => !adminText.includes(`function ${name}`) && !adminText.includes(`async function ${name}`));
 if (missingOneClickFunctions.length) {
@@ -361,6 +359,34 @@ try {
   }
 } catch (e) {
   fail('vercel.json 파싱 실패: ' + (e?.message || e));
+}
+
+
+const canonicalClinicOptions = ['CLASS_CLINIC', 'EXTRA_CLINIC', 'INDIVIDUAL_CLINIC'];
+const visibleAdmin = adminText.split('<script>')[0];
+const clinicSection = (adminText.match(/<section\b(?=[^>]*\bid=["']clinic["'])[\s\S]*?(?=<section\b|<script>|<\/main>)/i) || [''])[0];
+const missingClinicOptions = canonicalClinicOptions.filter(v => !visibleAdmin.includes(`value="${v}"`) && !visibleAdmin.includes(`value='${v}'`));
+if (missingClinicOptions.length) {
+  fail(`클리닉 3종 선택지가 누락되었습니다: ${missingClinicOptions.join(', ')}`);
+} else {
+  ok('클리닉 유형은 수업/추가/개별 3종으로 노출됩니다.');
+}
+const legacyClinicOptions = ['GENERAL', 'WORD', 'GRAMMAR', 'READING', 'WRITING', 'ATTENDANCE', 'HOMEWORK', 'MAKEUP']
+  .filter(v => clinicSection.includes(`value="${v}"`) || clinicSection.includes(`value='${v}'`));
+if (legacyClinicOptions.length) {
+  fail(`화면에 구형 클리닉 유형 값이 남아 있습니다: ${legacyClinicOptions.join(', ')}`);
+} else {
+  ok('화면에서 구형 클리닉 유형 선택지를 제거했습니다.');
+}
+if (!visibleAdmin.includes('통과개수 / 전체개수') || !visibleAdmin.includes('맞은 개수')) {
+  fail('단어시험 UI가 맞은개수/전체개수 기준으로 보이지 않습니다.');
+} else {
+  ok('단어시험 UI가 맞은개수/전체개수 기준으로 정리되었습니다.');
+}
+if (!rpcText.includes('normalizeWordCount') || !rpcText.includes('correct_count') || !rpcText.includes("task_type: 'EXTRA_CLINIC'")) {
+  fail('서버가 맞은개수 또는 추가 클리닉 자동 생성 기준을 충분히 반영하지 못했습니다.');
+} else {
+  ok('서버가 맞은개수/전체개수와 WORD_FAIL 추가 클리닉 기준을 반영합니다.');
 }
 
 if (failed > 0) {

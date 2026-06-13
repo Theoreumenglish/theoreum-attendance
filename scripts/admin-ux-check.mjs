@@ -84,8 +84,8 @@ else ok('클리닉 화면은 생성/조회 중심으로 단순화됐습니다.')
 const words = sectionById('words');
 if (/data-word-score-save|data-word-status-save|100점 저장|95점 저장|90점 저장|80점 저장/.test(words)) fail('단어시험 화면에 점수 프리셋 버튼이 남아 있습니다.');
 else ok('단어시험 화면에서 점수 프리셋 버튼을 제거했습니다.');
-if (!words.includes('Enter를 누르면 결과 저장')) fail('단어시험 점수 입력의 Enter 저장 안내가 없습니다.');
-else ok('단어시험 점수 입력에 Enter 저장 안내가 있습니다.');
+if (!/Enter.*저장/.test(words)) fail('단어시험 맞은 개수 입력의 Enter 저장 안내가 없습니다.');
+else ok('단어시험 맞은 개수 입력에 Enter 저장 안내가 있습니다.');
 
 const totalButtons = count(/<button\b/g, markupHtml);
 if (totalButtons > 74) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);

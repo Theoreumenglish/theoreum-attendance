@@ -2190,10 +2190,23 @@ function normalizeClinicStatus(raw, fallback = 'CANDIDATE') {
   return allowed.has(value) ? value : fallback;
 }
 
-function normalizeClinicTaskType(raw, fallback = 'GENERAL') {
+function normalizeClinicTaskType(raw, fallback = 'INDIVIDUAL_CLINIC') {
   const value = String(raw || '').trim().toUpperCase();
-  const allowed = new Set(['GENERAL', 'WORD', 'GRAMMAR', 'READING', 'WRITING', 'ATTENDANCE', 'HOMEWORK', 'MAKEUP']);
-  return allowed.has(value) ? value : fallback;
+  const canonical = new Set(['CLASS_CLINIC', 'EXTRA_CLINIC', 'INDIVIDUAL_CLINIC']);
+  if (canonical.has(value)) return value;
+  const legacyMap = {
+    GENERAL: 'INDIVIDUAL_CLINIC',
+    WORD: 'EXTRA_CLINIC',
+    GRAMMAR: 'CLASS_CLINIC',
+    READING: 'CLASS_CLINIC',
+    WRITING: 'CLASS_CLINIC',
+    ATTENDANCE: 'INDIVIDUAL_CLINIC',
+    HOMEWORK: 'EXTRA_CLINIC',
+    MAKEUP: 'EXTRA_CLINIC',
+    INDIVIDUAL_BASE: 'INDIVIDUAL_CLINIC'
+  };
+  if (legacyMap[value]) return legacyMap[value];
+  return fallback;
 }
 
 function normalizeClinicSourceType(raw, fallback = 'MANUAL') {
@@ -2208,19 +2221,36 @@ function normalizeClinicPriority(raw, fallback = 'NORMAL') {
   return allowed.has(value) ? value : fallback;
 }
 
-function normalizeWordResultStatus(raw, score, passScore) {
+function normalizeWordCount(raw, fallback = null) {
+  if (raw === null || raw === undefined || String(raw).trim() === '') return fallback;
+  const n = Number(String(raw).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.round(n));
+}
+
+function normalizeWordTotal(raw, fallback = 100) {
+  const n = normalizeWordCount(raw, fallback);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function normalizeWordPassCount(raw, totalCount, fallback = null) {
+  const total = normalizeWordTotal(totalCount, 100);
+  const defaultValue = fallback === null || fallback === undefined ? Math.ceil(total * 0.9) : fallback;
+  const n = normalizeWordCount(raw, defaultValue);
+  return Math.max(0, Math.min(total, n));
+}
+
+function normalizeWordResultStatus(raw, correctCount, passCount) {
   const value = String(raw || '').trim().toUpperCase();
   if (['PASS', 'FAIL', 'ABSENT', 'EXEMPT'].includes(value)) return value;
-  const n = Number(score);
-  const p = Number(passScore);
+  const n = Number(correctCount);
+  const p = Number(passCount);
   if (Number.isFinite(n) && Number.isFinite(p)) return n >= p ? 'PASS' : 'FAIL';
   return 'PASS';
 }
 
 function normalizeScore(raw, fallback = null) {
-  if (raw === null || raw === undefined || String(raw).trim() === '') return fallback;
-  const n = Number(raw);
-  return Number.isFinite(n) ? Math.round(n * 100) / 100 : fallback;
+  return normalizeWordCount(raw, fallback);
 }
 
 function terminalClinicStatus(status) {
@@ -2264,6 +2294,8 @@ function mapWordSessionRow(row) {
     scope_text: String(row?.scope_text || '').trim(),
     pass_score: Number(row?.pass_score ?? 90),
     max_score: Number(row?.max_score ?? 100),
+    pass_count: Number(row?.pass_score ?? 90),
+    total_count: Number(row?.max_score ?? 100),
     created_by: String(row?.created_by || '').trim(),
     created_at: String(row?.created_at || ''),
     updated_at: String(row?.updated_at || '')
@@ -2283,8 +2315,11 @@ function mapWordResultRow(row, sessionMap = {}, studentNameMap = {}) {
     student_id: sid,
     student_name: studentNameMap[sid] || '',
     score: row?.score == null ? null : Number(row.score),
+    correct_count: row?.score == null ? null : Number(row.score),
     max_score: Number(row?.max_score ?? session.max_score ?? 100),
+    total_count: Number(row?.max_score ?? session.max_score ?? 100),
     pass_score: Number(row?.pass_score ?? session.pass_score ?? 90),
+    pass_count: Number(row?.pass_score ?? session.pass_score ?? 90),
     result_status: String(row?.result_status || '').trim(),
     clinic_task_id: String(row?.clinic_task_id || '').trim(),
     note: String(row?.note || '').trim(),
@@ -2529,12 +2564,12 @@ async function wordTestCreateSessionDirect(args = {}, sessionToken = '') {
 
   const title = normalizeLimitedText(args.title, 160);
   const yyyymmdd = String(args.yyyymmdd || args.ymd || kstYmd(new Date())).trim();
-  const passScore = normalizeScore(args.pass_score || args.passScore, 90);
-  const maxScore = normalizeScore(args.max_score || args.maxScore, 100);
+  const maxScore = normalizeWordTotal(args.total_count ?? args.totalCount ?? args.max_score ?? args.maxScore, 100);
+  const passScore = normalizeWordPassCount(args.pass_count ?? args.passCount ?? args.pass_score ?? args.passScore, maxScore, Math.ceil(maxScore * 0.9));
   if (!title) return fail(400, 'INVALID_INPUT', '시험 제목이 필요합니다.');
   if (!isStrictYmd(yyyymmdd)) return fail(400, 'INVALID_INPUT', 'yyyymmdd는 8자리 숫자여야 합니다.');
   if (!(Number.isFinite(passScore) && Number.isFinite(maxScore) && passScore >= 0 && maxScore > 0 && passScore <= maxScore)) {
-    return fail(400, 'INVALID_INPUT', '기준점수와 만점이 올바르지 않습니다.');
+    return fail(400, 'INVALID_INPUT', '통과 개수와 전체 개수가 올바르지 않습니다.');
   }
 
   const supabase = getSupabaseAdmin();
@@ -2645,12 +2680,15 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
   if (sessionErr) return fail(500, 'DB_SELECT_FAILED', sessionErr.message || 'word_test_sessions 조회 실패');
   if (!session) return fail(404, 'NOT_FOUND', '단어시험 회차를 찾지 못했습니다.');
 
-  const maxScore = normalizeScore(args.max_score || args.maxScore, Number(session.max_score || 100));
-  const passScore = normalizeScore(args.pass_score || args.passScore, Number(session.pass_score || 90));
-  const score = normalizeScore(args.score, null);
+  const maxScore = normalizeWordTotal(args.total_count ?? args.totalCount ?? args.max_score ?? args.maxScore, Number(session.max_score || 100));
+  const passScore = normalizeWordPassCount(args.pass_count ?? args.passCount ?? args.pass_score ?? args.passScore, maxScore, Number(session.pass_score || Math.ceil(maxScore * 0.9)));
+  const score = normalizeWordCount(args.correct_count ?? args.correctCount ?? args.score, null);
   const resultStatus = normalizeWordResultStatus(args.result_status || args.resultStatus, score, passScore);
   if ((resultStatus === 'PASS' || resultStatus === 'FAIL') && score === null) {
-    return fail(400, 'INVALID_INPUT', '통과/불통과 결과에는 점수가 필요합니다.');
+    return fail(400, 'INVALID_INPUT', '통과/불통과 결과에는 맞은 개수가 필요합니다.');
+  }
+  if (score !== null && score > maxScore) {
+    return fail(400, 'INVALID_INPUT', '맞은 개수는 전체 개수보다 클 수 없습니다.');
   }
 
   const { data: existing, error: existingErr } = await supabase
@@ -2686,15 +2724,15 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
       clinic_task_id: randomUUID(),
       student_id: sid,
       class_id: String(session.class_id || '').trim() || null,
-      title: `단어시험 불통과: ${session.title}`.slice(0, 160),
-      task_type: 'WORD',
+      title: `단어 재시험 클리닉: ${session.title}`.slice(0, 160),
+      task_type: 'EXTRA_CLINIC',
       source_type: 'WORD_FAIL',
       source_id: resultId,
       status: 'CANDIDATE',
       priority: Number(score) < passScore - 20 ? 'HIGH' : 'NORMAL',
       due_date: null,
       assigned_staff_id: null,
-      internal_note: `점수 ${score}/${maxScore}, 기준 ${passScore}. ${normalizeLimitedText(args.note, 700)}`.trim(),
+      internal_note: `맞은 개수 ${score}/${maxScore}, 통과 기준 ${passScore}. ${normalizeLimitedText(args.note, 700)}`.trim(),
       parent_note: '',
       parent_visible: false,
       created_by: auth.me.staff_id,
@@ -2849,20 +2887,23 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
   if (sessionErr) return fail(500, 'DB_SELECT_FAILED', sessionErr.message || 'word_test_sessions 조회 실패');
   if (!session) return fail(404, 'NOT_FOUND', '단어시험 회차를 찾지 못했습니다.');
 
-  const passScore = Number(session.pass_score || 90);
-  const maxScore = Number(session.max_score || 100);
+  const maxScore = normalizeWordTotal(session.max_score, 100);
+  const passScore = normalizeWordPassCount(session.pass_score, maxScore, Math.ceil(maxScore * 0.9));
   const normalized = [];
   const seen = new Set();
 
   for (const raw of inputRows) {
     const sid = normalizeStudentId(raw?.student_id || raw?.sid || '');
     if (!sid || seen.has(sid)) continue;
-    const score = normalizeScore(raw?.score, null);
+    const score = normalizeWordCount(raw?.correct_count ?? raw?.correctCount ?? raw?.score, null);
     const statusText = String(raw?.result_status || raw?.resultStatus || '').trim().toUpperCase();
     if (score === null && !statusText && !String(raw?.note || '').trim()) continue;
     const resultStatus = normalizeWordResultStatus(statusText, score, passScore);
     if ((resultStatus === 'PASS' || resultStatus === 'FAIL') && score === null) {
-      return fail(400, 'INVALID_INPUT', `${sid} 학생의 통과/불통과 결과에는 점수가 필요합니다.`);
+      return fail(400, 'INVALID_INPUT', `${sid} 학생의 통과/불통과 결과에는 맞은 개수가 필요합니다.`);
+    }
+    if (score !== null && score > maxScore) {
+      return fail(400, 'INVALID_INPUT', `${sid} 학생의 맞은 개수는 전체 개수보다 클 수 없습니다.`);
     }
     normalized.push({
       student_id: sid,
@@ -2922,15 +2963,15 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
         clinic_task_id: clinicTaskId,
         student_id: item.student_id,
         class_id: String(session.class_id || '').trim() || null,
-        title: `단어시험 불통과: ${session.title}`.slice(0, 160),
-        task_type: 'WORD',
+        title: `단어 재시험 클리닉: ${session.title}`.slice(0, 160),
+        task_type: 'EXTRA_CLINIC',
         source_type: 'WORD_FAIL',
         source_id: resultId,
         status: 'CANDIDATE',
         priority: Number(item.score) < passScore - 20 ? 'HIGH' : 'NORMAL',
         due_date: null,
         assigned_staff_id: null,
-        internal_note: `점수 ${item.score}/${maxScore}, 기준 ${passScore}. ${item.note}`.trim(),
+        internal_note: `맞은 개수 ${item.score}/${maxScore}, 통과 기준 ${passScore}. ${item.note}`.trim(),
         parent_note: '',
         parent_visible: false,
         created_by: auth.me.staff_id,
@@ -3152,8 +3193,12 @@ async function buildStudentReportSummary(supabase, sid, periodStart, periodEnd) 
     .map(row => mapWordResultRow(row, sessionMap, {}))
     .filter(row => !row.yyyymmdd || (row.yyyymmdd >= periodStart && row.yyyymmdd <= periodEnd));
 
-  const numericScores = wordItems.map(row => Number(row.score)).filter(Number.isFinite);
-  const avgScore = numericScores.length ? Math.round((numericScores.reduce((a, b) => a + b, 0) / numericScores.length) * 10) / 10 : null;
+  const numericScores = wordItems.map(row => Number(row.correct_count ?? row.score)).filter(Number.isFinite);
+  const totalCounts = wordItems.map(row => Number(row.total_count ?? row.max_score)).filter(Number.isFinite);
+  const correctSum = numericScores.reduce((a, b) => a + b, 0);
+  const totalSum = totalCounts.reduce((a, b) => a + b, 0);
+  const avgScore = numericScores.length ? Math.round((correctSum / numericScores.length) * 10) / 10 : null;
+  const avgRate = totalSum > 0 ? Math.round((correctSum / totalSum) * 1000) / 10 : null;
   const publicClinics = clinics.filter(row => row.parent_visible && row.parent_note);
   const openStatuses = new Set(['CANDIDATE', 'PENDING', 'IN_PROGRESS']);
   const doneStatuses = new Set(['DONE', 'PARTIAL']);
@@ -3170,6 +3215,9 @@ async function buildStudentReportSummary(supabase, sid, periodStart, periodEnd) 
     word: {
       count: wordItems.length,
       average_score: avgScore,
+      average_rate: avgRate,
+      correct_sum: correctSum,
+      total_sum: totalSum,
       pass_count: wordItems.filter(row => row.result_status === 'PASS').length,
       fail_count: wordItems.filter(row => row.result_status === 'FAIL').length,
       absent_count: wordItems.filter(row => row.result_status === 'ABSENT').length,
@@ -3279,6 +3327,8 @@ async function reportListSnapshotsDirect(args = {}, sessionToken = '') {
   const items = rows.map(row => {
     const summary = isPlainObject(row?.summary_json) ? row.summary_json : {};
     const wordAvg = summary?.word?.average_score;
+    const wordCorrectSum = summary?.word?.correct_sum;
+    const wordTotalSum = summary?.word?.total_sum;
     const clinicDone = summary?.clinic?.done_count;
     const clinicOpen = summary?.clinic?.open_count;
     return {
@@ -3292,6 +3342,8 @@ async function reportListSnapshotsDirect(args = {}, sessionToken = '') {
       created_by: String(row?.created_by || '').trim(),
       created_at: String(row?.created_at || '').trim(),
       word_average_score: Number.isFinite(Number(wordAvg)) ? Number(wordAvg) : null,
+      word_correct_sum: Number.isFinite(Number(wordCorrectSum)) ? Number(wordCorrectSum) : null,
+      word_total_sum: Number.isFinite(Number(wordTotalSum)) ? Number(wordTotalSum) : null,
       clinic_summary: `${clinicOpen ?? 0}/${clinicDone ?? 0}`,
       summary_json: summary
     };

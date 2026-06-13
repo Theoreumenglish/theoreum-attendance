@@ -176,7 +176,7 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - 로그인 화면은 직원 ID, 비밀번호, 로그인 버튼만 남긴다.
 - 좌측 핵심 메뉴는 오늘, 학생, 출결, 클리닉, 단어 5개만 바로 노출한다.
 - 문자, 클래스, 리포트, 직원, 설정은 `더 보기` 안에 넣어 보조 메뉴로 둔다.
-- 상단 빠른 처리 영역은 학생 검색과 오늘 점검, 출결 보기, 클리닉 만들기, 점수 입력만 둔다.
+- 상단 빠른 처리 영역은 학생 검색과 오늘 점검, 출결 보기, 클리닉 만들기, 단어 입력만 둔다.
 - 홈 화면은 상태 카드와 오늘 할 일 3개만 노출한다.
 - 세부 필터, 관리자용 점검, 실패 큐, 직원 근태는 해당 메뉴 안에서만 보이게 한다.
 
@@ -187,7 +187,7 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - 복잡도는 메뉴 수가 아니라 각 화면 내부 버튼 수로 관리한다.
 - 학생 화면은 오늘 로그/클리닉/점수/리포트만 직접 노출하고, QR 예외/정정 보조 처리는 보조 영역으로 분리한다.
 - 클리닉 화면은 프리셋 버튼을 제거하고 학생·유형·상태·마감·메모 입력 후 생성/조회 흐름으로 고정한다.
-- 단어시험 화면은 점수 프리셋 버튼을 제거하고 회차 선택 → 학생 선택 → 점수 입력 → 결과 저장 흐름으로 고정한다.
+- 단어시험 화면은 맞은개수 프리셋 버튼을 제거하고 회차 선택 → 학생 선택 → 단어 입력 → 결과 저장 흐름으로 고정한다.
 
 ## First Complete Portal v1 (2026-06-12)
 
@@ -197,7 +197,7 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 
 - 단어시험 일괄 입력
   - `wordTest.bulkEntry`: 회차 + 반 ID 기준 수강생 명단과 기존 결과를 조회한다.
-  - `wordTest.bulkEnterResults`: 여러 학생의 점수/상태/메모를 한 번에 저장한다.
+  - `wordTest.bulkEnterResults`: 여러 학생의 맞은개수/상태/메모를 한 번에 저장한다.
   - 불통과 학생은 `clinic_tasks.source_type = WORD_FAIL` 후보로 자동 생성된다.
 - 학부모 리포트 실제화
   - `report.previewStudentReport`: 선택 학생의 기간별 출결·단어시험·클리닉 공개 메모를 요약한다.
@@ -217,4 +217,4 @@ Screen Split v1은 메뉴별 화면 전환 구조를 만들었다. App UI v2는 
 - Word-test entry now has a separate result-review table. After saving individual or bulk scores, staff can click **결과 확인** to verify saved rows without opening Supabase.
 - Parent-report snapshots are now visible in the report screen through **스냅샷 조회**.
 - The raw report JSON is still available for debugging, but it is hidden behind a details panel so the report screen feels less technical in normal use.
-- The UI still avoids score preset buttons; staff enter real scores directly, then use the verification table to review the saved results.
+- The UI still avoids score preset buttons; staff enter correct/total counts directly, then use the verification table to review the saved results.

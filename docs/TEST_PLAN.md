@@ -143,8 +143,8 @@ scripts/smoke-test.mjs
 | 클리닉 조회 | 상태별 조회와 학생 필터 조회 가능 |
 | 클리닉 상태 변경 | 목록에서 상태 변경 시 `updated_at`, `updated_by`, `clinic_logs` 반영 |
 | 단어시험 회차 | 회차 생성 후 목록에서 선택 가능 |
-| 점수 입력 | 학생 ID + 회차 ID + 점수 저장 가능 |
-| 불통과 자동 후보 | 기준점수 미만 저장 시 `clinic_tasks.source_type = WORD_FAIL` 후보 생성 |
+| 맞은개수 입력 | 학생 ID + 회차 ID + 점수 저장 가능 |
+| 불통과 자동 후보 | 통과개수 미만 저장 시 `clinic_tasks.source_type = WORD_FAIL` 후보 생성 |
 | Student 360 | 최근 클리닉과 최근 단어시험 결과 표시 |
 | 감사 로그 | 신규 write op가 `portal_audit_logs`에 best-effort 기록 |
 | 정적 계약 | `npm run contract-check`가 신규 id/op/schema를 확인 |
@@ -211,7 +211,7 @@ npm run verify
 
 1. 단어시험 회차를 생성한다.
 2. 회차 선택 후 반 ID를 확인하고 `명단 불러오기`를 누른다.
-3. 여러 학생 점수를 입력하고 `전체 저장`을 누른다.
+3. 여러 학생 맞은개수를 입력하고 `전체 저장`을 누른다.
 4. 불통과 학생이 `clinic_tasks` 후보로 생성되는지 확인한다.
 5. 학생을 선택한 뒤 리포트 화면에서 기간을 입력하고 `리포트 미리보기`를 누른다.
 6. 단어 평균, 출석일, 공개 클리닉 메모가 표시되는지 확인한다.
@@ -222,7 +222,7 @@ npm run verify
 
 1. Run `npm run verify`.
 2. Create or select a word-test session.
-3. Enter one student's score and click **결과 저장**.
+3. Enter one student's correct count and click **결과 저장**.
 4. Click **결과 확인** and confirm the saved row appears.
 5. Enter a failing score and confirm a WORD_FAIL clinic candidate is created.
 6. Change that same result to PASS or EXEMPT and confirm the linked WORD_FAIL clinic is marked DONE.

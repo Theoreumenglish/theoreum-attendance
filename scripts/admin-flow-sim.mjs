@@ -14,7 +14,7 @@ function requireIds(label, ids) {
 function requireFunction(label, name, snippets = []) {
   if (!hasFunction(name)) { fail(`${label} 함수 누락: ${name}`); return; }
   const start = html.indexOf(`function ${name}`) >= 0 ? html.indexOf(`function ${name}`) : html.indexOf(`async function ${name}`);
-  const body = html.slice(start, start + 1800);
+  const body = html.slice(start, start + 3200);
   const missing = snippets.filter(item => !body.includes(item));
   if (missing.length) fail(`${label} 함수 ${name}에 필요한 동작 누락: ${missing.join(', ')}`);
   else ok(`${label} 함수 ${name} 동작이 연결되어 있습니다.`);

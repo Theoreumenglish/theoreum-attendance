@@ -67,8 +67,8 @@
 | `clinic.createTemplate` | 클리닉 항목 추가 | 관리자/강사/조교 가능, audit 필수 |
 | `clinic.createTask` | 학생 클리닉 생성 | 후보/확정 분리 |
 | `clinic.updateTaskStatus` | 완료/부분완료/반려 처리 | 내부/학부모 공유 메모 분리 |
-| `wordTest.createSession` | 단어시험 회차 생성 | 범위, 기준점수 |
-| `wordTest.enterResult` | 학생별 점수 입력 | 불통과 시 후보 생성 |
+| `wordTest.createSession` | 단어시험 회차 생성 | 범위, 통과개수 |
+| `wordTest.enterResult` | 학생별 맞은개수 입력 | 불통과 시 후보 생성 |
 | `report.createDailyLink` | 일간 리포트 링크 생성 | 만료 링크 |
 | `report.createWeeklyLink` | 주간 리포트 링크 생성 | 학부모 공유 전용 |
 | `audit.searchLogs` | 감사 로그 조회 | 관리자 중심 |
@@ -109,7 +109,7 @@
 | `clinic.createTask` | assistant 이상 | 선택 학생에게 클리닉 task 생성 | 내부 메모와 학부모 공개 메모 분리 |
 | `clinic.updateTaskStatus` | assistant 이상 | 클리닉 상태 변경 | CANDIDATE/PENDING/IN_PROGRESS/DONE/PARTIAL/REJECTED/CANCELLED |
 | `wordTest.listSessions` | assistant 이상 | 단어시험 회차 조회 | 날짜/반 필터 지원 |
-| `wordTest.createSession` | assistant 이상 | 단어시험 회차 생성 | 범위, 기준점수, 만점 저장 |
+| `wordTest.createSession` | assistant 이상 | 단어시험 회차 생성 | 범위, 통과개수, 전체개수 저장 |
 | `wordTest.enterResult` | assistant 이상 | 학생별 단어시험 결과 저장 | 불통과 시 `clinic_tasks`에 WORD_FAIL 후보 자동 생성 |
 | `audit.searchLogs` | admin 이상 | 운영 감사 로그 조회 | `portal_audit_logs` 기반 |
 

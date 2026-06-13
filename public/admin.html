@@ -1586,7 +1586,7 @@
 <div class="quickDockMain">
 <div>
 <div class="quickKicker">빠른 처리</div>
-<div class="quickSelected" id="quickSelectedStudentText">학생을 고르면 출결·클리닉·점수 입력이 자동으로 연결됩니다.</div>
+<div class="quickSelected" id="quickSelectedStudentText">학생을 고르면 출결·클리닉·단어 입력이 자동으로 연결됩니다.</div>
 </div>
 <div class="quickSearch">
 <input autocomplete="off" class="inp" id="quickStudentQuery" placeholder="어디서든 학생 이름/학번 검색"/>
@@ -1597,7 +1597,7 @@
 <button class="quickActionBtn primary" id="btnPulseCheck" type="button">오늘 점검</button>
 <button class="quickActionBtn" id="btnQuickStudentLogs" type="button">출결 보기</button>
 <button class="quickActionBtn good" id="btnQuickStudentClinic" type="button">클리닉 만들기</button>
-<button class="quickActionBtn" id="btnQuickWordInput" type="button">점수 입력</button>
+<button class="quickActionBtn" id="btnQuickWordInput" type="button">단어 입력</button>
 </div>
 </div>
 <section class="portalView active" data-view-desc="오늘 처리할 일만 봅니다." data-view-title="오늘" id="dashboard">
@@ -1653,7 +1653,7 @@
 </button>
 <button class="commandButton" id="btnCommandWord" type="button">
 <span class="commandTitle">오늘 단어시험</span>
-<span class="commandDesc">회차 조회 후 점수 입력</span>
+<span class="commandDesc">회차 조회 후 맞은 개수 입력</span>
 </button>
 </div>
 <div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
@@ -1803,7 +1803,7 @@
 <strong>선택 학생 처리</strong>
 <button class="quickActionBtn" id="btnStudentLogsOneClick" type="button">오늘 로그</button>
 <button class="quickActionBtn warn" id="btnStudentClinicOneClick" type="button">클리닉</button>
-<button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">점수</button>
+<button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">단어</button>
 <button class="quickActionBtn" id="btnStudentReportOneClick" type="button">리포트</button>
 </div>
 </div>
@@ -1941,7 +1941,7 @@
 <tr>
 <th>날짜</th>
 <th>시험</th>
-<th>점수</th>
+<th>맞은/전체</th>
 <th>결과</th>
 <th>클리닉</th>
 </tr>
@@ -2033,7 +2033,7 @@
 <div class="cardHead">
 <div>
 <div class="sectionTitle">클리닉 생성</div>
-<div class="sectionDesc">학생 검색에서 선택한 학생에게 수업·단어·과제·출결 클리닉을 생성합니다.</div>
+<div class="sectionDesc">학생 검색에서 선택한 학생에게 수업 클리닉, 추가 클리닉, 개별 클리닉 중 하나를 생성합니다.</div>
 </div>
 <span class="statusPill good">DB 연결</span>
 </div>
@@ -2045,14 +2045,9 @@
 <div>
 <div class="fieldLabel">유형</div>
 <select class="select" id="clinicTaskType">
-<option value="GENERAL">일반</option>
-<option value="WORD">단어</option>
-<option value="GRAMMAR">문법</option>
-<option value="READING">독해</option>
-<option value="WRITING">라이팅</option>
-<option value="ATTENDANCE">출결</option>
-<option value="HOMEWORK">숙제</option>
-<option value="MAKEUP">보강</option>
+<option value="CLASS_CLINIC">수업 클리닉</option>
+<option value="EXTRA_CLINIC">추가 클리닉</option>
+<option value="INDIVIDUAL_CLINIC">개별 클리닉</option>
 </select>
 </div>
 <div>
@@ -2067,7 +2062,7 @@
 </div>
 <div style="margin-top:14px;">
 <div class="fieldLabel">제목</div>
-<input class="inp" id="clinicTitle" placeholder="예: Day 12 단어 재시험 / 6월 2주차 독해 오답"/>
+<input class="inp" id="clinicTitle" placeholder="예: 6월 2주차 수업 클리닉 / 단어 재시험"/>
 </div>
 <div class="formGrid cols2" style="margin-top:14px;">
 <div>
@@ -2130,7 +2125,7 @@
 
 <div class="emptyPanel" style="margin-top:16px;">
 <h3>운영 흐름</h3>
-<p>단어시험 불통과는 자동으로 CANDIDATE 후보가 됩니다. 직원이 확인 후 PENDING 또는 IN_PROGRESS로 넘기면 됩니다.</p>
+<p>단어시험 불통과는 추가 클리닉 후보가 됩니다. 직원은 수업/추가/개별 3종만 기준으로 관리하면 됩니다.</p>
 </div>
 </div>
 </div>
@@ -2168,7 +2163,7 @@
 <div class="cardHead">
 <div>
 <div class="sectionTitle">시험 회차 생성</div>
-<div class="sectionDesc">날짜, 범위, 통과 기준을 저장합니다. 반 ID를 넣으면 일괄 입력 명단을 바로 불러올 수 있습니다.</div>
+<div class="sectionDesc">날짜, 범위, 통과개수/전체개수를 저장합니다. 반 ID를 넣으면 일괄 입력 명단을 바로 불러올 수 있습니다.</div>
 </div>
 <span class="statusPill good">word_test_sessions</span>
 </div>
@@ -2182,10 +2177,10 @@
 <input class="inp" id="wordClassId" placeholder="예: C001"/>
 </div>
 <div>
-<div class="fieldLabel">통과/만점</div>
+<div class="fieldLabel">통과개수 / 전체개수</div>
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-<input class="inp" id="wordPassScore" inputmode="decimal" value="90"/>
-<input class="inp" id="wordMaxScore" inputmode="decimal" value="100"/>
+<input class="inp" id="wordPassScore" inputmode="numeric" value="90" placeholder="통과"/>
+<input class="inp" id="wordMaxScore" inputmode="numeric" value="100" placeholder="전체"/>
 </div>
 </div>
 </div>
@@ -2205,8 +2200,8 @@
 <div class="card cardPad">
 <div class="cardHead">
 <div>
-<div class="sectionTitle">개별 점수 입력</div>
-<div class="sectionDesc">학생 1명을 빠르게 입력할 때 사용합니다. 반 전체는 아래 일괄 입력을 사용합니다.</div>
+<div class="sectionTitle">개별 결과 입력</div>
+<div class="sectionDesc">학생 1명을 빠르게 입력할 때 사용합니다. 단어는 맞은개수/전체개수로 기록합니다.</div>
 </div>
 <span class="statusPill warn">자동 후보</span>
 </div>
@@ -2222,13 +2217,13 @@
 </div>
 <div class="formGrid cols3" style="margin-top:14px;">
 <div>
-<div class="fieldLabel">점수</div>
-<input class="inp" id="wordScore" inputmode="decimal" placeholder="예: 86"/><div class="fieldHint">Enter를 누르면 결과 저장</div>
+<div class="fieldLabel">맞은 개수</div>
+<input class="inp" id="wordScore" inputmode="numeric" placeholder="예: 18"/><div class="fieldHint">예: 18/20에서 18만 입력 · Enter 저장</div>
 </div>
 <div>
 <div class="fieldLabel">결과</div>
 <select class="select" id="wordResultStatus">
-<option value="">점수로 자동 판정</option>
+<option value="">맞은 개수로 자동 판정</option>
 <option value="PASS">통과</option>
 <option value="FAIL">불통과</option>
 <option value="ABSENT">미응시</option>
@@ -2281,7 +2276,7 @@
 <div class="cardHead">
 <div>
 <div class="sectionTitle">반 전체 일괄 입력</div>
-<div class="sectionDesc" id="wordBulkSummary">회차 선택 후 명단 불러오기를 누르면 수강생 점수를 한 번에 저장합니다.</div>
+<div class="sectionDesc" id="wordBulkSummary">회차 선택 후 명단 불러오기를 누르면 수강생 맞은 개수를 한 번에 저장합니다.</div>
 </div>
 <span class="statusPill good">bulk</span>
 </div>
@@ -2305,7 +2300,7 @@
 <tr>
 <th>학번</th>
 <th>이름</th>
-<th>점수</th>
+<th>맞은/전체</th>
 <th>상태</th>
 <th>메모</th>
 <th>클리닉</th>
@@ -2319,7 +2314,7 @@
 </div>
 <div class="card cardPad" style="margin-top:18px;">
 <div class="sectionTitle">최근 저장 결과</div>
-<div class="sectionDesc" id="wordResultSummary">결과 저장 후 여기에 표시됩니다.</div>
+<div class="sectionDesc" id="wordResultSummary">결과 저장 후 맞은개수/전체개수 형태로 표시됩니다.</div>
 <div class="mono" id="wordResultBox" style="margin-top:14px;">아직 저장된 결과가 없습니다.</div>
 </div>
 <div class="card cardPad" style="margin-top:18px;">
@@ -2332,7 +2327,7 @@
 </div>
 <div class="tableWrap" style="margin-top:14px;">
 <table class="table">
-<thead><tr><th>학생</th><th>점수</th><th>결과</th><th>클리닉</th><th>메모</th><th>수정</th></tr></thead>
+<thead><tr><th>학생</th><th>맞은/전체</th><th>결과</th><th>클리닉</th><th>메모</th><th>수정</th></tr></thead>
 <tbody id="wordResultsRows"><tr><td colspan="6" style="color:var(--muted);">결과 확인 전입니다.</td></tr></tbody>
 </table>
 </div>
@@ -2482,7 +2477,7 @@
 <div class="sectionDesc">기간 내 단어시험 결과입니다.</div>
 <div class="tableWrap" style="margin-top:14px;">
 <table class="table">
-<thead><tr><th>날짜</th><th>시험</th><th>점수</th><th>결과</th></tr></thead>
+<thead><tr><th>날짜</th><th>시험</th><th>맞은/전체</th><th>결과</th></tr></thead>
 <tbody id="reportWordRows"><tr><td colspan="4" style="color:var(--muted);">미리보기 전입니다.</td></tr></tbody>
 </table>
 </div>
@@ -2765,7 +2760,7 @@
       if (quickText) {
         quickText.textContent = App.selectedStudent && App.selectedStudent.student_id
           ? `${label} · 원클릭 업무 준비 완료`
-          : '학생을 고르면 출결·클리닉·점수 입력이 자동으로 연결됩니다.';
+          : '학생을 고르면 출결·클리닉·단어 입력이 자동으로 연결됩니다.';
       }
       const selected = $('#selectedStudent');
       if (selected && App.selectedStudent && App.selectedStudent.student_id) {
@@ -3851,7 +3846,7 @@
       const r = await rpc('clinic.createTask', {
         student_id: student.student_id,
         title,
-        task_type: $('#clinicTaskType').value || 'GENERAL',
+        task_type: $('#clinicTaskType').value || 'INDIVIDUAL_CLINIC',
         priority: $('#clinicPriority').value || 'NORMAL',
         due_date: $('#clinicDueDate').value || '',
         internal_note: $('#clinicInternalNote').value || '',
@@ -3904,7 +3899,7 @@
           <td class="wrap">${esc(row.title || '-')}</td>
           <td>${esc(row.class_id || '-')}</td>
           <td class="wrap">${esc(row.scope_text || '-')}</td>
-          <td>${esc(row.pass_score)} / ${esc(row.max_score)}</td>
+          <td>${esc(row.pass_count || row.pass_score)} / ${esc(row.total_count || row.max_score)}</td>
           <td><button class="btn btnGhost" type="button" data-word-session-id="${esc(row.session_id || '')}" data-word-pass="${esc(row.pass_score)}" data-word-max="${esc(row.max_score)}">선택</button></td>
         </tr>
       `).join('');
@@ -3951,6 +3946,8 @@
         yyyymmdd: ymd,
         class_id: ($('#wordClassId').value || '').trim(),
         scope_text: $('#wordScopeText').value || '',
+        pass_count: $('#wordPassScore').value || '90',
+        total_count: $('#wordMaxScore').value || '100',
         pass_score: $('#wordPassScore').value || '90',
         max_score: $('#wordMaxScore').value || '100'
       }, { timeoutMs: 30000 });
@@ -3977,6 +3974,7 @@
       const r = await rpc('wordTest.enterResult', {
         session_id: sessionId,
         student_id: sid,
+        correct_count: $('#wordScore').value || '',
         score: $('#wordScore').value || '',
         result_status: $('#wordResultStatus').value || '',
         note: $('#wordResultNote').value || '',
@@ -4003,7 +4001,7 @@
       const rows = Array.isArray(data.items) ? data.items : [];
       const summary = $('#wordResultsSummary');
       if (summary) summary.textContent = rows.length
-        ? `결과 ${rows.length}명 · 통과 ${data.pass_count || 0} · 불통과 ${data.fail_count || 0} · 미응시 ${data.absent_count || 0}`
+        ? `결과 ${rows.length}명 · 통과 ${data.pass_count || 0}명 · 불통과 ${data.fail_count || 0}명 · 미응시 ${data.absent_count || 0}`
         : '저장된 결과가 없습니다.';
       const box = $('#wordResultsRows');
       if (!box) return;
@@ -4014,11 +4012,11 @@
       box.innerHTML = rows.map(row => `
         <tr>
           <td class="wrap">${esc(row.student_id || '')} ${esc(row.student_name || '')}</td>
-          <td>${row.score == null ? '-' : esc(row.score)} / ${esc(row.max_score || '')}</td>
+          <td>${wordFractionText(row)}</td>
           <td><span class="statusPill ${wordStatusClass(row.result_status)}">${wordStatusLabel(row.result_status)}</span></td>
           <td>${row.clinic_task_id ? '<span class="statusPill warn">연결</span>' : '-'}</td>
           <td class="wrap">${esc(row.note || '')}</td>
-          <td><button class="btn btnGhost" type="button" data-word-result-edit="${esc(row.student_id || '')}" data-word-result-score="${row.score == null ? '' : esc(row.score)}" data-word-result-status="${esc(row.result_status || '')}" data-word-result-note="${esc(row.note || '')}">수정</button></td>
+          <td><button class="btn btnGhost" type="button" data-word-result-edit="${esc(row.student_id || '')}" data-word-result-score="${row.correct_count == null ? (row.score == null ? '' : esc(row.score)) : esc(row.correct_count)}" data-word-result-status="${esc(row.result_status || '')}" data-word-result-note="${esc(row.note || '')}">수정</button></td>
         </tr>
       `).join('');
       $$('[data-word-result-edit]').forEach(btn => {
@@ -4027,7 +4025,7 @@
           $('#wordScore').value = btn.dataset.wordResultScore || '';
           $('#wordResultStatus').value = btn.dataset.wordResultStatus || '';
           $('#wordResultNote').value = btn.dataset.wordResultNote || '';
-          showToast('개별 점수 입력 폼으로 불러왔습니다. 수정 후 결과 저장을 누르세요.');
+          showToast('개별 결과 입력 폼으로 불러왔습니다. 수정 후 결과 저장을 누르세요.');
         });
       });
     }
@@ -4061,7 +4059,7 @@
         <tr data-word-bulk-sid="${esc(row.student_id)}">
           <td>${esc(row.student_id)}</td>
           <td>${esc(row.student_name || '')}</td>
-          <td><input class="inp" data-word-bulk-score="${esc(row.student_id)}" inputmode="decimal" value="${row.score == null ? '' : esc(row.score)}" placeholder="점수"/></td>
+          <td><input class="inp" data-word-bulk-score="${esc(row.student_id)}" inputmode="numeric" value="${row.correct_count == null ? (row.score == null ? '' : esc(row.score)) : esc(row.correct_count)}" placeholder="맞은 개수"/></td>
           <td>
             <select class="select" data-word-bulk-status="${esc(row.student_id)}">
               <option value="" ${!row.result_status ? 'selected' : ''}>자동</option>
@@ -4111,10 +4109,10 @@
         const note = document.querySelector(`[data-word-bulk-note="${CSS.escape(sid)}"]`)?.value || '';
         const createClinic = (document.querySelector(`[data-word-bulk-clinic="${CSS.escape(sid)}"]`)?.value || 'Y') === 'Y';
         if (score || resultStatus || note) {
-          results.push({ student_id: sid, score, result_status: resultStatus, note, create_clinic: createClinic });
+          results.push({ student_id: sid, correct_count: score, score, result_status: resultStatus, note, create_clinic: createClinic });
         }
       });
-      if (!results.length) { showToast('저장할 점수나 상태가 없습니다.'); return; }
+      if (!results.length) { showToast('저장할 맞은 개수나 상태가 없습니다.'); return; }
       const r = await rpc('wordTest.bulkEnterResults', { session_id: sessionId, results }, { timeoutMs: 60000 });
       if (!r.ok) {
         showToast(r.error && r.error.message ? r.error.message : '단어시험 일괄 저장 실패');
@@ -4122,7 +4120,7 @@
         return;
       }
       const data = r.data || {};
-      $('#wordResultSummary').textContent = `일괄 저장 ${data.count || 0}명 · 통과 ${data.pass_count || 0} · 불통과 ${data.fail_count || 0} · 클리닉 생성 ${data.created_clinic_count || 0} · 자동완료 ${data.resolved_clinic_count || 0}`;
+      $('#wordResultSummary').textContent = `일괄 저장 ${data.count || 0}명 · 통과 ${data.pass_count || 0}명 · 불통과 ${data.fail_count || 0}명 · 클리닉 생성 ${data.created_clinic_count || 0} · 자동완료 ${data.resolved_clinic_count || 0}`;
       $('#wordResultBox').textContent = JSON.stringify(data, null, 2);
       showToast('단어시험 결과를 일괄 저장했습니다.');
       await loadWordBulkEntry();
@@ -4149,11 +4147,11 @@
       const clinic = summary.clinic || {};
       $('#reportSummaryText').textContent = `${student.student_id || ''} ${student.student_name || ''} · ${summary.period?.start || ''}~${summary.period?.end || ''}`.trim();
       $('#reportMetricAttendance').textContent = String(attendance.check_in_days ?? '-');
-      $('#reportMetricWordAvg').textContent = word.average_score == null ? '-' : String(word.average_score);
+      $('#reportMetricWordAvg').textContent = word.total_sum ? `${word.correct_sum || 0}/${word.total_sum} (${word.average_rate ?? '-'}%)` : '-';
       $('#reportMetricClinic').textContent = `${clinic.done_count || 0}/${clinic.count || 0}`;
       const wordRows = Array.isArray(word.recent) ? word.recent : [];
       $('#reportWordRows').innerHTML = wordRows.length ? wordRows.map(row => `
-        <tr><td>${esc(row.yyyymmdd || '')}</td><td class="wrap">${esc(row.session_title || row.session_id || '')}</td><td>${row.score == null ? '-' : esc(row.score)}</td><td><span class="statusPill ${wordStatusClass(row.result_status)}">${wordStatusLabel(row.result_status)}</span></td></tr>
+        <tr><td>${esc(row.yyyymmdd || '')}</td><td class="wrap">${esc(row.session_title || row.session_id || '')}</td><td>${wordFractionText(row)}</td><td><span class="statusPill ${wordStatusClass(row.result_status)}">${wordStatusLabel(row.result_status)}</span></td></tr>
       `).join('') : '<tr><td colspan="4" style="color:var(--muted);">기간 내 단어시험 결과가 없습니다.</td></tr>';
       const publicRows = Array.isArray(clinic.public_notes) ? clinic.public_notes : [];
       $('#reportClinicRows').innerHTML = publicRows.length ? publicRows.map(row => `
@@ -4217,7 +4215,7 @@
           <td>${shortTs(row.created_at)}</td>
           <td class="wrap">${esc(row.student_id || '')} ${esc(row.student_name || '')}</td>
           <td>${esc(row.period_type || '')}<br><span class="smallText">${esc(row.period_start || '')}~${esc(row.period_end || '')}</span></td>
-          <td>${row.word_average_score == null ? '-' : esc(row.word_average_score)}</td>
+          <td>${row.word_correct_sum != null && row.word_total_sum ? esc(row.word_correct_sum) + '/' + esc(row.word_total_sum) : (row.word_average_score == null ? '-' : esc(row.word_average_score))}</td>
           <td>${esc(row.clinic_summary || '')}</td>
           <td class="wrap">${esc(row.parent_note || '')}</td>
         </tr>
@@ -4295,7 +4293,7 @@
       $('#wordResultStudentId').value = student.student_id;
       $('#wordSessionYmd').value = $('#wordSessionYmd').value || kstYmd(new Date());
       jumpTo('words');
-      writeActionLog('선택 학생 단어 점수 입력 준비', selectedStudentLabel());
+      writeActionLog('선택 학생 단어 입력 준비', selectedStudentLabel());
       const score = $('#wordScore');
       if (score) score.focus();
     }
@@ -4336,108 +4334,6 @@
       await listWordSessions();
       writeActionLog('오늘 전체 점검 완료', '필요한 화면: 문자·알림 / 클리닉 / 단어시험에서 이어서 처리');
       showToast('오늘 전체 점검을 완료했습니다.');
-    }
-
-    const QUICK_CLINIC_PRESETS = {
-      WORD_RETEST: {
-        title: '단어 재시험 클리닉',
-        task_type: 'WORD',
-        priority: 'HIGH',
-        internal_note: '원클릭 생성: 단어 미흡 또는 불통과 학생 재시험 필요',
-        parent_note: '단어 복습 및 재시험 클리닉을 진행할 예정입니다.',
-        parent_visible: false
-      },
-      READING_REVIEW: {
-        title: '독해 오답 클리닉',
-        task_type: 'READING',
-        priority: 'NORMAL',
-        internal_note: '원클릭 생성: 독해 오답 근거 확인 및 재풀이 필요',
-        parent_note: '독해 오답을 다시 확인하고 보완할 예정입니다.',
-        parent_visible: false
-      },
-      HOMEWORK_MISSING: {
-        title: '숙제 미완료 클리닉',
-        task_type: 'HOMEWORK',
-        priority: 'HIGH',
-        internal_note: '원클릭 생성: 숙제 미완료 확인 및 보완 필요',
-        parent_note: '미완료 과제를 보완하도록 지도할 예정입니다.',
-        parent_visible: false
-      },
-      ATTENDANCE_CHECK: {
-        title: '출결 상담 클리닉',
-        task_type: 'ATTENDANCE',
-        priority: 'NORMAL',
-        internal_note: '원클릭 생성: 지각/결석/QR 문제 관련 확인 필요',
-        parent_note: '출결 관련 확인 후 필요한 내용을 안내드릴 예정입니다.',
-        parent_visible: false
-      },
-      MAKEUP_CLASS: {
-        title: '보강 필요 클리닉',
-        task_type: 'MAKEUP',
-        priority: 'NORMAL',
-        internal_note: '원클릭 생성: 결손 범위 보강 필요',
-        parent_note: '필요 범위를 확인해 보강을 진행할 예정입니다.',
-        parent_visible: false
-      }
-    };
-
-    async function createQuickClinicTask(kind) {
-      const student = selectedStudentOrToast();
-      if (!student) return;
-      const preset = QUICK_CLINIC_PRESETS[kind] || QUICK_CLINIC_PRESETS.WORD_RETEST;
-      const dueDate = $('#clinicDueDate').value || kstDateInput(1);
-      const r = await rpc('clinic.createTask', {
-        student_id: student.student_id,
-        title: preset.title,
-        task_type: preset.task_type,
-        priority: preset.priority,
-        due_date: dueDate,
-        internal_note: preset.internal_note,
-        parent_note: preset.parent_note,
-        parent_visible: preset.parent_visible
-      }, { timeoutMs: 30000 });
-      if (!r.ok) {
-        showToast(r.error && r.error.message ? r.error.message : '원클릭 클리닉 생성 실패');
-        showResult('원클릭 클리닉 생성 실패', r);
-        return;
-      }
-      $('#clinicStudentFilter').value = student.student_id;
-      $('#clinicStatusFilter').value = '';
-      writeActionLog('원클릭 클리닉 생성 완료', `${selectedStudentLabel()} · ${preset.title}`);
-      showToast('원클릭 클리닉을 생성했습니다.');
-      if (App.currentView !== 'clinic') jumpTo('clinic');
-      await loadClinicTasks();
-      await loadStudentProfile();
-    }
-
-    async function applyClinicFilter(status) {
-      $('#clinicStatusFilter').value = status;
-      writeActionLog('클리닉 필터 적용', status || '전체');
-      await loadClinicTasks();
-    }
-
-    async function applyNotifyFilter(spec) {
-      const [status, action] = String(spec || '').split('|');
-      $('#notifyQueueStatus').value = status || '';
-      $('#notifyQueueAction').value = action || '';
-      writeActionLog('문자 큐 필터 적용', `${status || '전체'} · ${action || '전체'}`);
-      await loadNotifyQueue();
-    }
-
-    async function quickSaveWordScore(score) {
-      if (score !== null && score !== undefined) {
-        $('#wordScore').value = String(score);
-        $('#wordResultStatus').value = '';
-      }
-      writeActionLog('단어시험 점수 원클릭 저장', `${selectedStudentLabel()} · ${score}점`);
-      await enterWordResult();
-    }
-
-    async function quickSaveWordStatus(status) {
-      $('#wordScore').value = '';
-      $('#wordResultStatus').value = status;
-      writeActionLog('단어시험 상태 원클릭 저장', `${selectedStudentLabel()} · ${wordStatusLabel(status)}`);
-      await enterWordResult();
     }
 
     function bindClick(id, handler) {
@@ -4520,26 +4416,6 @@
         el.addEventListener('keydown', e => {
           if (e.key === 'Enter' && (e.ctrlKey || id === 'wordScore')) enterWordResult();
         });
-      });
-
-      $$('[data-quick-clinic]').forEach(btn => {
-        btn.addEventListener('click', () => createQuickClinicTask(btn.dataset.quickClinic || 'WORD_RETEST'));
-      });
-
-      $$('[data-clinic-filter]').forEach(btn => {
-        btn.addEventListener('click', () => applyClinicFilter(btn.dataset.clinicFilter || ''));
-      });
-
-      $$('[data-notify-filter]').forEach(btn => {
-        btn.addEventListener('click', () => applyNotifyFilter(btn.dataset.notifyFilter || ''));
-      });
-
-      $$('[data-word-score-save]').forEach(btn => {
-        btn.addEventListener('click', () => quickSaveWordScore(btn.dataset.wordScoreSave || ''));
-      });
-
-      $$('[data-word-status-save]').forEach(btn => {
-        btn.addEventListener('click', () => quickSaveWordStatus(btn.dataset.wordStatusSave || ''));
       });
 
       ['loginId', 'loginPw'].forEach(id => {

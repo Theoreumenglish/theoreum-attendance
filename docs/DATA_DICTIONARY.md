@@ -101,9 +101,9 @@
 
 | 예정 테이블.컬럼 | 의미 | 메모 |
 | --- | --- | --- |
-| `word_test_sessions.session_id` | 단어시험 회차 ID | 범위/날짜/기준점수 |
-| `word_test_results.score` | 점수 | 숫자 |
-| `word_test_results.pass_yn` | 통과 여부 | 기준점수로 판정 |
+| `word_test_sessions.session_id` | 단어시험 회차 ID | 범위/날짜/통과개수 |
+| `word_test_results.score` | 맞은개수 | DB 컬럼명은 score 유지, 화면/API에서는 correct_count 별칭 사용 |
+| `word_test_results.result_status` | 통과 여부 | 맞은개수 >= 통과개수로 자동 판정 |
 | `word_test_results.wrong_count` | 틀린 개수 | 리포트/그래프 기반 |
 | `word_test_results.clinic_candidate_id` | 클리닉 후보 연결 | 자동 확정이 아니라 후보 생성 |
 
@@ -158,7 +158,7 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 ## First Complete Portal v1 운영 테이블 사용 상태
 
 - `word_test_sessions`: 단어시험 회차 저장 및 일괄 입력 기준 회차로 사용.
-- `word_test_results`: 개별/일괄 점수 입력 결과 저장. `(session_id, student_id)` unique upsert.
+- `word_test_results`: 개별/일괄 맞은개수 입력 결과 저장. `(session_id, student_id)` unique upsert.
 - `clinic_tasks`: 수동 클리닉 및 단어시험 불통과 자동 후보 저장.
 - `report_snapshots`: 학생별 기간 리포트 미리보기 결과를 JSON snapshot으로 저장.
 - `portal_audit_logs`: 클리닉, 단어시험, 리포트 주요 작업 감사 로그 저장.
