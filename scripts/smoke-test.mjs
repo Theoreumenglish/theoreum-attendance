@@ -72,6 +72,7 @@ if (staffId && password) {
   if (sessionToken) {
     assertOk('auth.me staff', await rpc('auth.me', { sessionToken }));
     assertOk('admin.getOpsOverview', await rpc('admin.getOpsOverview', { sessionToken }), { allowAuthFail: true });
+    assertOk('admin.finalReadiness', await rpc('admin.finalReadiness', { sessionToken }), { allowAuthFail: true });
     assertOk('clinic.listTasks', await rpc('clinic.listTasks', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('clinic.todayBoard', await rpc('clinic.todayBoard', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('wordTest.listSessions', await rpc('wordTest.listSessions', { sessionToken, limit: 1 }), { allowAuthFail: true });

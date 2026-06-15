@@ -2766,6 +2766,24 @@
 </div>
 </div>
 <div class="card cardPad">
+<div class="sectionTitle">최종 운영 체크</div>
+<div class="sectionDesc">2차 완성본 운영 전 마지막으로 DB, 연락처, 클리닉 알림, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 확인합니다.</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnFinalReadiness" type="button">최종 체크 실행</button>
+<button class="btn btnGhost" id="btnFinalReadinessGuide" type="button">체크 기준 보기</button>
+</div>
+<div class="emptyPanel" id="finalReadinessSummary" style="margin-top:16px;">
+<h3>최종 체크 전입니다.</h3>
+<p>배포 후 smoke-test가 통과한 다음 실행하면 실제 운영 준비 상태를 가장 정확하게 볼 수 있습니다.</p>
+</div>
+<div class="tableWrap" style="margin-top:16px;">
+<table class="table">
+<thead><tr><th>항목</th><th>상태</th><th>내용</th><th>다음 조치</th></tr></thead>
+<tbody id="finalReadinessRows"><tr><td colspan="4" style="color:var(--muted);">최종 체크를 실행하세요.</td></tr></tbody>
+</table>
+</div>
+</div>
+<div class="card cardPad">
 <div class="sectionTitle">작업 결과</div>
 <div class="sectionDesc">점검/동기화/실패 알림 조회 결과가 표시됩니다.</div>
 <div class="mono" id="resultBox" style="margin-top:14px;">작업 결과가 여기에 표시됩니다.</div>
@@ -4808,6 +4826,88 @@
     }
 
 
+
+    function readinessStatusLabel(value) {
+      const v = String(value || '').toUpperCase();
+      if (v === 'OK') return '정상';
+      if (v === 'WARN') return '확인 필요';
+      if (v === 'FAIL') return '조치 필요';
+      return v || '-';
+    }
+
+    function readinessStatusClass(value) {
+      const v = String(value || '').toUpperCase();
+      if (v === 'OK') return 'good';
+      if (v === 'FAIL') return 'bad';
+      return 'warn';
+    }
+
+    function readinessNextAction(section) {
+      const key = String(section?.key || '');
+      const status = String(section?.status || '').toUpperCase();
+      if (status === 'OK') return '추가 조치 없음';
+      if (key === 'schema') return 'Supabase 보강 SQL 적용 여부를 확인하세요.';
+      if (key === 'phone_coverage') return '중앙DB 학생/학부모 전화번호와 replica sync 매핑을 확인하세요.';
+      if (key === 'env') return 'Vercel 환경변수와 알림톡/SMS 키를 확인하세요.';
+      if (key === 'clinic_workflow') return '클리닉 업무판에서 열린 건을 확인하고 처리하세요.';
+      if (key === 'clinic_notify') return '문자 메뉴에서 실패 큐 last_error를 확인하세요.';
+      if (key === 'word_tests') return '단어시험 회차/결과를 실제 반 하나로 입력 테스트하세요.';
+      if (key === 'report_audit') return '리포트 스냅샷 저장과 감사 로그 조회를 1회 실행하세요.';
+      return '세부 내용을 확인하세요.';
+    }
+
+    function renderFinalReadiness(data) {
+      const summary = data?.summary || {};
+      const sections = Array.isArray(data?.sections) ? data.sections : [];
+      const status = String(data?.status || '').toUpperCase();
+      const summaryEl = $('#finalReadinessSummary');
+      if (summaryEl) {
+        const cls = readinessStatusClass(status);
+        summaryEl.innerHTML = `
+          <h3>최종 운영 체크: <span class="statusPill ${cls}">${readinessStatusLabel(status)}</span></h3>
+          <p>정상 ${esc(summary.ok || 0)}개 · 확인 필요 ${esc(summary.warn || 0)}개 · 조치 필요 ${esc(summary.fail || 0)}개</p>
+          <p>생성 시각: ${esc(shortTs(summary.generated_at || ''))}</p>
+        `;
+      }
+      const rows = $('#finalReadinessRows');
+      if (!rows) return;
+      if (!sections.length) {
+        rows.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">체크 결과가 없습니다.</td></tr>';
+        return;
+      }
+      rows.innerHTML = sections.map(item => `
+        <tr>
+          <td>${esc(item.label || item.key || '-')}</td>
+          <td><span class="statusPill ${readinessStatusClass(item.status)}">${esc(readinessStatusLabel(item.status))}</span></td>
+          <td>${esc(item.detail || '-')}</td>
+          <td>${esc(readinessNextAction(item))}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadFinalReadiness() {
+      const res = await rpc('admin.finalReadiness', {}, { timeoutMs: 35000 });
+      if (!res.ok) {
+        showToast(res.error?.message || '최종 운영 체크 실패');
+        showResult(res);
+        return;
+      }
+      renderFinalReadiness(res.data || {});
+      showToast('최종 운영 체크를 완료했습니다.');
+    }
+
+    function showFinalReadinessGuide() {
+      const guide = [
+        '최종 체크 기준',
+        '1. DB 필수 테이블/컬럼이 모두 있는지 확인',
+        '2. 학생/학부모 전화번호가 실제로 동기화됐는지 확인',
+        '3. 알림톡/SMS/cron/중앙DB 환경변수 준비 상태 확인',
+        '4. 오늘 클리닉 업무판과 클리닉 알림 큐 상태 확인',
+        '5. 단어시험, 리포트, 감사 로그가 실제 운영 데이터와 연결됐는지 확인'
+      ].join('\n');
+      showResult({ ok: true, data: guide });
+    }
+
     async function loadAuditLogs() {
       const r = await rpc('audit.searchLogs', {
         op: $('#auditOpFilter').value || '',
@@ -4963,6 +5063,8 @@
       bindClick('btnSaveReportSnapshot', saveReportSnapshot);
       bindClick('btnListReportSnapshots', listReportSnapshots);
       bindClick('btnLoadAuditLogs', loadAuditLogs);
+      bindClick('btnFinalReadiness', loadFinalReadiness);
+      bindClick('btnFinalReadinessGuide', showFinalReadinessGuide);
       bindClick('btnQuickStudentSearch', quickStudentSearch);
       bindClick('btnPulseCheck', runTodayPulse);
       bindClick('btnCommandPulse', runTodayPulse);

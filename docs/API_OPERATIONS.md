@@ -238,3 +238,9 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 - 목적: 수업 클리닉 묶음 또는 지정 task 목록을 일괄 상태 변경한다.
 - args: `source_id` 또는 `clinic_task_ids`, `status`, `class_id`, `task_type`, `due_date`, `title`, `open_only`
 - 감사 로그: `clinic.bulkUpdateStatus`
+
+## 최종 운영 체크 v1
+
+2차 완성본에는 `admin.finalReadiness`와 관리자 포털 `설정 → 최종 운영 체크`가 포함됩니다.
+이 기능은 DB 스키마, 연락처 동기화율, 환경변수, 클리닉 알림 queue, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 점검합니다.
+배포 후에는 `npm run smoke-test`와 함께 최종 운영 체크를 실행한 뒤 메뉴별 디테일 패치로 넘어갑니다.

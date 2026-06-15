@@ -232,3 +232,9 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 ## Performance indexes v2
 
 `docs/supabase-clinic-performance-v2.sql`은 운영 조회 속도 개선용 인덱스를 추가한다. 기존 데이터 구조를 바꾸지 않으며 재실행해도 안전하다.
+
+## 최종 운영 체크 v1
+
+2차 완성본에는 `admin.finalReadiness`와 관리자 포털 `설정 → 최종 운영 체크`가 포함됩니다.
+이 기능은 DB 스키마, 연락처 동기화율, 환경변수, 클리닉 알림 queue, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 점검합니다.
+배포 후에는 `npm run smoke-test`와 함께 최종 운영 체크를 실행한 뒤 메뉴별 디테일 패치로 넘어갑니다.

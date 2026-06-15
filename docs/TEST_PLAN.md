@@ -312,3 +312,9 @@ npm run smoke-test
 6. `열린 건 완료`로 해당 묶음이 DONE 처리되는지 확인한다.
 7. Supabase `clinic_logs`, `portal_audit_logs`에서 `BULK_STATUS_CHANGE`, `clinic.bulkUpdateStatus` 기록을 확인한다.
 8. 배포 후 `npm run smoke-test`에서 `clinic.todayBoard`까지 통과하는지 확인한다.
+
+## 최종 운영 체크 v1
+
+2차 완성본에는 `admin.finalReadiness`와 관리자 포털 `설정 → 최종 운영 체크`가 포함됩니다.
+이 기능은 DB 스키마, 연락처 동기화율, 환경변수, 클리닉 알림 queue, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 점검합니다.
+배포 후에는 `npm run smoke-test`와 함께 최종 운영 체크를 실행한 뒤 메뉴별 디테일 패치로 넘어갑니다.

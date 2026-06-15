@@ -31,12 +31,14 @@ const requiredFiles = [
   'docs/API_OPERATIONS.md',
   'docs/DATA_DICTIONARY.md',
   'docs/TEST_PLAN.md',
-  'scripts/smoke-test.mjs'
+  'scripts/smoke-test.mjs',
+  'scripts/final-readiness-check.mjs',
+  'docs/FINAL_READINESS_CHECKLIST.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'smoke-test', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -80,6 +82,9 @@ checkText('public/admin.html', 'bulkUpdateClinicGroup', '클리닉 그룹 일괄
 checkText('api/rpc.js', 'clinicTodayBoardDirect', '오늘 클리닉 업무판 API');
 checkText('api/rpc.js', 'clinicBulkUpdateStatusDirect', '클리닉 일괄 상태 변경 API');
 checkText('api/rpc.js', 'BULK_STATUS_CHANGE', '클리닉 일괄 처리 로그');
+checkText('api/rpc.js', 'adminFinalReadinessDirect', '최종 운영 체크 API');
+checkText('public/admin.html', 'btnFinalReadiness', '최종 운영 체크 UI');
+checkText('scripts/smoke-test.mjs', 'admin.finalReadiness', '실제 API smoke-test 최종 체크 포함');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

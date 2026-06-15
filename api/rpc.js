@@ -4478,6 +4478,175 @@ async function countNotifyQueueRows(supabase, status = '', actionPrefix = '') {
   return { ok: true, count: Number(count || 0) || 0, error: '' };
 }
 
+
+function finalCheckStatus(ok, warn = false) {
+  if (!ok) return 'FAIL';
+  return warn ? 'WARN' : 'OK';
+}
+
+function envPresence(name) {
+  return String(process.env[name] || '').trim() ? 'SET' : 'MISSING';
+}
+
+async function probeColumns(supabase, table, columns = []) {
+  try {
+    const { error } = await supabase
+      .from(table)
+      .select(columns.join(', '))
+      .limit(1);
+    return { ok: !error, error: error ? String(error.message || error) : '' };
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
+async function countRows(supabase, table, column = '*', apply = null) {
+  try {
+    let q = supabase.from(table).select(column, { count: 'exact', head: true });
+    if (typeof apply === 'function') q = apply(q);
+    const { count, error } = await q;
+    return { ok: !error, count: Number(count || 0), error: error ? String(error.message || error) : '' };
+  } catch (e) {
+    return { ok: false, count: 0, error: e?.message || String(e) };
+  }
+}
+
+function kstDateTextFromYmd(ymd) {
+  const v = String(ymd || '').replace(/[^0-9]/g, '');
+  if (v.length !== 8) return '';
+  return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;
+}
+
+async function adminFinalReadinessDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const todayDate = kstDateTextFromYmd(kstYmd());
+  const sections = [];
+
+  const add = (key, label, status, detail = '', meta = {}) => {
+    sections.push({ key, label, status, detail, meta });
+  };
+
+  const requiredProbes = [
+    ['students', ['student_id', 'student_name', 'student_phone', 'parent_phone']],
+    ['clinic_tasks', ['clinic_task_id', 'student_id', 'class_id', 'task_type', 'status', 'due_date', 'due_time', 'due_at', 'clinic_mode', 'auto_notice_enabled']],
+    ['clinic_logs', ['clinic_log_id', 'clinic_task_id', 'event_type', 'before_status', 'after_status', 'created_at']],
+    ['word_test_sessions', ['session_id', 'class_id', 'yyyymmdd', 'title', 'pass_score', 'max_score']],
+    ['word_test_results', ['result_id', 'session_id', 'student_id', 'score', 'max_score', 'pass_score', 'result_status', 'clinic_task_id']],
+    ['report_snapshots', ['report_snapshot_id', 'student_id', 'period_start', 'period_end', 'summary_json', 'created_at']],
+    ['attendance_notify_queue', ['queue_id', 'student_id', 'action_type', 'parent_phone', 'status', 'occurred_at', 'trace_id']],
+    ['portal_audit_logs', ['audit_id', 'op', 'target_type', 'target_id', 'actor_staff_id', 'created_at']]
+  ];
+
+  const schemaMeta = [];
+  for (const [table, columns] of requiredProbes) {
+    const probe = await probeColumns(supabase, table, columns);
+    schemaMeta.push({ table, ok: probe.ok, error: probe.error });
+  }
+  const schemaFails = schemaMeta.filter(x => !x.ok);
+  add(
+    'schema',
+    'DB 스키마/컬럼',
+    schemaFails.length ? 'FAIL' : 'OK',
+    schemaFails.length ? `${schemaFails.length}개 테이블/컬럼 점검 실패` : '필수 테이블과 컬럼이 모두 응답합니다.',
+    { tables: schemaMeta }
+  );
+
+  const totalStudents = await countRows(supabase, 'students', 'student_id');
+  const parentPhones = await countRows(supabase, 'students', 'student_id', q => q.not('parent_phone', 'is', null).neq('parent_phone', ''));
+  const studentPhones = await countRows(supabase, 'students', 'student_id', q => q.not('student_phone', 'is', null).neq('student_phone', ''));
+  const total = totalStudents.count || 0;
+  const parentRate = total ? Math.round((parentPhones.count / total) * 100) : 0;
+  const studentRate = total ? Math.round((studentPhones.count / total) * 100) : 0;
+  add(
+    'phone_coverage',
+    '학생/학부모 연락처',
+    finalCheckStatus(total > 0 && parentPhones.count > 0, total > 0 && studentRate < 80),
+    total ? `학생 ${total}명 · 학부모 연락처 ${parentPhones.count}명(${parentRate}%) · 학생 연락처 ${studentPhones.count}명(${studentRate}%)` : '학생 데이터가 없습니다.',
+    { total, parent_count: parentPhones.count, student_count: studentPhones.count, parent_rate: parentRate, student_rate: studentRate }
+  );
+
+  const envRequired = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+  const envOps = ['CENTRAL_GAS_WEBAPP_URL', 'CENTRAL_BRIDGE_SECRET', 'CRON_SECRET', 'NOTIFY_WORKER_KEY'];
+  const envAlim = ['NCP_ALIMTALK_SERVICE_ID', 'NCP_ACCESS_KEY', 'NCP_SECRET_KEY', 'NCP_PLUS_FRIEND_ID'];
+  const envTpl = ['TPL_CLINIC_RESERVATION_PARENT', 'TPL_CLINIC_RESERVATION_STUDENT', 'TPL_CLINIC_MISSING_PARENT', 'TPL_CLINIC_MISSING_STUDENT', 'TPL_CLINIC_ABSENCE_PARENT'];
+  const envSms = ['NCP_SMS_SERVICE_ID', 'NCP_SENS_FROM', 'NCP_CALLER', 'USE_SMS_FAILOVER', 'CLINIC_NOTIFY_SMS_AFTER_ALIM_FAIL'];
+  const envMeta = [...envRequired, ...envOps, ...envAlim, ...envTpl, ...envSms].map(name => ({ name, status: envPresence(name) }));
+  const missingRequired = envMeta.filter(x => envRequired.includes(x.name) && x.status !== 'SET');
+  const missingAlim = envMeta.filter(x => envAlim.includes(x.name) && x.status !== 'SET');
+  const missingOps = envMeta.filter(x => envOps.includes(x.name) && x.status !== 'SET');
+  add(
+    'env',
+    '운영 환경변수',
+    missingRequired.length ? 'FAIL' : (missingAlim.length || missingOps.length ? 'WARN' : 'OK'),
+    missingRequired.length ? '필수 서버 환경변수가 누락되었습니다.' : (missingAlim.length ? '알림톡 환경변수 일부가 없어 클리닉 알림이 실패할 수 있습니다.' : '필수 운영 환경변수 상태가 양호합니다.'),
+    { variables: envMeta }
+  );
+
+  const todayClinic = await countRows(supabase, 'clinic_tasks', 'clinic_task_id', q => q.eq('due_date', todayDate));
+  const todayOpenClinic = await countRows(supabase, 'clinic_tasks', 'clinic_task_id', q => q.eq('due_date', todayDate).not('status', 'in', '(DONE,PARTIAL,REJECTED,CANCELLED)'));
+  const classClinics = await countRows(supabase, 'clinic_tasks', 'clinic_task_id', q => q.eq('task_type', 'CLASS_CLINIC'));
+  const extraClinics = await countRows(supabase, 'clinic_tasks', 'clinic_task_id', q => q.eq('task_type', 'EXTRA_CLINIC'));
+  add(
+    'clinic_workflow',
+    '클리닉 업무 흐름',
+    finalCheckStatus(todayClinic.ok && classClinics.ok && extraClinics.ok, todayClinic.ok && todayOpenClinic.count > 30),
+    `오늘 클리닉 ${todayClinic.count}건 · 열린 건 ${todayOpenClinic.count}건 · 수업 클리닉 누적 ${classClinics.count}건 · 추가 클리닉 누적 ${extraClinics.count}건`,
+    { today: todayClinic.count, today_open: todayOpenClinic.count, class_total: classClinics.count, extra_total: extraClinics.count }
+  );
+
+  const clinicQueuePending = await countRows(supabase, 'attendance_notify_queue', 'queue_id', q => q.like('action_type', 'CLINIC_%').eq('status', 'PENDING'));
+  const clinicQueueFailed = await countRows(supabase, 'attendance_notify_queue', 'queue_id', q => q.like('action_type', 'CLINIC_%').eq('status', 'FAILED'));
+  const clinicQueueDone = await countRows(supabase, 'attendance_notify_queue', 'queue_id', q => q.like('action_type', 'CLINIC_%').eq('status', 'DONE'));
+  add(
+    'clinic_notify',
+    '클리닉 알림 큐',
+    clinicQueueFailed.count > 0 ? 'WARN' : 'OK',
+    `대기 ${clinicQueuePending.count}건 · 완료 ${clinicQueueDone.count}건 · 실패 ${clinicQueueFailed.count}건`,
+    { pending: clinicQueuePending.count, done: clinicQueueDone.count, failed: clinicQueueFailed.count }
+  );
+
+  const wordSessions = await countRows(supabase, 'word_test_sessions', 'session_id');
+  const wordResults = await countRows(supabase, 'word_test_results', 'result_id');
+  const wordFails = await countRows(supabase, 'word_test_results', 'result_id', q => q.eq('result_status', 'FAIL'));
+  add(
+    'word_tests',
+    '단어시험',
+    finalCheckStatus(wordSessions.ok && wordResults.ok, wordSessions.count === 0),
+    `회차 ${wordSessions.count}개 · 결과 ${wordResults.count}건 · 불통과 ${wordFails.count}건`,
+    { sessions: wordSessions.count, results: wordResults.count, fails: wordFails.count }
+  );
+
+  const reports = await countRows(supabase, 'report_snapshots', 'report_snapshot_id');
+  const audits = await countRows(supabase, 'portal_audit_logs', 'audit_id');
+  add(
+    'report_audit',
+    '리포트/감사 로그',
+    finalCheckStatus(reports.ok && audits.ok, reports.count === 0 || audits.count === 0),
+    `리포트 스냅샷 ${reports.count}건 · 감사 로그 ${audits.count}건`,
+    { reports: reports.count, audits: audits.count }
+  );
+
+  const summary = {
+    ok: sections.filter(x => x.status === 'OK').length,
+    warn: sections.filter(x => x.status === 'WARN').length,
+    fail: sections.filter(x => x.status === 'FAIL').length,
+    generated_at: nowIso(),
+    today_ymd: kstYmd()
+  };
+
+  return success({
+    status: summary.fail ? 'FAIL' : (summary.warn ? 'WARN' : 'OK'),
+    summary,
+    sections,
+    next_actions: sections
+      .filter(x => x.status !== 'OK')
+      .map(x => ({ key: x.key, label: x.label, status: x.status, detail: x.detail }))
+  });
+}
+
 async function adminGetOpsOverviewDirect(sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -5151,6 +5320,12 @@ export default async function handler(req, res) {
 
   if (op === 'admin.runCentralReplicaSync') {
     const result = await adminRunCentralReplicaSyncDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+
+  if (op === 'admin.finalReadiness') {
+    const result = await adminFinalReadinessDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
