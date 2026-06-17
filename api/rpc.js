@@ -41,6 +41,59 @@ import {
 
 const MAX_BODY_BYTES = 64 * 1024;
 
+const RPC_FAST_CACHE = new Map();
+
+function fastCacheSec(name, fallback = 20, max = 300) {
+  const envName = 'RPC_CACHE_' + String(name || '').toUpperCase() + '_SEC';
+  const n = Number(process.env[envName] || fallback);
+  return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : fallback;
+}
+
+function fastCacheGet(key) {
+  const hit = RPC_FAST_CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expire_ms) {
+    RPC_FAST_CACHE.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+function fastCacheSet(key, value, ttlSec) {
+  if (!ttlSec || ttlSec <= 0) return value;
+  RPC_FAST_CACHE.set(key, { value, expire_ms: Date.now() + ttlSec * 1000 });
+  if (RPC_FAST_CACHE.size > 300) {
+    const now = Date.now();
+    for (const [k, v] of RPC_FAST_CACHE.entries()) {
+      if (now > v.expire_ms) RPC_FAST_CACHE.delete(k);
+    }
+  }
+  return value;
+}
+
+function fastCacheDelPrefix(prefix) {
+  for (const key of RPC_FAST_CACHE.keys()) {
+    if (String(key).startsWith(prefix)) RPC_FAST_CACHE.delete(key);
+  }
+}
+
+function normalizeYmdInput(raw) {
+  const digits = String(raw || '').replace(/[^0-9]/g, '');
+  return digits.length === 8 ? digits : '';
+}
+
+function isActiveLikeClassStatus(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return true;
+  return !['deleted', 'delete', 'inactive', 'disabled', 'cancelled', 'canceled', '휴강', '삭제', '비활성'].includes(v);
+}
+
+function isActiveLikeScheduleStatus(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return true;
+  return !['deleted', 'delete', 'inactive', 'disabled', 'cancelled', 'canceled', '휴강', '삭제', '비활성'].includes(v);
+}
+
 function send(res, status, body) {
   res.status(status);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -124,7 +177,7 @@ function success(data) {
 }
 
 async function requireRole(sessionToken, needRole) {
-  const me = await authMeDirect(String(sessionToken || '').trim(), { touch: true });
+  const me = await authMeDirect(String(sessionToken || '').trim(), { touch: false });
 
   if (!me.loggedIn) {
     return { ok: false, out: fail(401, 'AUTH_REQUIRED', '로그인이 필요합니다.') };
@@ -334,6 +387,27 @@ async function adminSetSafeModeDirect(args = {}, sessionToken = '') {
 
 function envReady(name) {
   return !!String(process.env[name] || '').trim();
+}
+
+
+function mapClassOptionRow(row = {}, staffNameMap = {}, extra = {}) {
+  const classId = String(row?.class_id || '').trim();
+  const teacher = String(row?.teacher || '').trim();
+  const name = String(row?.class_name || row?.name || '').trim();
+  return {
+    ...extra,
+    class_id: classId,
+    name,
+    class_name: name,
+    teacher,
+    teacher_name: staffNameMap[String(teacher).toLowerCase()] || teacher,
+    start: String(row?.start || '').trim(),
+    end: String(row?.end || row?.['end'] || '').trim(),
+    room: String(row?.room || '').trim(),
+    alert_delay: String(row?.alert_delay || '').trim(),
+    alert_to: String(row?.alert_to || '').trim(),
+    status: String(row?.status || '').trim()
+  };
 }
 
 function toPositiveIntBounded(value, fallback, min = 1, max = 10080) {
@@ -1707,10 +1781,12 @@ async function adminFlushCacheDirect(args = {}, sessionToken = '') {
   }
 
   invalidateRuntimeMetaCache();
+  fastCacheDelPrefix('adminOpsOverview');
+  fastCacheDelPrefix('classOptions');
 
   return success({
     ok: true,
-    flushed: ['runtime_meta'],
+    flushed: ['runtime_meta', 'rpc_fast_cache'],
     flushed_at: nowIso()
   });
 }
@@ -1745,6 +1821,8 @@ async function adminRunCentralReplicaSyncDirect(args = {}, sessionToken = '') {
     { timeoutMs }
   );
 
+  fastCacheDelPrefix('classOptions');
+  fastCacheDelPrefix('adminOpsOverview');
   return result;
 }
 
@@ -1988,130 +2066,144 @@ async function assistantListClassOptionsDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
 
-  const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
+  const rawYmd = String(args.yyyymmdd || args.ymd || '').trim();
+  const yyyymmdd = normalizeYmdInput(rawYmd);
   const limit = Math.max(1, Math.min(1000, toPositiveInt(args.limit, 500)));
   const includeInactive = args.include_inactive === true || args.includeInactive === true;
+  const allowFallback = args.fallback !== false;
   const supabase = getSupabaseAdmin();
 
-  if (yyyymmdd && !isStrictYmd(yyyymmdd)) {
-    return fail(400, 'INVALID_INPUT', 'yyyymmdd는 8자리 숫자여야 합니다.');
+  if (rawYmd && !yyyymmdd) {
+    return fail(400, 'INVALID_INPUT', '날짜는 YYYYMMDD 또는 YYYY-MM-DD 형식으로 입력해 주세요.');
   }
 
+  const cacheKey = [
+    'classOptions',
+    yyyymmdd || 'all',
+    includeInactive ? 'Y' : 'N',
+    limit,
+    allowFallback ? 'fallback' : 'strict'
+  ].join('|');
+  const cached = fastCacheGet(cacheKey);
+  if (cached) return success({ ...cached, cache: { hit: true, ttl_sec: fastCacheSec('class_options', 45, 180) } });
+
+  const loadBaseClasses = async (reason = '') => {
+    const { data: classRows, error: classErr } = await supabase
+      .from('classes')
+      .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
+      .order('start', { ascending: true })
+      .limit(limit);
+
+    if (classErr) {
+      return { ok: false, error: classErr, items: [] };
+    }
+
+    const rows = (Array.isArray(classRows) ? classRows : [])
+      .filter(row => includeInactive || isActiveLikeClassStatus(row?.status));
+    const staffNameMap = await readStaffNameMap(
+      supabase,
+      rows.map(row => row?.teacher).filter(Boolean)
+    );
+
+    const items = rows
+      .map(row => mapClassOptionRow(row, staffNameMap, { source: reason ? 'classes_fallback' : 'classes' }))
+      .filter(item => item.class_id);
+
+    return { ok: true, items };
+  };
+
   if (yyyymmdd) {
-    let scheduleQuery = supabase
+    const { data: scheduleRows, error: scheduleErr } = await supabase
       .from('class_schedule')
       .select('yyyymmdd, class_id, class_name, teacher, start, end, status')
       .eq('yyyymmdd', yyyymmdd)
       .order('start', { ascending: true })
       .limit(limit);
 
-    if (!includeInactive) {
-      scheduleQuery = scheduleQuery.eq('status', 'SCHEDULED');
-    }
-
-    const { data: scheduleRows, error: scheduleErr } = await scheduleQuery;
-    if (scheduleErr) {
+    if (scheduleErr && !allowFallback) {
       return fail(500, 'DB_SELECT_FAILED', scheduleErr.message || 'class_schedule 조회 실패');
     }
 
-    const schedules = Array.isArray(scheduleRows) ? scheduleRows : [];
-    const classIds = Array.from(new Set(
-      schedules
-        .map(row => String(row?.class_id || '').trim())
-        .filter(Boolean)
-    ));
+    const schedules = (Array.isArray(scheduleRows) ? scheduleRows : [])
+      .filter(row => includeInactive || isActiveLikeScheduleStatus(row?.status));
 
-    const classMap = new Map();
-    if (classIds.length) {
-      const { data: classRows, error: classErr } = await supabase
-        .from('classes')
-        .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
-        .in('class_id', classIds)
-        .limit(classIds.length);
+    if (!scheduleErr && schedules.length) {
+      const classIds = Array.from(new Set(
+        schedules
+          .map(row => String(row?.class_id || '').trim())
+          .filter(Boolean)
+      ));
 
-      if (classErr) {
-        return fail(500, 'DB_SELECT_FAILED', classErr.message || 'classes 조회 실패');
+      const classMap = new Map();
+      if (classIds.length) {
+        const { data: classRows, error: classErr } = await supabase
+          .from('classes')
+          .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
+          .in('class_id', classIds)
+          .limit(classIds.length);
+
+        if (classErr) {
+          return fail(500, 'DB_SELECT_FAILED', classErr.message || 'classes 조회 실패');
+        }
+
+        for (const row of Array.isArray(classRows) ? classRows : []) {
+          const classId = String(row?.class_id || '').trim();
+          if (classId) classMap.set(classId, row);
+        }
       }
 
-      for (const row of Array.isArray(classRows) ? classRows : []) {
+      const staffNameMap = await readStaffNameMap(
+        supabase,
+        schedules.map(row => row?.teacher).filter(Boolean)
+      );
+
+      const items = schedules.map(row => {
         const classId = String(row?.class_id || '').trim();
-        if (classId) classMap.set(classId, row);
-      }
+        const classRow = classMap.get(classId) || {};
+        return mapClassOptionRow(
+          {
+            ...classRow,
+            ...row,
+            name: row?.class_name || classRow?.name || '',
+            room: classRow?.room || '',
+            alert_delay: classRow?.alert_delay || '',
+            alert_to: classRow?.alert_to || ''
+          },
+          staffNameMap,
+          { yyyymmdd, source: 'class_schedule' }
+        );
+      }).filter(item => item.class_id);
+
+      const out = { yyyymmdd, count: items.length, items, fallback: false };
+      fastCacheSet(cacheKey, out, fastCacheSec('class_options', 45, 180));
+      return success(out);
     }
 
-    const staffNameMap = await readStaffNameMap(
-      supabase,
-      schedules.map(row => row?.teacher).filter(Boolean)
-    );
+    const base = await loadBaseClasses(scheduleErr ? 'schedule_error' : 'schedule_empty');
+    if (!base.ok) {
+      const message = scheduleErr?.message || base.error?.message || '클래스 조회 실패';
+      return fail(500, 'DB_SELECT_FAILED', message);
+    }
 
-    const items = schedules.map(row => {
-      const classId = String(row?.class_id || '').trim();
-      const classRow = classMap.get(classId) || {};
-      const teacher = String(row?.teacher || classRow.teacher || '').trim();
-
-      return {
-        yyyymmdd,
-        class_id: classId,
-        name: String(row?.class_name || classRow.name || '').trim(),
-        class_name: String(row?.class_name || classRow.name || '').trim(),
-        teacher,
-        teacher_name: staffNameMap[String(teacher).toLowerCase()] || teacher,
-        start: String(row?.start || classRow.start || '').trim(),
-        end: String(row?.end || classRow.end || '').trim(),
-        room: String(classRow.room || '').trim(),
-        alert_delay: String(classRow.alert_delay || '').trim(),
-        alert_to: String(classRow.alert_to || '').trim(),
-        status: String(row?.status || classRow.status || '').trim()
-      };
-    }).filter(item => item.class_id);
-
-    return success({
+    const out = {
       yyyymmdd,
-      count: items.length,
-      items
-    });
-  }
-
-  let classQuery = supabase
-    .from('classes')
-    .select('class_id, name, teacher, start, end, room, alert_delay, alert_to, status')
-    .order('start', { ascending: true })
-    .limit(limit);
-  const { data: classRows, error: classErr } = await classQuery;
-  if (classErr) {
-    return fail(500, 'DB_SELECT_FAILED', classErr.message || 'classes 조회 실패');
-  }
-
-  const rows = Array.isArray(classRows) ? classRows : [];
-  const staffNameMap = await readStaffNameMap(
-    supabase,
-    rows.map(row => row?.teacher).filter(Boolean)
-  );
-
-  const items = rows.map(row => {
-    const teacher = String(row?.teacher || '').trim();
-    const classId = String(row?.class_id || '').trim();
-    const name = String(row?.name || '').trim();
-
-    return {
-      class_id: classId,
-      name,
-      class_name: name,
-      teacher,
-      teacher_name: staffNameMap[String(teacher).toLowerCase()] || teacher,
-      start: String(row?.start || '').trim(),
-      end: String(row?.end || '').trim(),
-      room: String(row?.room || '').trim(),
-      alert_delay: String(row?.alert_delay || '').trim(),
-      alert_to: String(row?.alert_to || '').trim(),
-      status: String(row?.status || '').trim()
+      count: base.items.length,
+      items: base.items,
+      fallback: true,
+      fallback_reason: scheduleErr ? 'class_schedule 조회 실패로 전체 클래스 목록을 표시했습니다.' : '해당 날짜 수업 일정이 없어 전체 클래스 목록을 표시했습니다.'
     };
-  }).filter(item => item.class_id);
+    fastCacheSet(cacheKey, out, fastCacheSec('class_options', 45, 180));
+    return success(out);
+  }
 
-  return success({
-    count: items.length,
-    items
-  });
+  const base = await loadBaseClasses('');
+  if (!base.ok) {
+    return fail(500, 'DB_SELECT_FAILED', base.error?.message || 'classes 조회 실패');
+  }
+
+  const out = { count: base.items.length, items: base.items, fallback: false };
+  fastCacheSet(cacheKey, out, fastCacheSec('class_options', 45, 180));
+  return success(out);
 }
 
 async function assistantListClassRosterDirect(args = {}, sessionToken = '') {
@@ -4651,6 +4743,10 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
 
+  const overviewCacheKey = 'adminOpsOverview';
+  const cachedOverview = fastCacheGet(overviewCacheKey);
+  if (cachedOverview) return success({ ...cachedOverview, cache: { hit: true, ttl_sec: fastCacheSec('ops_overview', 20, 120) } });
+
   const meta = await readRuntimeMeta(true);
   if (!meta.ok) {
     return fail(
@@ -4767,7 +4863,7 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
     ? minutesSinceIso(latestNotifyWorkerCronRun.created_at)
     : null;
 
-  return success({
+  const out = {
     safe: meta.data?.safe || {},
     kiosk_floor: meta.data?.kiosk_floor || '',
     central_replica: centralReplica,
@@ -4790,7 +4886,10 @@ async function adminGetOpsOverviewDirect(sessionToken = '') {
     },
     errors,
     checked_at: nowIso()
-  });
+  };
+
+  fastCacheSet(overviewCacheKey, out, fastCacheSec('ops_overview', 20, 120));
+  return success(out);
 }
 
 async function assertAbsenceExcuseTarget(supabase, classId, yyyymmdd, studentId) {

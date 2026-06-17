@@ -244,3 +244,16 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 2차 완성본에는 `admin.finalReadiness`와 관리자 포털 `설정 → 최종 운영 체크`가 포함됩니다.
 이 기능은 DB 스키마, 연락처 동기화율, 환경변수, 클리닉 알림 queue, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 점검합니다.
 배포 후에는 `npm run smoke-test`와 함께 최종 운영 체크를 실행한 뒤 메뉴별 디테일 패치로 넘어갑니다.
+
+## 클래스 조회/속도 개선 v1
+
+- `assistant.listClassOptions`는 날짜 미입력 시 전체 `classes` 목록을 조회한다.
+- 날짜 입력값은 `YYYYMMDD`, `YYYY-MM-DD`를 모두 허용한다.
+- 날짜에 해당하는 `class_schedule`이 비어 있거나 조회 실패하면, 운영자가 빈 화면을 보지 않도록 전체 `classes` 목록으로 fallback한다.
+- 클래스 조회 결과는 짧은 TTL 캐시를 사용한다. 기본값은 `RPC_CACHE_CLASS_OPTIONS_SEC=45`초다.
+- 운영 요약은 짧은 TTL 캐시를 사용한다. 기본값은 `RPC_CACHE_OPS_OVERVIEW_SEC=20`초다.
+- 보호 API 인증은 `AUTH_SESSION_CACHE_SEC=25`초 기본 메모리 캐시를 사용해 반복적인 세션/직원 조회와 `last_seen_at` 쓰기를 줄인다.
+
+권장 SQL:
+
+- `docs/supabase-class-speed-v1.sql`

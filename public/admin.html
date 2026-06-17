@@ -1961,14 +1961,14 @@
 <div class="cardHead">
 <div>
 <div class="sectionTitle">클래스 목록</div>
-<div class="sectionDesc">날짜를 입력하면 해당 날짜의 class_schedule을, 비우면 기본 classes 목록을 조회합니다.</div>
+<div class="sectionDesc">날짜를 비우면 전체 클래스, 날짜를 입력하면 해당 날짜 수업을 조회합니다. 일정이 없으면 전체 클래스 목록으로 자동 대체합니다.</div>
 </div>
 <span class="statusPill good">조회 전용</span>
 </div>
 <div class="formGrid cols3">
 <div>
 <div class="fieldLabel">날짜</div>
-<input class="inp" id="classYmd" inputmode="numeric" placeholder="YYYYMMDD / 비우면 전체"/>
+<input class="inp" id="classYmd" inputmode="numeric" placeholder="비우면 전체 · 20260617 또는 2026-06-17"/>
 </div>
 <div>
 <div class="fieldLabel">상태</div>
@@ -1996,7 +1996,7 @@
 </tr>
 </thead>
 <tbody id="classRows">
-<tr><td colspan="9" style="color:var(--muted);">조회 전입니다.</td></tr>
+<tr><td colspan="8" style="color:var(--muted);">조회 전입니다.</td></tr>
 </tbody>
 </table>
 </div>
@@ -3128,6 +3128,11 @@
         }
       }
 
+      if (viewId === 'classes' && !App.classListLoadedOnce) {
+        App.classListLoadedOnce = true;
+        setTimeout(() => loadClasses(), 0);
+      }
+
       if (options.scroll !== false) {
         const header = $('#pageHeader');
         if (header) header.scrollIntoView({ behavior: options.smooth === false ? 'auto' : 'smooth', block: 'start' });
@@ -3203,7 +3208,7 @@
       const today = kstYmd(new Date());
       $('#logYmd').value = today;
       const classYmd = $('#classYmd');
-      if (classYmd && !classYmd.value) classYmd.value = today;
+      if (classYmd && !classYmd.placeholder) classYmd.placeholder = '비우면 전체 · 예: ' + today;
       const staffYyyymm = $('#staffYyyymm');
       if (staffYyyymm && !staffYyyymm.value) staffYyyymm.value = today.slice(0, 6);
       const wordYmd = $('#wordSessionYmd');
@@ -3234,7 +3239,7 @@
       if (r.ok && r.data && r.data.loggedIn) {
         App.me = r.data;
         setView(true);
-        await loadOverview();
+        loadOverview();
         return;
       }
 
@@ -3263,7 +3268,7 @@
         App.me = r.data.staff || r.data;
         $('#loginPw').value = '';
         setView(true);
-        await loadOverview();
+        loadOverview();
         return;
       }
 
@@ -3409,13 +3414,23 @@
       `).join('');
     }
 
+    function normalizeYmdForUi(value) {
+      const digits = String(value || '').replace(/[^0-9]/g, '');
+      return digits.length === 8 ? digits : '';
+    }
+
     async function loadClasses() {
-      const yyyymmdd = ($('#classYmd').value || '').trim();
+      const rawYmd = ($('#classYmd').value || '').trim();
+      const yyyymmdd = normalizeYmdForUi(rawYmd);
+      if (rawYmd && !yyyymmdd) {
+        showToast('날짜는 20260617 또는 2026-06-17 형식으로 입력하세요.');
+        return;
+      }
       const includeInactive = ($('#classIncludeInactive').value || 'N') === 'Y';
-      const args = { limit: 200, include_inactive: includeInactive };
+      const args = { limit: 200, include_inactive: includeInactive, fallback: true };
       if (yyyymmdd) args.yyyymmdd = yyyymmdd;
 
-      const r = await rpc('assistant.listClassOptions', args, { timeoutMs: 30000 });
+      const r = await rpc('assistant.listClassOptions', args, { timeoutMs: 20000 });
       if (!r.ok) {
         showToast(r.error && r.error.message ? r.error.message : '클래스 조회 실패');
         showResult('클래스 조회 실패', r);
@@ -3426,8 +3441,9 @@
       renderClassRows(items);
       $('#classRosterRows').innerHTML = '<tr><td colspan="5" style="color:var(--muted);">클래스 목록에서 명단을 선택하세요.</td></tr>';
       $('#classRosterTitle').textContent = '수강생 명단';
-      $('#classRosterDesc').textContent = '클래스 ' + items.length + '개를 불러왔습니다.';
-      showToast('클래스 목록을 조회했습니다.');
+      const fallbackText = r.data && r.data.fallback ? ' · ' + (r.data.fallback_reason || '전체 클래스 목록으로 대체') : '';
+      $('#classRosterDesc').textContent = '클래스 ' + items.length + '개를 불러왔습니다.' + fallbackText;
+      showToast(r.data && r.data.fallback ? '해당 날짜 수업이 없어 전체 클래스 목록을 표시했습니다.' : '클래스 목록을 조회했습니다.');
     }
 
     async function loadClassRoster(classId, className) {

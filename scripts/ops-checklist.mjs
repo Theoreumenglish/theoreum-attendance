@@ -85,6 +85,11 @@ checkText('api/rpc.js', 'BULK_STATUS_CHANGE', '클리닉 일괄 처리 로그');
 checkText('api/rpc.js', 'adminFinalReadinessDirect', '최종 운영 체크 API');
 checkText('public/admin.html', 'btnFinalReadiness', '최종 운영 체크 UI');
 checkText('scripts/smoke-test.mjs', 'admin.finalReadiness', '실제 API smoke-test 최종 체크 포함');
+checkText('scripts/smoke-test.mjs', 'assistant.listClassOptions', '실제 API smoke-test 클래스 조회 포함');
+checkText('public/admin.html', '비우면 전체', '클래스 날짜 기본값 전체 조회 안내');
+checkText('api/rpc.js', 'classes_fallback', '클래스 일정 없음 fallback 조회');
+checkText('api/rpc.js', 'fastCacheSet(cacheKey', '클래스 조회 캐시');
+checkText('lib/staff-auth.js', 'AUTH_SESSION_CACHE', '세션 인증 캐시');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

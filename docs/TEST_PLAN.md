@@ -318,3 +318,11 @@ npm run smoke-test
 2차 완성본에는 `admin.finalReadiness`와 관리자 포털 `설정 → 최종 운영 체크`가 포함됩니다.
 이 기능은 DB 스키마, 연락처 동기화율, 환경변수, 클리닉 알림 queue, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 점검합니다.
 배포 후에는 `npm run smoke-test`와 함께 최종 운영 체크를 실행한 뒤 메뉴별 디테일 패치로 넘어갑니다.
+
+## 클래스 조회 / 속도 개선 v1 추가 점검
+
+- 클래스 메뉴 진입 시 날짜가 자동으로 오늘로 고정되지 않고, 비워두면 전체 클래스 목록을 조회한다.
+- 날짜는 `YYYYMMDD`와 `YYYY-MM-DD` 모두 허용한다.
+- 해당 날짜 `class_schedule`이 비어 있으면 전체 `classes` 목록으로 자동 대체된다.
+- live smoke-test는 `assistant.listClassOptions`를 포함한다.
+- 운영 속도 인덱스는 `docs/supabase-class-speed-v1.sql`을 실행해 적용한다.
