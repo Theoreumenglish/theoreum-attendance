@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <meta content="noindex,nofollow" name="robots"/>
-<title>더오름 운영 포털</title>
+<title>더오름</title>
 <style>
     :root {
       --bg: #f5f6f8;
@@ -2196,6 +2196,367 @@
       }
     }
 
+
+    /* UI/UX internal minimal v3: 내부 실사용용. 설명은 덜고 선택/처리만 남긴다. */
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #f9fafb;
+      --text: #111827;
+      --muted: #6b7280;
+      --soft: #9ca3af;
+      --line: #e5e7eb;
+      --line-2: #f1f3f5;
+      --accent: #111827;
+      --accent-soft: #f3f4f6;
+      --blue: #1d4ed8;
+      --green: #047857;
+      --amber: #b45309;
+      --red: #dc2626;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.055);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 9px;
+      --side-w: 232px;
+    }
+
+    html, body { background: var(--bg); color: var(--text); }
+
+    .loginWrap {
+      padding: 22px;
+      background:
+        linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
+    }
+
+    .loginCard {
+      width: min(392px, 100%);
+      min-height: auto;
+      grid-template-columns: 1fr !important;
+      border-radius: 24px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.10);
+      overflow: visible;
+    }
+
+    .loginIntro,
+    .loginIntro.simpleLoginIntro,
+    .loginHeadline,
+    .loginOpsChips {
+      display: none !important;
+    }
+
+    .loginForm {
+      min-height: 0;
+      padding: 34px;
+      justify-content: start;
+    }
+
+    .loginMiniBrand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    .loginMiniBrand .brandMark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: #111827;
+      color: #fff;
+    }
+
+    .loginMiniBrand strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .loginMiniBrand span {
+      display: block;
+      margin-top: 2px;
+      color: #9ca3af;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .loginFormTitle {
+      margin: 0 0 22px;
+      font-size: 24px;
+      letter-spacing: -0.045em;
+    }
+
+    .loginFormDesc,
+    .brandSub,
+    .pageDesc,
+    .sectionDesc,
+    .opsContextHint,
+    .fieldHint,
+    .smartBoardIntro,
+    .smartActionTile .b,
+    .emptyPanel p {
+      display: none !important;
+    }
+
+    .inp, .select, .textarea {
+      min-height: 42px;
+      border-radius: 12px;
+      border-color: #dfe3e8;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    .btn, .quickActionBtn, .commandButton {
+      min-height: 40px;
+      border-radius: 12px;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .btn:hover, .quickActionBtn:hover, .commandButton:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      transform: none !important;
+    }
+
+    .btnPri:hover { background: #0f172a; color:#fff; }
+
+    .shell { background: #f6f7f9; }
+
+    .side {
+      border-right: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: none;
+    }
+
+    .sideBrand { padding: 20px 18px 14px; }
+    .sideBrandText span { display: none; }
+    .sideSectionLabel { margin: 16px 18px 8px; color:#9ca3af; font-size:10px; }
+    .sideNav { padding: 0 12px; gap: 4px; }
+    .navBtn {
+      min-height: 38px;
+      border-radius: 10px;
+      color: #4b5563;
+      font-weight: 850;
+    }
+    .navBtn.on {
+      background: #111827;
+      color: #ffffff;
+      box-shadow: none;
+    }
+
+    .main { padding: 18px 20px 40px; }
+    .workspace { max-width: 1480px; }
+
+    .pageHeader {
+      position: sticky;
+      top: 0;
+      z-index: 18;
+      min-height: 58px;
+      margin-bottom: 12px;
+      padding: 10px 0 12px;
+      border: 0;
+      background: rgba(246, 247, 249, 0.86);
+      backdrop-filter: blur(14px);
+      box-shadow: none;
+    }
+
+    .pageKicker {
+      margin-bottom: 2px;
+      color: #9ca3af;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .12em;
+    }
+
+    .pageTitle { font-size: 24px; letter-spacing: -0.055em; }
+
+    .quickDock, .opsContextBar, .smartBoard, .card, .metricCard, .emptyPanel {
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .quickDock {
+      margin-bottom: 10px;
+      padding: 12px;
+    }
+
+    .quickDockMain { gap: 12px; }
+    .quickKicker { display:none; }
+    .quickSelected { font-size: 13px; color:#374151; font-weight:850; }
+    .quickActions { margin-top: 10px; gap: 8px; }
+    .quickActionBtn {
+      min-height: 38px;
+      padding: 0 13px;
+      border-radius: 11px;
+      font-size: 13px;
+    }
+
+    .opsContextBar {
+      position: sticky;
+      top: 70px;
+      z-index: 16;
+      grid-template-columns: minmax(260px, 1fr) minmax(240px, 1fr) auto;
+      margin: 0 0 10px;
+      padding: 12px;
+      backdrop-filter: blur(14px);
+    }
+
+    .opsContextLabel {
+      margin-bottom: 5px;
+      color: #9ca3af;
+      font-size: 10px;
+      letter-spacing: .08em;
+    }
+
+    .selectedContextBox {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      border-color: #e5e7eb;
+      border-radius: 12px;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    .contextPill {
+      min-height: 32px;
+      border-radius: 10px;
+      background: #f9fafb;
+      font-size: 12px;
+    }
+
+    .smartBoard {
+      display: block;
+      margin: 0 0 14px;
+      padding: 10px;
+    }
+
+    .smartActionGrid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .smartActionTile {
+      min-height: 58px;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #f9fafb;
+      box-shadow: none;
+    }
+
+    .smartActionTile:hover {
+      border-color: #111827;
+      background: #ffffff;
+      transform: none;
+    }
+
+    .smartActionTile .a {
+      font-size: 13px;
+      line-height: 1.2;
+      font-weight: 900;
+      color: #111827;
+    }
+
+    .cardPad { padding: 16px; }
+    .cardHead { align-items: center; margin-bottom: 12px; }
+    .sectionTitle { font-size: 16px; letter-spacing: -0.035em; }
+    .metricCard { padding: 16px; }
+    .metricValue { font-size: 26px; }
+    .metricNote { margin-top: 4px; }
+
+    details.compactDetails {
+      border-radius: 14px;
+      border-color: #e5e7eb;
+      background: #fbfcfd;
+    }
+
+    details.compactDetails > summary {
+      min-height: 42px;
+      padding: 0 14px;
+      font-weight: 900;
+    }
+
+    .tableWrap {
+      border-radius: 14px;
+      border-color: #e5e7eb;
+      box-shadow: none;
+    }
+
+    .table th {
+      height: 38px;
+      color: #6b7280;
+      background: #f9fafb;
+      font-size: 11px;
+      letter-spacing: .04em;
+    }
+
+    .table td { height: 42px; }
+    .table tbody tr:hover { background: #f8fafc; }
+
+    .workDrawer {
+      border-left: 1px solid #e5e7eb;
+      box-shadow: -18px 0 48px rgba(15, 23, 42, 0.12);
+    }
+
+    .toastStack .toast, .toast {
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.13);
+    }
+
+    body.fieldMode .side {
+      width: 74px;
+    }
+
+    body.fieldMode .sideBrandText,
+    body.fieldMode .sideSectionLabel,
+    body.fieldMode .sideFooter,
+    body.fieldMode .navBtn span {
+      display: none !important;
+    }
+
+    body.fieldMode .shell { grid-template-columns: 74px minmax(0, 1fr); }
+    body.fieldMode .navBtn { justify-content: center; padding: 0; }
+
+    @media (max-width: 1180px) {
+      .smartActionGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 900px) {
+      .shell { display: block; }
+      .side {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        height: auto;
+        overflow-x: auto;
+        display: block;
+        padding: 8px;
+      }
+      .sideBrand, .sideSectionLabel, .sideFooter { display: none !important; }
+      .sideNav { display: flex; padding: 0; }
+      .navBtn { white-space: nowrap; min-width: 74px; }
+      .main { padding: 12px; }
+      .pageHeader, .opsContextBar { position: static; }
+      .quickDockMain, .opsContextBar { grid-template-columns: 1fr; }
+      .smartActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 560px) {
+      .loginForm { padding: 28px 22px; }
+      .smartActionGrid { grid-template-columns: 1fr; }
+      .topTools { gap: 6px; }
+      .topTools .btn { min-height: 36px; padding: 0 10px; }
+    }
+
   </style>
 </head>
 <body>
@@ -2206,12 +2567,12 @@
 <div class="loginBrand">
 <div class="brandMark">↑</div>
 <div>
-<div class="brandTitle">더오름 운영 포털</div>
+<div class="brandTitle">더오름</div>
 <div class="brandSub">직원 전용</div>
 </div>
 </div>
 <div class="loginHeadline">
-<h1>더오름 운영 포털</h1>
+<h1>더오름</h1>
 <p>출결·클리닉·단어시험을 처리하는 직원 로그인 화면입니다.</p>
 <div class="loginOpsChips" aria-label="운영 포털 핵심 기능">
 <span class="loginOpsChip">출결 처리</span>
@@ -2222,6 +2583,10 @@
 </div>
 </div>
 <div class="loginForm">
+<div class="loginMiniBrand" aria-label="더오름">
+  <div class="brandMark">↑</div>
+  <div><strong>더오름</strong><span>Operations</span></div>
+</div>
 <h2 class="loginFormTitle">직원 로그인</h2>
 <p class="loginFormDesc">직원 ID와 비밀번호를 입력해 주세요.</p>
 <div class="fieldStack">
@@ -2233,7 +2598,7 @@
 <div class="fieldLabel">비밀번호</div>
 <input autocomplete="current-password" class="inp" id="loginPw" placeholder="비밀번호" type="password"/>
 </div>
-<button class="btn btnPri" id="btnLogin" style="height:54px; font-size:16px;" type="button">운영 포털 로그인</button>
+<button class="btn btnPri" id="btnLogin" style="height:54px; font-size:16px;" type="button">로그인</button>
 <div class="smallText" id="loginMsg"></div>
 </div>
 </div>
@@ -2244,7 +2609,7 @@
 <div class="sideBrand">
 <div class="brandMark">↑</div>
 <div class="sideBrandText">
-<strong>더오름 운영 포털</strong>
+<strong>더오름</strong>
 <span>Staff Operations</span>
 </div>
 </div>
@@ -2291,10 +2656,10 @@
 <div class="quickDockMain">
 <div>
 <div class="quickKicker">빠른 처리</div>
-<div class="quickSelected" id="quickSelectedStudentText">학생을 고르면 출결·클리닉·단어 입력이 자동으로 연결됩니다.</div>
+<div class="quickSelected" id="quickSelectedStudentText">학생 미선택</div>
 </div>
 <div class="quickSearch">
-<input autocomplete="off" class="inp" id="quickStudentQuery" placeholder="어디서든 학생 이름/학번 검색"/>
+<input autocomplete="off" class="inp" id="quickStudentQuery" placeholder="학생 이름/학번 검색"/>
 <button class="btn btnPri" id="btnQuickStudentSearch" type="button">학생 찾기</button>
 </div>
 </div>
@@ -2311,30 +2676,30 @@
 <select class="select selectCompact" id="opsClassSelect">
 <option value="">클래스 목록 불러오는 중…</option>
 </select>
-<div class="opsContextHint">반 ID를 직접 치지 말고 여기서 고르면 클리닉·단어·미등원 예외에 자동 적용됩니다.</div>
+<div class="opsContextHint"></div>
 </div>
 <div class="opsContextItem">
 <div class="opsContextLabel">선택 학생</div>
-<div class="selectedContextBox" id="opsSelectedStudentBox">학생 미선택 · 상단 검색이나 각 메뉴 검색에서 선택하세요.</div>
+<div class="selectedContextBox" id="opsSelectedStudentBox">학생 미선택</div>
 </div>
 <div class="opsContextPills">
 <span class="contextPill" id="opsClassPill">클래스 미선택</span>
-<span class="contextPill" id="opsModePill">딸깍 선택 모드</span>
+<span class="contextPill" id="opsModePill">작업 모드</span>
 </div>
 </div>
 <div class="smartBoard" id="smartBoard" aria-label="딸깍 업무 보드">
 <div class="smartBoardIntro">
-<div class="kicker">Click-first Workflow</div>
-<strong>자주 하는 일은 입력하지 말고 선택해서 처리하세요.</strong>
-<p>상단에서 클래스와 학생을 고르면 클리닉·단어시험·리포트·미등원 예외가 자동으로 이어집니다.</p>
+<div class="kicker">작업 바로가기</div>
+<strong>자주 쓰는 작업</strong>
+<p></p>
 </div>
 <div class="smartActionGrid">
-<div class="smartActionTile blue" role="button" tabindex="0" data-smart-action="classRoster"><div class="a">선택 반 명단</div><div class="b">작업 클래스를 기준으로 수강생을 바로 확인</div></div>
-<div class="smartActionTile good" role="button" tabindex="0" data-smart-action="classClinic"><div class="a">수업 클리닉</div><div class="b">선택 반 전체에 오늘 할 일 생성 준비</div></div>
-<div class="smartActionTile warn" role="button" tabindex="0" data-smart-action="wordBulk"><div class="a">단어 일괄 입력</div><div class="b">선택 반 기준으로 회차·명단 입력 연결</div></div>
-<div class="smartActionTile" role="button" tabindex="0" data-smart-action="studentClinic"><div class="a">선택 학생 클리닉</div><div class="b">학생을 고른 뒤 개별/추가 클리닉으로 이동</div></div>
-<div class="smartActionTile blue" role="button" tabindex="0" data-smart-action="studentReport"><div class="a">학부모 리포트</div><div class="b">선택 학생 기준으로 이번 주 리포트 준비</div></div>
-<div class="smartActionTile" role="button" tabindex="0" data-smart-action="absenceExcuse"><div class="a">미등원 예외</div><div class="b">선택 반 기준으로 카톡 X/지각 연락 관리</div></div>
+<div class="smartActionTile blue" role="button" tabindex="0" data-smart-action="classRoster"><div class="a">선택 반 명단</div><div class="b">명단 확인</div></div>
+<div class="smartActionTile good" role="button" tabindex="0" data-smart-action="classClinic"><div class="a">수업 클리닉</div><div class="b">반 전체 생성</div></div>
+<div class="smartActionTile warn" role="button" tabindex="0" data-smart-action="wordBulk"><div class="a">단어 일괄 입력</div><div class="b">일괄 입력</div></div>
+<div class="smartActionTile" role="button" tabindex="0" data-smart-action="studentClinic"><div class="a">선택 학생 클리닉</div><div class="b">클리닉 생성</div></div>
+<div class="smartActionTile blue" role="button" tabindex="0" data-smart-action="studentReport"><div class="a">학부모 리포트</div><div class="b">리포트 작성</div></div>
+<div class="smartActionTile" role="button" tabindex="0" data-smart-action="absenceExcuse"><div class="a">미등원 예외</div><div class="b">예외 관리</div></div>
 </div>
 </div>
 <section class="portalView active" data-view-desc="오늘 처리할 일만 봅니다." data-view-title="오늘" id="dashboard">
@@ -4039,7 +4404,7 @@
       if (quickText) {
         quickText.textContent = App.selectedStudent && App.selectedStudent.student_id
           ? `${label} · 원클릭 업무 준비 완료`
-          : '학생을 고르면 출결·클리닉·단어 입력이 자동으로 연결됩니다.';
+          : '학생 미선택';
       }
       const selected = $('#selectedStudent');
       if (selected && App.selectedStudent && App.selectedStudent.student_id) {
@@ -4058,7 +4423,7 @@
       if (opsStudentBox) {
         opsStudentBox.textContent = App.selectedStudent && App.selectedStudent.student_id
           ? `${label} · 출결/클리닉/단어/리포트에 연결됨`
-          : '학생 미선택 · 상단 검색이나 각 메뉴 검색에서 선택하세요.';
+          : '학생 미선택';
       }
       if (App.drawerContext && App.drawerContext.kind === 'student') openWorkDrawer('student', App.selectedStudent || {});
     }
@@ -4411,7 +4776,7 @@
       document.body.classList.toggle('fieldMode', App.uiMode === 'field');
       localStorage.setItem('OPS_UI_MODE', App.uiMode);
       const pill = $('#opsModePill');
-      if (pill) pill.textContent = App.uiMode === 'field' ? '현장/태블릿 모드' : '딸깍 선택 모드';
+      if (pill) pill.textContent = App.uiMode === 'field' ? '현장/태블릿 모드' : '작업 모드';
       if (!options.silent) showToast(App.uiMode === 'field' ? '현장 모드로 전환했습니다.' : '일상 업무 모드로 전환했습니다.');
     }
 
@@ -4573,11 +4938,11 @@
 
     function updatePageHeader(view) {
       const title = view.dataset.viewTitle || '홈';
-      const desc = view.dataset.viewDesc || '운영 포털 화면입니다.';
+      const desc = '';
       $('#pageTitle').textContent = title;
       $('#pageDesc').textContent = desc;
-      $('#pageKicker').textContent = view.id === 'qrCenter' ? '출결 보조 화면' : '운영 포털';
-      document.title = '더오름 운영 포털 · ' + title;
+      $('#pageKicker').textContent = view.id === 'qrCenter' ? '출결' : 'THE OREUM';
+      document.title = '더오름 · ' + title;
     }
 
     function showPortalView(id, options = {}) {
