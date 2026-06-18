@@ -76,6 +76,7 @@ if (staffId && password) {
     assertOk('clinic.listTasks', await rpc('clinic.listTasks', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('clinic.todayBoard', await rpc('clinic.todayBoard', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('assistant.listClassOptions', await rpc('assistant.listClassOptions', { sessionToken, limit: 5, fallback: true }), { allowAuthFail: true });
+    assertOk('admin.master.searchStudents', await rpc('admin.master.searchStudents', { sessionToken, q: '0', limit: 1 }), { allowAuthFail: true });
     assertOk('wordTest.listSessions', await rpc('wordTest.listSessions', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('report.listSnapshots', await rpc('report.listSnapshots', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('auth.logout', await rpc('auth.logout', { sessionToken }));

@@ -1955,15 +1955,15 @@
 </div>
 </div>
 </section>
-<section class="portalView" data-view-desc="반, 시간표, 수강생, 담당 선생님을 조회하고 roster를 빠르게 확인합니다." data-view-title="클래스" id="classes">
+<section class="portalView" data-view-desc="중앙DB 웹앱의 클래스/학생/반 배정 관리를 운영 포털에서 처리합니다." data-view-title="클래스" id="classes">
 <div class="grid2">
 <div class="card cardPad">
 <div class="cardHead">
 <div>
 <div class="sectionTitle">클래스 목록</div>
-<div class="sectionDesc">날짜를 비우면 전체 클래스, 날짜를 입력하면 해당 날짜 수업을 조회합니다. 일정이 없으면 전체 클래스 목록으로 자동 대체합니다.</div>
+<div class="sectionDesc">날짜를 비우면 전체 클래스, 날짜를 입력하면 해당 날짜 수업을 조회합니다. 명단·수정·삭제·반 배정을 여기서 처리합니다.</div>
 </div>
-<span class="statusPill good">조회 전용</span>
+<span class="statusPill good">중앙DB 이관</span>
 </div>
 <div class="formGrid cols3">
 <div>
@@ -1977,8 +1977,9 @@
 <option value="Y">비활성/취소 포함</option>
 </select>
 </div>
-<div style="display:flex; align-items:end;">
+<div style="display:flex; align-items:end; gap:8px;">
 <button class="btn btnPri" id="btnLoadClasses" style="width:100%;" type="button">클래스 조회</button>
+<button class="btn btnGhost" id="btnNewMasterClass" style="width:100%;" type="button">새 클래스</button>
 </div>
 </div>
 <div class="tableWrap" style="margin-top:18px;">
@@ -1992,7 +1993,7 @@
 <th>교실</th>
 <th>알림</th>
 <th>상태</th>
-<th>명단</th>
+<th>관리</th>
 </tr>
 </thead>
 <tbody id="classRows">
@@ -2004,11 +2005,89 @@
 <div class="card cardPad">
 <div class="cardHead">
 <div>
-<div class="sectionTitle" id="classRosterTitle">수강생 명단</div>
+<div class="sectionTitle">클래스 생성/수정</div>
+<div class="sectionDesc">중앙DB CLASSES를 포털에서 직접 수정합니다. 저장 후 Supabase replica가 즉시 갱신됩니다.</div>
+</div>
+<span class="statusPill warn">teacher+</span>
+</div>
+<div class="formGrid cols2" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">class_id</div>
+<input class="inp" id="masterClassId" placeholder="새 클래스는 비워도 자동 생성"/>
+</div>
+<div>
+<div class="fieldLabel">클래스명</div>
+<input class="inp" id="masterClassName" placeholder="예: 해송고2 심화"/>
+</div>
+<div>
+<div class="fieldLabel">담당 직원 ID</div>
+<input class="inp" id="masterClassTeacher" placeholder="예: teacher01"/>
+</div>
+<div>
+<div class="fieldLabel">강의실</div>
+<input class="inp" id="masterClassRoom" placeholder="예: 301호"/>
+</div>
+<div>
+<div class="fieldLabel">시작 시간</div>
+<input class="inp" id="masterClassStart" placeholder="19:00"/>
+</div>
+<div>
+<div class="fieldLabel">종료 시간</div>
+<input class="inp" id="masterClassEnd" placeholder="21:00"/>
+</div>
+</div>
+<div style="margin-top:14px;">
+<div class="fieldLabel">요일</div>
+<div class="btnRow" id="masterClassDays">
+<label class="tag"><input type="checkbox" value="MON"/> 월</label>
+<label class="tag"><input type="checkbox" value="TUE"/> 화</label>
+<label class="tag"><input type="checkbox" value="WED"/> 수</label>
+<label class="tag"><input type="checkbox" value="THU"/> 목</label>
+<label class="tag"><input type="checkbox" value="FRI"/> 금</label>
+<label class="tag"><input type="checkbox" value="SAT"/> 토</label>
+<label class="tag"><input type="checkbox" value="SUN"/> 일</label>
+</div>
+</div>
+<div class="formGrid cols2" style="margin-top:14px;">
+<div>
+<div class="fieldLabel">미등원 알림 지연</div>
+<input class="inp" id="masterClassAlertDelay" placeholder="예: 5,20"/>
+</div>
+<div>
+<div class="fieldLabel">알림 대상</div>
+<select class="select" id="masterClassAlertTo">
+<option value="parent">학부모</option>
+<option value="student">학생</option>
+<option value="both">학생+학부모</option>
+</select>
+</div>
+</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnSaveMasterClass" type="button">클래스 저장</button>
+<button class="btn btnGhost" id="btnDeleteMasterClass" type="button">클래스 삭제</button>
+</div>
+<div class="smallText" id="masterClassMsg">새 클래스는 class_id를 비워두면 중앙DB에서 자동 생성됩니다.</div>
+</div>
+</div>
+<div class="grid2" style="margin-top:18px;">
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle" id="classRosterTitle">수강생 명단/배정</div>
 <div class="sectionDesc" id="classRosterDesc">클래스 목록에서 명단을 선택하세요.</div>
 </div>
+<span class="statusPill good">roster</span>
 </div>
-<div class="tableWrap">
+<div class="formGrid cols2" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">추가할 학번</div>
+<input class="inp" id="rosterAddStudentIds" placeholder="예: 0001, 0002 또는 줄바꿈"/>
+</div>
+<div style="display:flex; align-items:end;">
+<button class="btn btnPri" id="btnAddRosterStudents" style="width:100%;" type="button">수강생 추가</button>
+</div>
+</div>
+<div class="tableWrap" style="margin-top:18px;">
 <table class="table">
 <thead>
 <tr>
@@ -2017,13 +2096,91 @@
 <th>학교</th>
 <th>학년</th>
 <th>상태</th>
+<th>관리</th>
 </tr>
 </thead>
 <tbody id="classRosterRows">
-<tr><td colspan="5" style="color:var(--muted);">선택된 클래스가 없습니다.</td></tr>
+<tr><td colspan="6" style="color:var(--muted);">선택된 클래스가 없습니다.</td></tr>
 </tbody>
 </table>
 </div>
+</div>
+<div class="card cardPad">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">학생DB 추가/수정</div>
+<div class="sectionDesc">중앙DB 학생DB를 포털에서 직접 생성·수정합니다. 학생 휴대폰/학부모 휴대폰도 이 값이 기준입니다.</div>
+</div>
+<span class="statusPill warn">admin</span>
+</div>
+<div class="formGrid cols2" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">학생 검색</div>
+<input class="inp" id="masterStudentQuery" placeholder="이름/학번/전화번호"/>
+</div>
+<div style="display:flex; align-items:end; gap:8px;">
+<button class="btn btnPri" id="btnMasterStudentSearch" style="width:100%;" type="button">학생 검색</button>
+<button class="btn btnGhost" id="btnClearMasterStudent" style="width:100%;" type="button">새 학생</button>
+</div>
+</div>
+<div class="list" id="masterStudentSearchRows" style="margin-top:12px;"><div class="smallText">검색 후 선택하면 아래 폼에 들어갑니다.</div></div>
+<div class="formGrid cols2" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">학번</div>
+<input class="inp" id="masterStudentId" inputmode="numeric" placeholder="비워두면 중앙DB 자동 생성"/>
+</div>
+<div>
+<div class="fieldLabel">학생 이름</div>
+<input class="inp" id="masterStudentName" placeholder="학생 이름"/>
+</div>
+<div>
+<div class="fieldLabel">학교</div>
+<input class="inp" id="masterStudentSchool" placeholder="예: 해송고"/>
+</div>
+<div>
+<div class="fieldLabel">학년</div>
+<input class="inp" id="masterStudentGrade" placeholder="예: 고2"/>
+</div>
+<div>
+<div class="fieldLabel">학생 휴대폰</div>
+<input class="inp" id="masterStudentPhone" inputmode="numeric" placeholder="010..."/>
+</div>
+<div>
+<div class="fieldLabel">학부모 휴대폰</div>
+<input class="inp" id="masterParentPhone" inputmode="numeric" placeholder="010..."/>
+</div>
+<div>
+<div class="fieldLabel">담당 직원 ID</div>
+<input class="inp" id="masterStudentTeacher" placeholder="선택"/>
+</div>
+<div>
+<div class="fieldLabel">상태</div>
+<select class="select" id="masterStudentStatus">
+<option value="ACTIVE">재원</option>
+<option value="INACTIVE">휴원</option>
+<option value="WITHDRAWN">퇴원</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">QR ID</div>
+<input class="inp" id="masterStudentQrId" placeholder="비우면 학번"/>
+</div>
+<div>
+<div class="fieldLabel">상시 학번 출결 허용</div>
+<select class="select" id="masterStudentException">
+<option value="N">아니오</option>
+<option value="Y">예</option>
+</select>
+</div>
+</div>
+<div style="margin-top:14px;">
+<div class="fieldLabel">예외 메모</div>
+<textarea class="textarea" id="masterStudentExceptionNote" placeholder="상시 학번 출결 허용 사유"></textarea>
+</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnSaveMasterStudent" type="button">학생 저장</button>
+</div>
+<div class="smallText" id="masterStudentMsg">학생 저장은 중앙DB 학생DB에 반영되고 Supabase replica가 즉시 갱신됩니다.</div>
 </div>
 </div>
 </section>
@@ -2809,7 +2966,10 @@
       wordBulkItems: [],
       reportSummary: null,
       busyCount: 0,
-      currentView: 'dashboard'
+      currentView: 'dashboard',
+      masterClassId: '',
+      rpcCache: new Map(),
+      rpcInflight: new Map()
     };
 
     function esc(value) {
@@ -3154,41 +3314,103 @@
       }
     }
 
+    function stableJson(value) {
+      if (value == null || typeof value !== 'object') return JSON.stringify(value);
+      if (Array.isArray(value)) return '[' + value.map(stableJson).join(',') + ']';
+      return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + stableJson(value[k])).join(',') + '}';
+    }
+
+    function defaultRpcCacheTtl(op) {
+      const ttl = {
+        'auth.me': 8000,
+        'admin.getOpsOverview': 20000,
+        'assistant.listClassOptions': 45000,
+        'assistant.listClassRoster': 15000,
+        'admin.master.searchStudents': 20000,
+        'clinic.todayBoard': 10000,
+        'wordTest.listSessions': 15000,
+        'report.listSnapshots': 15000
+      }[op];
+      return ttl || 0;
+    }
+
+    function clearRpcCache(prefix = '') {
+      if (!prefix) {
+        App.rpcCache.clear();
+        App.rpcInflight.clear();
+        return;
+      }
+      for (const key of App.rpcCache.keys()) {
+        if (String(key).startsWith(prefix)) App.rpcCache.delete(key);
+      }
+      for (const key of App.rpcInflight.keys()) {
+        if (String(key).startsWith(prefix)) App.rpcInflight.delete(key);
+      }
+    }
+
     async function rpc(op, args = {}, options = {}) {
       const timeoutMs = Number(options.timeoutMs || 25000);
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-      setBusy(true);
+      const ttlMs = options.cacheTtlMs != null ? Number(options.cacheTtlMs || 0) : defaultRpcCacheTtl(op);
+      const cacheKey = ttlMs > 0 ? op + '|' + stableJson(args || {}) : '';
+      const now = Date.now();
 
-      try {
-        const res = await fetch('/api/rpc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            op,
-            sessionToken: App.sess,
-            args: { ...(args || {}), sessionToken: App.sess }
-          }),
-          signal: ctrl.signal
-        });
-
-        const data = await res.json().catch(() => ({ ok: false, error: { message: 'JSON 응답이 아닙니다.' } }));
-        if (!res.ok && data.ok !== false) {
-          return { ok: false, error: { code: 'HTTP_' + res.status, message: '요청 실패: ' + res.status } };
-        }
-        return data;
-      } catch (e) {
-        return {
-          ok: false,
-          error: {
-            code: e && e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK',
-            message: e && e.name === 'AbortError' ? '요청 시간이 초과되었습니다.' : '네트워크 오류가 발생했습니다.'
-          }
-        };
-      } finally {
-        clearTimeout(timer);
-        setBusy(false);
+      if (cacheKey) {
+        const hit = App.rpcCache.get(cacheKey);
+        if (hit && hit.expires > now) return hit.value;
+        if (hit) App.rpcCache.delete(cacheKey);
+        const pending = App.rpcInflight.get(cacheKey);
+        if (pending) return pending;
       }
+
+      const run = (async () => {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        setBusy(true);
+
+        try {
+          const res = await fetch('/api/rpc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              op,
+              sessionToken: App.sess,
+              args: { ...(args || {}), sessionToken: App.sess }
+            }),
+            signal: ctrl.signal,
+            cache: 'no-store'
+          });
+
+          const data = await res.json().catch(() => ({ ok: false, error: { message: 'JSON 응답이 아닙니다.' } }));
+          if (!res.ok && data.ok !== false) {
+            return { ok: false, error: { code: 'HTTP_' + res.status, message: '요청 실패: ' + res.status } };
+          }
+          if (cacheKey && ttlMs > 0 && data && data.ok) {
+            App.rpcCache.set(cacheKey, { value: data, expires: Date.now() + ttlMs });
+            if (App.rpcCache.size > 120) {
+              const cutoff = Date.now();
+              for (const [k, v] of App.rpcCache.entries()) {
+                if (v.expires <= cutoff || App.rpcCache.size > 120) App.rpcCache.delete(k);
+              }
+            }
+          }
+          return data;
+        } catch (e) {
+          return {
+            ok: false,
+            error: {
+              code: e && e.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK',
+              message: e && e.name === 'AbortError' ? '요청 시간이 초과되었습니다.' : '네트워크 오류가 발생했습니다.'
+            }
+          };
+        } finally {
+          clearTimeout(timer);
+          setBusy(false);
+          if (cacheKey) App.rpcInflight.delete(cacheKey);
+        }
+      })();
+
+      if (cacheKey) App.rpcInflight.set(cacheKey, run);
+      return run;
     }
 
     function setView(loggedIn) {
@@ -3359,6 +3581,113 @@
       setCronMetric('cardWorkerCron', 'statWorkerCron', 'statWorkerCronNote', workerOk, workerNote);
     }
 
+    function parseClassDays(value) {
+      if (Array.isArray(value)) return value.map(x => String(x || '').trim().toUpperCase()).filter(Boolean);
+      const text = String(value || '').trim();
+      if (!text) return [];
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed.map(x => String(x || '').trim().toUpperCase()).filter(Boolean);
+      } catch (_) {}
+      return text.split(/[\s,]+/).map(x => String(x || '').trim().toUpperCase()).filter(Boolean);
+    }
+
+    function setMasterClassDays(days) {
+      const set = new Set(parseClassDays(days));
+      $$('#masterClassDays input[type="checkbox"]').forEach(ch => { ch.checked = set.has(String(ch.value || '').toUpperCase()); });
+    }
+
+    function getMasterClassDays() {
+      return $$('#masterClassDays input[type="checkbox"]')
+        .filter(ch => ch.checked)
+        .map(ch => String(ch.value || '').toUpperCase());
+    }
+
+    function fillMasterClassForm(item = {}) {
+      $('#masterClassId').value = item.class_id || '';
+      $('#masterClassName').value = item.name || item.class_name || '';
+      $('#masterClassTeacher').value = item.teacher || '';
+      $('#masterClassStart').value = item.start || '';
+      $('#masterClassEnd').value = item.end || '';
+      $('#masterClassRoom').value = item.room || '';
+      $('#masterClassAlertDelay').value = item.alert_delay || '5,20';
+      $('#masterClassAlertTo').value = item.alert_to || 'parent';
+      setMasterClassDays(item.days || item.days_json || []);
+      $('#masterClassMsg').textContent = item.class_id ? '선택된 클래스 수정 중: ' + item.class_id : '새 클래스 작성 중입니다.';
+    }
+
+    function clearMasterClassForm() {
+      fillMasterClassForm({
+        class_id: '',
+        teacher: App.me && String(App.me.role || '').toLowerCase() === 'teacher' ? App.me.staff_id : '',
+        alert_delay: '5,20',
+        alert_to: 'parent',
+        days: ['MON']
+      });
+    }
+
+    function getMasterClassForm() {
+      return {
+        class_id: ($('#masterClassId').value || '').trim(),
+        name: ($('#masterClassName').value || '').trim(),
+        teacher: ($('#masterClassTeacher').value || '').trim(),
+        start: ($('#masterClassStart').value || '').trim(),
+        end: ($('#masterClassEnd').value || '').trim(),
+        room: ($('#masterClassRoom').value || '').trim(),
+        days: getMasterClassDays(),
+        alert_delay: ($('#masterClassAlertDelay').value || '5,20').trim(),
+        alert_to: ($('#masterClassAlertTo').value || 'parent').trim()
+      };
+    }
+
+    async function editMasterClass(classId) {
+      if (!classId) return;
+      const r = await rpc('admin.master.getClass', { class_id: classId }, { timeoutMs: 35000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클래스 상세 조회 실패');
+        showResult('클래스 상세 조회 실패', r);
+        return;
+      }
+      const cls = r.data && r.data.class ? r.data.class : {};
+      fillMasterClassForm(cls);
+      renderClassRoster(classId, cls.name || cls.class_name || classId, Array.isArray(r.data.students) ? r.data.students : []);
+      showToast('클래스 수정 폼에 불러왔습니다.');
+    }
+
+    async function saveMasterClass() {
+      const payload = getMasterClassForm();
+      const r = await rpc('admin.master.upsertClass', { class: payload }, { timeoutMs: 70000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클래스 저장 실패');
+        showResult('클래스 저장 실패', r);
+        return;
+      }
+      const savedId = r.data && (r.data.class_id || (r.data.class && r.data.class.class_id));
+      if (savedId) $('#masterClassId').value = savedId;
+      $('#masterClassMsg').textContent = '클래스 저장 완료 · ' + (savedId || '저장됨');
+      clearRpcCache();
+      showToast('클래스를 중앙DB에 저장했습니다.');
+      await loadClasses({ force: true });
+      if (savedId) await editMasterClass(savedId);
+    }
+
+    async function deleteMasterClass() {
+      const classId = ($('#masterClassId').value || '').trim();
+      if (!classId) { showToast('삭제할 class_id가 없습니다.'); return; }
+      if (!confirm('정말 이 클래스를 삭제 처리할까요? 수강생 배정/미래 일정도 함께 정리됩니다.')) return;
+      const r = await rpc('admin.master.deleteClass', { class_id: classId }, { timeoutMs: 70000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '클래스 삭제 실패');
+        showResult('클래스 삭제 실패', r);
+        return;
+      }
+      clearMasterClassForm();
+      renderClassRoster('', '', []);
+      clearRpcCache();
+      showToast('클래스를 삭제 처리했습니다.');
+      await loadClasses({ force: true });
+    }
+
     function renderClassRows(items) {
       const box = $('#classRows');
       if (!box) return;
@@ -3381,37 +3710,179 @@
             <td>${esc(item.room || '-')}</td>
             <td class="wrap">${esc(alert || '-')}</td>
             <td>${esc(item.status || '-')}</td>
-            <td><button class="btn btnGhost" type="button" data-class-id="${esc(classId)}" data-class-name="${esc(item.class_name || item.name || classId)}">명단</button></td>
+            <td><div class="btnRow"><button class="btn btnGhost" type="button" data-cid="${esc(classId)}" data-class-name="${esc(item.class_name || item.name || classId)}">명단</button><button class="btn btnGhost" type="button" data-edit-cid="${esc(classId)}">수정</button></div></td>
           </tr>
         `;
       }).join('');
 
-      $$('#classRows button[data-class-id]').forEach(btn => {
+      $$('#classRows button[data-cid]').forEach(btn => {
         btn.addEventListener('click', () => {
-          loadClassRoster(btn.dataset.classId || '', btn.dataset.className || '');
+          loadClassRoster(btn.dataset.cid || '', btn.dataset.className || '');
         });
+      });
+      $$('#classRows button[data-edit-cid]').forEach(btn => {
+        btn.addEventListener('click', () => editMasterClass(btn.dataset.editCid || ''));
       });
     }
 
     function renderClassRoster(classId, className, items) {
-      $('#classRosterTitle').textContent = className ? '수강생 명단 · ' + className : '수강생 명단';
+      App.masterClassId = classId || '';
+      $('#classRosterTitle').textContent = className ? '수강생 명단 · ' + className : '수강생 명단/배정';
       $('#classRosterDesc').textContent = classId ? 'class_id: ' + classId + ' · ' + items.length + '명' : '클래스 목록에서 명단을 선택하세요.';
 
       const box = $('#classRosterRows');
       if (!items.length) {
-        box.innerHTML = '<tr><td colspan="5" class="wrap">등록된 수강생이 없습니다.</td></tr>';
+        box.innerHTML = '<tr><td colspan="6" class="wrap">등록된 수강생이 없습니다.</td></tr>';
         return;
       }
 
-      box.innerHTML = items.map(item => `
+      box.innerHTML = items.map(item => {
+        const sid = normalizeSid(item.student_id);
+        return `
         <tr>
-          <td>${esc(normalizeSid(item.student_id))}</td>
+          <td>${esc(sid)}</td>
           <td>${esc(item.student_name || '')}</td>
           <td>${esc(item.school || '-')}</td>
           <td>${esc(item.grade || '-')}</td>
           <td>${esc(item.status || '-')}</td>
+          <td><button class="btn btnGhost" type="button" data-remove-roster="${esc(sid)}">제외</button></td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
+
+      $$('#classRosterRows button[data-remove-roster]').forEach(btn => {
+        btn.addEventListener('click', () => removeRosterStudent(btn.dataset.removeRoster || ''));
+      });
+    }
+
+    async function loadClassRoster(classId, className) {
+      if (!classId) {
+        showToast('class_id가 없습니다.');
+        return;
+      }
+
+      const r = await rpc('assistant.listClassRoster', { class_id: classId }, { timeoutMs: 30000, cacheTtlMs: 10000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '수강생 명단 조회 실패');
+        showResult('수강생 명단 조회 실패', r);
+        return;
+      }
+
+      const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
+      renderClassRoster(classId, className, items);
+      $('#masterClassId').value = classId;
+      showToast('수강생 명단을 조회했습니다.');
+    }
+
+    async function addRosterStudents() {
+      const classId = App.masterClassId || ($('#masterClassId').value || '').trim();
+      const raw = ($('#rosterAddStudentIds').value || '').trim();
+      const ids = Array.from(new Set(raw.split(/[\s,]+/).map(normalizeSid).filter(Boolean)));
+      if (!classId) { showToast('먼저 클래스를 선택하세요.'); return; }
+      if (!ids.length) { showToast('추가할 학번을 입력하세요.'); return; }
+      const r = await rpc('admin.master.addClassStudents', { class_id: classId, student_ids: ids }, { timeoutMs: 70000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '수강생 추가 실패');
+        showResult('수강생 추가 실패', r);
+        return;
+      }
+      $('#rosterAddStudentIds').value = '';
+      const d = r.data || {};
+      clearRpcCache();
+      showToast('수강생 추가 완료: ' + (d.added || 0) + '명');
+      await loadClassRoster(classId, $('#classRosterTitle').textContent.replace(/^수강생 명단 · /, ''));
+    }
+
+    async function removeRosterStudent(studentId) {
+      const classId = App.masterClassId || ($('#masterClassId').value || '').trim();
+      const sid = normalizeSid(studentId);
+      if (!classId || !sid) { showToast('class_id/student_id가 없습니다.'); return; }
+      if (!confirm(sid + ' 학생을 이 반에서 제외할까요?')) return;
+      const r = await rpc('admin.master.removeClassStudent', { class_id: classId, student_id: sid }, { timeoutMs: 70000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '수강생 제외 실패');
+        showResult('수강생 제외 실패', r);
+        return;
+      }
+      clearRpcCache();
+      showToast('수강생을 제외했습니다.');
+      await loadClassRoster(classId, $('#classRosterTitle').textContent.replace(/^수강생 명단 · /, ''));
+    }
+
+    function fillMasterStudentForm(item = {}) {
+      $('#masterStudentId').value = item.student_id || '';
+      $('#masterStudentName').value = item.student_name || '';
+      $('#masterStudentSchool').value = item.school || '';
+      $('#masterStudentGrade').value = item.grade || '';
+      $('#masterStudentPhone').value = item.student_phone || '';
+      $('#masterParentPhone').value = item.parent_phone || '';
+      $('#masterStudentTeacher').value = item.teacher || '';
+      $('#masterStudentStatus').value = item.status || 'ACTIVE';
+      $('#masterStudentQrId').value = item.qr_id || '';
+      $('#masterStudentException').value = String(item.is_exception || 'N').toUpperCase() === 'Y' ? 'Y' : 'N';
+      $('#masterStudentExceptionNote').value = item.exception_note || '';
+      $('#masterStudentMsg').textContent = item.student_id ? '선택 학생 수정 중: ' + item.student_id : '새 학생 작성 중입니다.';
+    }
+
+    function clearMasterStudentForm() {
+      fillMasterStudentForm({ status: 'ACTIVE', is_exception: 'N' });
+    }
+
+    function getMasterStudentForm() {
+      return {
+        student_id: normalizeSid($('#masterStudentId').value || ''),
+        student_name: ($('#masterStudentName').value || '').trim(),
+        school: ($('#masterStudentSchool').value || '').trim(),
+        grade: ($('#masterStudentGrade').value || '').trim(),
+        student_phone: ($('#masterStudentPhone').value || '').trim(),
+        parent_phone: ($('#masterParentPhone').value || '').trim(),
+        teacher: ($('#masterStudentTeacher').value || '').trim(),
+        status: ($('#masterStudentStatus').value || 'ACTIVE').trim(),
+        qr_id: ($('#masterStudentQrId').value || '').trim(),
+        is_exception: ($('#masterStudentException').value || 'N').trim(),
+        exception_note: ($('#masterStudentExceptionNote').value || '').trim()
+      };
+    }
+
+    async function searchMasterStudents() {
+      const q = ($('#masterStudentQuery').value || '').trim();
+      if (!q) { showToast('검색어를 입력하세요.'); return; }
+      const r = await rpc('admin.master.searchStudents', { q, limit: 30 }, { timeoutMs: 25000, cacheTtlMs: 15000 });
+      const box = $('#masterStudentSearchRows');
+      if (!r.ok) {
+        box.innerHTML = '<div class="smallText">' + esc(r.error && r.error.message ? r.error.message : '학생 검색 실패') + '</div>';
+        return;
+      }
+      const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
+      if (!items.length) {
+        box.innerHTML = '<div class="smallText">검색 결과가 없습니다. 새 학생으로 저장할 수 있습니다.</div>';
+        return;
+      }
+      box.innerHTML = items.map(item => {
+        const meta = [item.school, item.grade, item.status, item.student_phone, item.parent_phone].filter(Boolean).join(' · ');
+        return `<div class="line"><div class="l"><div class="a">${esc(item.student_id)} ${esc(item.student_name || '')}</div><div class="b">${esc(meta)}</div></div><button class="btn btnGhost" type="button" data-master-student='${esc(JSON.stringify(item))}'>선택</button></div>`;
+      }).join('');
+      $$('#masterStudentSearchRows button[data-master-student]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          try { fillMasterStudentForm(JSON.parse(btn.dataset.masterStudent || '{}')); } catch (_) {}
+        });
+      });
+    }
+
+    async function saveMasterStudent() {
+      const payload = getMasterStudentForm();
+      const r = await rpc('admin.master.upsertStudent', { student: payload }, { timeoutMs: 70000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '학생 저장 실패');
+        showResult('학생 저장 실패', r);
+        return;
+      }
+      const sid = r.data && (r.data.student_id || (r.data.student && r.data.student.student_id));
+      if (sid) $('#masterStudentId').value = sid;
+      $('#masterStudentMsg').textContent = '학생 저장 완료 · ' + (sid || '저장됨');
+      clearRpcCache();
+      showToast('학생DB에 저장했습니다.');
+      if (App.masterClassId) await loadClassRoster(App.masterClassId, $('#classRosterTitle').textContent.replace(/^수강생 명단 · /, ''));
     }
 
     function normalizeYmdForUi(value) {
@@ -5046,6 +5517,13 @@
         showToast('정정 폼에 선택 학생 학번을 넣었습니다.');
       });
       bindClick('btnLoadClasses', loadClasses);
+      bindClick('btnNewMasterClass', clearMasterClassForm);
+      bindClick('btnSaveMasterClass', saveMasterClass);
+      bindClick('btnDeleteMasterClass', deleteMasterClass);
+      bindClick('btnAddRosterStudents', addRosterStudents);
+      bindClick('btnMasterStudentSearch', searchMasterStudents);
+      bindClick('btnClearMasterStudent', clearMasterStudentForm);
+      bindClick('btnSaveMasterStudent', saveMasterStudent);
       bindClick('btnAllowSid', () => setStudentException('Y'));
       bindClick('btnBlockSid', () => setStudentException('N'));
       bindClick('btnLoadLogs', loadLogs);

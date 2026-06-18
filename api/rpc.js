@@ -1826,6 +1826,170 @@ async function adminRunCentralReplicaSyncDirect(args = {}, sessionToken = '') {
   return result;
 }
 
+
+function normalizePhoneDigits(value) {
+  return String(value || '').replace(/[^0-9]/g, '').trim();
+}
+
+function normalizeClassDays(raw) {
+  const values = Array.isArray(raw)
+    ? raw
+    : String(raw || '').split(/[\s,]+/);
+  const allowed = new Set(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+  return Array.from(new Set(
+    values
+      .map(x => String(x || '').trim().toUpperCase())
+      .filter(x => allowed.has(x))
+  ));
+}
+
+async function proxyCentralMasterBridge(op, args = {}, auth, options = {}) {
+  const result = await proxyRpcToGas(
+    op,
+    {
+      ...(args || {}),
+      actor_staff_id: auth.me.staff_id,
+      actor_role: normalizeRole(auth.me.role),
+      actor_name: String(auth.me.name || '')
+    },
+    '',
+    { timeoutMs: options.timeoutMs || 55000 }
+  );
+
+  if (result.body && result.body.ok === true) {
+    fastCacheDelPrefix('classOptions');
+    fastCacheDelPrefix('adminOpsOverview');
+    fastCacheDelPrefix('masterStudentSearch');
+  }
+
+  return result;
+}
+
+async function adminMasterGetClassDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+  const classId = String(args.class_id || args.classId || '').trim();
+  if (!classId) return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  return proxyCentralMasterBridge('bridge.class.get', { class_id: classId }, auth, { timeoutMs: 30000 });
+}
+
+async function adminMasterUpsertClassDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
+  const input = args.class || args || {};
+  const data = {
+    class_id: String(input.class_id || input.classId || '').trim(),
+    name: String(input.name || input.class_name || '').trim().slice(0, 100),
+    teacher: String(input.teacher || input.teacher_id || '').trim().toLowerCase().slice(0, 80),
+    start: String(input.start || '').trim().slice(0, 5),
+    end: String(input.end || '').trim().slice(0, 5),
+    room: String(input.room || '').trim().slice(0, 80),
+    days: normalizeClassDays(input.days || input.days_json || input.daysJson),
+    alert_delay: String(input.alert_delay || '5,20').trim().slice(0, 40),
+    alert_to: String(input.alert_to || 'parent').trim().toLowerCase().slice(0, 20)
+  };
+  return proxyCentralMasterBridge('bridge.class.upsert', { class: data }, auth, { timeoutMs: 65000 });
+}
+
+async function adminMasterDeleteClassDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+  const classId = String(args.class_id || args.classId || '').trim();
+  if (!classId) return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  return proxyCentralMasterBridge('bridge.class.delete', { class_id: classId }, auth, { timeoutMs: 65000 });
+}
+
+async function adminMasterAddClassStudentsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
+  const classId = String(args.class_id || args.classId || '').trim();
+  const raw = Array.isArray(args.student_ids)
+    ? args.student_ids
+    : Array.isArray(args.studentIds)
+      ? args.studentIds
+      : String(args.student_ids_text || args.studentIdsText || '').split(/[\s,]+/);
+  const studentIds = Array.from(new Set(raw.map(normalizeStudentId).filter(Boolean))).slice(0, 100);
+  if (!classId || !studentIds.length) return fail(400, 'INVALID_INPUT', 'class_id와 student_ids가 필요합니다.');
+  return proxyCentralMasterBridge('bridge.class.students.add', { class_id: classId, student_ids: studentIds }, auth, { timeoutMs: 65000 });
+}
+
+async function adminMasterRemoveClassStudentDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
+  const classId = String(args.class_id || args.classId || '').trim();
+  const studentId = normalizeStudentId(args.student_id || args.studentId || args.sid || '');
+  if (!classId || !studentId) return fail(400, 'INVALID_INPUT', 'class_id와 student_id가 필요합니다.');
+  return proxyCentralMasterBridge('bridge.class.students.remove', { class_id: classId, student_id: studentId }, auth, { timeoutMs: 65000 });
+}
+
+async function adminMasterSearchStudentsDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+  const q = String(args.q || args.query || '').trim();
+  if (!q) return success({ count: 0, items: [] });
+  const limit = Math.max(1, Math.min(80, toPositiveInt(args.limit, 30)));
+  const cacheKey = ['masterStudentSearch', q.toLowerCase(), limit].join('|');
+  const cached = fastCacheGet(cacheKey);
+  if (cached) return success({ ...cached, cache: { hit: true, ttl_sec: fastCacheSec('master_student_search', 20, 120) } });
+
+  const supabase = getSupabaseAdmin();
+  const digits = q.replace(/[^0-9]/g, '');
+  let query = supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, student_phone, parent_phone, teacher, status, qr_id, is_exception, exception_note')
+    .limit(limit);
+
+  if (digits) {
+    const sid = normalizeStudentId(digits);
+    query = query.or(`student_id.ilike.%${digits}%,student_id.eq.${sid},student_phone.ilike.%${digits}%,parent_phone.ilike.%${digits}%`);
+  } else {
+    const safe = q.replace(/[%_,]/g, '');
+    query = query.or(`student_name.ilike.%${safe}%,school.ilike.%${safe}%,grade.ilike.%${safe}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) return fail(500, 'DB_SELECT_FAILED', error.message || '학생DB 검색 실패');
+  const items = (Array.isArray(data) ? data : [])
+    .map(row => ({
+      student_id: normalizeStudentId(row?.student_id),
+      student_name: String(row?.student_name || '').trim(),
+      school: String(row?.school || '').trim(),
+      grade: String(row?.grade || '').trim(),
+      student_phone: String(row?.student_phone || '').trim(),
+      parent_phone: String(row?.parent_phone || '').trim(),
+      teacher: String(row?.teacher || '').trim(),
+      status: String(row?.status || '').trim(),
+      qr_id: String(row?.qr_id || '').trim(),
+      is_exception: String(row?.is_exception || '').trim(),
+      exception_note: String(row?.exception_note || '').trim()
+    }))
+    .filter(item => item.student_id);
+  const out = { count: items.length, items };
+  fastCacheSet(cacheKey, out, fastCacheSec('master_student_search', 20, 120));
+  return success(out);
+}
+
+async function adminMasterUpsertStudentDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+  const input = args.student || args || {};
+  const student = {
+    student_id: normalizeStudentId(input.student_id || input.studentId || input.sid || ''),
+    student_name: String(input.student_name || input.name || '').trim().slice(0, 80),
+    school: String(input.school || '').trim().slice(0, 80),
+    grade: String(input.grade || '').trim().slice(0, 40),
+    student_phone: normalizePhoneDigits(input.student_phone || input.studentPhone || ''),
+    parent_phone: normalizePhoneDigits(input.parent_phone || input.parentPhone || ''),
+    teacher: String(input.teacher || '').trim().toLowerCase().slice(0, 80),
+    status: String(input.status || 'ACTIVE').trim().slice(0, 40),
+    qr_id: String(input.qr_id || input.qrId || '').trim().slice(0, 100),
+    is_exception: String(input.is_exception || input.isException || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
+    exception_note: String(input.exception_note || input.exceptionNote || '').trim().slice(0, 300)
+  };
+  if (!student.student_name) return fail(400, 'INVALID_INPUT', '학생 이름은 필수입니다.');
+  return proxyCentralMasterBridge('bridge.student.upsert', { student }, auth, { timeoutMs: 65000 });
+}
+
 async function absentRunNowDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -5318,6 +5482,41 @@ export default async function handler(req, res) {
 
   if (op === 'audit.searchLogs') {
     const result = await auditSearchLogsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.getClass') {
+    const result = await adminMasterGetClassDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.upsertClass') {
+    const result = await adminMasterUpsertClassDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.deleteClass') {
+    const result = await adminMasterDeleteClassDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.searchStudents') {
+    const result = await adminMasterSearchStudentsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.upsertStudent') {
+    const result = await adminMasterUpsertStudentDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.addClassStudents') {
+    const result = await adminMasterAddClassStudentsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.master.removeClassStudent') {
+    const result = await adminMasterRemoveClassStudentDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

@@ -33,7 +33,9 @@ const requiredFiles = [
   'docs/TEST_PLAN.md',
   'scripts/smoke-test.mjs',
   'scripts/final-readiness-check.mjs',
-  'docs/FINAL_READINESS_CHECKLIST.md'
+  'docs/FINAL_READINESS_CHECKLIST.md',
+  'docs/MASTER_DATA_PORTAL.md',
+  'docs/supabase-master-speed-v2.sql'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -90,6 +92,18 @@ checkText('public/admin.html', '비우면 전체', '클래스 날짜 기본값 �
 checkText('api/rpc.js', 'classes_fallback', '클래스 일정 없음 fallback 조회');
 checkText('api/rpc.js', 'fastCacheSet(cacheKey', '클래스 조회 캐시');
 checkText('lib/staff-auth.js', 'AUTH_SESSION_CACHE', '세션 인증 캐시');
+
+
+checkText('public/admin.html', 'masterClassId', '클래스 생성/수정 UI');
+checkText('public/admin.html', 'masterStudentId', '학생DB 추가/수정 UI');
+checkText('public/admin.html', 'rosterAddStudentIds', '반 수강생 배정 UI');
+checkText('api/rpc.js', "admin.master.upsertClass", '포털 클래스 저장 API');
+checkText('api/rpc.js', "admin.master.upsertStudent", '포털 학생 저장 API');
+checkText('api/rpc.js', "bridge.class.upsert", '중앙DB bridge 클래스 저장 호출');
+checkText('api/rpc.js', "bridge.student.upsert", '중앙DB bridge 학생 저장 호출');
+checkText('public/admin.html', 'rpcInflight', '클라이언트 중복 요청 병합');
+checkText('public/admin.html', 'rpcCache', '클라이언트 짧은 조회 캐시');
+checkText('docs/MASTER_DATA_PORTAL.md', '중앙DB 마스터데이터 포털 이관', '마스터데이터 이관 문서');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
