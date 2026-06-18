@@ -105,6 +105,19 @@ checkText('public/admin.html', 'rpcInflight', '클라이언트 중복 요청 병
 checkText('public/admin.html', 'rpcCache', '클라이언트 짧은 조회 캐시');
 checkText('docs/MASTER_DATA_PORTAL.md', '중앙DB 마스터데이터 포털 이관', '마스터데이터 이관 문서');
 
+checkText('public/admin.html', 'centralClassHolidayYmd', '반별 휴강 포털 이관 UI');
+checkText('public/admin.html', 'centralScheduleRows', '실제 일정 수동 편집 UI');
+checkText('public/admin.html', 'centralGlobalHolidayRows', '학원 전체 휴무 UI');
+checkText('public/admin.html', 'centralStaffRows', '직원 계정 관리 UI');
+checkText('public/admin.html', 'centralOpsBox', '중앙DB 설정/Self Check UI');
+checkText('api/rpc.js', "admin.central.classHolidays.add", '반별 휴강 bridge API');
+checkText('api/rpc.js', "admin.central.schedule.update", '일정 수동 편집 bridge API');
+checkText('api/rpc.js', "admin.central.globalHolidays.add", '전체 휴무 bridge API');
+checkText('api/rpc.js', "admin.central.staff.upsert", '직원 계정 bridge API');
+checkText('api/rpc.js', "admin.central.props.set", '중앙DB 설정 bridge API');
+checkText('scripts/smoke-test.mjs', 'admin.central.props.get', 'smoke-test 중앙DB 설정 bridge 포함');
+checkText('docs/MASTER_DATA_PORTAL.md', 'CentralDB 웹앱 잔여 기능 이관 v3', '마스터데이터 잔여 기능 이관 문서');
+
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
   process.exit(1);

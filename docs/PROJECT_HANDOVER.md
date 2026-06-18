@@ -202,3 +202,15 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 - 초기 로그인 후 운영 요약 조회는 화면 표시를 막지 않는 비동기 방식으로 변경했다.
 - 세션 인증/클래스 목록/운영 요약에 짧은 TTL 캐시를 적용했다.
 - 추가 성능 인덱스는 `docs/supabase-class-speed-v1.sql`을 Supabase SQL Editor에서 실행한다.
+
+## 2026-06-18 CentralDB Web App 기능 포털 이관 v3
+
+중앙DB 웹앱에 남아 있던 반별 휴강, 실제 일정 수동 수정, 학원 전체 휴무, 직원 계정 관리, 시스템 설정, self-check 기능을 운영 포털로 이관했다. 포털은 Supabase를 직접 원본으로 쓰지 않고 GAS bridge를 통해 Google Sheets 중앙DB를 수정한다.
+
+운영 순서:
+1. 중앙DB GAS patch 적용 후 Apps Script Web App 새 버전 배포
+2. 운영 포털 patch 적용 후 Vercel 배포
+3. `npm run smoke-test`로 `admin.central.props.get`, `admin.central.staff.list` 확인
+4. 포털의 클래스/직원/설정 메뉴에서 실제 조회·저장 테스트
+
+속도 개선은 클라이언트 요청 병합/짧은 캐시, 서버 read-cache, 쓰기 후 캐시 무효화를 조합했다. Google Sheets가 원본인 구조에서는 저장 작업이 네트워크 왕복을 거치므로, 조회는 실시간처럼 빠르게 만들고 저장은 진행/완료 피드백을 명확히 주는 방향으로 운영한다.

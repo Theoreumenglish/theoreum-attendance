@@ -33,3 +33,15 @@
 4. Vercel 배포
 5. smoke-test
 6. 클래스 메뉴에서 CRUD 리허설
+
+## CentralDB 웹앱 잔여 기능 이관 v3
+
+운영 포털에서 중앙DB 웹앱의 잔여 관리 기능까지 처리하도록 확장했다.
+
+- 반별 휴강: `admin.central.classHolidays.list/add/remove` → `bridge.class.holidays.*`
+- 실제 일정 수동 편집: `admin.central.schedule.list/update/rebuild` → `bridge.schedule.*`
+- 학원 전체 휴무: `admin.central.globalHolidays.list/add/remove` → `bridge.global_holidays.*`
+- 직원 계정 관리: `admin.central.staff.list/upsert/toggle/resetSecret` → `bridge.staff.*`
+- 중앙DB 시스템 설정/Self Check: `admin.central.props.get/set`, `admin.central.selfCheck`
+
+운영 원본은 여전히 Google Sheets 중앙DB이며, 포털은 GAS bridge를 통해 원본을 수정한다. 조회는 Supabase replica와 짧은 서버/클라이언트 캐시를 함께 사용해 체감 속도를 높인다.

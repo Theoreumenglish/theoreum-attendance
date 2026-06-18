@@ -1990,6 +1990,165 @@ async function adminMasterUpsertStudentDirect(args = {}, sessionToken = '') {
   return proxyCentralMasterBridge('bridge.student.upsert', { student }, auth, { timeoutMs: 65000 });
 }
 
+
+async function proxyCentralBridgeManaged(bridgeOp, args = {}, sessionToken = '', needRole = 'assistant', options = {}) {
+  const auth = await requireRole(sessionToken, needRole);
+  if (!auth.ok) return auth.out;
+
+  const cacheKey = options.cacheKey ? `${options.cacheKey}|${JSON.stringify(args || {})}` : '';
+  if (cacheKey && options.cacheTtlSec) {
+    const cached = fastCacheGet(cacheKey);
+    if (cached) return success({ ...cached, cache: { hit: true, ttl_sec: options.cacheTtlSec } });
+  }
+
+  const result = await proxyRpcToGas(
+    bridgeOp,
+    {
+      ...(args || {}),
+      actor_staff_id: auth.me.staff_id,
+      actor_role: normalizeRole(auth.me.role),
+      actor_name: String(auth.me.name || '')
+    },
+    '',
+    { timeoutMs: options.timeoutMs || 55000 }
+  );
+
+  if (result.body && result.body.ok === true) {
+    if (cacheKey && options.cacheTtlSec) fastCacheSet(cacheKey, result.body.data || {}, options.cacheTtlSec);
+    if (options.mutate) {
+      fastCacheDelPrefix('central.');
+      fastCacheDelPrefix('classOptions');
+      fastCacheDelPrefix('adminOpsOverview');
+      fastCacheDelPrefix('masterStudentSearch');
+    }
+  }
+
+  return result;
+}
+
+function normalizedClassIdFromArgs(args = {}) {
+  return String(args.class_id || args.classId || '').trim();
+}
+
+async function adminCentralClassHolidaysListDirect(args = {}, sessionToken = '') {
+  const classId = normalizedClassIdFromArgs(args);
+  if (!classId) return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.class.holidays.list', { class_id: classId }, sessionToken, 'assistant', {
+    timeoutMs: 30000,
+    cacheKey: `central.class.holidays.${classId}`,
+    cacheTtlSec: fastCacheSec('central_class_holidays', 30, 180)
+  });
+}
+async function adminCentralClassHolidayAddDirect(args = {}, sessionToken = '') {
+  const classId = normalizedClassIdFromArgs(args);
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || '');
+  const reason = String(args.reason || '').trim().slice(0, 200);
+  if (!classId || !yyyymmdd) return fail(400, 'INVALID_INPUT', 'class_id와 yyyymmdd가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.class.holidays.add', { class_id: classId, yyyymmdd, reason }, sessionToken, 'teacher', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralClassHolidayRemoveDirect(args = {}, sessionToken = '') {
+  const classId = normalizedClassIdFromArgs(args);
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || '');
+  if (!classId || !yyyymmdd) return fail(400, 'INVALID_INPUT', 'class_id와 yyyymmdd가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.class.holidays.remove', { class_id: classId, yyyymmdd }, sessionToken, 'teacher', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralGlobalHolidaysListDirect(args = {}, sessionToken = '') {
+  const from = normalizeYmdInput(args.from || args.fromYmd || '');
+  const to = normalizeYmdInput(args.to || args.toYmd || '');
+  return proxyCentralBridgeManaged('bridge.global_holidays.list', { from, to }, sessionToken, 'assistant', {
+    timeoutMs: 30000,
+    cacheKey: 'central.global_holidays',
+    cacheTtlSec: fastCacheSec('central_global_holidays', 30, 180)
+  });
+}
+async function adminCentralGlobalHolidayAddDirect(args = {}, sessionToken = '') {
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || '');
+  const name = String(args.name || '').trim().slice(0, 120);
+  const note = String(args.note || '').trim().slice(0, 300);
+  if (!yyyymmdd || !name) return fail(400, 'INVALID_INPUT', 'yyyymmdd와 name이 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.global_holidays.add', { yyyymmdd, name, note }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralGlobalHolidayRemoveDirect(args = {}, sessionToken = '') {
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || '');
+  if (!yyyymmdd) return fail(400, 'INVALID_INPUT', 'yyyymmdd가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.global_holidays.remove', { yyyymmdd }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralScheduleListDirect(args = {}, sessionToken = '') {
+  const classId = normalizedClassIdFromArgs(args);
+  if (!classId) return fail(400, 'INVALID_INPUT', 'class_id가 필요합니다.');
+  const from = normalizeYmdInput(args.from || args.fromYmd || '');
+  const to = normalizeYmdInput(args.to || args.toYmd || '');
+  return proxyCentralBridgeManaged('bridge.schedule.list', { class_id: classId, from, to }, sessionToken, 'assistant', {
+    timeoutMs: 35000,
+    cacheKey: `central.schedule.${classId}`,
+    cacheTtlSec: fastCacheSec('central_schedule', 20, 120)
+  });
+}
+async function adminCentralScheduleUpdateDirect(args = {}, sessionToken = '') {
+  const classId = normalizedClassIdFromArgs(args);
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || '');
+  const status = String(args.status || '').trim().toUpperCase();
+  const reason = String(args.reason || '').trim().slice(0, 200);
+  if (!classId || !yyyymmdd || !status) return fail(400, 'INVALID_INPUT', 'class_id, yyyymmdd, status가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.schedule.update', { class_id: classId, yyyymmdd, status, reason }, sessionToken, 'teacher', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralScheduleRebuildDirect(args = {}, sessionToken = '') {
+  return proxyCentralBridgeManaged('bridge.schedule.rebuild', {}, sessionToken, 'admin', { timeoutMs: 90000, mutate: true });
+}
+async function adminCentralStaffListDirect(args = {}, sessionToken = '') {
+  return proxyCentralBridgeManaged('bridge.staff.list', {}, sessionToken, 'admin', {
+    timeoutMs: 35000,
+    cacheKey: 'central.staff.list',
+    cacheTtlSec: fastCacheSec('central_staff_list', 15, 120)
+  });
+}
+async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
+  const input = args.staff || args || {};
+  const staff = {
+    staff_id: String(input.staff_id || input.staffId || '').trim().toLowerCase().slice(0, 80),
+    name: String(input.name || '').trim().slice(0, 80),
+    role: String(input.role || 'assistant').trim().toLowerCase().slice(0, 30),
+    revoked: String(input.revoked || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
+    status: String(input.status || 'inactive').trim().toLowerCase().slice(0, 30),
+    password: String(input.password || '').slice(0, 200),
+    pin: String(input.pin || '').replace(/[^0-9]/g, '').slice(0, 8)
+  };
+  if (!staff.staff_id) return fail(400, 'INVALID_INPUT', 'staff_id가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.staff.upsert', { staff }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralStaffToggleDirect(args = {}, sessionToken = '') {
+  const staffId = String(args.staff_id || args.staffId || '').trim().toLowerCase();
+  if (!staffId) return fail(400, 'INVALID_INPUT', 'staff_id가 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.staff.toggle_status', { staff_id: staffId }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralStaffResetSecretDirect(args = {}, sessionToken = '') {
+  const staffId = String(args.staff_id || args.staffId || '').trim().toLowerCase();
+  const password = String(args.password || '').slice(0, 200);
+  const pin = String(args.pin || '').replace(/[^0-9]/g, '').slice(0, 8);
+  if (!staffId || (!password && !pin)) return fail(400, 'INVALID_INPUT', 'staff_id와 password 또는 pin이 필요합니다.');
+  return proxyCentralBridgeManaged('bridge.staff.reset_secret', { staff_id: staffId, password, pin }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralPropsGetDirect(args = {}, sessionToken = '') {
+  return proxyCentralBridgeManaged('bridge.props.get', {}, sessionToken, 'admin', {
+    timeoutMs: 30000,
+    cacheKey: 'central.props',
+    cacheTtlSec: fastCacheSec('central_props', 30, 180)
+  });
+}
+async function adminCentralPropsSetDirect(args = {}, sessionToken = '') {
+  const props = args.props || args || {};
+  return proxyCentralBridgeManaged('bridge.props.set', {
+    STUDENTS_SHEET_NAME: String(props.STUDENTS_SHEET_NAME || '').trim(),
+    CLASS_SYNC_CALENDAR: String(props.CLASS_SYNC_CALENDAR || 'N').trim().toUpperCase(),
+    CLASS_CALENDAR_ID: String(props.CLASS_CALENDAR_ID || '').trim(),
+    STUDENTS_CACHE_TTL: String(props.STUDENTS_CACHE_TTL || '').trim(),
+    SESSION_TTL_SEC: String(props.SESSION_TTL_SEC || '').trim()
+  }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+async function adminCentralSelfCheckDirect(args = {}, sessionToken = '') {
+  return proxyCentralBridgeManaged('bridge.self_check.run', {}, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+}
+
 async function absentRunNowDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -5519,6 +5678,23 @@ export default async function handler(req, res) {
     const result = await adminMasterRemoveClassStudentDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
+
+  if (op === 'admin.central.classHolidays.list') { const result = await adminCentralClassHolidaysListDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.classHolidays.add') { const result = await adminCentralClassHolidayAddDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.classHolidays.remove') { const result = await adminCentralClassHolidayRemoveDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.globalHolidays.list') { const result = await adminCentralGlobalHolidaysListDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.globalHolidays.add') { const result = await adminCentralGlobalHolidayAddDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.globalHolidays.remove') { const result = await adminCentralGlobalHolidayRemoveDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.schedule.list') { const result = await adminCentralScheduleListDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.schedule.update') { const result = await adminCentralScheduleUpdateDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.schedule.rebuild') { const result = await adminCentralScheduleRebuildDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.staff.list') { const result = await adminCentralStaffListDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.staff.upsert') { const result = await adminCentralStaffUpsertDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.staff.toggle') { const result = await adminCentralStaffToggleDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.staff.resetSecret') { const result = await adminCentralStaffResetSecretDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.props.get') { const result = await adminCentralPropsGetDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.props.set') { const result = await adminCentralPropsSetDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.selfCheck') { const result = await adminCentralSelfCheckDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
 
   if (op === 'assistant.listClassOptions') {
     const result = await assistantListClassOptionsDirect(payload.args || {}, sessionToken);

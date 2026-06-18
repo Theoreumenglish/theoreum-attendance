@@ -326,3 +326,13 @@ npm run smoke-test
 - 해당 날짜 `class_schedule`이 비어 있으면 전체 `classes` 목록으로 자동 대체된다.
 - live smoke-test는 `assistant.listClassOptions`를 포함한다.
 - 운영 속도 인덱스는 `docs/supabase-class-speed-v1.sql`을 실행해 적용한다.
+
+## CentralDB 기능 이관 v3 테스트
+
+1. 클래스 메뉴에서 클래스 선택 후 반별 휴강 조회, 추가, 삭제를 테스트한다.
+2. 같은 화면에서 실제 일정 조회, 상태/사유 수동 수정, 일정 재생성을 테스트한다.
+3. 학원 전체 휴무 조회, 추가, 삭제를 테스트한다.
+4. 직원 메뉴에서 중앙DB 직원 목록 조회, 신규/수정 저장, 활성 토글, 비밀번호/PIN 재설정을 테스트한다.
+5. 설정 메뉴에서 중앙DB 시스템 설정 조회/저장, self-check 실행을 테스트한다.
+6. 모든 쓰기 작업 후 클래스 목록, 반 명단, 학생 검색, 직원 목록을 다시 조회해 캐시 무효화가 반영되는지 확인한다.
+7. Vercel 배포 후 `npm run smoke-test`에서 `admin.central.props.get`, `admin.central.staff.list`가 200 OK인지 확인한다.

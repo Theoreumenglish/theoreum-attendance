@@ -94,8 +94,8 @@ if (!html.includes('학부모 전달 문구')) fail('리포트에 학부모 전�
 else ok('리포트 문구가 학부모 전달용으로 정리됐습니다.');
 
 const totalButtons = count(/<button\b/g, markupHtml);
-if (totalButtons > 74) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
-else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다.`);
+if (totalButtons > 92) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
+else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다. 중앙DB 웹앱 잔여 관리 기능 이관으로 허용 상한을 92개로 조정했습니다.`);
 
 if (failed > 0) {
   console.error('');

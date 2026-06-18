@@ -257,3 +257,16 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 권장 SQL:
 
 - `docs/supabase-class-speed-v1.sql`
+
+## CentralDB 웹앱 잔여 관리 API v3
+
+운영 포털에서 중앙DB Web App의 잔여 관리 기능을 호출하기 위한 bridge API를 추가했다. 중앙DB Google Sheets는 계속 원본 DB이며, 포털은 `CENTRAL_GAS_WEBAPP_URL`과 `CENTRAL_BRIDGE_SECRET`으로 GAS bridge를 호출한다.
+
+- `admin.central.classHolidays.list/add/remove`: 반별 휴강 조회/추가/삭제
+- `admin.central.schedule.list/update/rebuild`: 실제 수업일정 조회/수동 수정/재생성
+- `admin.central.globalHolidays.list/add/remove`: 학원 전체 휴무 조회/추가/삭제
+- `admin.central.staff.list/upsert/toggle/resetSecret`: 직원 계정 조회/저장/활성 토글/비밀번호·PIN 재설정
+- `admin.central.props.get/set`: 중앙DB 시스템 설정 조회/저장
+- `admin.central.selfCheck`: 중앙DB 정합성 점검 실행
+
+읽기 계열은 짧은 서버 캐시를 사용하고, 쓰기 계열은 관련 캐시를 무효화한다. 쓰기 후 필요한 경우 중앙DB Web App 새 버전 배포와 Supabase replica 최신화를 함께 확인한다.
