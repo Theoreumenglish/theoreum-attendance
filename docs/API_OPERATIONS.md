@@ -270,3 +270,9 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 - `admin.central.selfCheck`: 중앙DB 정합성 점검 실행
 
 읽기 계열은 짧은 서버 캐시를 사용하고, 쓰기 계열은 관련 캐시를 무효화한다. 쓰기 후 필요한 경우 중앙DB Web App 새 버전 배포와 Supabase replica 최신화를 함께 확인한다.
+
+## v4 속도/안정성 보강
+
+- `admin.central.staff.list`: 기본은 Supabase replica fast path를 사용하고, `force=true` 또는 `source=central`일 때 중앙DB GAS 원본을 확인한다.
+- `admin.central.props.get`: `runtime_config.central_props_snapshot` snapshot을 우선 사용하고, `force=true`일 때 중앙DB GAS 원본을 확인한다.
+- `assistant.listAbsenceExcuses` / `assistant.addAbsenceExcuse` / `assistant.bulkAddAbsenceExcuses` / `assistant.removeAbsenceExcuse`: 출결 메뉴의 미등원 문자 제외 관리에서 사용한다.

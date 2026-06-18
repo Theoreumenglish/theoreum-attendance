@@ -1763,6 +1763,69 @@
 </div>
 </div>
 </div>
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">미등원 문자 제외</div>
+<div class="sectionDesc">중앙DB의 카톡 X/지각 연락/특정 일자 미등원 예외를 운영 포털에서 바로 조회·추가·삭제합니다. 저장은 중앙DB bridge를 거쳐 Supabase replica에 즉시 반영됩니다.</div>
+</div>
+<span class="statusPill good">중앙DB 이관</span>
+</div>
+<div class="formGrid cols3" style="margin-top:16px;">
+<div>
+<div class="fieldLabel">날짜</div>
+<input class="inp" id="absenceExcuseYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
+</div>
+<div>
+<div class="fieldLabel">반 ID</div>
+<input class="inp" id="absenceExcuseClassId" placeholder="class_id"/>
+</div>
+<div>
+<div class="fieldLabel">학생 학번</div>
+<input class="inp" id="absenceExcuseStudentId" inputmode="numeric" placeholder="0000 또는 여러 명은 아래 칸"/>
+</div>
+<div>
+<div class="fieldLabel">유효 시간</div>
+<select class="select" id="absenceExcuseUntilMin">
+<option value="0">해당 날짜 전체</option>
+<option value="60">1시간</option>
+<option value="120">2시간</option>
+<option value="180">3시간</option>
+<option value="240">4시간</option>
+</select>
+</div>
+<div>
+<div class="fieldLabel">사유</div>
+<input class="inp" id="absenceExcuseReason" placeholder="예: 카톡 X / 지각 연락 / 보강"/>
+</div>
+<div>
+<div class="fieldLabel">일괄 학번</div>
+<input class="inp" id="absenceExcuseBulkIds" placeholder="0001,0002,0003"/>
+</div>
+</div>
+<details class="compactDetails subtleActions"><summary>미등원 예외 처리 열기</summary><div class="btnRow" style="margin-top:14px;">
+<button class="btn btnPri" id="btnListAbsenceExcuses" type="button">예외 조회</button>
+<button class="btn btnGhost" id="btnAddAbsenceExcuse" type="button">1명 추가</button>
+<button class="btn btnGhost" id="btnBulkAddAbsenceExcuses" type="button">여러 명 추가</button>
+</div></details>
+<div class="tableWrap" style="margin-top:18px;">
+<table class="table">
+<thead>
+<tr>
+<th>날짜</th>
+<th>반</th>
+<th>학생</th>
+<th>사유</th>
+<th>유효시간</th>
+<th>관리</th>
+</tr>
+</thead>
+<tbody id="absenceExcuseRows">
+<tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </section>
 <section class="portalView" data-view-desc="학생 검색, 오늘 상태, 최근 출결, 소속 클래스, 결석예외를 한 화면에서 확인합니다." data-view-title="학생" id="students">
@@ -3474,6 +3537,9 @@
         'assistant.listClassOptions': 45000,
         'assistant.listClassRoster': 15000,
         'admin.master.searchStudents': 20000,
+        'admin.central.staff.list': 60000,
+        'admin.central.props.get': 120000,
+        'assistant.listAbsenceExcuses': 10000,
         'clinic.todayBoard': 10000,
         'wordTest.listSessions': 15000,
         'report.listSnapshots': 15000
@@ -3501,10 +3567,12 @@
       const cacheKey = ttlMs > 0 ? op + '|' + stableJson(args || {}) : '';
       const now = Date.now();
 
+      let staleHit = null;
       if (cacheKey) {
         const hit = App.rpcCache.get(cacheKey);
         if (hit && hit.expires > now) return hit.value;
-        if (hit) App.rpcCache.delete(cacheKey);
+        if (hit && (!hit.staleExpires || hit.staleExpires > now)) staleHit = hit.value;
+        else if (hit) App.rpcCache.delete(cacheKey);
         const pending = App.rpcInflight.get(cacheKey);
         if (pending) return pending;
       }
@@ -3532,16 +3600,19 @@
             return { ok: false, error: { code: 'HTTP_' + res.status, message: '요청 실패: ' + res.status } };
           }
           if (cacheKey && ttlMs > 0 && data && data.ok) {
-            App.rpcCache.set(cacheKey, { value: data, expires: Date.now() + ttlMs });
-            if (App.rpcCache.size > 120) {
+            App.rpcCache.set(cacheKey, { value: data, expires: Date.now() + ttlMs, staleExpires: Date.now() + ttlMs + 600000 });
+            if (App.rpcCache.size > 180) {
               const cutoff = Date.now();
               for (const [k, v] of App.rpcCache.entries()) {
-                if (v.expires <= cutoff || App.rpcCache.size > 120) App.rpcCache.delete(k);
+                if ((v.staleExpires || v.expires) <= cutoff || App.rpcCache.size > 180) App.rpcCache.delete(k);
               }
             }
           }
           return data;
         } catch (e) {
+          if (staleHit) {
+            return { ...staleHit, cache: { ...(staleHit.cache || {}), stale: true, source: 'browser_stale' } };
+          }
           return {
             ok: false,
             error: {
@@ -3576,6 +3647,8 @@
     async function checkMe() {
       const today = kstYmd(new Date());
       $('#logYmd').value = today;
+      const absenceExcuseYmd = $('#absenceExcuseYmd');
+      if (absenceExcuseYmd && !absenceExcuseYmd.value) absenceExcuseYmd.value = today;
       const classYmd = $('#classYmd');
       if (classYmd && !classYmd.placeholder) classYmd.placeholder = '비우면 전체 · 예: ' + today;
       const staffYyyymm = $('#staffYyyymm');
@@ -4696,6 +4769,117 @@
       showToast('수동 정정을 저장했습니다.');
       showResult('출결 수동 정정 완료', r.data || r);
       await loadLogs();
+    }
+
+    function absenceExcuseArgs() {
+      return {
+        yyyymmdd: ($('#absenceExcuseYmd')?.value || '').replace(/[^0-9]/g, '').slice(0, 8),
+        class_id: ($('#absenceExcuseClassId')?.value || '').trim(),
+        student_id: normalizeSid($('#absenceExcuseStudentId')?.value || ''),
+        reason: ($('#absenceExcuseReason')?.value || '').trim(),
+        until_min: Number($('#absenceExcuseUntilMin')?.value || 0) || 0
+      };
+    }
+
+    function renderAbsenceExcuses(items) {
+      const rows = Array.isArray(items) ? items : [];
+      const tbody = $('#absenceExcuseRows');
+      if (!tbody) return;
+      tbody.innerHTML = rows.length ? rows.map(row => {
+        const ymd = row.yyyymmdd || '';
+        const classId = row.class_id || '';
+        const sid = normalizeSid(row.student_id || '');
+        const student = [sid, row.student_name || ''].filter(Boolean).join(' ');
+        const cls = [classId, row.class_name || ''].filter(Boolean).join(' · ');
+        return `
+          <tr>
+            <td>${esc(ymd)}</td>
+            <td>${esc(cls)}</td>
+            <td>${esc(student)}</td>
+            <td class="wrap">${esc(row.reason || '')}</td>
+            <td>${esc(shortTs(row.until_ts || ''))}</td>
+            <td><button class="btn btnGhost" type="button" data-remove-excuse="1" data-ymd="${esc(ymd)}" data-class-id="${esc(classId)}" data-sid="${esc(sid)}">삭제</button></td>
+          </tr>
+        `;
+      }).join('') : '<tr><td colspan="6" style="color:var(--muted);">조건에 맞는 예외가 없습니다.</td></tr>';
+
+      $$('#absenceExcuseRows button[data-remove-excuse]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('이 미등원 예외를 삭제할까요?')) return;
+          const r = await rpc('assistant.removeAbsenceExcuse', {
+            yyyymmdd: btn.dataset.ymd || '',
+            class_id: btn.dataset.classId || '',
+            student_id: btn.dataset.sid || ''
+          }, { timeoutMs: 40000, cacheTtlMs: 0 });
+          if (!r.ok) {
+            showToast(r.error && r.error.message ? r.error.message : '예외 삭제 실패');
+            showResult('미등원 예외 삭제 실패', r);
+            return;
+          }
+          showToast('미등원 예외를 삭제했습니다.');
+          await listAbsenceExcuses();
+        });
+      });
+    }
+
+    async function listAbsenceExcuses() {
+      const args = absenceExcuseArgs();
+      const r = await rpc('assistant.listAbsenceExcuses', {
+        yyyymmdd: args.yyyymmdd,
+        class_id: args.class_id,
+        student_id: args.student_id
+      }, { timeoutMs: 25000, cacheTtlMs: 10000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '미등원 예외 조회 실패');
+        showResult('미등원 예외 조회 실패', r);
+        return;
+      }
+      renderAbsenceExcuses(r.data && Array.isArray(r.data.items) ? r.data.items : []);
+      showToast('미등원 예외를 조회했습니다.');
+    }
+
+    async function addAbsenceExcuse() {
+      const args = absenceExcuseArgs();
+      if (!args.yyyymmdd || !args.class_id || !args.student_id) {
+        showToast('날짜, 반 ID, 학생 학번을 입력하세요.');
+        return;
+      }
+      const r = await rpc('assistant.addAbsenceExcuse', args, { timeoutMs: 50000, cacheTtlMs: 0 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '미등원 예외 추가 실패');
+        showResult('미등원 예외 추가 실패', r);
+        return;
+      }
+      clearRpcCache('assistant.listAbsenceExcuses');
+      showToast('미등원 예외를 추가했습니다.');
+      await listAbsenceExcuses();
+    }
+
+    async function bulkAddAbsenceExcuses() {
+      const args = absenceExcuseArgs();
+      const ids = ($('#absenceExcuseBulkIds')?.value || '')
+        .split(/[\s,]+/)
+        .map(normalizeSid)
+        .filter(Boolean);
+      if (!args.yyyymmdd || !args.class_id || !ids.length) {
+        showToast('날짜, 반 ID, 일괄 학번을 입력하세요.');
+        return;
+      }
+      const r = await rpc('assistant.bulkAddAbsenceExcuses', {
+        yyyymmdd: args.yyyymmdd,
+        class_id: args.class_id,
+        student_ids: ids,
+        reason: args.reason,
+        until_min: args.until_min
+      }, { timeoutMs: 65000, cacheTtlMs: 0 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '미등원 예외 일괄 추가 실패');
+        showResult('미등원 예외 일괄 추가 실패', r);
+        return;
+      }
+      clearRpcCache('assistant.listAbsenceExcuses');
+      showToast('미등원 예외를 일괄 추가했습니다.');
+      await listAbsenceExcuses();
     }
 
     async function listQueue(actionPrefix) {
@@ -5927,6 +6111,9 @@
       bindClick('btnBlockSid', () => setStudentException('N'));
       bindClick('btnLoadLogs', loadLogs);
       bindClick('btnManualAttendance', saveManualAttendance);
+      bindClick('btnListAbsenceExcuses', listAbsenceExcuses);
+      bindClick('btnAddAbsenceExcuse', addAbsenceExcuse);
+      bindClick('btnBulkAddAbsenceExcuses', bulkAddAbsenceExcuses);
       bindClick('btnFailedAbsent', () => listQueue('ABSENT'));
       bindClick('btnFailedAttendance', () => listQueue('ATTENDANCE'));
       bindClick('btnCheckCentral', checkCentral);

@@ -49,23 +49,51 @@ function fastCacheSec(name, fallback = 20, max = 300) {
   return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : fallback;
 }
 
-function fastCacheGet(key) {
+function fastCacheStaleSec(name, fallback = 600, max = 3600) {
+  const envName = 'RPC_CACHE_' + String(name || '').toUpperCase() + '_STALE_SEC';
+  const n = Number(process.env[envName] || fallback);
+  return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : fallback;
+}
+
+function fastCacheEntry(key, allowStale = false) {
   const hit = RPC_FAST_CACHE.get(key);
   if (!hit) return null;
-  if (Date.now() > hit.expire_ms) {
+  const now = Date.now();
+  const staleExpire = Number(hit.stale_expire_ms || hit.expire_ms || 0);
+  if (now > staleExpire) {
     RPC_FAST_CACHE.delete(key);
     return null;
   }
-  return hit.value;
+  if (now > Number(hit.expire_ms || 0)) {
+    if (!allowStale) return null;
+    return { value: hit.value, fresh: false, stale: true };
+  }
+  return { value: hit.value, fresh: true, stale: false };
 }
 
-function fastCacheSet(key, value, ttlSec) {
+function fastCacheGet(key) {
+  const hit = fastCacheEntry(key, false);
+  return hit ? hit.value : null;
+}
+
+function fastCacheGetStale(key) {
+  const hit = fastCacheEntry(key, true);
+  return hit ? hit.value : null;
+}
+
+function fastCacheSet(key, value, ttlSec, staleSec = 0) {
   if (!ttlSec || ttlSec <= 0) return value;
-  RPC_FAST_CACHE.set(key, { value, expire_ms: Date.now() + ttlSec * 1000 });
-  if (RPC_FAST_CACHE.size > 300) {
-    const now = Date.now();
+  const now = Date.now();
+  const staleMs = Math.max(Number(ttlSec || 0), Number(ttlSec || 0) + Math.max(0, Number(staleSec || 0))) * 1000;
+  RPC_FAST_CACHE.set(key, {
+    value,
+    expire_ms: now + ttlSec * 1000,
+    stale_expire_ms: now + staleMs
+  });
+  if (RPC_FAST_CACHE.size > 500) {
+    const now2 = Date.now();
     for (const [k, v] of RPC_FAST_CACHE.entries()) {
-      if (now > v.expire_ms) RPC_FAST_CACHE.delete(k);
+      if (now2 > Number(v.stale_expire_ms || v.expire_ms || 0)) RPC_FAST_CACHE.delete(k);
     }
   }
   return value;
@@ -1996,9 +2024,11 @@ async function proxyCentralBridgeManaged(bridgeOp, args = {}, sessionToken = '',
   if (!auth.ok) return auth.out;
 
   const cacheKey = options.cacheKey ? `${options.cacheKey}|${JSON.stringify(args || {})}` : '';
-  if (cacheKey && options.cacheTtlSec) {
+  const ttlSec = Number(options.cacheTtlSec || 0);
+  const staleSec = Number(options.cacheStaleSec || fastCacheStaleSec(options.cacheName || 'central_bridge', 600, 3600));
+  if (cacheKey && ttlSec && !args.force && !args.refresh) {
     const cached = fastCacheGet(cacheKey);
-    if (cached) return success({ ...cached, cache: { hit: true, ttl_sec: options.cacheTtlSec } });
+    if (cached) return success({ ...cached, cache: { hit: true, ttl_sec: ttlSec, source: 'memory_fresh' } });
   }
 
   const result = await proxyRpcToGas(
@@ -2014,12 +2044,22 @@ async function proxyCentralBridgeManaged(bridgeOp, args = {}, sessionToken = '',
   );
 
   if (result.body && result.body.ok === true) {
-    if (cacheKey && options.cacheTtlSec) fastCacheSet(cacheKey, result.body.data || {}, options.cacheTtlSec);
+    if (cacheKey && ttlSec) fastCacheSet(cacheKey, result.body.data || {}, ttlSec, staleSec);
     if (options.mutate) {
       fastCacheDelPrefix('central.');
       fastCacheDelPrefix('classOptions');
       fastCacheDelPrefix('adminOpsOverview');
       fastCacheDelPrefix('masterStudentSearch');
+      fastCacheDelPrefix('absenceExcuses');
+    }
+  } else if (cacheKey && ttlSec && options.allowStaleOnError !== false) {
+    const stale = fastCacheGetStale(cacheKey);
+    if (stale) {
+      return success({
+        ...stale,
+        cache: { hit: true, stale: true, source: 'memory_stale' },
+        upstream_error: result.body?.error || { code: 'UPSTREAM_ERROR', message: '중앙DB 응답 실패' }
+      });
     }
   }
 
@@ -2095,11 +2135,75 @@ async function adminCentralScheduleUpdateDirect(args = {}, sessionToken = '') {
 async function adminCentralScheduleRebuildDirect(args = {}, sessionToken = '') {
   return proxyCentralBridgeManaged('bridge.schedule.rebuild', {}, sessionToken, 'admin', { timeoutMs: 90000, mutate: true });
 }
+async function readCentralStaffListReplicaDirect() {
+  const supabase = getSupabaseAdmin();
+  const readFrom = async (table) => {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .order('staff_id', { ascending: true })
+      .limit(500);
+    if (error) return { ok: false, error, table, items: [] };
+    const items = (Array.isArray(data) ? data : [])
+      .map(row => {
+        const staffId = String(row?.staff_id || '').trim().toLowerCase();
+        if (!staffId) return null;
+        const revoked = String(row?.revoked || '').trim().toUpperCase() === 'Y' ? 'Y' : 'N';
+        const status = String(row?.status || (revoked === 'Y' ? 'inactive' : 'active')).trim().toLowerCase();
+        return {
+          staff_id: staffId,
+          name: String(row?.name || '').trim(),
+          role: normalizeRole(row?.role || 'assistant'),
+          revoked,
+          status,
+          has_password: !!String(row?.password_hash || row?.pw_hash || '').trim(),
+          has_pin: !!String(row?.pin_hash || '').trim(),
+          last_login_at: String(row?.last_login_at || ''),
+          created_at: String(row?.created_at || ''),
+          updated_at: String(row?.updated_at || '')
+        };
+      })
+      .filter(Boolean);
+    return { ok: true, table, items };
+  };
+
+  let out = await readFrom('staff');
+  if ((!out.ok || !out.items.length) && !(out.error && String(out.error?.code || '') !== 'PGRST205')) {
+    out = await readFrom('staff_snapshot');
+  }
+  return out;
+}
+
 async function adminCentralStaffListDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const cacheKey = 'central.staff.list.replica|{}';
+  if (!args.force && !args.refresh && String(args.source || '').toLowerCase() !== 'central') {
+    const cached = fastCacheGet(cacheKey);
+    if (cached) return success({ ...cached, cache: { hit: true, source: 'memory_fresh' } });
+
+    const replica = await readCentralStaffListReplicaDirect();
+    if (replica.ok && replica.items.length) {
+      const out = {
+        staff: replica.items,
+        count: replica.items.length,
+        source: 'supabase_replica',
+        replica_table: replica.table,
+        fast: true,
+        note: '중앙DB 직원 목록을 Supabase replica에서 우선 조회했습니다. 강제 원본 확인은 force=true로 호출합니다.'
+      };
+      fastCacheSet(cacheKey, out, fastCacheSec('central_staff_list', 45, 300), fastCacheStaleSec('central_staff_list', 900, 3600));
+      return success(out);
+    }
+  }
+
   return proxyCentralBridgeManaged('bridge.staff.list', {}, sessionToken, 'admin', {
     timeoutMs: 35000,
     cacheKey: 'central.staff.list',
-    cacheTtlSec: fastCacheSec('central_staff_list', 15, 120)
+    cacheTtlSec: fastCacheSec('central_staff_list', 45, 300),
+    cacheStaleSec: fastCacheStaleSec('central_staff_list', 900, 3600),
+    cacheName: 'central_staff_list'
   });
 }
 async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
@@ -2128,22 +2232,85 @@ async function adminCentralStaffResetSecretDirect(args = {}, sessionToken = '') 
   if (!staffId || (!password && !pin)) return fail(400, 'INVALID_INPUT', 'staff_id와 password 또는 pin이 필요합니다.');
   return proxyCentralBridgeManaged('bridge.staff.reset_secret', { staff_id: staffId, password, pin }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
 }
+async function readCentralPropsSnapshotDirect(maxAgeSec = 3600) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('runtime_config')
+      .select('key, value_json, updated_at')
+      .eq('key', 'central_props_snapshot')
+      .maybeSingle();
+    if (error || !data || !data.value_json) return null;
+    const updatedAt = Date.parse(String(data.updated_at || data.value_json.updated_at || ''));
+    const ageSec = Number.isFinite(updatedAt) ? Math.max(0, Math.floor((Date.now() - updatedAt) / 1000)) : null;
+    if (ageSec != null && maxAgeSec > 0 && ageSec > maxAgeSec) return null;
+    return {
+      ...(data.value_json.props || data.value_json),
+      source: 'runtime_config_snapshot',
+      snapshot_age_sec: ageSec
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+async function writeCentralPropsSnapshotDirect(props = {}, updatedBy = '') {
+  try {
+    await writeRuntimeConfig('central_props_snapshot', {
+      props: props && typeof props === 'object' ? props : {},
+      updated_at: nowIso()
+    }, updatedBy);
+  } catch (_) {
+    // snapshot 저장 실패는 중앙DB 원본 작업을 막지 않습니다.
+  }
+}
+
 async function adminCentralPropsGetDirect(args = {}, sessionToken = '') {
-  return proxyCentralBridgeManaged('bridge.props.get', {}, sessionToken, 'admin', {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const maxAgeSec = Math.max(60, Math.min(86400, toPositiveInt(args.max_age_sec || args.maxAgeSec || process.env.CENTRAL_PROPS_SNAPSHOT_SEC, 3600)));
+  if (!args.force && !args.refresh) {
+    const memory = fastCacheGet('central.props.snapshot|{}');
+    if (memory) return success({ ...memory, cache: { hit: true, source: 'memory_fresh' } });
+    const snapshot = await readCentralPropsSnapshotDirect(maxAgeSec);
+    if (snapshot) {
+      const out = { ...snapshot, fast: true };
+      fastCacheSet('central.props.snapshot|{}', out, fastCacheSec('central_props', 120, 600), fastCacheStaleSec('central_props', 1800, 86400));
+      return success(out);
+    }
+  }
+
+  const result = await proxyCentralBridgeManaged('bridge.props.get', {}, sessionToken, 'admin', {
     timeoutMs: 30000,
     cacheKey: 'central.props',
-    cacheTtlSec: fastCacheSec('central_props', 30, 180)
+    cacheTtlSec: fastCacheSec('central_props', 120, 600),
+    cacheStaleSec: fastCacheStaleSec('central_props', 1800, 86400),
+    cacheName: 'central_props'
   });
+
+  if (result.body?.ok === true) {
+    await writeCentralPropsSnapshotDirect(result.body.data || {}, auth.me.staff_id);
+  }
+
+  return result;
 }
 async function adminCentralPropsSetDirect(args = {}, sessionToken = '') {
   const props = args.props || args || {};
-  return proxyCentralBridgeManaged('bridge.props.set', {
+  const cleanProps = {
     STUDENTS_SHEET_NAME: String(props.STUDENTS_SHEET_NAME || '').trim(),
     CLASS_SYNC_CALENDAR: String(props.CLASS_SYNC_CALENDAR || 'N').trim().toUpperCase(),
     CLASS_CALENDAR_ID: String(props.CLASS_CALENDAR_ID || '').trim(),
     STUDENTS_CACHE_TTL: String(props.STUDENTS_CACHE_TTL || '').trim(),
     SESSION_TTL_SEC: String(props.SESSION_TTL_SEC || '').trim()
-  }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+  };
+  const result = await proxyCentralBridgeManaged('bridge.props.set', cleanProps, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+  if (result.body?.ok === true) {
+    const me = await authMeDirect(String(sessionToken || '').trim(), { touch: false });
+    await writeCentralPropsSnapshotDirect(result.body.data || cleanProps, me?.staff_id || '');
+    fastCacheDelPrefix('central.props');
+  }
+  return result;
 }
 async function adminCentralSelfCheckDirect(args = {}, sessionToken = '') {
   return proxyCentralBridgeManaged('bridge.self_check.run', {}, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
@@ -5275,6 +5442,9 @@ async function assistantListAbsenceExcusesDirect(args = {}, sessionToken = '') {
   const yyyymmdd = String(args.yyyymmdd || args.ymd || '').trim();
   const classId = String(args.class_id || '').trim();
   const sid = args.student_id ? normalizeStudentId(args.student_id) : '';
+  const cacheKey = ['absenceExcuses', yyyymmdd || 'all', classId || 'all', sid || 'all'].join('|');
+  const cached = fastCacheGet(cacheKey);
+  if (cached) return success({ ...cached, cache: { hit: true, source: 'memory_fresh' } });
 
   const supabase = getSupabaseAdmin();
   let query = supabase
@@ -5315,10 +5485,12 @@ async function assistantListAbsenceExcusesDirect(args = {}, sessionToken = '') {
     };
   });
 
-  return success({
+  const out = {
     count: items.length,
     items
-  });
+  };
+  fastCacheSet(cacheKey, out, fastCacheSec('absence_excuses', 10, 60), fastCacheStaleSec('absence_excuses', 120, 600));
+  return success(out);
 }
 
 async function assistantManualAttendanceDirect(args = {}, sessionToken = '') {
@@ -5815,16 +5987,19 @@ export default async function handler(req, res) {
 
   if (op === 'assistant.addAbsenceExcuse') {
     const result = await assistantUpsertAbsenceExcuseHybrid(payload.args || {}, sessionToken);
+    if (result.body?.ok === true) fastCacheDelPrefix('absenceExcuses');
     return send(res, result.status, result.body);
   }
 
   if (op === 'assistant.bulkAddAbsenceExcuses') {
     const result = await assistantBulkUpsertAbsenceExcusesDirect(payload.args || {}, sessionToken);
+    if (result.body?.ok === true) fastCacheDelPrefix('absenceExcuses');
     return send(res, result.status, result.body);
   }
 
   if (op === 'assistant.removeAbsenceExcuse') {
     const result = await assistantRemoveAbsenceExcuseHybrid(payload.args || {}, sessionToken);
+    if (result.body?.ok === true) fastCacheDelPrefix('absenceExcuses');
     return send(res, result.status, result.body);
   }
 

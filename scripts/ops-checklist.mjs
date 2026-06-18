@@ -117,6 +117,12 @@ checkText('api/rpc.js', "admin.central.staff.upsert", '직원 계정 bridge API'
 checkText('api/rpc.js', "admin.central.props.set", '중앙DB 설정 bridge API');
 checkText('scripts/smoke-test.mjs', 'admin.central.props.get', 'smoke-test 중앙DB 설정 bridge 포함');
 checkText('docs/MASTER_DATA_PORTAL.md', 'CentralDB 웹앱 잔여 기능 이관 v3', '마스터데이터 잔여 기능 이관 문서');
+checkText('public/admin.html', 'absenceExcuseRows', '미등원 예외 관리 UI');
+checkText('public/admin.html', 'btnBulkAddAbsenceExcuses', '미등원 예외 일괄 추가 UI');
+checkText('api/rpc.js', 'fastCacheGetStale', '서버 stale cache fallback');
+checkText('api/rpc.js', 'readCentralStaffListReplicaDirect', '직원 목록 replica fast path');
+checkText('api/rpc.js', 'central_props_snapshot', '중앙DB 설정 snapshot fast path');
+checkText('scripts/smoke-test.mjs', 'assistant.listAbsenceExcuses', 'smoke-test 미등원 예외 조회 포함');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
