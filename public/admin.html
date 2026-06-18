@@ -1688,6 +1688,514 @@
       }
     }
 
+
+    /* UI/UX refresh v2: daily-operation cockpit, slide drawer, field mode */
+    :root {
+      --ease-fast: cubic-bezier(.2,.8,.2,1);
+      --blue-ink: #1d4ed8;
+      --violet-soft: #f5f3ff;
+    }
+
+    .loginIntro.simpleLoginIntro {
+      background:
+        radial-gradient(circle at 18% 12%, rgba(96, 165, 250, 0.24), transparent 28%),
+        linear-gradient(145deg, #0f172a, #182133 58%, #111827);
+    }
+
+    .loginOpsChips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 24px;
+    }
+
+    .loginOpsChip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 8px 11px;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.82);
+      font-size: 12px;
+      font-weight: 850;
+      backdrop-filter: blur(10px);
+    }
+
+    .opsContextBar {
+      transition: box-shadow .16s var(--ease-fast), transform .16s var(--ease-fast);
+    }
+
+    .opsContextBar:focus-within {
+      box-shadow: 0 18px 48px rgba(29, 78, 216, 0.12);
+      transform: translateY(-1px);
+    }
+
+    #opsModePill {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #opsModePill:hover {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .smartBoard {
+      display: grid;
+      grid-template-columns: 1.2fr 2fr;
+      gap: 14px;
+      margin: -8px 0 22px;
+    }
+
+    .smartBoardIntro {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, #111827, #1f2937);
+      color: #fff;
+      box-shadow: 0 18px 52px rgba(15, 23, 42, 0.10);
+    }
+
+    .smartBoardIntro .kicker {
+      color: rgba(255,255,255,0.58);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .smartBoardIntro strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .smartBoardIntro p {
+      margin: 8px 0 0;
+      color: rgba(255,255,255,0.68);
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.55;
+    }
+
+    .smartActionGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .smartActionTile {
+      min-height: 92px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.045);
+      cursor: pointer;
+      transition: transform .14s var(--ease-fast), border-color .14s var(--ease-fast), box-shadow .14s var(--ease-fast), background .14s var(--ease-fast);
+      outline: none;
+    }
+
+    .smartActionTile:hover,
+    .smartActionTile:focus-visible {
+      transform: translateY(-2px);
+      border-color: #bfdbfe;
+      box-shadow: 0 20px 44px rgba(29, 78, 216, 0.10);
+      background: #ffffff;
+    }
+
+    .smartActionTile .a {
+      color: #111827;
+      font-size: 14px;
+      font-weight: 950;
+      line-height: 1.28;
+    }
+
+    .smartActionTile .b {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .smartActionTile.good {
+      background: linear-gradient(180deg, #ffffff, #f0fdf4);
+    }
+
+    .smartActionTile.warn {
+      background: linear-gradient(180deg, #ffffff, #fffbeb);
+    }
+
+    .smartActionTile.blue {
+      background: linear-gradient(180deg, #ffffff, #eff6ff);
+    }
+
+    .saveStateDock {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 80;
+      display: grid;
+      gap: 8px;
+      width: min(360px, calc(100vw - 28px));
+      pointer-events: none;
+    }
+
+    .saveStateItem {
+      display: grid;
+      grid-template-columns: 10px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.10);
+      backdrop-filter: blur(14px);
+    }
+
+    .saveStateDot {
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      border-radius: 999px;
+      background: var(--blue);
+      animation: pulseDot 1s ease-in-out infinite;
+    }
+
+    .saveStateItem.done .saveStateDot { background: var(--green); animation: none; }
+    .saveStateItem.fail .saveStateDot { background: var(--red); animation: none; }
+
+    @keyframes pulseDot {
+      0%,100% { transform: scale(.72); opacity: .58; }
+      50% { transform: scale(1); opacity: 1; }
+    }
+
+    .saveStateTitle {
+      font-size: 13px;
+      font-weight: 950;
+      line-height: 1.3;
+    }
+
+    .saveStateDesc {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .drawerOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 88;
+      background: rgba(15,23,42,0.28);
+      backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease;
+    }
+
+    .drawerOverlay.on {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .workDrawer {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 90;
+      width: min(520px, calc(100vw - 28px));
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 30px 90px rgba(15, 23, 42, 0.22);
+      backdrop-filter: blur(22px);
+      transform: translateX(calc(100% + 24px));
+      transition: transform .2s var(--ease-fast);
+      overflow: hidden;
+    }
+
+    .workDrawer.on {
+      transform: translateX(0);
+    }
+
+    .drawerHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+
+    .drawerTitle {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .drawerDesc {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
+    .drawerClose {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--muted);
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .drawerBody {
+      flex: 1;
+      overflow: auto;
+      padding: 18px 20px 22px;
+    }
+
+    .drawerKv {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 8px 12px;
+      margin: 14px 0;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .drawerKv .k { color: var(--muted); }
+    .drawerKv .v { color: #111827; word-break: break-all; }
+
+    .drawerActionList {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .drawerAction {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+
+    .drawerAction:hover,
+    .drawerAction:focus-visible {
+      transform: translateY(-1px);
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      outline: none;
+    }
+
+    .drawerAction strong {
+      display: block;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .drawerAction span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .quickProgress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .quickProgress .bar {
+      width: 44px;
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e2e8f0;
+    }
+
+    .quickProgress .bar i {
+      display: block;
+      height: 100%;
+      width: 55%;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .roleHidden {
+      display: none !important;
+    }
+
+    .fieldMode .side {
+      width: 84px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    .fieldMode .sideBrandText,
+    .fieldMode .sideSectionLabel,
+    .fieldMode .navBtn span,
+    .fieldMode .sideFooter .userBox,
+    .fieldMode .sideFooter .btnGhost {
+      display: none !important;
+    }
+
+    .fieldMode .shell {
+      grid-template-columns: 84px minmax(0, 1fr);
+    }
+
+    .fieldMode .navBtn {
+      justify-content: center;
+      padding-left: 8px;
+      padding-right: 8px;
+      font-size: 12px;
+    }
+
+    .reportLetter {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid #dbeafe;
+      border-radius: 22px;
+      background: linear-gradient(180deg, #ffffff, #eff6ff);
+      color: #0f172a;
+      white-space: normal;
+      font-family: inherit;
+    }
+
+    .reportLetter h3 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.04em;
+    }
+
+    .reportLetter p {
+      margin: 0;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.6;
+    }
+
+    .reportLetter ul {
+      margin: 4px 0 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 1120px) {
+      .smartBoard {
+        grid-template-columns: 1fr;
+      }
+      .smartActionGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .loginCard {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+      .loginIntro {
+        padding: 28px;
+      }
+      .loginForm {
+        padding: 28px;
+      }
+      .smartActionGrid {
+        grid-template-columns: 1fr;
+      }
+      .quickSearch {
+        grid-template-columns: 1fr;
+      }
+      .pageHeader,
+      .quickDock,
+      .opsContextBar,
+      .smartBoard {
+        border-radius: 20px;
+      }
+      .fieldMode .shell,
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .side {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100% !important;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .sideBrand,
+      .sideFooter,
+      .sideSectionLabel {
+        display: none !important;
+      }
+      .sideNav {
+        display: flex;
+        gap: 6px;
+        overflow: auto;
+        padding-bottom: 4px;
+      }
+      .navBtn {
+        flex: 0 0 auto;
+        min-width: 70px;
+        justify-content: center;
+      }
+      .navBtn span { display: none; }
+      .main { padding: 12px; }
+      .workspace { width: 100%; }
+      .formGrid.cols2,
+      .formGrid.cols3,
+      .grid2,
+      .grid4 {
+        grid-template-columns: 1fr !important;
+      }
+      .tableWrap {
+        max-height: 58vh;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1705,6 +2213,12 @@
 <div class="loginHeadline">
 <h1>더오름 운영 포털</h1>
 <p>출결·클리닉·단어시험을 처리하는 직원 로그인 화면입니다.</p>
+<div class="loginOpsChips" aria-label="운영 포털 핵심 기능">
+<span class="loginOpsChip">출결 처리</span>
+<span class="loginOpsChip">클리닉 업무판</span>
+<span class="loginOpsChip">단어시험 일괄 입력</span>
+<span class="loginOpsChip">중앙DB 관리</span>
+</div>
 </div>
 </div>
 <div class="loginForm">
@@ -1768,6 +2282,7 @@
 <div class="pageDesc" id="pageDesc">오늘 운영 상태와 빠른 업무를 확인합니다.</div>
 </div>
 <div class="topTools" id="pageTags">
+<div class="quickProgress" id="uiSyncPill" title="최근 작업 상태"><span class="bar"><i></i></span><span id="uiSyncText">즉시 반응 준비</span></div>
 <button class="btn btnGhost" onclick="location.href='/'" type="button">키오스크</button>
 <button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
 </div>
@@ -1805,6 +2320,21 @@
 <div class="opsContextPills">
 <span class="contextPill" id="opsClassPill">클래스 미선택</span>
 <span class="contextPill" id="opsModePill">딸깍 선택 모드</span>
+</div>
+</div>
+<div class="smartBoard" id="smartBoard" aria-label="딸깍 업무 보드">
+<div class="smartBoardIntro">
+<div class="kicker">Click-first Workflow</div>
+<strong>자주 하는 일은 입력하지 말고 선택해서 처리하세요.</strong>
+<p>상단에서 클래스와 학생을 고르면 클리닉·단어시험·리포트·미등원 예외가 자동으로 이어집니다.</p>
+</div>
+<div class="smartActionGrid">
+<div class="smartActionTile blue" role="button" tabindex="0" data-smart-action="classRoster"><div class="a">선택 반 명단</div><div class="b">작업 클래스를 기준으로 수강생을 바로 확인</div></div>
+<div class="smartActionTile good" role="button" tabindex="0" data-smart-action="classClinic"><div class="a">수업 클리닉</div><div class="b">선택 반 전체에 오늘 할 일 생성 준비</div></div>
+<div class="smartActionTile warn" role="button" tabindex="0" data-smart-action="wordBulk"><div class="a">단어 일괄 입력</div><div class="b">선택 반 기준으로 회차·명단 입력 연결</div></div>
+<div class="smartActionTile" role="button" tabindex="0" data-smart-action="studentClinic"><div class="a">선택 학생 클리닉</div><div class="b">학생을 고른 뒤 개별/추가 클리닉으로 이동</div></div>
+<div class="smartActionTile blue" role="button" tabindex="0" data-smart-action="studentReport"><div class="a">학부모 리포트</div><div class="b">선택 학생 기준으로 이번 주 리포트 준비</div></div>
+<div class="smartActionTile" role="button" tabindex="0" data-smart-action="absenceExcuse"><div class="a">미등원 예외</div><div class="b">선택 반 기준으로 카톡 X/지각 연락 관리</div></div>
 </div>
 </div>
 <section class="portalView active" data-view-desc="오늘 처리할 일만 봅니다." data-view-title="오늘" id="dashboard">
@@ -3380,6 +3910,18 @@
 </div>
 </main>
 </div>
+<div class="drawerOverlay" id="drawerOverlay"></div>
+<aside class="workDrawer" id="workDrawer" aria-label="상세 작업 패널">
+<div class="drawerHead">
+<div>
+<h2 class="drawerTitle" id="drawerTitle">작업 패널</h2>
+<div class="drawerDesc" id="drawerDesc">행을 선택하면 필요한 작업만 모아서 보여줍니다.</div>
+</div>
+<div class="drawerClose" id="drawerClose" role="button" tabindex="0" aria-label="작업 패널 닫기">×</div>
+</div>
+<div class="drawerBody" id="drawerBody"></div>
+</aside>
+<div class="saveStateDock" id="saveStateDock" aria-live="polite"></div>
 <div class="toast hidden" id="toast"></div>
 <script>
     const $ = (sel) => document.querySelector(sel);
@@ -3404,7 +3946,10 @@
       classCatalogLoadedOnce: false,
       staffCatalogLoadedOnce: false,
       rpcCache: new Map(),
-      rpcInflight: new Map()
+      rpcInflight: new Map(),
+      uiMode: localStorage.getItem('OPS_UI_MODE') || 'daily',
+      drawerContext: null,
+      saveSeq: 0
     };
 
     function esc(value) {
@@ -3515,6 +4060,7 @@
           ? `${label} · 출결/클리닉/단어/리포트에 연결됨`
           : '학생 미선택 · 상단 검색이나 각 메뉴 검색에서 선택하세요.';
       }
+      if (App.drawerContext && App.drawerContext.kind === 'student') openWorkDrawer('student', App.selectedStudent || {});
     }
 
 
@@ -3566,6 +4112,7 @@
         const master = $('#masterClassId');
         if (master && !master.value) master.value = id;
       }
+      if (id && App.drawerContext && App.drawerContext.kind === 'class') openWorkDrawer('class', item);
       return item;
     }
 
@@ -3812,6 +4359,198 @@
       showToast._timer = setTimeout(() => el.classList.add('hidden'), 2800);
     }
 
+
+    function setUiSyncText(text) {
+      const el = $('#uiSyncText');
+      if (el) el.textContent = text || '즉시 반응 준비';
+    }
+
+    function addSaveState(title, desc, kind = 'pending') {
+      const dock = $('#saveStateDock');
+      if (!dock) return null;
+      const id = 'saveState_' + (++App.saveSeq);
+      const el = document.createElement('div');
+      el.className = 'saveStateItem' + (kind === 'done' ? ' done' : kind === 'fail' ? ' fail' : '');
+      el.id = id;
+      el.innerHTML = `<div class="saveStateDot"></div><div><div class="saveStateTitle">${esc(title)}</div><div class="saveStateDesc">${esc(desc || '')}</div></div>`;
+      dock.prepend(el);
+      while (dock.children.length > 4) dock.lastElementChild?.remove();
+      setUiSyncText(kind === 'pending' ? '저장 중…' : kind === 'fail' ? '확인 필요' : '저장 완료');
+      if (kind !== 'pending') setTimeout(() => el.remove(), 5200);
+      return id;
+    }
+
+    function updateSaveState(id, kind, title, desc) {
+      const el = id ? document.getElementById(id) : null;
+      if (!el) return;
+      el.classList.toggle('done', kind === 'done');
+      el.classList.toggle('fail', kind === 'fail');
+      const t = el.querySelector('.saveStateTitle');
+      const d = el.querySelector('.saveStateDesc');
+      if (t && title) t.textContent = title;
+      if (d && desc) d.textContent = desc;
+      setUiSyncText(kind === 'fail' ? '확인 필요' : '저장 완료');
+      setTimeout(() => el.remove(), kind === 'fail' ? 9000 : 4200);
+    }
+
+    function safeOptimisticStart(title, desc) {
+      writeActionLog(title, desc || '화면은 먼저 반응하고 저장 결과를 확인합니다.');
+      return addSaveState(title, desc || '중앙DB/Supabase 반영 중입니다.', 'pending');
+    }
+
+    function safeOptimisticDone(id, title, desc) {
+      updateSaveState(id, 'done', title || '처리 완료', desc || '정상 반영되었습니다.');
+    }
+
+    function safeOptimisticFail(id, title, desc) {
+      updateSaveState(id, 'fail', title || '처리 실패', desc || '저장 결과를 확인하세요.');
+    }
+
+    function setUiMode(mode, options = {}) {
+      App.uiMode = mode === 'field' ? 'field' : 'daily';
+      document.body.classList.toggle('fieldMode', App.uiMode === 'field');
+      localStorage.setItem('OPS_UI_MODE', App.uiMode);
+      const pill = $('#opsModePill');
+      if (pill) pill.textContent = App.uiMode === 'field' ? '현장/태블릿 모드' : '딸깍 선택 모드';
+      if (!options.silent) showToast(App.uiMode === 'field' ? '현장 모드로 전환했습니다.' : '일상 업무 모드로 전환했습니다.');
+    }
+
+    function currentRoleRank() {
+      const role = String(App.me?.role || App.me?.staff_role || '').toLowerCase();
+      const rank = { assistant: 1, teacher: 2, admin: 3, owner: 4 };
+      return rank[role] || 1;
+    }
+
+    function applyRoleUi() {
+      const rank = currentRoleRank();
+      const isAdmin = rank >= 3;
+      // 조회 메뉴는 남기되, 위험한 직원/설정 관리와 마스터 삭제는 권한이 낮으면 가립니다.
+      $$('[data-admin-only], #btnDeleteMasterClass, #btnCentralSaveStaff, #btnCentralToggleStaff, #btnCentralResetStaffSecret, #btnCentralSaveProps, #btnFlushCache').forEach(el => {
+        el.classList.toggle('roleHidden', !isAdmin);
+      });
+      const roleText = $('#whoText');
+      if (roleText && App.me) roleText.title = isAdmin ? '관리자 작업 가능' : '현장 작업 중심 권한';
+    }
+
+    function drawerActionHtml(action, title, desc) {
+      return `<div class="drawerAction" role="button" tabindex="0" data-drawer-action="${esc(action)}"><strong>${esc(title)}</strong><span>${esc(desc)}</span></div>`;
+    }
+
+    function openWorkDrawer(kind = 'context', data = {}) {
+      App.drawerContext = { kind, data };
+      const title = $('#drawerTitle');
+      const desc = $('#drawerDesc');
+      const body = $('#drawerBody');
+      if (!body) return;
+      const selectedClass = App.selectedClassId || data.class_id || '';
+      const selectedStudent = App.selectedStudent || {};
+      let html = '';
+      if (kind === 'class') {
+        const label = data.class_name || data.name || data.class_id || selectedClass || '선택 클래스';
+        if (title) title.textContent = '클래스 작업';
+        if (desc) desc.textContent = '명단·수업 클리닉·단어시험을 여기서 이어서 처리합니다.';
+        html += `<div class="drawerKv"><div class="k">클래스</div><div class="v">${esc(label)}</div><div class="k">class_id</div><div class="v">${esc(data.class_id || selectedClass || '-')}</div></div>`;
+        html += '<div class="drawerActionList">'
+          + drawerActionHtml('classRoster', '수강생 명단 보기', '선택 반의 명단을 불러옵니다.')
+          + drawerActionHtml('classClinic', '수업 클리닉 만들기', '오늘 수업 클리닉을 반 전체 대상으로 준비합니다.')
+          + drawerActionHtml('wordBulk', '단어시험 일괄 입력', '선택 반으로 단어시험 메뉴를 엽니다.')
+          + drawerActionHtml('absenceExcuse', '미등원 예외 관리', '선택 반 기준으로 카톡 X/지각 연락을 처리합니다.')
+          + '</div>';
+      } else if (kind === 'student') {
+        const label = [data.student_id || selectedStudent.student_id, data.student_name || selectedStudent.student_name].filter(Boolean).join(' · ') || '선택 학생';
+        if (title) title.textContent = '학생 작업';
+        if (desc) desc.textContent = '출결·클리닉·단어·리포트를 학생 기준으로 연결합니다.';
+        html += `<div class="drawerKv"><div class="k">학생</div><div class="v">${esc(label)}</div><div class="k">학교/학년</div><div class="v">${esc([data.school || selectedStudent.school, data.grade || selectedStudent.grade].filter(Boolean).join(' · ') || '-')}</div></div>`;
+        html += '<div class="drawerActionList">'
+          + drawerActionHtml('studentLogs', '출결 보기', '선택 학생의 출결 로그로 이동합니다.')
+          + drawerActionHtml('studentClinic', '클리닉 만들기', '선택 학생에게 개별/추가 클리닉을 만듭니다.')
+          + drawerActionHtml('studentWord', '단어 결과 입력', '선택 학생의 단어시험 결과 입력칸을 채웁니다.')
+          + drawerActionHtml('studentReport', '학부모 리포트', '선택 학생의 리포트를 준비합니다.')
+          + '</div>';
+      } else {
+        if (title) title.textContent = '오늘 작업 패널';
+        if (desc) desc.textContent = '현재 선택된 클래스와 학생으로 바로 이어갈 수 있는 작업입니다.';
+        html += `<div class="drawerKv"><div class="k">작업 클래스</div><div class="v">${esc(selectedClass || '미선택')}</div><div class="k">선택 학생</div><div class="v">${esc(selectedStudentLabel())}</div></div>`;
+        html += '<div class="drawerActionList">'
+          + drawerActionHtml('classRoster', '선택 반 명단', '작업 클래스의 수강생을 확인합니다.')
+          + drawerActionHtml('classClinic', '수업 클리닉', '선택 반 전체 수업 클리닉을 준비합니다.')
+          + drawerActionHtml('studentClinic', '학생 클리닉', '선택 학생 기준으로 클리닉을 만듭니다.')
+          + drawerActionHtml('wordBulk', '단어 일괄 입력', '작업 클래스 기준 단어시험으로 이동합니다.')
+          + drawerActionHtml('studentReport', '리포트', '선택 학생의 리포트를 준비합니다.')
+          + '</div>';
+      }
+      body.innerHTML = html;
+      $('#drawerOverlay')?.classList.add('on');
+      $('#workDrawer')?.classList.add('on');
+    }
+
+    function closeWorkDrawer() {
+      $('#drawerOverlay')?.classList.remove('on');
+      $('#workDrawer')?.classList.remove('on');
+    }
+
+    function requireClassSelection() {
+      if (App.selectedClassId) return App.selectedClassId;
+      showToast('먼저 상단 작업 클래스를 선택하세요.');
+      const el = $('#opsClassSelect');
+      if (el) el.focus();
+      return '';
+    }
+
+    function runSmartAction(action) {
+      const act = String(action || '');
+      if (act === 'classRoster') {
+        const cid = requireClassSelection();
+        if (!cid) return;
+        jumpTo('classes');
+        loadClassRoster(cid, classDisplayName(findClassOption(cid) || { class_id: cid }));
+        openWorkDrawer('class', findClassOption(cid) || { class_id: cid });
+        return;
+      }
+      if (act === 'classClinic') {
+        const cid = requireClassSelection();
+        if (!cid) return;
+        $('#clinicTaskType').value = 'CLASS_CLINIC';
+        syncClinicCreateMode();
+        applySelectedClass(cid);
+        $('#clinicTitle').value = $('#clinicTitle').value || '오늘 수업 클리닉';
+        $('#clinicDueDate').value = $('#clinicDueDate').value || kstDateInput(0);
+        jumpTo('clinic');
+        previewClinicClassRoster();
+        return;
+      }
+      if (act === 'wordBulk') {
+        const cid = requireClassSelection();
+        if (!cid) return;
+        applySelectedClass(cid);
+        jumpTo('words');
+        $('#wordSessionYmd').value = $('#wordSessionYmd').value || kstYmd(new Date());
+        listWordSessions();
+        return;
+      }
+      if (act === 'studentClinic') { quickStudentClinicView(); openWorkDrawer('student', App.selectedStudent || {}); return; }
+      if (act === 'studentReport') { if (!selectedStudentOrToast()) return; jumpTo('reports'); defaultReportPeriod(); openWorkDrawer('student', App.selectedStudent || {}); return; }
+      if (act === 'studentWord') { quickStudentWordInput(); return; }
+      if (act === 'studentLogs') { quickStudentLogs(); return; }
+      if (act === 'absenceExcuse') {
+        const cid = requireClassSelection();
+        if (!cid) return;
+        applySelectedClass(cid);
+        $('#absenceExcuseYmd').value = $('#absenceExcuseYmd').value || kstYmd(new Date());
+        jumpTo('attendance');
+        listAbsenceExcuses();
+      }
+    }
+
+    function renderReportParentCard(summary) {
+      const text = buildReportParentText(summary);
+      const lines = text.split('\n').filter(Boolean);
+      const head = lines.shift() || '더오름영어 학습 리포트';
+      const period = lines.find(x => x.startsWith('기간:')) || '';
+      const bodyLines = lines.filter(x => !x.startsWith('기간:'));
+      return `<div class="reportLetter"><h3>${esc(head)}</h3>${period ? `<p>${esc(period)}</p>` : ''}<ul>${bodyLines.map(line => `<li>${esc(line.replace(/^-\s*/, ''))}</li>`).join('')}</ul><p>학부모 공개 메모만 반영되며 내부 메모는 노출되지 않습니다.</p></div>`;
+    }
+
     const VIEW_NAV_ALIAS = {
       qrCenter: 'attendance'
     };
@@ -3998,6 +4737,7 @@
       $('#whoText').textContent = loggedIn && App.me
         ? (App.me.name || App.me.staff_id || '직원') + ' · ' + (App.me.role || '')
         : '로그인 전';
+      if (loggedIn) applyRoleUi();
 
       if (loggedIn) {
         showPortalView(getHashView(), { replace: true, scroll: false });
@@ -4239,8 +4979,10 @@
 
     async function saveMasterClass() {
       const payload = getMasterClassForm();
+      const optimisticId = safeOptimisticStart('클래스 저장 중', (payload.name || payload.class_id || '새 클래스') + ' · 화면은 먼저 반응합니다.');
       const r = await rpc('admin.master.upsertClass', { class: payload }, { timeoutMs: 70000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '클래스 저장 실패', r.error && r.error.message ? r.error.message : '중앙DB 저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '클래스 저장 실패');
         showResult('클래스 저장 실패', r);
         return;
@@ -4250,6 +4992,7 @@
       $('#masterClassMsg').textContent = '클래스 저장 완료 · ' + (savedId || '저장됨');
       clearRpcCache();
       App.classCatalogLoadedOnce = false;
+      safeOptimisticDone(optimisticId, '클래스 저장 완료', (savedId || payload.class_id || payload.name || '클래스') + ' 반영됨');
       showToast('클래스를 중앙DB에 저장했습니다.');
       await loadClassCatalog({ force: true });
       await loadClasses();
@@ -4305,8 +5048,10 @@
       $$('#classRows button[data-cid]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          applySelectedClass(btn.dataset.cid || '');
-          loadClassRoster(btn.dataset.cid || '', btn.dataset.className || '');
+          const cid = btn.dataset.cid || '';
+          applySelectedClass(cid);
+          loadClassRoster(cid, btn.dataset.className || '');
+          openWorkDrawer('class', findClassOption(cid) || { class_id: cid, class_name: btn.dataset.className || cid });
         });
       });
       $$('#classRows button[data-edit-cid]').forEach(btn => {
@@ -4318,6 +5063,7 @@
           const name = row.dataset.className || id;
           applySelectedClass(id);
           loadClassRoster(id, name);
+          openWorkDrawer('class', findClassOption(id) || { class_id: id, class_name: name });
         });
       });
     }
@@ -4378,8 +5124,10 @@
       const ids = Array.from(new Set(raw.split(/[\s,]+/).map(normalizeSid).filter(Boolean)));
       if (!classId) { showToast('먼저 클래스를 선택하세요.'); return; }
       if (!ids.length) { showToast('추가할 학번을 입력하세요.'); return; }
+      const optimisticId = safeOptimisticStart('수강생 추가 중', `${classId} · ${ids.length}명 추가 요청`);
       const r = await rpc('admin.master.addClassStudents', { class_id: classId, student_ids: ids }, { timeoutMs: 70000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '수강생 추가 실패', r.error && r.error.message ? r.error.message : '중앙DB 저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '수강생 추가 실패');
         showResult('수강생 추가 실패', r);
         return;
@@ -4387,6 +5135,7 @@
       $('#rosterAddStudentIds').value = '';
       const d = r.data || {};
       clearRpcCache();
+      safeOptimisticDone(optimisticId, '수강생 추가 완료', `${classId} · ${d.added || ids.length}명`);
       showToast('수강생 추가 완료: ' + (d.added || 0) + '명');
       await loadClassRoster(classId, $('#classRosterTitle').textContent.replace(/^수강생 명단 · /, ''));
     }
@@ -4481,8 +5230,10 @@
 
     async function saveMasterStudent() {
       const payload = getMasterStudentForm();
+      const optimisticId = safeOptimisticStart('학생DB 저장 중', (payload.student_name || payload.student_id || '새 학생') + ' · 중앙DB 반영 중');
       const r = await rpc('admin.master.upsertStudent', { student: payload }, { timeoutMs: 70000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '학생 저장 실패', r.error && r.error.message ? r.error.message : '중앙DB 저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '학생 저장 실패');
         showResult('학생 저장 실패', r);
         return;
@@ -4491,6 +5242,7 @@
       if (sid) $('#masterStudentId').value = sid;
       $('#masterStudentMsg').textContent = '학생 저장 완료 · ' + (sid || '저장됨');
       clearRpcCache();
+      safeOptimisticDone(optimisticId, '학생DB 저장 완료', (sid || payload.student_id || payload.student_name || '학생') + ' 반영됨');
       showToast('학생DB에 저장했습니다.');
       if (App.masterClassId) await loadClassRoster(App.masterClassId, $('#classRosterTitle').textContent.replace(/^수강생 명단 · /, ''));
     }
@@ -4989,6 +5741,7 @@
       const wordSid = $('#wordResultStudentId');
       if (wordSid) wordSid.value = App.selectedStudent.student_id;
       renderStudentDetail(App.selectedStudent);
+      openWorkDrawer('student', App.selectedStudent);
       loadStudentProfile();
     }
 
@@ -5241,13 +5994,16 @@
         showToast('날짜, 반 ID, 학생 학번을 입력하세요.');
         return;
       }
+      const optimisticId = safeOptimisticStart('미등원 예외 저장 중', `${args.yyyymmdd} · ${args.class_id} · ${args.student_id}`);
       const r = await rpc('assistant.addAbsenceExcuse', args, { timeoutMs: 50000, cacheTtlMs: 0 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '미등원 예외 저장 실패', r.error && r.error.message ? r.error.message : '저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '미등원 예외 추가 실패');
         showResult('미등원 예외 추가 실패', r);
         return;
       }
       clearRpcCache('assistant.listAbsenceExcuses');
+      safeOptimisticDone(optimisticId, '미등원 예외 저장 완료', `${args.student_id} · ${args.class_id}`);
       showToast('미등원 예외를 추가했습니다.');
       await listAbsenceExcuses();
     }
@@ -5782,6 +6538,7 @@
       const sid = normalizeSid($('#clinicStudentId').value || $('#clinicStudentFilter').value || '');
       if (type === 'CLASS_CLINIC' && !classId) { showToast('수업 클리닉은 반 ID가 필요합니다.'); return; }
       if (type !== 'CLASS_CLINIC' && !sid) { showToast('개별/추가 클리닉은 이 메뉴에서 학생을 선택하세요.'); return; }
+      const optimisticId = safeOptimisticStart('클리닉 생성 중', `${clinicTaskTypeLabel(type)} · ${title}`);
       const r = await rpc('clinic.createTask', {
         student_id: type === 'CLASS_CLINIC' ? '' : sid,
         class_id: type === 'CLASS_CLINIC' ? classId : ($('#clinicClassFilter').value || '').trim(),
@@ -5798,6 +6555,7 @@
         parent_visible: ($('#clinicParentVisible').value || 'N') === 'Y'
       }, { timeoutMs: 30000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '클리닉 생성 실패', r.error && r.error.message ? r.error.message : '저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '클리닉 생성 실패');
         showResult('클리닉 생성 실패', r);
         return;
@@ -5811,6 +6569,7 @@
       const autoSkip = autoItems.filter(x => x && x.skipped).length;
       const createdCount = data.count || (data.item ? 1 : 0);
       const suffix = autoItems.length ? ` · 자동 알림 ${autoOk}건 예약${autoSkip ? ` · ${autoSkip}건 제외` : ''}` : '';
+      safeOptimisticDone(optimisticId, '클리닉 생성 완료', `${createdCount || 1}건 생성${suffix}`);
       showToast(`${clinicTaskTypeLabel(type)} ${createdCount || 1}건 생성${suffix}`);
       showResult('클리닉 생성 완료', data);
       if (type === 'CLASS_CLINIC') $('#clinicClassFilter').value = classId;
@@ -5972,6 +6731,7 @@
       const sessionId = ($('#wordResultSessionId').value || '').trim();
       const sid = normalizeSid($('#wordResultStudentId').value || '');
       if (!sessionId || !sid) { showToast('회차 ID와 학생 ID가 필요합니다.'); return; }
+      const optimisticId = safeOptimisticStart('단어 결과 저장 중', `${sid} · ${$('#wordScore').value || '-'}개`);
       const r = await rpc('wordTest.enterResult', {
         session_id: sessionId,
         student_id: sid,
@@ -5982,6 +6742,7 @@
         create_clinic: ($('#wordCreateClinic').value || 'Y') === 'Y'
       }, { timeoutMs: 30000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '단어 결과 저장 실패', r.error && r.error.message ? r.error.message : '저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '단어시험 결과 저장 실패');
         showResult('단어시험 결과 저장 실패', r);
         return;
@@ -5991,6 +6752,7 @@
         ? '저장 완료 · 불통과 클리닉 후보 자동 생성됨'
         : savedData.resolved_clinic ? '저장 완료 · 기존 클리닉 자동 완료됨' : '저장 완료';
       $('#wordResultBox').textContent = JSON.stringify(savedData || r, null, 2);
+      safeOptimisticDone(optimisticId, '단어 결과 저장 완료', sid);
       showToast(savedData.created_clinic ? '결과 저장 + 클리닉 후보 생성 완료' : savedData.resolved_clinic ? '결과 저장 + 클리닉 자동 완료' : '단어시험 결과를 저장했습니다.');
       if (App.selectedStudent && App.selectedStudent.student_id === sid) await loadStudentProfile();
       await loadClinicTasks();
@@ -6151,8 +6913,10 @@
         }
       });
       if (!results.length) { showToast('저장할 맞은 개수나 상태가 없습니다.'); return; }
+      const optimisticId = safeOptimisticStart('단어 일괄 저장 중', `${results.length}명 · 화면은 먼저 확정 대기 표시`);
       const r = await rpc('wordTest.bulkEnterResults', { session_id: sessionId, results }, { timeoutMs: 60000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '단어 일괄 저장 실패', r.error && r.error.message ? r.error.message : '저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '단어시험 일괄 저장 실패');
         showResult('단어시험 일괄 저장 실패', r);
         return;
@@ -6160,6 +6924,7 @@
       const data = r.data || {};
       $('#wordResultSummary').textContent = `일괄 저장 ${data.count || 0}명 · 통과 ${data.pass_count || 0}명 · 불통과 ${data.fail_count || 0}명 · 클리닉 생성 ${data.created_clinic_count || 0} · 자동완료 ${data.resolved_clinic_count || 0}`;
       $('#wordResultBox').textContent = JSON.stringify(data, null, 2);
+      safeOptimisticDone(optimisticId, '단어 일괄 저장 완료', `저장 ${data.count || results.length}명`);
       showToast('단어시험 결과를 일괄 저장했습니다.');
       await loadWordBulkEntry();
       await loadWordResults();
@@ -6196,7 +6961,7 @@
         <tr><td class="wrap">${esc(row.title || '')}</td><td>${clinicStatusLabel(row.status)}</td><td class="wrap">${esc(row.parent_note || '')}</td></tr>
       `).join('') : '<tr><td colspan="3" style="color:var(--muted);">학부모 공개 클리닉 메모가 없습니다.</td></tr>';
       const parentTextBox = $('#reportParentTextBox');
-      if (parentTextBox) parentTextBox.textContent = buildReportParentText(summary);
+      if (parentTextBox) parentTextBox.innerHTML = renderReportParentCard(summary);
       $('#reportPreviewBox').textContent = JSON.stringify(summary, null, 2);
     }
 
@@ -6222,6 +6987,7 @@
       const student = selectedStudentOrToast();
       if (!student) return;
       defaultReportPeriod();
+      const optimisticId = safeOptimisticStart('리포트 저장 중', `${student.student_name || student.student_id || '학생'} · 스냅샷 생성`);
       const r = await rpc('report.createSnapshot', {
         student_id: student.student_id,
         period_type: $('#reportPeriodType').value || 'WEEKLY',
@@ -6230,12 +6996,14 @@
         parent_note: $('#reportParentNote').value || ''
       }, { timeoutMs: 30000 });
       if (!r.ok) {
+        safeOptimisticFail(optimisticId, '리포트 저장 실패', r.error && r.error.message ? r.error.message : '저장 실패');
         showToast(r.error && r.error.message ? r.error.message : '리포트 스냅샷 저장 실패');
         showResult('리포트 스냅샷 저장 실패', r);
         return;
       }
       renderReportPreview((r.data || {}).summary || null);
       showResult('리포트 스냅샷 저장 완료', r.data || r);
+      safeOptimisticDone(optimisticId, '리포트 저장 완료', student.student_name || student.student_id || '학생');
       showToast('리포트 스냅샷을 저장했습니다.');
       await listReportSnapshots();
     }
@@ -6611,6 +7379,35 @@
         });
       });
 
+      $$('.smartActionTile[data-smart-action]').forEach(tile => {
+        const fire = () => runSmartAction(tile.dataset.smartAction || '');
+        tile.addEventListener('click', fire);
+        tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+      });
+
+      const drawerClose = $('#drawerClose');
+      if (drawerClose) {
+        drawerClose.addEventListener('click', closeWorkDrawer);
+        drawerClose.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') closeWorkDrawer(); });
+      }
+      const overlay = $('#drawerOverlay');
+      if (overlay) overlay.addEventListener('click', closeWorkDrawer);
+      const modePill = $('#opsModePill');
+      if (modePill) modePill.addEventListener('click', () => setUiMode(App.uiMode === 'field' ? 'daily' : 'field'));
+      const studentBox = $('#opsSelectedStudentBox');
+      if (studentBox) studentBox.addEventListener('click', () => openWorkDrawer('student', App.selectedStudent || {}));
+      const classPill = $('#opsClassPill');
+      if (classPill) classPill.addEventListener('click', () => openWorkDrawer('class', findClassOption(App.selectedClassId) || { class_id: App.selectedClassId }));
+      document.addEventListener('click', e => {
+        const actionEl = e.target.closest('[data-drawer-action]');
+        if (actionEl) runSmartAction(actionEl.dataset.drawerAction || '');
+      });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeWorkDrawer();
+        const actionEl = e.target.closest && e.target.closest('[data-drawer-action]');
+        if (actionEl && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); runSmartAction(actionEl.dataset.drawerAction || ''); }
+      });
+
       $$('.navBtn[data-go]').forEach(btn => {
         btn.addEventListener('click', () => jumpTo(btn.dataset.go || 'dashboard'));
       });
@@ -6636,6 +7433,7 @@
     });
 
     bindEvents();
+    setUiMode(App.uiMode, { silent: true });
     checkMe();
   </script>
 </body>

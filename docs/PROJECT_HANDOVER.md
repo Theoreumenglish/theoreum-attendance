@@ -219,3 +219,8 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 ## UI/UX Refresh v1
 
 2026-06-18 기준 운영 포털은 class_id 직접 입력 중심에서 클래스 목록 선택 중심으로 전환되었다. 상단 작업 컨텍스트 바, 메뉴별 클래스 select, 담당 직원 select, 학생 검색→수강생 추가 연결이 추가되었다.
+
+
+## UI/UX Refresh v2
+
+운영 포털은 딸깍 업무 보드, 우측 상세 작업 패널, safe optimistic 저장 상태, 현장/태블릿 모드, 카드형 리포트 미리보기를 포함한다. 다음 단계는 실제 현장 리허설에서 메뉴별 동선과 권한별 노출을 더 다듬는 것이다.

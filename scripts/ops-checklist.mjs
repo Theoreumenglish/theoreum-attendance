@@ -128,6 +128,12 @@ checkText('public/admin.html', 'clinicClassSelect', '클리닉 클래스 목록 
 checkText('public/admin.html', 'wordClassSelect', '단어시험 클래스 목록 선택 UI');
 checkText('public/admin.html', 'masterClassTeacherSelect', '담당 직원 목록 선택 UI');
 checkText('public/admin.html', 'loadClassCatalog', '클래스 선택 목록 자동 로딩');
+checkText('public/admin.html', 'smartBoard', '딸깍 업무 보드 UI');
+checkText('public/admin.html', 'workDrawer', '우측 상세 작업 패널 UI');
+checkText('public/admin.html', 'safeOptimisticStart', 'safe optimistic 저장 상태 UI');
+checkText('public/admin.html', 'setUiMode', '현장/태블릿 모드 토글');
+checkText('public/admin.html', 'reportLetter', '리포트 카드형 미리보기');
+checkFile('docs/UI_UX_REFRESH_V2.md', 'UI/UX refresh v2 문서');
 
 
 if (failed) {
