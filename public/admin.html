@@ -1498,6 +1498,196 @@
       }
     }
 
+  
+
+    /* UX refresh v1: calm daily-ops surface + click-first context selection */
+    :root {
+      --bg: #f3f5f7;
+      --panel: #ffffff;
+      --panel-2: #f8fafc;
+      --text: #111827;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --line-2: #edf2f7;
+      --accent: #0f172a;
+      --accent-soft: #eef2f7;
+      --shadow: 0 18px 52px rgba(15, 23, 42, 0.075);
+    }
+
+    .shell {
+      background:
+        radial-gradient(circle at 15% 0%, rgba(37, 99, 235, 0.045), transparent 32%),
+        linear-gradient(180deg, #f8fafc 0%, #f3f5f7 100%);
+    }
+
+    .side {
+      box-shadow: 10px 0 30px rgba(15, 23, 42, 0.03);
+    }
+
+    .pageHeader {
+      backdrop-filter: blur(14px);
+    }
+
+    .card,
+    .metricCard,
+    .emptyPanel,
+    .quickDock,
+    .opsContextBar {
+      border-color: rgba(226, 232, 240, 0.95);
+      box-shadow: 0 10px 32px rgba(15, 23, 42, 0.045);
+    }
+
+    .card:hover,
+    .metricCard:hover {
+      border-color: rgba(148, 163, 184, 0.55);
+    }
+
+    .btn,
+    .quickActionBtn,
+    .commandButton {
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+
+    .btn:hover,
+    .quickActionBtn:hover,
+    .commandButton:hover {
+      transform: translateY(-1px);
+    }
+
+    .inp,
+    .select,
+    .textarea {
+      border-color: #dbe3ec;
+      background: #ffffff;
+    }
+
+    .inp:focus,
+    .select:focus,
+    .textarea:focus {
+      outline: 2px solid rgba(37, 99, 235, 0.16);
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.06);
+    }
+
+    .table tbody tr {
+      transition: background 0.12s ease;
+    }
+
+    .table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .clickableRow {
+      cursor: pointer;
+    }
+
+    .opsContextBar {
+      position: sticky;
+      top: 12px;
+      z-index: 15;
+      display: grid;
+      grid-template-columns: minmax(260px, 1.15fr) minmax(260px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin: 14px 0 22px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(18px);
+    }
+
+    .opsContextItem {
+      min-width: 0;
+    }
+
+    .opsContextLabel {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .opsContextHint {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .opsContextPills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .contextPill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .fieldHint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .selectCompact {
+      min-height: 38px;
+      font-size: 13px;
+    }
+
+    .readonlyMirror {
+      background: #f8fafc !important;
+      color: #475569;
+    }
+
+    .classQuickPanel {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #f8fafc;
+    }
+
+    .selectedContextBox {
+      padding: 12px 14px;
+      border: 1px solid #dbeafe;
+      border-radius: 18px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 13px;
+      font-weight: 850;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 980px) {
+      .opsContextBar {
+        grid-template-columns: 1fr;
+        position: static;
+      }
+      .opsContextPills {
+        justify-content: flex-start;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -1600,6 +1790,23 @@
 <button class="quickActionBtn" id="btnQuickWordInput" type="button">단어 입력</button>
 </div>
 </div>
+<div aria-label="현재 작업 대상" class="opsContextBar" id="opsContextBar">
+<div class="opsContextItem">
+<div class="opsContextLabel">작업 클래스</div>
+<select class="select selectCompact" id="opsClassSelect">
+<option value="">클래스 목록 불러오는 중…</option>
+</select>
+<div class="opsContextHint">반 ID를 직접 치지 말고 여기서 고르면 클리닉·단어·미등원 예외에 자동 적용됩니다.</div>
+</div>
+<div class="opsContextItem">
+<div class="opsContextLabel">선택 학생</div>
+<div class="selectedContextBox" id="opsSelectedStudentBox">학생 미선택 · 상단 검색이나 각 메뉴 검색에서 선택하세요.</div>
+</div>
+<div class="opsContextPills">
+<span class="contextPill" id="opsClassPill">클래스 미선택</span>
+<span class="contextPill" id="opsModePill">딸깍 선택 모드</span>
+</div>
+</div>
 <section class="portalView active" data-view-desc="오늘 처리할 일만 봅니다." data-view-title="오늘" id="dashboard">
 <div class="grid compactDashboard">
 <div class="grid4 slimMetrics">
@@ -1683,6 +1890,11 @@
 <div style="display:flex; align-items:end;">
 <button class="btn btnPri" id="btnLoadLogs" style="width:100%;" type="button">로그 조회</button>
 </div>
+</div>
+<div class="classQuickPanel">
+<div class="fieldLabel">클래스 빠른 선택</div>
+<select class="select" id="masterClassQuickSelect"><option value="">목록에서 클래스를 선택하세요</option></select>
+<div class="fieldHint">선택하면 아래 수정 폼·수강생 명단·휴강/일정 관리 대상이 같이 맞춰집니다.</div>
 </div>
 <div class="tableWrap" style="margin-top:18px;">
 <table class="table">
@@ -1777,8 +1989,9 @@
 <input class="inp" id="absenceExcuseYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
 </div>
 <div>
-<div class="fieldLabel">반 ID</div>
-<input class="inp" id="absenceExcuseClassId" placeholder="class_id"/>
+<div class="fieldLabel">반 선택</div>
+<select class="select" id="absenceExcuseClassSelect"><option value="">클래스 선택</option></select>
+<input class="inp readonlyMirror" id="absenceExcuseClassId" placeholder="선택된 class_id" readonly style="margin-top:8px;"/>
 </div>
 <div>
 <div class="fieldLabel">학생 학번</div>
@@ -2083,8 +2296,9 @@
 <input class="inp" id="masterClassName" placeholder="예: 해송고2 심화"/>
 </div>
 <div>
-<div class="fieldLabel">담당 직원 ID</div>
-<input class="inp" id="masterClassTeacher" placeholder="예: teacher01"/>
+<div class="fieldLabel">담당 직원</div>
+<select class="select" id="masterClassTeacherSelect"><option value="">직원 목록에서 선택</option></select>
+<input class="inp readonlyMirror" id="masterClassTeacher" placeholder="선택된 staff_id" readonly style="margin-top:8px;"/>
 </div>
 <div>
 <div class="fieldLabel">강의실</div>
@@ -2143,8 +2357,9 @@
 </div>
 <div class="formGrid cols2" style="margin-top:16px;">
 <div>
-<div class="fieldLabel">추가할 학번</div>
-<input class="inp" id="rosterAddStudentIds" placeholder="예: 0001, 0002 또는 줄바꿈"/>
+<div class="fieldLabel">추가할 학생</div>
+<input class="inp" id="rosterAddStudentIds" placeholder="학생DB 검색에서 선택하면 자동 입력"/>
+<div class="fieldHint">학생DB 검색 결과에서 선택하면 이 칸에 자동으로 들어갑니다. 여러 명은 쉼표/줄바꿈으로 추가하세요.</div>
 </div>
 <div style="display:flex; align-items:end;">
 <button class="btn btnPri" id="btnAddRosterStudents" style="width:100%;" type="button">수강생 추가</button>
@@ -2213,8 +2428,9 @@
 <input class="inp" id="masterParentPhone" inputmode="numeric" placeholder="010..."/>
 </div>
 <div>
-<div class="fieldLabel">담당 직원 ID</div>
-<input class="inp" id="masterStudentTeacher" placeholder="선택"/>
+<div class="fieldLabel">담당 직원</div>
+<select class="select" id="masterStudentTeacherSelect"><option value="">직원 목록에서 선택</option></select>
+<input class="inp readonlyMirror" id="masterStudentTeacher" placeholder="선택된 staff_id" readonly style="margin-top:8px;"/>
 </div>
 <div>
 <div class="fieldLabel">상태</div>
@@ -2385,12 +2601,13 @@
 </div>
 <div class="emptyPanel" id="clinicTargetHelp" style="margin-top:14px;">
 <h3>대상 선택</h3>
-<p>수업 클리닉은 반 ID를 넣으면 그 클래스 전체 학생에게 각각 생성됩니다. 개별/추가 클리닉은 이 화면에서 학생을 검색해서 선택하세요.</p>
+<p>수업 클리닉은 목록에서 클래스를 고르면 반 전체 학생에게 각각 생성됩니다. 개별/추가 클리닉은 이 화면에서 학생을 검색해서 선택하세요.</p>
 </div>
 <div class="formGrid cols2" style="margin-top:14px;">
 <div id="clinicClassTargetBox">
-<div class="fieldLabel">반 ID</div>
-<input class="inp" id="clinicClassId" placeholder="예: CLASS001"/>
+<div class="fieldLabel">수업 클리닉 대상 클래스</div>
+<select class="select" id="clinicClassSelect"><option value="">클래스 선택</option></select>
+<input class="inp readonlyMirror" id="clinicClassId" placeholder="선택된 class_id" readonly style="margin-top:8px;"/>
 <div class="btnRow" style="margin-top:8px;">
 <button class="btn btnGhost" id="btnClinicClassRosterPreview" type="button">반 명단 확인</button>
 </div>
@@ -2508,8 +2725,9 @@
 <input class="inp" id="clinicStudentFilter" placeholder="비우면 전체"/>
 </div>
 <div>
-<div class="fieldLabel">반 ID</div>
-<input class="inp" id="clinicClassFilter" placeholder="비우면 전체"/>
+<div class="fieldLabel">반 선택</div>
+<select class="select" id="clinicClassFilterSelect"><option value="">전체 클래스</option></select>
+<input class="inp readonlyMirror" id="clinicClassFilter" placeholder="선택된 class_id" readonly style="margin-top:8px;"/>
 </div>
 <div style="display:flex; align-items:end; gap:8px;">
 <button class="btn btnPri" id="btnLoadClinicTasks" style="flex:1;" type="button">클리닉 조회</button>
@@ -2594,8 +2812,9 @@
 <input class="inp" id="wordSessionYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
 </div>
 <div>
-<div class="fieldLabel">반 ID</div>
-<input class="inp" id="wordClassId" placeholder="예: C001"/>
+<div class="fieldLabel">반 선택</div>
+<select class="select" id="wordClassSelect"><option value="">클래스 선택</option></select>
+<input class="inp readonlyMirror" id="wordClassId" placeholder="선택된 class_id" readonly style="margin-top:8px;"/>
 </div>
 <div>
 <div class="fieldLabel">통과개수 / 전체개수</div>
@@ -2718,8 +2937,9 @@
 <input class="inp" id="wordBulkSessionId" placeholder="회차 선택 시 자동"/>
 </div>
 <div>
-<div class="fieldLabel">반 ID</div>
-<input class="inp" id="wordBulkClassId" placeholder="회차 반 ID 자동"/>
+<div class="fieldLabel">반 선택</div>
+<select class="select" id="wordBulkClassSelect"><option value="">회차 반 또는 클래스 선택</option></select>
+<input class="inp readonlyMirror" id="wordBulkClassId" placeholder="선택된 class_id" readonly style="margin-top:8px;"/>
 </div>
 <div style="display:flex; align-items:end; gap:8px;">
 <button class="btn btnPri" id="btnLoadWordBulk" style="width:100%;" type="button">명단 불러오기</button>
@@ -3178,6 +3398,11 @@
       busyCount: 0,
       currentView: 'dashboard',
       masterClassId: '',
+      selectedClassId: '',
+      classOptions: [],
+      staffOptions: [],
+      classCatalogLoadedOnce: false,
+      staffCatalogLoadedOnce: false,
       rpcCache: new Map(),
       rpcInflight: new Map()
     };
@@ -3284,6 +3509,141 @@
         clinicLocalLabel.value = label;
         if (clinicLocalId) clinicLocalId.value = App.selectedStudent.student_id;
       }
+      const opsStudentBox = $('#opsSelectedStudentBox');
+      if (opsStudentBox) {
+        opsStudentBox.textContent = App.selectedStudent && App.selectedStudent.student_id
+          ? `${label} · 출결/클리닉/단어/리포트에 연결됨`
+          : '학생 미선택 · 상단 검색이나 각 메뉴 검색에서 선택하세요.';
+      }
+    }
+
+
+    function normalizeClassId(value) {
+      return String(value || '').trim();
+    }
+
+    function classDisplayName(item = {}) {
+      const id = normalizeClassId(item.class_id || item.id || '');
+      const name = item.class_name || item.name || '';
+      const time = [item.start, item.end].filter(Boolean).join('~');
+      const teacher = item.teacher_name || item.teacher || '';
+      return [name || id, time, teacher].filter(Boolean).join(' · ');
+    }
+
+    function findClassOption(classId) {
+      const id = normalizeClassId(classId);
+      return (App.classOptions || []).find(item => normalizeClassId(item.class_id) === id) || null;
+    }
+
+    function setSelectValueIfPresent(id, value) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const v = normalizeClassId(value);
+      if (v && !Array.from(el.options).some(opt => opt.value === v)) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        el.appendChild(opt);
+      }
+      el.value = v;
+    }
+
+    function setInputValueIfPresent(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = normalizeClassId(value);
+    }
+
+    function applySelectedClass(classId, options = {}) {
+      const id = normalizeClassId(classId);
+      App.selectedClassId = id;
+      const item = findClassOption(id) || { class_id: id };
+      const label = id ? `${id} · ${classDisplayName(item)}` : '클래스 미선택';
+      ['opsClassSelect', 'masterClassQuickSelect', 'clinicClassSelect', 'clinicClassFilterSelect', 'wordClassSelect', 'wordBulkClassSelect', 'absenceExcuseClassSelect'].forEach(selId => setSelectValueIfPresent(selId, id));
+      ['clinicClassId', 'clinicClassFilter', 'wordClassId', 'wordBulkClassId', 'absenceExcuseClassId'].forEach(inputId => setInputValueIfPresent(inputId, id));
+      const pill = $('#opsClassPill');
+      if (pill) pill.textContent = label;
+      if (id && options.fillMaster !== false) {
+        const master = $('#masterClassId');
+        if (master && !master.value) master.value = id;
+      }
+      return item;
+    }
+
+    function renderClassSelectOptions(selectedId = App.selectedClassId || '') {
+      const items = Array.isArray(App.classOptions) ? App.classOptions : [];
+      const html = '<option value="">클래스 선택</option>' + items.map(item => {
+        const id = normalizeClassId(item.class_id);
+        return `<option value="${esc(id)}">${esc(classDisplayName(item))}</option>`;
+      }).join('');
+      ['opsClassSelect', 'clinicClassSelect', 'wordClassSelect'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
+      const allHtml = '<option value="">전체 클래스</option>' + items.map(item => {
+        const id = normalizeClassId(item.class_id);
+        return `<option value="${esc(id)}">${esc(classDisplayName(item))}</option>`;
+      }).join('');
+      ['masterClassQuickSelect', 'clinicClassFilterSelect', 'wordBulkClassSelect', 'absenceExcuseClassSelect'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = allHtml; });
+      if (selectedId) applySelectedClass(selectedId, { fillMaster: false });
+    }
+
+    async function loadClassCatalog(options = {}) {
+      if (App.classCatalogLoadedOnce && !options.force && Array.isArray(App.classOptions) && App.classOptions.length) {
+        renderClassSelectOptions(App.selectedClassId || '');
+        return App.classOptions;
+      }
+      const r = await rpc('assistant.listClassOptions', { limit: 500, include_inactive: true, fallback: true }, { timeoutMs: 20000, cacheTtlMs: 45000 });
+      if (!r.ok) {
+        const pill = $('#opsClassPill');
+        if (pill) pill.textContent = '클래스 목록 로드 실패';
+        return [];
+      }
+      App.classOptions = Array.isArray(r.data?.items) ? r.data.items : [];
+      App.classCatalogLoadedOnce = true;
+      renderClassSelectOptions(App.selectedClassId || '');
+      return App.classOptions;
+    }
+
+    function staffDisplayName(item = {}) {
+      const id = String(item.staff_id || '').trim();
+      return [item.name || id, id, item.role || ''].filter(Boolean).join(' · ');
+    }
+
+    function renderStaffSelectOptions() {
+      const items = Array.isArray(App.staffOptions) ? App.staffOptions : [];
+      const html = '<option value="">직원 선택</option>' + items.map(item => {
+        const id = String(item.staff_id || '').trim();
+        return `<option value="${esc(id)}">${esc(staffDisplayName(item))}</option>`;
+      }).join('');
+      ['masterClassTeacherSelect', 'masterStudentTeacherSelect'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = html; });
+    }
+
+    async function loadStaffCatalog(options = {}) {
+      if (App.staffCatalogLoadedOnce && !options.force && App.staffOptions.length) {
+        renderStaffSelectOptions();
+        return App.staffOptions;
+      }
+      const r = await rpc('admin.central.staff.list', {}, { timeoutMs: 20000, cacheTtlMs: 60000 });
+      if (!r.ok) return [];
+      App.staffOptions = Array.isArray(r.data?.staff) ? r.data.staff : [];
+      App.staffCatalogLoadedOnce = true;
+      renderStaffSelectOptions();
+      return App.staffOptions;
+    }
+
+    async function handleClassSelectChange(e) {
+      const id = normalizeClassId(e.target.value);
+      const item = applySelectedClass(id);
+      if (!id) return;
+      if (e.target.id === 'masterClassQuickSelect' || App.currentView === 'classes') {
+        await editMasterClass(id);
+      } else if (e.target.id === 'clinicClassSelect') {
+        previewClinicClassRoster();
+      }
+      writeActionLog('클래스 선택', `${id} · ${classDisplayName(item)}`);
+    }
+
+    function handleStaffSelectChange(e) {
+      const targetId = e.target.id === 'masterClassTeacherSelect' ? 'masterClassTeacher' : 'masterStudentTeacher';
+      const input = document.getElementById(targetId);
+      if (input) input.value = e.target.value || '';
     }
 
     function writeActionLog(message, detail = '') {
@@ -3500,7 +3860,7 @@
 
       if (viewId === 'classes' && !App.classListLoadedOnce) {
         App.classListLoadedOnce = true;
-        setTimeout(() => loadClasses(), 0);
+        setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); loadClasses(); }, 0);
       }
 
       if (options.scroll !== false) {
@@ -3682,6 +4042,7 @@
         App.me = r.data;
         setView(true);
         loadOverview();
+        setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); }, 0);
         return;
       }
 
@@ -3711,6 +4072,7 @@
         $('#loginPw').value = '';
         setView(true);
         loadOverview();
+        setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); }, 0);
         return;
       }
 
@@ -3827,6 +4189,7 @@
       $('#masterClassId').value = item.class_id || '';
       $('#masterClassName').value = item.name || item.class_name || '';
       $('#masterClassTeacher').value = item.teacher || '';
+      setSelectValueIfPresent('masterClassTeacherSelect', item.teacher || '');
       $('#masterClassStart').value = item.start || '';
       $('#masterClassEnd').value = item.end || '';
       $('#masterClassRoom').value = item.room || '';
@@ -3886,8 +4249,10 @@
       if (savedId) $('#masterClassId').value = savedId;
       $('#masterClassMsg').textContent = '클래스 저장 완료 · ' + (savedId || '저장됨');
       clearRpcCache();
+      App.classCatalogLoadedOnce = false;
       showToast('클래스를 중앙DB에 저장했습니다.');
-      await loadClasses({ force: true });
+      await loadClassCatalog({ force: true });
+      await loadClasses();
       if (savedId) await editMasterClass(savedId);
     }
 
@@ -3904,8 +4269,10 @@
       clearMasterClassForm();
       renderClassRoster('', '', []);
       clearRpcCache();
+      App.classCatalogLoadedOnce = false;
       showToast('클래스를 삭제 처리했습니다.');
-      await loadClasses({ force: true });
+      await loadClassCatalog({ force: true });
+      await loadClasses();
     }
 
     function renderClassRows(items) {
@@ -3922,7 +4289,7 @@
         const time = [item.start || '', item.end || ''].filter(Boolean).join('~');
         const alert = [item.alert_delay || '', item.alert_to || ''].filter(Boolean).join(' / ');
         return `
-          <tr>
+          <tr class="clickableRow" data-class-row="${esc(classId)}" data-class-name="${esc(item.class_name || item.name || classId)}">
             <td class="wrap">${esc(classId)}</td>
             <td class="wrap">${esc(item.class_name || item.name || '')}</td>
             <td>${esc(item.teacher_name || item.teacher || '')}</td>
@@ -3936,17 +4303,28 @@
       }).join('');
 
       $$('#classRows button[data-cid]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          applySelectedClass(btn.dataset.cid || '');
           loadClassRoster(btn.dataset.cid || '', btn.dataset.className || '');
         });
       });
       $$('#classRows button[data-edit-cid]').forEach(btn => {
-        btn.addEventListener('click', () => editMasterClass(btn.dataset.editCid || ''));
+        btn.addEventListener('click', (e) => { e.stopPropagation(); editMasterClass(btn.dataset.editCid || ''); });
+      });
+      $$('#classRows tr[data-class-row]').forEach(row => {
+        row.addEventListener('click', () => {
+          const id = row.dataset.classRow || '';
+          const name = row.dataset.className || id;
+          applySelectedClass(id);
+          loadClassRoster(id, name);
+        });
       });
     }
 
     function renderClassRoster(classId, className, items) {
       App.masterClassId = classId || '';
+      applySelectedClass(classId || '', { fillMaster: false });
       $('#classRosterTitle').textContent = className ? '수강생 명단 · ' + className : '수강생 명단/배정';
       $('#classRosterDesc').textContent = classId ? 'class_id: ' + classId + ' · ' + items.length + '명' : '클래스 목록에서 명단을 선택하세요.';
 
@@ -4037,6 +4415,7 @@
       $('#masterStudentPhone').value = item.student_phone || '';
       $('#masterParentPhone').value = item.parent_phone || '';
       $('#masterStudentTeacher').value = item.teacher || '';
+      setSelectValueIfPresent('masterStudentTeacherSelect', item.teacher || '');
       $('#masterStudentStatus').value = item.status || 'ACTIVE';
       $('#masterStudentQrId').value = item.qr_id || '';
       $('#masterStudentException').value = String(item.is_exception || 'N').toUpperCase() === 'Y' ? 'Y' : 'N';
@@ -4084,7 +4463,18 @@
       }).join('');
       $$('#masterStudentSearchRows button[data-master-student]').forEach(btn => {
         btn.addEventListener('click', () => {
-          try { fillMasterStudentForm(JSON.parse(btn.dataset.masterStudent || '{}')); } catch (_) {}
+          try {
+            const item = JSON.parse(btn.dataset.masterStudent || '{}');
+            fillMasterStudentForm(item);
+            const sid = normalizeSid(item.student_id || '');
+            const roster = $('#rosterAddStudentIds');
+            if (sid && roster && App.masterClassId) {
+              const existing = String(roster.value || '').split(/[\s,]+/).map(normalizeSid).filter(Boolean);
+              if (!existing.includes(sid)) existing.push(sid);
+              roster.value = existing.join(',');
+              $('#masterStudentMsg').textContent = `${sid} · ${item.student_name || ''} 선택됨 · 수강생 추가 칸에 자동 입력했습니다.`;
+            }
+          } catch (_) {}
         });
       });
     }
@@ -4276,6 +4666,8 @@
       if (!r.ok) { showToast(r.error?.message || '직원 저장 실패'); showResult('직원 저장 실패', r); return; }
       clearRpcCache();
       showToast('직원을 저장했습니다.');
+      App.staffCatalogLoadedOnce = false;
+      await loadStaffCatalog({ force: true });
       await loadCentralStaff();
     }
 
@@ -4366,6 +4758,9 @@
       }
 
       const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
+      App.classOptions = items;
+      App.classCatalogLoadedOnce = true;
+      renderClassSelectOptions(App.selectedClassId || '');
       renderClassRows(items);
       $('#classRosterRows').innerHTML = '<tr><td colspan="5" style="color:var(--muted);">클래스 목록에서 명단을 선택하세요.</td></tr>';
       $('#classRosterTitle').textContent = '수강생 명단';
@@ -4380,7 +4775,7 @@
         return;
       }
 
-      const r = await rpc('assistant.listClassRoster', { class_id: classId }, { timeoutMs: 30000 });
+      const r = await rpc('assistant.listClassRoster', { class_id: classId }, { timeoutMs: 30000, cacheTtlMs: 10000 });
       if (!r.ok) {
         showToast(r.error && r.error.message ? r.error.message : '수강생 명단 조회 실패');
         showResult('수강생 명단 조회 실패', r);
@@ -4389,6 +4784,8 @@
 
       const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
       renderClassRoster(classId, className, items);
+      $('#masterClassId').value = classId;
+      applySelectedClass(classId, { fillMaster: false });
       showToast('수강생 명단을 조회했습니다.');
     }
 
@@ -5564,6 +5961,7 @@
         $('#wordResultSessionId').value = item.session_id;
         $('#wordBulkSessionId').value = item.session_id;
       }
+      if (item.class_id) applySelectedClass(item.class_id, { fillMaster: false });
       if (item.class_id) $('#wordBulkClassId').value = item.class_id;
       showToast('단어시험 회차를 생성했습니다.');
       showResult('단어시험 회차 생성 완료', r.data || r);
@@ -6161,6 +6559,16 @@
       bindClick('btnQuickWordInput', quickStudentWordInput);
       bindClick('btnStudentWordOneClick', quickStudentWordInput);
       bindClick('btnStudentReportOneClick', () => { jumpTo('reports'); defaultReportPeriod(); });
+
+
+      ['opsClassSelect', 'masterClassQuickSelect', 'clinicClassSelect', 'clinicClassFilterSelect', 'wordClassSelect', 'wordBulkClassSelect', 'absenceExcuseClassSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', handleClassSelectChange);
+      });
+      ['masterClassTeacherSelect', 'masterStudentTeacherSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', handleStaffSelectChange);
+      });
 
       const studentQuery = $('#studentQuery');
       if (studentQuery) studentQuery.addEventListener('input', scheduleStudentSearch);

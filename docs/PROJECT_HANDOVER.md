@@ -214,3 +214,8 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 4. 포털의 클래스/직원/설정 메뉴에서 실제 조회·저장 테스트
 
 속도 개선은 클라이언트 요청 병합/짧은 캐시, 서버 read-cache, 쓰기 후 캐시 무효화를 조합했다. Google Sheets가 원본인 구조에서는 저장 작업이 네트워크 왕복을 거치므로, 조회는 실시간처럼 빠르게 만들고 저장은 진행/완료 피드백을 명확히 주는 방향으로 운영한다.
+
+
+## UI/UX Refresh v1
+
+2026-06-18 기준 운영 포털은 class_id 직접 입력 중심에서 클래스 목록 선택 중심으로 전환되었다. 상단 작업 컨텍스트 바, 메뉴별 클래스 select, 담당 직원 select, 학생 검색→수강생 추가 연결이 추가되었다.

@@ -123,6 +123,12 @@ checkText('api/rpc.js', 'fastCacheGetStale', '서버 stale cache fallback');
 checkText('api/rpc.js', 'readCentralStaffListReplicaDirect', '직원 목록 replica fast path');
 checkText('api/rpc.js', 'central_props_snapshot', '중앙DB 설정 snapshot fast path');
 checkText('scripts/smoke-test.mjs', 'assistant.listAbsenceExcuses', 'smoke-test 미등원 예외 조회 포함');
+checkText('public/admin.html', 'opsClassSelect', '상단 클래스 딸깍 선택 바');
+checkText('public/admin.html', 'clinicClassSelect', '클리닉 클래스 목록 선택 UI');
+checkText('public/admin.html', 'wordClassSelect', '단어시험 클래스 목록 선택 UI');
+checkText('public/admin.html', 'masterClassTeacherSelect', '담당 직원 목록 선택 UI');
+checkText('public/admin.html', 'loadClassCatalog', '클래스 선택 목록 자동 로딩');
+
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
