@@ -133,6 +133,11 @@ checkText('public/admin.html', 'workDrawer', '우측 상세 작업 패널 UI');
 checkText('public/admin.html', 'safeOptimisticStart', 'safe optimistic 저장 상태 UI');
 checkText('public/admin.html', 'setUiMode', '현장/태블릿 모드 토글');
 checkText('public/admin.html', 'reportLetter', '리포트 카드형 미리보기');
+checkText('api/rpc.js', 'assistantTodayAbsenceBoardDirect', '실시간 미등원 보드 API');
+checkText('public/admin.html', 'todayAbsenceRows', '실시간 미등원 보드 UI');
+checkText('public/admin.html', 'startTodayAbsenceAuto', '실시간 미등원 자동 갱신');
+checkText('scripts/smoke-test.mjs', 'assistant.todayAbsenceBoard', 'smoke-test 실시간 미등원 보드 포함');
+
 checkFile('docs/UI_UX_REFRESH_V2.md', 'UI/UX refresh v2 문서');
 
 

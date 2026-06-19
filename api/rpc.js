@@ -5229,6 +5229,411 @@ async function adminFinalReadinessDirect(args = {}, sessionToken = '') {
   });
 }
 
+
+function liveAbsenceKstStartMs(yyyymmdd, hhmm) {
+  const t = String(hhmm || '').trim();
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (!isStrictYmd(yyyymmdd) || !m) return 0;
+  const y = Number(yyyymmdd.slice(0, 4));
+  const mo = Number(yyyymmdd.slice(4, 6));
+  const d = Number(yyyymmdd.slice(6, 8));
+  const h = Number(m[1]);
+  const mi = Number(m[2]);
+  if (!Number.isInteger(h) || !Number.isInteger(mi) || h < 0 || h > 23 || mi < 0 || mi > 59) return 0;
+  return Date.UTC(y, mo - 1, d, h - 9, mi, 0, 0);
+}
+
+function liveAbsenceKstDateTimeIso(yyyymmdd, hhmm) {
+  const ms = liveAbsenceKstStartMs(yyyymmdd, hhmm);
+  return ms ? new Date(ms).toISOString() : '';
+}
+
+function liveAbsencePhone(raw) {
+  return String(raw || '').replace(/[^0-9]/g, '').trim();
+}
+
+function liveAbsenceStudentActive(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return true;
+  return !['deleted', 'delete', 'inactive', 'disabled', '졸업', '퇴원', '휴원', '비활성', '삭제'].includes(v);
+}
+
+function liveAbsenceStagePolicy(raw) {
+  const parsed = String(raw || process.env.ABSENT_STAGE_MINUTES || '5,20')
+    .split(/[,,/|;\s]+/)
+    .map(x => Number(x))
+    .filter(n => Number.isFinite(n) && n > 0 && n <= 60 && n % 5 === 0)
+    .map(n => Math.floor(n));
+  const unique = Array.from(new Set(parsed)).sort((a, b) => a - b);
+  return unique.length ? unique.slice(0, 3) : [5, 20];
+}
+
+async function liveAbsenceSelectInChunks(supabase, table, columns, field, values, extra = null) {
+  const ids = Array.from(new Set((values || []).map(v => String(v || '').trim()).filter(Boolean)));
+  if (!ids.length) return [];
+  const out = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    let query = supabase.from(table).select(columns).in(field, chunk);
+    if (typeof extra === 'function') query = extra(query);
+    const { data, error } = await query;
+    if (error) throw new Error(error.message || table + ' 조회 실패');
+    out.push(...(Array.isArray(data) ? data : []));
+  }
+  return out;
+}
+
+function liveAbsencePresentFromState(row, nowMs) {
+  if (!row) return false;
+  const checkedIn = row.checked_in === true;
+  const checkedOut = row.checked_out === true;
+  const lastInMs = Date.parse(String(row.last_check_in_ts || ''));
+  const lastOutMs = Date.parse(String(row.last_check_out_ts || ''));
+  if (Number.isFinite(lastInMs) && lastInMs > nowMs) return false;
+  if (checkedIn && !checkedOut) return true;
+  return Number.isFinite(lastInMs) && (!Number.isFinite(lastOutMs) || lastInMs > lastOutMs);
+}
+
+function liveAbsenceIsExcuseActive(row, nowMs) {
+  const until = String(row?.until_ts || '').trim();
+  if (!until) return true;
+  let parsed = NaN;
+  if (/^\d{10,13}$/.test(until)) parsed = until.length === 10 ? Number(until) * 1000 : Number(until);
+  else parsed = Date.parse(until);
+  if (!Number.isFinite(parsed)) return false;
+  return parsed >= nowMs;
+}
+
+function liveAbsenceTraceId(ymd, classId, studentId, stage) {
+  return ['ABSENT', ymd, classId, studentId, String(stage)].join('|');
+}
+
+function liveAbsenceActionType(stage) {
+  return 'ABSENT_' + String(stage);
+}
+
+async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || kstYmd(new Date()));
+  if (!yyyymmdd) return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
+
+  const includeUpcoming = normalizeBool(args.include_upcoming || args.includeUpcoming) === true;
+  const classIdFilter = String(args.class_id || args.classId || '').trim();
+  const now = args.now ? new Date(args.now) : new Date();
+  if (Number.isNaN(now.getTime())) return fail(400, 'INVALID_INPUT', 'now 값이 올바른 날짜가 아닙니다.');
+  const nowMs = now.getTime();
+  const minuteBucket = Math.floor(nowMs / 10000);
+  const cacheKey = ['todayAbsenceBoard', yyyymmdd, classIdFilter || 'all', includeUpcoming ? 'upcoming' : 'late', minuteBucket].join('|');
+  const cached = fastCacheGet(cacheKey);
+  if (cached) return success({ ...cached, cache: { hit: true, source: 'memory_fresh' } });
+
+  const supabase = getSupabaseAdmin();
+
+  let scheduleQuery = supabase
+    .from('class_schedule')
+    .select('yyyymmdd, class_id, class_name, teacher, start, end, status, reason')
+    .eq('yyyymmdd', yyyymmdd)
+    .order('start', { ascending: true });
+
+  if (classIdFilter) scheduleQuery = scheduleQuery.eq('class_id', classIdFilter);
+
+  const { data: scheduleData, error: scheduleErr } = await scheduleQuery;
+  if (scheduleErr) return fail(500, 'DB_SELECT_FAILED', scheduleErr.message || 'class_schedule 조회 실패');
+
+  const scheduledRows = (Array.isArray(scheduleData) ? scheduleData : [])
+    .filter(row => isActiveLikeScheduleStatus(row.status))
+    .map(row => {
+      const startMs = liveAbsenceKstStartMs(yyyymmdd, row.start);
+      const lateMin = startMs ? Math.floor((nowMs - startMs) / 60000) : -99999;
+      return {
+        ...row,
+        class_id: String(row.class_id || '').trim(),
+        class_name: String(row.class_name || '').trim(),
+        start_ms: startMs,
+        start_iso: liveAbsenceKstDateTimeIso(yyyymmdd, row.start),
+        late_min: lateMin,
+        start_passed: startMs > 0 && nowMs >= startMs
+      };
+    })
+    .filter(row => row.class_id)
+    .filter(row => includeUpcoming || row.start_passed);
+
+  const classIds = Array.from(new Set(scheduledRows.map(row => row.class_id).filter(Boolean)));
+  const emptyOut = {
+    yyyymmdd,
+    checked_at: now.toISOString(),
+    source: 'class_schedule',
+    realtime: true,
+    refresh_sec: 10,
+    schedule_count: (Array.isArray(scheduleData) ? scheduleData : []).length,
+    active_schedule_count: scheduledRows.length,
+    class_count: 0,
+    roster_count: 0,
+    present_count: 0,
+    missing_count: 0,
+    excused_count: 0,
+    upcoming_count: 0,
+    no_phone_count: 0,
+    groups: [],
+    items: []
+  };
+  if (!classIds.length) {
+    fastCacheSet(cacheKey, emptyOut, 8, 60);
+    return success(emptyOut);
+  }
+
+  let relations = [];
+  let students = [];
+  let classes = [];
+  try {
+    [relations, classes] = await Promise.all([
+      liveAbsenceSelectInChunks(supabase, 'class_students', 'class_id, student_id', 'class_id', classIds),
+      liveAbsenceSelectInChunks(supabase, 'classes', 'class_id, name, teacher, alert_delay, status', 'class_id', classIds)
+    ]);
+    const studentIds = Array.from(new Set(relations.map(row => normalizeStudentId(row.student_id)).filter(Boolean)));
+    students = await liveAbsenceSelectInChunks(
+      supabase,
+      'students',
+      'student_id, student_name, school, grade, status, parent_phone, student_phone',
+      'student_id',
+      studentIds
+    );
+  } catch (e) {
+    return fail(500, 'DB_SELECT_FAILED', e?.message || '실시간 미등원 보드 조회 실패');
+  }
+
+  const classMap = new Map();
+  for (const cls of classes || []) {
+    const id = String(cls.class_id || '').trim();
+    if (id) classMap.set(id, cls);
+  }
+
+  const studentMap = new Map();
+  for (const student of students || []) {
+    const sid = normalizeStudentId(student.student_id);
+    if (sid && liveAbsenceStudentActive(student.status)) studentMap.set(sid, student);
+  }
+
+  const activeStudentIds = Array.from(studentMap.keys());
+  let stateRows = [];
+  let excuseRows = [];
+  let queueRows = [];
+  try {
+    [stateRows, excuseRows] = await Promise.all([
+      liveAbsenceSelectInChunks(
+        supabase,
+        'today_student_state',
+        'student_id, checked_in, checked_out, last_check_in_ts, last_check_out_ts, last_action_type',
+        'student_id',
+        activeStudentIds,
+        query => query.eq('yyyymmdd', yyyymmdd)
+      ).catch(() => []),
+      liveAbsenceSelectInChunks(
+        supabase,
+        'absence_excuses',
+        'excuse_id, class_id, yyyymmdd, student_id, reason, until_ts',
+        'student_id',
+        activeStudentIds,
+        query => query.eq('yyyymmdd', yyyymmdd)
+      ).catch(() => [])
+    ]);
+  } catch {
+    stateRows = [];
+    excuseRows = [];
+  }
+
+  const presentSet = new Set();
+  for (const row of stateRows || []) {
+    const sid = normalizeStudentId(row.student_id);
+    if (sid && liveAbsencePresentFromState(row, nowMs)) presentSet.add(sid);
+  }
+
+  const excuseMap = new Map();
+  for (const row of excuseRows || []) {
+    const sid = normalizeStudentId(row.student_id);
+    const classId = String(row.class_id || '').trim();
+    if (!sid || !classId) continue;
+    if (!liveAbsenceIsExcuseActive(row, nowMs)) continue;
+    excuseMap.set(classId + '|' + sid, row);
+  }
+
+  const relationsByClass = new Map();
+  for (const rel of relations || []) {
+    const classId = String(rel.class_id || '').trim();
+    const sid = normalizeStudentId(rel.student_id);
+    if (!classId || !sid || !studentMap.has(sid)) continue;
+    if (!relationsByClass.has(classId)) relationsByClass.set(classId, []);
+    relationsByClass.get(classId).push(sid);
+  }
+
+  const traceIds = [];
+  const projected = [];
+  for (const schedule of scheduledRows) {
+    const classId = schedule.class_id;
+    const cls = classMap.get(classId) || {};
+    const stages = liveAbsenceStagePolicy(cls.alert_delay);
+    const roster = relationsByClass.get(classId) || [];
+    for (const sid of roster) {
+      for (const stage of stages) {
+        if (schedule.late_min >= stage) traceIds.push(liveAbsenceTraceId(yyyymmdd, classId, sid, stage));
+      }
+      projected.push({ classId, sid, stages, schedule, cls });
+    }
+  }
+
+  if (traceIds.length) {
+    try {
+      queueRows = await liveAbsenceSelectInChunks(
+        supabase,
+        'attendance_notify_queue',
+        'trace_id, action_type, status, sent_channel, processed_at, last_error, created_at',
+        'trace_id',
+        traceIds
+      );
+    } catch {
+      queueRows = [];
+    }
+  }
+  const queueByTrace = new Map((queueRows || []).map(row => [String(row.trace_id || '').trim(), row]));
+
+  const groupsByClass = new Map();
+  const items = [];
+  let rosterCount = 0;
+  let presentCount = 0;
+  let missingCount = 0;
+  let excusedCount = 0;
+  let upcomingCount = 0;
+  let noPhoneCount = 0;
+
+  for (const schedule of scheduledRows) {
+    const classId = schedule.class_id;
+    const cls = classMap.get(classId) || {};
+    const roster = relationsByClass.get(classId) || [];
+    const group = {
+      class_id: classId,
+      class_name: schedule.class_name || cls.name || classId,
+      teacher: String(schedule.teacher || cls.teacher || '').trim(),
+      start: String(schedule.start || '').trim(),
+      end: String(schedule.end || '').trim(),
+      start_iso: schedule.start_iso,
+      late_min: schedule.late_min,
+      start_passed: schedule.start_passed,
+      roster_count: 0,
+      present_count: 0,
+      missing_count: 0,
+      excused_count: 0,
+      no_phone_count: 0,
+      queue_done_count: 0,
+      students: []
+    };
+
+    const stages = liveAbsenceStagePolicy(cls.alert_delay);
+    for (const sid of roster) {
+      const student = studentMap.get(sid);
+      if (!student) continue;
+      rosterCount++;
+      group.roster_count++;
+
+      const isPresent = presentSet.has(sid);
+      const excuse = excuseMap.get(classId + '|' + sid) || null;
+      if (!schedule.start_passed) {
+        upcomingCount++;
+        continue;
+      }
+      if (isPresent) {
+        presentCount++;
+        group.present_count++;
+        continue;
+      }
+      if (excuse) {
+        excusedCount++;
+        group.excused_count++;
+        continue;
+      }
+
+      const sentStages = [];
+      for (const stage of stages) {
+        if (schedule.late_min < stage) continue;
+        const trace = liveAbsenceTraceId(yyyymmdd, classId, sid, stage);
+        const q = queueByTrace.get(trace);
+        if (q) {
+          sentStages.push({
+            stage,
+            action_type: liveAbsenceActionType(stage),
+            status: String(q.status || '').trim(),
+            sent_channel: String(q.sent_channel || '').trim(),
+            processed_at: q.processed_at || '',
+            last_error: q.last_error || ''
+          });
+          if (String(q.status || '').toUpperCase() === 'DONE') group.queue_done_count++;
+        }
+      }
+
+      const parentPhone = liveAbsencePhone(student.parent_phone);
+      const studentPhone = liveAbsencePhone(student.student_phone);
+      if (!parentPhone && !studentPhone) {
+        noPhoneCount++;
+        group.no_phone_count++;
+      }
+      const item = {
+        yyyymmdd,
+        class_id: classId,
+        class_name: group.class_name,
+        teacher: group.teacher,
+        start: group.start,
+        end: group.end,
+        late_min: schedule.late_min,
+        student_id: sid,
+        student_name: String(student.student_name || '').trim(),
+        school: String(student.school || '').trim(),
+        grade: String(student.grade || '').trim(),
+        parent_phone: parentPhone,
+        student_phone: studentPhone,
+        sent_stages: sentStages,
+        contact_status: sentStages.length ? sentStages.map(x => `${x.stage}분:${x.status || '-'}`).join(', ') : '미발송',
+        risk: schedule.late_min >= 20 ? 'high' : schedule.late_min >= 5 ? 'medium' : 'low'
+      };
+      missingCount++;
+      group.missing_count++;
+      group.students.push(item);
+      items.push(item);
+    }
+
+    groupsByClass.set(classId, group);
+  }
+
+  const groups = Array.from(groupsByClass.values())
+    .filter(group => includeUpcoming || group.start_passed)
+    .sort((a, b) => Number(b.missing_count || 0) - Number(a.missing_count || 0) || String(a.start || '').localeCompare(String(b.start || '')));
+
+  items.sort((a, b) => Number(b.late_min || 0) - Number(a.late_min || 0) || String(a.class_id || '').localeCompare(String(b.class_id || '')) || String(a.student_name || '').localeCompare(String(b.student_name || '')));
+
+  const out = {
+    yyyymmdd,
+    checked_at: now.toISOString(),
+    source: 'class_schedule + today_student_state',
+    realtime: true,
+    refresh_sec: 10,
+    schedule_count: (Array.isArray(scheduleData) ? scheduleData : []).length,
+    active_schedule_count: scheduledRows.length,
+    class_count: groups.length,
+    roster_count: rosterCount,
+    present_count: presentCount,
+    missing_count: missingCount,
+    excused_count: excusedCount,
+    upcoming_count: upcomingCount,
+    no_phone_count: noPhoneCount,
+    groups,
+    items
+  };
+
+  fastCacheSet(cacheKey, out, 8, 60);
+  return success(out);
+}
+
+
 async function adminGetOpsOverviewDirect(sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -5977,6 +6382,11 @@ export default async function handler(req, res) {
 
   if (op === 'admin.getOpsOverview') {
     const result = await adminGetOpsOverviewDirect(sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'assistant.todayAbsenceBoard') {
+    const result = await assistantTodayAbsenceBoardDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

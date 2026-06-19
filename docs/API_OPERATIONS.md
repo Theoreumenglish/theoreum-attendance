@@ -30,6 +30,8 @@
 | `assistant.getLogByTrace` | attendance | trace_id 기준 출결 로그 조회 | 관리자/강사/조교 | 아니오 |
 | `assistant.manualAttendance` | attendance | 출결 수동 정정 | 관리자/강사/조교 | 필수 |
 | `assistant.listAbsenceExcuses` | absence | 미등원 문자 제외 조회 | 관리자/강사/조교 | 아니오 |
+
+| `assistant.todayAbsenceBoard` | attendance | 오늘 수업 시간이 지난 반에서 아직 등원하지 않은 학생을 실시간 보드로 조회 | 관리자/강사/조교 | 아니오 |
 | `assistant.addAbsenceExcuse` | absence | 미등원 문자 제외 추가 | 관리자/강사/조교 | 필수 |
 | `assistant.bulkAddAbsenceExcuses` | absence | 미등원 문자 제외 일괄 추가 | 관리자/강사/조교 | 필수 |
 | `assistant.removeAbsenceExcuse` | absence | 미등원 문자 제외 제거 | 관리자/강사/조교 | 필수 |
@@ -276,3 +278,10 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 - `admin.central.staff.list`: 기본은 Supabase replica fast path를 사용하고, `force=true` 또는 `source=central`일 때 중앙DB GAS 원본을 확인한다.
 - `admin.central.props.get`: `runtime_config.central_props_snapshot` snapshot을 우선 사용하고, `force=true`일 때 중앙DB GAS 원본을 확인한다.
 - `assistant.listAbsenceExcuses` / `assistant.addAbsenceExcuse` / `assistant.bulkAddAbsenceExcuses` / `assistant.removeAbsenceExcuse`: 출결 메뉴의 미등원 문자 제외 관리에서 사용한다.
+
+### assistant.todayAbsenceBoard
+
+- 모든 직원이 오늘 수업 시간이 지난 반에서 아직 등원하지 않은 학생을 확인하는 읽기 전용 API다.
+- 기준 데이터는 `class_schedule`이며, 실제 출석 여부는 `today_student_state`를 우선 사용한다.
+- `absence_excuses`에 등록된 학생은 미등원 수에서 제외한다.
+- 이미 발송된 미등원 문자 단계는 `attendance_notify_queue`의 `ABSENT_5`, `ABSENT_20` trace로 표시한다.

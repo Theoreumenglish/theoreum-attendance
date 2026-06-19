@@ -2557,7 +2557,69 @@
       .topTools .btn { min-height: 36px; padding: 0 10px; }
     }
 
-  </style>
+  
+    .compactHead { align-items: center; gap: 12px; }
+    .btnRow.tight { gap: 6px; flex-wrap: nowrap; }
+    .compactInput { width: 124px; min-width: 124px; height: 34px; padding: 7px 10px; }
+    .liveAbsenceCard { border-color: #dfe3ea; }
+    .liveAbsenceStats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .liveAbsenceStats > div {
+      border: 1px solid var(--line);
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .liveAbsenceStats b { font-size: 20px; letter-spacing: -0.03em; color: var(--text); }
+    .liveAbsenceStats span { font-size: 12px; color: var(--muted); }
+    .liveAbsenceMeta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .liveAbsenceTable { margin-top: 12px; max-height: 360px; overflow: auto; }
+    .lateBadge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 46px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid var(--line);
+      background: #f9fafb;
+    }
+    .lateBadge.high { color: #991b1b; background: #fef2f2; border-color: #fecaca; }
+    .lateBadge.medium { color: #92400e; background: #fffbeb; border-color: #fde68a; }
+    .lateBadge.low { color: #374151; background: #f3f4f6; }
+    .miniAction {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 9px;
+      padding: 5px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 2px;
+    }
+    .miniAction:hover { background: var(--accent-soft); }
+    .mutedInline { color: var(--muted); font-size: 12px; }
+    @media (max-width: 760px) {
+      .liveAbsenceStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .btnRow.tight { flex-wrap: wrap; }
+      .compactInput { width: 100%; min-width: 0; }
+    }
+
+</style>
 </head>
 <body>
 <div class="busyBar" id="busyBar"></div>
@@ -2761,6 +2823,44 @@
 <div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
 <div class="sectionDesc" id="overviewText" style="margin-top:12px;">아직 불러오지 않았습니다.</div>
 </div>
+
+<div class="card cardPad liveAbsenceCard">
+<div class="cardHead compactHead">
+<div>
+<div class="sectionTitle">실시간 미등원</div>
+</div>
+<div class="btnRow tight">
+<input class="inp compactInput" id="todayAbsenceYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
+<span class="miniAction" id="btnTodayAbsenceBoard" role="button" tabindex="0">새로고침</span>
+<span class="miniAction" id="btnTodayAbsenceAuto" role="button" tabindex="0">자동 ON</span>
+</div>
+</div>
+<div class="liveAbsenceStats">
+<div><b id="todayAbsenceMissing">-</b><span>미등원</span></div>
+<div><b id="todayAbsencePresent">-</b><span>등원</span></div>
+<div><b id="todayAbsenceExcused">-</b><span>예외</span></div>
+<div><b id="todayAbsenceClasses">-</b><span>수업반</span></div>
+</div>
+<div class="liveAbsenceMeta" id="todayAbsenceMeta">조회 전</div>
+<div class="tableWrap liveAbsenceTable">
+<table class="table">
+<thead>
+<tr>
+<th>수업</th>
+<th>지각</th>
+<th>학생</th>
+<th>연락</th>
+<th>문자</th>
+<th>처리</th>
+</tr>
+</thead>
+<tbody id="todayAbsenceRows">
+<tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
 </div>
 </section>
 <section class="portalView" data-view-desc="출결 로그, 수동 정정, 실패 알림, QR 문제 대응을 처리합니다." data-view-title="출결" id="attendance">
@@ -4314,7 +4414,9 @@
       rpcInflight: new Map(),
       uiMode: localStorage.getItem('OPS_UI_MODE') || 'daily',
       drawerContext: null,
-      saveSeq: 0
+      saveSeq: 0,
+      todayAbsenceTimer: null,
+      todayAbsenceAuto: true
     };
 
     function esc(value) {
@@ -5004,6 +5106,7 @@
         'admin.central.staff.list': 60000,
         'admin.central.props.get': 120000,
         'assistant.listAbsenceExcuses': 10000,
+        'assistant.todayAbsenceBoard': 8000,
         'clinic.todayBoard': 10000,
         'wordTest.listSessions': 15000,
         'report.listSnapshots': 15000
@@ -5112,6 +5215,8 @@
     async function checkMe() {
       const today = kstYmd(new Date());
       $('#logYmd').value = today;
+      const todayAbsenceYmd = $('#todayAbsenceYmd');
+      if (todayAbsenceYmd && !todayAbsenceYmd.value) todayAbsenceYmd.value = today;
       const absenceExcuseYmd = $('#absenceExcuseYmd');
       if (absenceExcuseYmd && !absenceExcuseYmd.value) absenceExcuseYmd.value = today;
       const classYmd = $('#classYmd');
@@ -5147,6 +5252,8 @@
         App.me = r.data;
         setView(true);
         loadOverview();
+        loadTodayAbsenceBoard({ silent: true }).catch(() => {});
+        startTodayAbsenceAuto();
         setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); }, 0);
         return;
       }
@@ -5177,6 +5284,8 @@
         $('#loginPw').value = '';
         setView(true);
         loadOverview();
+        loadTodayAbsenceBoard({ silent: true }).catch(() => {});
+        startTodayAbsenceAuto();
         setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); }, 0);
         return;
       }
@@ -5186,6 +5295,7 @@
 
     async function logout() {
       await rpc('auth.logout', {});
+      stopTodayAbsenceAuto();
       App.sess = '';
       App.me = null;
       App.selectedStudent = null;
@@ -7557,6 +7667,129 @@
       if (score) score.focus();
     }
 
+
+    function phoneText(value) {
+      const digits = String(value || '').replace(/[^0-9]/g, '');
+      if (digits.length === 11) return digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+      if (digits.length === 10) return digits.replace(/(\d{2,3})(\d{3,4})(\d{4})/, '$1-$2-$3');
+      return digits || '-';
+    }
+
+    function setTodayAbsenceLoading(message = '조회 중...') {
+      const rows = $('#todayAbsenceRows');
+      if (rows) rows.innerHTML = `<tr><td colspan="6" style="color:var(--muted);">${esc(message)}</td></tr>`;
+      const meta = $('#todayAbsenceMeta');
+      if (meta) meta.textContent = message;
+    }
+
+    function renderTodayAbsenceBoard(data = {}) {
+      const items = Array.isArray(data.items) ? data.items : [];
+      const missingEl = $('#todayAbsenceMissing');
+      const presentEl = $('#todayAbsencePresent');
+      const excusedEl = $('#todayAbsenceExcused');
+      const classesEl = $('#todayAbsenceClasses');
+      if (missingEl) missingEl.textContent = String(data.missing_count ?? items.length ?? 0);
+      if (presentEl) presentEl.textContent = String(data.present_count ?? 0);
+      if (excusedEl) excusedEl.textContent = String(data.excused_count ?? 0);
+      if (classesEl) classesEl.textContent = String(data.class_count ?? 0);
+
+      const checked = shortTs(data.checked_at || '');
+      const meta = $('#todayAbsenceMeta');
+      if (meta) {
+        meta.textContent = `갱신 ${checked} · 수업 ${data.active_schedule_count ?? 0} · 명단 ${data.roster_count ?? 0}${data.no_phone_count ? ` · 연락처 없음 ${data.no_phone_count}` : ''}`;
+      }
+
+      const rows = $('#todayAbsenceRows');
+      if (!rows) return;
+      if (!items.length) {
+        rows.innerHTML = `<tr><td colspan="6" style="color:var(--muted);">현재 수업 시간이 지났는데 아직 안 온 학생이 없습니다.</td></tr>`;
+        return;
+      }
+
+      rows.innerHTML = items.slice(0, 120).map(item => {
+        const risk = item.risk || (Number(item.late_min || 0) >= 20 ? 'high' : Number(item.late_min || 0) >= 5 ? 'medium' : 'low');
+        const phone = item.parent_phone || item.student_phone || '';
+        const contact = [
+          item.parent_phone ? `학부모 ${phoneText(item.parent_phone)}` : '',
+          item.student_phone ? `학생 ${phoneText(item.student_phone)}` : ''
+        ].filter(Boolean).join('<br/>') || '<span class="mutedInline">번호 없음</span>';
+        const stage = esc(item.contact_status || '미발송');
+        const studentLine = `${esc(item.student_id || '')} · ${esc(item.student_name || '')}<div class="mutedInline">${esc([item.school, item.grade].filter(Boolean).join(' · '))}</div>`;
+        return `<tr>
+          <td><b>${esc(item.class_name || item.class_id || '-')}</b><div class="mutedInline">${esc(item.start || '')}${item.teacher ? ' · ' + esc(item.teacher) : ''}</div></td>
+          <td><span class="lateBadge ${esc(risk)}">${Math.max(0, Number(item.late_min || 0))}분</span></td>
+          <td>${studentLine}</td>
+          <td>${contact}</td>
+          <td><span class="statusPill ${item.sent_stages?.length ? 'warn' : ''}">${stage}</span></td>
+          <td>
+            <button class="miniAction" data-abs-copy="${esc(phone)}" type="button">복사</button>
+            <button class="miniAction" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생</button>
+            <button class="miniAction" data-abs-excuse-class="${esc(item.class_id || '')}" data-abs-excuse-student="${esc(item.student_id || '')}" type="button">예외</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function loadTodayAbsenceBoard(options = {}) {
+      const ymdInput = $('#todayAbsenceYmd');
+      const ymd = String(ymdInput?.value || '').replace(/[^0-9]/g, '') || kstYmd();
+      if (ymdInput && !ymdInput.value) ymdInput.value = ymd;
+      if (options.silent !== true) setTodayAbsenceLoading('조회 중...');
+      const r = await rpc('assistant.todayAbsenceBoard', { yyyymmdd: ymd }, { timeoutMs: 15000, cacheTtlMs: options.force ? 0 : 8000 });
+      if (!r.ok) {
+        const meta = $('#todayAbsenceMeta');
+        if (meta) meta.textContent = r.error?.message || '실시간 미등원 조회 실패';
+        const rows = $('#todayAbsenceRows');
+        if (rows) rows.innerHTML = `<tr><td colspan="6" style="color:var(--muted);">${esc(r.error?.message || '조회 실패')}</td></tr>`;
+        return;
+      }
+      renderTodayAbsenceBoard(r.data || {});
+    }
+
+    function startTodayAbsenceAuto() {
+      stopTodayAbsenceAuto();
+      if (!App.todayAbsenceAuto) return;
+      App.todayAbsenceTimer = setInterval(() => {
+        if (!App.sess || $('#appView')?.classList.contains('hidden')) return;
+        loadTodayAbsenceBoard({ silent: true }).catch(() => {});
+      }, 15000);
+      const btn = $('#btnTodayAbsenceAuto');
+      if (btn) btn.textContent = '자동 ON';
+    }
+
+    function stopTodayAbsenceAuto() {
+      if (App.todayAbsenceTimer) clearInterval(App.todayAbsenceTimer);
+      App.todayAbsenceTimer = null;
+      const btn = $('#btnTodayAbsenceAuto');
+      if (btn) btn.textContent = '자동 OFF';
+    }
+
+    function toggleTodayAbsenceAuto() {
+      App.todayAbsenceAuto = !App.todayAbsenceAuto;
+      if (App.todayAbsenceAuto) {
+        startTodayAbsenceAuto();
+        loadTodayAbsenceBoard({ silent: true }).catch(() => {});
+      } else {
+        stopTodayAbsenceAuto();
+      }
+    }
+
+    function fillAbsenceExcuseFromLiveBoard(classId, studentId) {
+      const today = String($('#todayAbsenceYmd')?.value || '').replace(/[^0-9]/g, '') || kstYmd();
+      const ymdEl = $('#absenceExcuseYmd');
+      const classEl = $('#absenceExcuseClassId');
+      const sidEl = $('#absenceExcuseStudentId');
+      const reasonEl = $('#absenceExcuseReason');
+      if (ymdEl) ymdEl.value = today;
+      if (classEl) classEl.value = classId || '';
+      if (sidEl) sidEl.value = studentId || '';
+      if (reasonEl && !reasonEl.value) reasonEl.value = '직원 확인';
+      if (classId) applySelectedClass(classId, { fillMaster: false });
+      jumpTo('attendance');
+      showToast('미등원 예외 입력칸에 넣었습니다.');
+    }
+
+
     async function openFailedAbsentQueue() {
       $('#notifyQueueStatus').value = 'FAILED';
       $('#notifyQueueAction').value = 'ABSENT';
@@ -7685,6 +7918,8 @@
       bindClick('btnCommandClinic', openClinicCandidates);
       bindClick('btnQuickWordToday', openTodayWordSessions);
       bindClick('btnCommandWord', openTodayWordSessions);
+      bindClick('btnTodayAbsenceBoard', () => loadTodayAbsenceBoard({ force: true }));
+      bindClick('btnTodayAbsenceAuto', toggleTodayAbsenceAuto);
       bindClick('btnQuickStudentLogs', quickStudentLogs);
       bindClick('btnStudentLogsOneClick', quickStudentLogs);
       bindClick('btnQuickStudentClinic', quickStudentClinicView);
@@ -7705,6 +7940,11 @@
 
       const studentQuery = $('#studentQuery');
       if (studentQuery) studentQuery.addEventListener('input', scheduleStudentSearch);
+
+      const todayAbsenceYmdInput = $('#todayAbsenceYmd');
+      if (todayAbsenceYmdInput) {
+        todayAbsenceYmdInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadTodayAbsenceBoard({ force: true }); });
+      }
 
       const quickStudentQuery = $('#quickStudentQuery');
       if (quickStudentQuery) {
@@ -7764,6 +8004,29 @@
       const classPill = $('#opsClassPill');
       if (classPill) classPill.addEventListener('click', () => openWorkDrawer('class', findClassOption(App.selectedClassId) || { class_id: App.selectedClassId }));
       document.addEventListener('click', e => {
+        const copyEl = e.target.closest('[data-abs-copy]');
+        if (copyEl) {
+          const phone = copyEl.dataset.absCopy || '';
+          if (phone && navigator.clipboard) navigator.clipboard.writeText(phone).catch(() => {});
+          showToast(phone ? '번호를 복사했습니다.' : '복사할 번호가 없습니다.');
+          return;
+        }
+        const studentEl = e.target.closest('[data-abs-student]');
+        if (studentEl) {
+          const sid = normalizeSid(studentEl.dataset.absStudent || '');
+          if (sid) {
+            App.selectedStudent = { student_id: sid, student_name: studentEl.dataset.absName || '' };
+            syncSelectedStudentUi();
+            jumpTo('students');
+            loadStudentProfile().catch(() => {});
+          }
+          return;
+        }
+        const excuseEl = e.target.closest('[data-abs-excuse-class]');
+        if (excuseEl) {
+          fillAbsenceExcuseFromLiveBoard(excuseEl.dataset.absExcuseClass || '', excuseEl.dataset.absExcuseStudent || '');
+          return;
+        }
         const actionEl = e.target.closest('[data-drawer-action]');
         if (actionEl) runSmartAction(actionEl.dataset.drawerAction || '');
       });
