@@ -2619,6 +2619,185 @@
       .compactInput { width: 100%; min-width: 0; }
     }
 
+
+
+    /* Daily Ops Polish v1: internal workbench, click-first operation */
+    .dailyWorkRail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .dailyWorkCard {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 14px 13px;
+      cursor: pointer;
+      min-height: 92px;
+      transition: border-color .12s ease, transform .12s ease, background .12s ease;
+      display: grid;
+      align-content: space-between;
+    }
+    .dailyWorkCard:hover {
+      transform: translateY(-1px);
+      border-color: #cbd5e1;
+      background: #fbfdff;
+    }
+    .dailyWorkCard .k {
+      font-size: 12px;
+      font-weight: 850;
+      color: var(--muted);
+    }
+    .dailyWorkCard .v {
+      font-size: 26px;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+      margin-top: 4px;
+      color: var(--text);
+    }
+    .dailyWorkCard .s {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dailyWorkCard.isHot { border-color: #fecaca; background: #fffafa; }
+    .dailyWorkCard.isHot .v { color: #b91c1c; }
+    .dailyWorkCard.isGood { border-color: #bbf7d0; background: #fbfffd; }
+    .dailyWorkCard.isGood .v { color: #047857; }
+    .recentRail {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin: -2px 0 12px;
+    }
+    .recentGroup {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.72);
+      border-radius: 14px;
+      padding: 7px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+    .recentGroupLabel {
+      flex: 0 0 auto;
+      font-size: 11px;
+      color: var(--soft);
+      font-weight: 850;
+      padding: 0 4px;
+    }
+    .recentChip {
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #374151;
+      cursor: pointer;
+      max-width: 210px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .recentChip:hover { border-color: #9ca3af; }
+    .keyHint {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 850;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .shell .sectionDesc:not(#overviewText) {
+      display: none !important;
+    }
+    .shell .fieldHint {
+      display: none;
+    }
+    .dailyQuiet .quickKicker,
+    .dailyQuiet .smartBoardIntro p,
+    .dailyQuiet .drawerDesc {
+      display: none;
+    }
+    .dailyQuiet .cardPad { padding: 20px; }
+    .dailyQuiet .emptyPanel p { display: none; }
+    .commandOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 95;
+      display: none;
+      background: rgba(15, 23, 42, 0.32);
+      backdrop-filter: blur(6px);
+      padding: 90px 18px 18px;
+    }
+    .commandOverlay.on { display: block; }
+    .commandBox {
+      width: min(720px, 100%);
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 24px 80px rgba(15,23,42,.24);
+      overflow: hidden;
+    }
+    .commandInput {
+      width: 100%;
+      border: 0;
+      outline: none;
+      padding: 20px 22px;
+      font-size: 20px;
+      font-weight: 850;
+      border-bottom: 1px solid var(--line);
+    }
+    .commandList {
+      max-height: 440px;
+      overflow: auto;
+      padding: 8px;
+    }
+    .commandItem {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 13px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    .commandItem:hover,
+    .commandItem.on { background: #f3f4f6; }
+    .commandItem strong { display:block; font-size: 14px; }
+    .commandItem span { display:block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .commandItem kbd {
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 4px 7px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    @media (max-width: 1100px) {
+      .dailyWorkRail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .recentRail { grid-template-columns: 1fr; }
+      .keyHint { display: none; }
+    }
+    @media (max-width: 620px) {
+      .dailyWorkRail { grid-template-columns: 1fr; }
+    }
+
 </style>
 </head>
 <body>
@@ -2666,7 +2845,7 @@
 </div>
 </div>
 </div>
-<div class="shell hidden" id="appView">
+<div class="shell hidden dailyQuiet" id="appView">
 <aside class="side">
 <div class="sideBrand">
 <div class="brandMark">↑</div>
@@ -2749,6 +2928,11 @@
 <span class="contextPill" id="opsModePill">작업 모드</span>
 </div>
 </div>
+<div class="recentRail" id="recentRail" aria-label="최근 작업 대상">
+<div class="recentGroup" id="recentClassRail"><span class="recentGroupLabel">최근 반</span><span class="recentChip muted">없음</span></div>
+<div class="recentGroup" id="recentStudentRail"><span class="recentGroupLabel">최근 학생</span><span class="recentChip muted">없음</span></div>
+<div class="keyHint" id="btnCommandOpen" title="Ctrl+K">Ctrl+K 명령</div>
+</div>
 <div class="smartBoard" id="smartBoard" aria-label="딸깍 업무 보드">
 <div class="smartBoardIntro">
 <div class="kicker">작업 바로가기</div>
@@ -2797,6 +2981,13 @@
 <div class="metricValue" id="statWorkerCron">-</div>
 <div class="metricNote" id="statWorkerCronNote">실행 기록 조회 전</div>
 </div>
+</div>
+<div class="dailyWorkRail" id="dailyWorkRail" aria-label="오늘 업무 레일">
+<div class="dailyWorkCard isHot" role="button" tabindex="0" data-daily-task="absence"><div><div class="k">미등원</div><div class="v" id="dailyAbsenceCount">-</div></div><div class="s" id="dailyAbsenceNote">실시간 확인</div></div>
+<div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="clinic"><div><div class="k">클리닉</div><div class="v" id="dailyClinicCount">-</div></div><div class="s">오늘 할 일</div></div>
+<div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="word"><div><div class="k">단어</div><div class="v" id="dailyWordCount">-</div></div><div class="s">오늘 회차</div></div>
+<div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="message"><div><div class="k">문자 실패</div><div class="v" id="dailyMessageCount">-</div></div><div class="s">추가 확인</div></div>
+<div class="dailyWorkCard isGood" role="button" tabindex="0" data-daily-task="student"><div><div class="k">학생</div><div class="v" id="dailyStudentState">검색</div></div><div class="s">/ 또는 Ctrl+K</div></div>
 </div>
 <div class="card cardPad todayConsole">
 <div class="cardHead">
@@ -4375,6 +4566,12 @@
 </div>
 </main>
 </div>
+<div class="commandOverlay" id="commandOverlay" aria-label="명령 팔레트">
+<div class="commandBox">
+<input autocomplete="off" class="commandInput" id="commandInput" placeholder="학생 검색, 메뉴 이동, 자주 쓰는 작업"/>
+<div class="commandList" id="commandList"></div>
+</div>
+</div>
 <div class="drawerOverlay" id="drawerOverlay"></div>
 <aside class="workDrawer" id="workDrawer" aria-label="상세 작업 패널">
 <div class="drawerHead">
@@ -4416,7 +4613,13 @@
       drawerContext: null,
       saveSeq: 0,
       todayAbsenceTimer: null,
-      todayAbsenceAuto: true
+      todayAbsenceAuto: true,
+      recentClasses: JSON.parse(localStorage.getItem('OPS_RECENT_CLASSES') || '[]'),
+      recentStudents: JSON.parse(localStorage.getItem('OPS_RECENT_STUDENTS') || '[]'),
+      lastOverview: null,
+      lastAbsenceBoard: null,
+      commandOpen: false,
+      commandIndex: 0
     };
 
     function esc(value) {
@@ -4500,6 +4703,64 @@
       return `${s.student_id} · ${s.student_name || ''}`.trim();
     }
 
+    function saveRecentList(key, list) {
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 8)));
+    }
+
+    function pushRecentClass(item = {}) {
+      const id = normalizeClassId(item.class_id || item.id || App.selectedClassId || '');
+      if (!id) return;
+      const label = classDisplayName(item) || id;
+      App.recentClasses = [{ class_id: id, label }, ...(App.recentClasses || []).filter(x => normalizeClassId(x.class_id) !== id)].slice(0, 6);
+      saveRecentList('OPS_RECENT_CLASSES', App.recentClasses);
+      renderRecentRails();
+    }
+
+    function pushRecentStudent(student = {}) {
+      const sid = normalizeSid(student.student_id || '');
+      if (!sid) return;
+      const label = `${sid} · ${student.student_name || ''}`.trim();
+      App.recentStudents = [{ student_id: sid, student_name: student.student_name || '', label }, ...(App.recentStudents || []).filter(x => normalizeSid(x.student_id) !== sid)].slice(0, 6);
+      saveRecentList('OPS_RECENT_STUDENTS', App.recentStudents);
+      renderRecentRails();
+    }
+
+    function renderRecentRails() {
+      const classBox = $('#recentClassRail');
+      if (classBox) {
+        const items = Array.isArray(App.recentClasses) ? App.recentClasses : [];
+        classBox.innerHTML = '<span class="recentGroupLabel">최근 반</span>' + (items.length
+          ? items.map(item => `<span class="recentChip" data-recent-class="${esc(item.class_id)}">${esc(item.label || item.class_id)}</span>`).join('')
+          : '<span class="recentChip muted">없음</span>');
+      }
+      const studentBox = $('#recentStudentRail');
+      if (studentBox) {
+        const items = Array.isArray(App.recentStudents) ? App.recentStudents : [];
+        studentBox.innerHTML = '<span class="recentGroupLabel">최근 학생</span>' + (items.length
+          ? items.map(item => `<span class="recentChip" data-recent-student="${esc(item.student_id)}" data-recent-name="${esc(item.student_name || '')}">${esc(item.label || item.student_id)}</span>`).join('')
+          : '<span class="recentChip muted">없음</span>');
+      }
+    }
+
+    function updateDailyWorkRail() {
+      const overview = App.lastOverview || {};
+      const queue = overview.queue || {};
+      const board = App.lastAbsenceBoard || {};
+      const missing = board.counts && board.counts.missing != null ? board.counts.missing : board.missing_count;
+      const present = board.counts && board.counts.present != null ? board.counts.present : board.present_count;
+      const classes = board.counts && board.counts.classes != null ? board.counts.classes : board.class_count;
+      const setText = (id, value) => { const el = $(id); if (el) el.textContent = value == null || value === '' ? '-' : String(value); };
+      setText('#dailyAbsenceCount', missing == null ? '-' : missing);
+      setText('#dailyAbsenceNote', classes != null ? `수업반 ${classes} · 등원 ${present ?? '-'}` : '실시간 확인');
+      setText('#dailyClinicCount', overview.clinic && overview.clinic.open_today != null ? overview.clinic.open_today : '보기');
+      setText('#dailyWordCount', overview.word && overview.word.today_sessions != null ? overview.word.today_sessions : '입력');
+      const failed = Number(queue.failed_absent || 0) + Number(queue.failed_attendance || 0);
+      setText('#dailyMessageCount', Number.isFinite(failed) ? failed : '-');
+      setText('#dailyStudentState', App.selectedStudent && App.selectedStudent.student_id ? '선택됨' : '검색');
+      const absenceCard = document.querySelector('[data-daily-task="absence"]');
+      if (absenceCard) absenceCard.classList.toggle('isHot', Number(missing || 0) > 0);
+    }
+
     function syncSelectedStudentUi() {
       const label = selectedStudentLabel();
       const quickText = $('#quickSelectedStudentText');
@@ -4528,6 +4789,7 @@
           : '학생 미선택';
       }
       if (App.drawerContext && App.drawerContext.kind === 'student') openWorkDrawer('student', App.selectedStudent || {});
+      updateDailyWorkRail();
     }
 
 
@@ -4579,7 +4841,9 @@
         const master = $('#masterClassId');
         if (master && !master.value) master.value = id;
       }
+      if (id && options.record !== false) pushRecentClass({ ...item, class_id: id });
       if (id && App.drawerContext && App.drawerContext.kind === 'class') openWorkDrawer('class', item);
+      updateDailyWorkRail();
       return item;
     }
 
@@ -4595,7 +4859,7 @@
         return `<option value="${esc(id)}">${esc(classDisplayName(item))}</option>`;
       }).join('');
       ['masterClassQuickSelect', 'clinicClassFilterSelect', 'wordBulkClassSelect', 'absenceExcuseClassSelect'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = allHtml; });
-      if (selectedId) applySelectedClass(selectedId, { fillMaster: false });
+      if (selectedId) applySelectedClass(selectedId, { fillMaster: false, record: false });
     }
 
     async function loadClassCatalog(options = {}) {
@@ -5241,6 +5505,8 @@
       if (clinicDueFilter && !clinicDueFilter.value) clinicDueFilter.value = kstDateInput(0);
       syncClinicCreateMode();
       syncSelectedStudentUi();
+      renderRecentRails();
+      updateDailyWorkRail();
 
       if (!App.sess) {
         setView(false);
@@ -5326,6 +5592,7 @@
       }
 
       const d = r.data || {};
+      App.lastOverview = d;
       const replica = d.central_replica || {};
       const queue = d.queue || {};
       const safe = d.safe || {};
@@ -5341,6 +5608,7 @@
       $('#statSafeNote').textContent = '층 ' + (d.kiosk_floor || '-') + ' · PENDING ' + (queue.pending_all ?? 0);
       renderCronHealth(d);
       $('#overviewText').textContent = '마지막 확인: ' + (d.checked_at || new Date().toISOString());
+      updateDailyWorkRail();
     }
 
     function setCronMetric(cardId, valueId, noteId, ok, note) {
@@ -6206,6 +6474,7 @@
       };
 
       const label = App.selectedStudent.student_id + ' · ' + App.selectedStudent.student_name;
+      pushRecentStudent(App.selectedStudent);
       syncSelectedStudentUi();
       $('#manualSid').value = App.selectedStudent.student_id;
       $('#logSidFilter').value = App.selectedStudent.student_id;
@@ -7743,7 +8012,9 @@
         if (rows) rows.innerHTML = `<tr><td colspan="6" style="color:var(--muted);">${esc(r.error?.message || '조회 실패')}</td></tr>`;
         return;
       }
+      App.lastAbsenceBoard = r.data || {};
       renderTodayAbsenceBoard(r.data || {});
+      updateDailyWorkRail();
     }
 
     function startTodayAbsenceAuto() {
@@ -7830,6 +8101,78 @@
       await listWordSessions();
       writeActionLog('오늘 전체 점검 완료', '필요한 화면: 문자·알림 / 클리닉 / 단어시험에서 이어서 처리');
       showToast('오늘 전체 점검을 완료했습니다.');
+    }
+
+    const COMMANDS = [
+      { id: 'dash', title: '오늘 화면', hint: '실시간 미등원 / 오늘 할 일', key: 'G H', run: () => jumpTo('dashboard') },
+      { id: 'student', title: '학생 검색', hint: '선택 후 출결·클리닉·단어 연결', key: '/', run: () => { jumpTo('students'); setTimeout(() => $('#studentQuery')?.focus(), 80); } },
+      { id: 'absence', title: '실시간 미등원', hint: '오늘 안 온 학생 확인', key: 'A', run: () => { jumpTo('dashboard'); loadTodayAbsenceBoard({ force: true }); } },
+      { id: 'clinicToday', title: '오늘 클리닉', hint: '조교 오늘 할 일', key: 'C', run: () => loadTodayClinicTasks() },
+      { id: 'classClinic', title: '수업 클리닉 생성', hint: '선택 반 전체', key: 'K', run: () => runSmartAction('classClinic') },
+      { id: 'wordBulk', title: '단어 일괄 입력', hint: '선택 반 기준', key: 'W', run: () => runSmartAction('wordBulk') },
+      { id: 'classes', title: '클래스 관리', hint: '반/명단/휴강/일정', key: 'G C', run: () => jumpTo('classes') },
+      { id: 'messages', title: '문자 실패 확인', hint: '실패 큐', key: 'M', run: () => openFailedAbsentQueue() },
+      { id: 'report', title: '학부모 리포트', hint: '선택 학생 기준', key: 'R', run: () => { jumpTo('reports'); defaultReportPeriod(); } },
+      { id: 'settings', title: '설정/점검', hint: '중앙DB / 최종 체크', key: 'G S', run: () => jumpTo('advanced') }
+    ];
+
+    function filteredCommands(query = '') {
+      const q = String(query || '').trim().toLowerCase();
+      if (!q) return COMMANDS;
+      return COMMANDS.filter(c => [c.title, c.hint, c.key, c.id].join(' ').toLowerCase().includes(q));
+    }
+
+    function renderCommandList() {
+      const input = $('#commandInput');
+      const list = $('#commandList');
+      if (!list) return;
+      const items = filteredCommands(input ? input.value : '');
+      if (App.commandIndex >= items.length) App.commandIndex = 0;
+      list.innerHTML = items.length ? items.map((c, idx) => `
+        <div class="commandItem ${idx === App.commandIndex ? 'on' : ''}" role="button" tabindex="0" data-command-id="${esc(c.id)}">
+          <div><strong>${esc(c.title)}</strong><span>${esc(c.hint || '')}</span></div><kbd>${esc(c.key || 'Enter')}</kbd>
+        </div>`).join('') : '<div class="commandItem"><div><strong>결과 없음</strong><span>학생 검색은 학생 메뉴에서 바로 입력하세요.</span></div></div>';
+    }
+
+    function openCommandPalette(seed = '') {
+      App.commandOpen = true;
+      App.commandIndex = 0;
+      const overlay = $('#commandOverlay');
+      const input = $('#commandInput');
+      if (overlay) overlay.classList.add('on');
+      if (input) {
+        input.value = seed || '';
+        setTimeout(() => { input.focus(); input.select(); }, 20);
+      }
+      renderCommandList();
+    }
+
+    function closeCommandPalette() {
+      App.commandOpen = false;
+      const overlay = $('#commandOverlay');
+      if (overlay) overlay.classList.remove('on');
+    }
+
+    function runCommandById(id) {
+      const cmd = COMMANDS.find(c => c.id === id);
+      if (!cmd) return;
+      closeCommandPalette();
+      cmd.run();
+      writeActionLog('명령 실행', cmd.title);
+    }
+
+    function runSelectedCommand() {
+      const items = filteredCommands($('#commandInput')?.value || '');
+      const cmd = items[App.commandIndex || 0];
+      if (cmd) runCommandById(cmd.id);
+    }
+
+    function runDailyTask(task) {
+      if (task === 'absence') { jumpTo('dashboard'); loadTodayAbsenceBoard({ force: true }); return; }
+      if (task === 'clinic') { loadTodayClinicTasks(); return; }
+      if (task === 'word') { openTodayWordSessions(); return; }
+      if (task === 'message') { openFailedAbsentQueue(); return; }
+      if (task === 'student') { openCommandPalette('학생'); return; }
     }
 
     function bindClick(id, handler) {
@@ -7990,6 +8333,32 @@
         tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
       });
 
+      $$('.dailyWorkCard[data-daily-task]').forEach(tile => {
+        const fire = () => runDailyTask(tile.dataset.dailyTask || '');
+        tile.addEventListener('click', fire);
+        tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+      });
+
+      bindClick('btnCommandOpen', () => openCommandPalette());
+      const commandOverlay = $('#commandOverlay');
+      if (commandOverlay) commandOverlay.addEventListener('click', e => { if (e.target === commandOverlay) closeCommandPalette(); });
+      const commandInput = $('#commandInput');
+      if (commandInput) {
+        commandInput.addEventListener('input', () => { App.commandIndex = 0; renderCommandList(); });
+        commandInput.addEventListener('keydown', e => {
+          const items = filteredCommands(commandInput.value || '');
+          if (e.key === 'ArrowDown') { e.preventDefault(); App.commandIndex = Math.min(items.length - 1, (App.commandIndex || 0) + 1); renderCommandList(); }
+          if (e.key === 'ArrowUp') { e.preventDefault(); App.commandIndex = Math.max(0, (App.commandIndex || 0) - 1); renderCommandList(); }
+          if (e.key === 'Enter') { e.preventDefault(); runSelectedCommand(); }
+          if (e.key === 'Escape') { e.preventDefault(); closeCommandPalette(); }
+        });
+      }
+      const commandList = $('#commandList');
+      if (commandList) commandList.addEventListener('click', e => {
+        const item = e.target.closest('[data-command-id]');
+        if (item) runCommandById(item.dataset.commandId || '');
+      });
+
       const drawerClose = $('#drawerClose');
       if (drawerClose) {
         drawerClose.addEventListener('click', closeWorkDrawer);
@@ -8004,6 +8373,29 @@
       const classPill = $('#opsClassPill');
       if (classPill) classPill.addEventListener('click', () => openWorkDrawer('class', findClassOption(App.selectedClassId) || { class_id: App.selectedClassId }));
       document.addEventListener('click', e => {
+        const recentClass = e.target.closest('[data-recent-class]');
+        if (recentClass) {
+          const id = normalizeClassId(recentClass.dataset.recentClass || '');
+          if (id) {
+            applySelectedClass(id);
+            if (App.currentView === 'classes') editMasterClass(id).catch(() => {});
+            else showToast('작업 클래스를 선택했습니다.');
+          }
+          return;
+        }
+        const recentStudent = e.target.closest('[data-recent-student]');
+        if (recentStudent) {
+          const sid = normalizeSid(recentStudent.dataset.recentStudent || '');
+          if (sid) {
+            App.selectedStudent = { student_id: sid, student_name: recentStudent.dataset.recentName || '' };
+            pushRecentStudent(App.selectedStudent);
+            syncSelectedStudentUi();
+            renderStudentDetail(App.selectedStudent);
+            openWorkDrawer('student', App.selectedStudent);
+            loadStudentProfile().catch(() => {});
+          }
+          return;
+        }
         const copyEl = e.target.closest('[data-abs-copy]');
         if (copyEl) {
           const phone = copyEl.dataset.absCopy || '';
@@ -8016,6 +8408,7 @@
           const sid = normalizeSid(studentEl.dataset.absStudent || '');
           if (sid) {
             App.selectedStudent = { student_id: sid, student_name: studentEl.dataset.absName || '' };
+            pushRecentStudent(App.selectedStudent);
             syncSelectedStudentUi();
             jumpTo('students');
             loadStudentProfile().catch(() => {});
@@ -8031,7 +8424,14 @@
         if (actionEl) runSmartAction(actionEl.dataset.drawerAction || '');
       });
       document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeWorkDrawer();
+        const tag = String(e.target && e.target.tagName || '').toLowerCase();
+        const typing = ['input', 'textarea', 'select'].includes(tag);
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openCommandPalette(); return; }
+        if (!typing && e.key === '/') { e.preventDefault(); openCommandPalette('학생'); return; }
+        if (!typing && e.key.toLowerCase() === 'h') { jumpTo('dashboard'); return; }
+        if (!typing && e.key.toLowerCase() === 'c') { loadTodayClinicTasks(); return; }
+        if (!typing && e.key.toLowerCase() === 'w') { openTodayWordSessions(); return; }
+        if (e.key === 'Escape') { closeCommandPalette(); closeWorkDrawer(); }
         const actionEl = e.target.closest && e.target.closest('[data-drawer-action]');
         if (actionEl && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); runSmartAction(actionEl.dataset.drawerAction || ''); }
       });
