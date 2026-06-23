@@ -2798,6 +2798,53 @@
       .dailyWorkRail { grid-template-columns: 1fr; }
     }
 
+
+    /* Word grid speed v1 */
+    .wordSpeedTools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fff;
+    }
+    .wordSpeedTools .select,
+    .wordSpeedTools .inp,
+    .wordSpeedTools .btn {
+      height: 38px;
+      min-height: 38px;
+    }
+    .wordSpeedTools .wordPasteBox {
+      min-width: 180px;
+      flex: 1 1 220px;
+      height: 38px;
+      resize: none;
+      line-height: 22px;
+      padding-top: 7px;
+    }
+    .wordGridInvalid {
+      outline: 2px solid rgba(220, 38, 38, 0.25);
+      outline-offset: -2px;
+      background: var(--red-soft);
+    }
+    .wordGridPass td:first-child { border-left: 3px solid var(--green); }
+    .wordGridFail td:first-child { border-left: 3px solid var(--amber); }
+    .wordGridAbsent td:first-child,
+    .wordGridExempt td:first-child { border-left: 3px solid var(--soft); }
+    .wordGridInvalid td:first-child { border-left: 3px solid var(--red); }
+    .wordQuickMini {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .wordBulkHiddenByFilter { display: none; }
+
 </style>
 </head>
 <body>
@@ -4114,6 +4161,21 @@
 <div class="sectionTitle">반 전체 일괄 입력</div>
 <div class="sectionDesc" id="wordBulkSummary">회차 선택 후 명단 불러오기를 누르면 수강생 맞은 개수를 한 번에 저장합니다.</div>
 <div class="sectionDesc" id="wordBulkLiveSummary" style="margin-top:6px;">입력 전입니다.</div>
+<div class="wordSpeedTools" id="wordSpeedTools" aria-label="단어 일괄 입력 도구">
+<select class="select" id="wordBulkFilter" title="표시 필터">
+<option value="ALL">전체</option>
+<option value="EMPTY">미입력</option>
+<option value="FAIL">불통과</option>
+<option value="ABSENT">미응시/면제</option>
+<option value="INVALID">오류</option>
+</select>
+<span class="btn btnGhost" id="btnWordBulkFillAbsent" role="button" tabindex="0">빈칸 미응시</span>
+<span class="btn btnGhost" id="btnWordBulkShowFail" role="button" tabindex="0">불통과만</span>
+<span class="btn btnGhost" id="btnWordBulkCopyFail" role="button" tabindex="0">불통과 복사</span>
+<textarea class="textarea wordPasteBox" id="wordBulkPasteBox" placeholder="점수 붙여넣기"></textarea>
+<span class="btn btnGhost" id="btnWordBulkApplyPaste" role="button" tabindex="0">붙여넣기 적용</span>
+<span class="wordQuickMini">Enter↓ · ↑↓ 이동 · 붙여넣기 가능 · a=미응시 · e=면제</span>
+</div>
 </div>
 <span class="statusPill good">bulk</span>
 </div>
@@ -7551,6 +7613,131 @@
     }
 
 
+    function getWordBulkMaxScore() {
+      const direct = Number($('#wordMaxScore')?.value || 0);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+      const first = App.wordBulkItems && App.wordBulkItems[0] ? Number(App.wordBulkItems[0].max_score || 0) : 0;
+      return Number.isFinite(first) && first > 0 ? first : 100;
+    }
+
+    function getWordBulkPassScore() {
+      const direct = Number($('#wordPassScore')?.value || 0);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+      const first = App.wordBulkItems && App.wordBulkItems[0] ? Number(App.wordBulkItems[0].pass_score || 0) : 0;
+      return Number.isFinite(first) && first > 0 ? first : Math.ceil(getWordBulkMaxScore() * 0.9);
+    }
+
+    function normalizeWordBulkInput(raw) {
+      const text = String(raw || '').trim();
+      if (!text) return { score: '', status: '', invalid: false };
+      const low = text.toLowerCase().replace(/\s+/g, '');
+      if (['a', 'abs', 'absent', 'x', '결', '결석', '미응시', '미'].includes(low)) return { score: '', status: 'ABSENT', invalid: false };
+      if (['e', 'ex', 'exempt', '면', '면제'].includes(low)) return { score: '', status: 'EXEMPT', invalid: false };
+      const fraction = low.match(/^(-?\d+)(?:\/|\\)(\d+)$/);
+      if (fraction) return { score: fraction[1], status: '', invalid: false };
+      const n = Number(text);
+      if (Number.isFinite(n)) return { score: String(n), status: '', invalid: false };
+      return { score: text, status: '', invalid: true };
+    }
+
+    function wordBulkRowEls(sid) {
+      const key = CSS.escape(sid);
+      return {
+        row: document.querySelector(`[data-word-bulk-sid="${key}"]`),
+        score: document.querySelector(`[data-word-bulk-score="${key}"]`),
+        status: document.querySelector(`[data-word-bulk-status="${key}"]`),
+        note: document.querySelector(`[data-word-bulk-note="${key}"]`),
+        clinic: document.querySelector(`[data-word-bulk-clinic="${key}"]`)
+      };
+    }
+
+    function setWordBulkRowValue(sid, raw, opts = {}) {
+      const els = wordBulkRowEls(sid);
+      if (!els.row || !els.score || !els.status) return;
+      const parsed = normalizeWordBulkInput(raw);
+      if (parsed.status) {
+        els.score.value = '';
+        els.status.value = parsed.status;
+      } else {
+        els.score.value = parsed.score;
+        if (!opts.keepStatus && ['ABSENT', 'EXEMPT'].includes(els.status.value)) els.status.value = '';
+      }
+      if (parsed.invalid) els.row.dataset.wordBulkInvalidReason = '숫자, a(미응시), e(면제)만 입력';
+      else delete els.row.dataset.wordBulkInvalidReason;
+    }
+
+    function inspectWordBulkRows() {
+      const rows = [];
+      const maxScore = getWordBulkMaxScore();
+      const passScore = getWordBulkPassScore();
+      $$('[data-word-bulk-sid]').forEach((row, index) => {
+        const sid = row.dataset.wordBulkSid || '';
+        const name = row.dataset.wordBulkName || '';
+        const els = wordBulkRowEls(sid);
+        const scoreRaw = (els.score?.value || '').trim();
+        const statusRaw = (els.status?.value || '').trim().toUpperCase();
+        let score = null;
+        let status = statusRaw;
+        let invalid = '';
+        if (scoreRaw) {
+          const parsed = normalizeWordBulkInput(scoreRaw);
+          if (parsed.status) {
+            status = parsed.status;
+            score = null;
+            if (els.score) els.score.value = '';
+            if (els.status) els.status.value = status;
+          } else {
+            const n = Number(parsed.score);
+            if (!Number.isFinite(n) || !Number.isInteger(n)) invalid = '맞은 개수는 정수만 가능';
+            else if (n < 0) invalid = '맞은 개수는 0 이상';
+            else if (n > maxScore) invalid = `전체 ${maxScore}개보다 큼`;
+            else score = n;
+          }
+        }
+        if ((status === 'PASS' || status === 'FAIL') && score === null) invalid = '통과/불통과는 맞은 개수 필요';
+        if (!['', 'PASS', 'FAIL', 'ABSENT', 'EXEMPT'].includes(status)) invalid = '알 수 없는 상태';
+        let state = 'EMPTY';
+        if (invalid) state = 'INVALID';
+        else if (status === 'ABSENT' || status === 'EXEMPT') state = status;
+        else if (status === 'PASS') state = 'PASS';
+        else if (status === 'FAIL') state = 'FAIL';
+        else if (score !== null) state = score >= passScore ? 'PASS' : 'FAIL';
+        rows.push({ row, index, sid, name, score, scoreRaw, status, state, invalid, maxScore, passScore });
+      });
+      return rows;
+    }
+
+    function applyWordBulkFilter() {
+      const filter = ($('#wordBulkFilter')?.value || 'ALL').toUpperCase();
+      const rows = inspectWordBulkRows();
+      rows.forEach(item => {
+        let show = true;
+        if (filter === 'EMPTY') show = item.state === 'EMPTY';
+        else if (filter === 'FAIL') show = item.state === 'FAIL';
+        else if (filter === 'ABSENT') show = item.state === 'ABSENT' || item.state === 'EXEMPT';
+        else if (filter === 'INVALID') show = item.state === 'INVALID';
+        item.row.classList.toggle('wordBulkHiddenByFilter', !show);
+      });
+    }
+
+    function updateWordBulkRowStyles() {
+      const rows = inspectWordBulkRows();
+      rows.forEach(item => {
+        item.row.classList.remove('wordGridPass', 'wordGridFail', 'wordGridAbsent', 'wordGridExempt', 'wordGridInvalid');
+        item.row.dataset.wordBulkState = item.state;
+        item.row.title = item.invalid || '';
+        const scoreEl = wordBulkRowEls(item.sid).score;
+        if (scoreEl) scoreEl.title = item.invalid || '';
+        if (item.state === 'PASS') item.row.classList.add('wordGridPass');
+        if (item.state === 'FAIL') item.row.classList.add('wordGridFail');
+        if (item.state === 'ABSENT') item.row.classList.add('wordGridAbsent');
+        if (item.state === 'EXEMPT') item.row.classList.add('wordGridExempt');
+        if (item.state === 'INVALID') item.row.classList.add('wordGridInvalid');
+      });
+      applyWordBulkFilter();
+      return rows;
+    }
+
     function renderWordBulkRows(data) {
       const rows = Array.isArray(data.items) ? data.items : [];
       App.wordBulkItems = rows;
@@ -7562,11 +7749,11 @@
         box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">조회된 수강생이 없습니다.</td></tr>';
         return;
       }
-      box.innerHTML = rows.map(row => `
-        <tr data-word-bulk-sid="${esc(row.student_id)}">
+      box.innerHTML = rows.map((row, index) => `
+        <tr data-word-bulk-sid="${esc(row.student_id)}" data-word-bulk-name="${esc(row.student_name || '')}" data-word-bulk-index="${index}">
           <td>${esc(row.student_id)}</td>
           <td>${esc(row.student_name || '')}</td>
-          <td><input class="inp" data-word-bulk-score="${esc(row.student_id)}" inputmode="numeric" value="${row.correct_count == null ? (row.score == null ? '' : esc(row.score)) : esc(row.correct_count)}" placeholder="맞은 개수"/></td>
+          <td><input class="inp wordBulkScoreInput" data-word-bulk-score="${esc(row.student_id)}" inputmode="numeric" value="${row.correct_count == null ? (row.score == null ? '' : esc(row.score)) : esc(row.correct_count)}" placeholder="맞은 개수 / a / e"/></td>
           <td>
             <select class="select" data-word-bulk-status="${esc(row.student_id)}">
               <option value="" ${!row.result_status ? 'selected' : ''}>자동</option>
@@ -7582,15 +7769,36 @@
           </td>
         </tr>
       `).join('');
-      $$('[data-word-bulk-score], [data-word-bulk-status]').forEach(el => {
+      const scores = Array.from(document.querySelectorAll('[data-word-bulk-score]'));
+      const statuses = Array.from(document.querySelectorAll('[data-word-bulk-status]'));
+      [...scores, ...statuses].forEach(el => {
         el.addEventListener('input', updateWordBulkLiveSummary);
         el.addEventListener('change', updateWordBulkLiveSummary);
-        el.addEventListener('keydown', ev => {
-          if (ev.key === 'Enter') {
+      });
+      scores.forEach((el, index) => {
+        el.addEventListener('blur', () => {
+          const sid = el.dataset.wordBulkScore || '';
+          setWordBulkRowValue(sid, el.value, { keepStatus: true });
+          updateWordBulkLiveSummary();
+        });
+        el.addEventListener('paste', ev => {
+          const text = ev.clipboardData?.getData('text') || '';
+          if (/[\n\r\t,]/.test(text)) {
             ev.preventDefault();
-            const inputs = Array.from(document.querySelectorAll('[data-word-bulk-score]'));
-            const idx = inputs.indexOf(el);
-            if (idx >= 0 && inputs[idx + 1]) inputs[idx + 1].focus();
+            applyWordBulkPaste(text, index);
+          }
+        });
+        el.addEventListener('keydown', ev => {
+          if ((ev.key === 'Enter' && ev.shiftKey) || ev.key === 'ArrowUp') {
+            ev.preventDefault();
+            const prev = scores[index - 1];
+            if (prev) { prev.focus(); prev.select(); }
+          } else if (ev.key === 'Enter' || ev.key === 'ArrowDown') {
+            ev.preventDefault();
+            const next = scores[index + 1];
+            if (next) { next.focus(); next.select(); }
+          } else if (ev.key === 'ArrowRight' && statuses[index]) {
+            statuses[index].focus();
           }
         });
       });
@@ -7598,27 +7806,96 @@
     }
 
     function updateWordBulkLiveSummary() {
-      const rows = $$('[data-word-bulk-sid]');
-      const passCount = Number($('#wordPassScore')?.value || 0) || 0;
+      const rows = updateWordBulkRowStyles();
       let entered = 0;
       let pass = 0;
       let fail = 0;
       let absent = 0;
-      rows.forEach(row => {
-        const sid = row.dataset.wordBulkSid || '';
-        const scoreRaw = (document.querySelector(`[data-word-bulk-score="${CSS.escape(sid)}"]`)?.value || '').trim();
-        const status = (document.querySelector(`[data-word-bulk-status="${CSS.escape(sid)}"]`)?.value || '').trim().toUpperCase();
-        if (scoreRaw || status) entered += 1;
-        if (status === 'ABSENT') absent += 1;
-        else if (status === 'PASS') pass += 1;
-        else if (status === 'FAIL') fail += 1;
-        else if (scoreRaw !== '') {
-          const n = Number(scoreRaw);
-          if (Number.isFinite(n)) (n >= passCount ? pass++ : fail++);
-        }
+      let exempt = 0;
+      let invalid = 0;
+      rows.forEach(item => {
+        if (item.state !== 'EMPTY') entered += 1;
+        if (item.state === 'PASS') pass += 1;
+        if (item.state === 'FAIL') fail += 1;
+        if (item.state === 'ABSENT') absent += 1;
+        if (item.state === 'EXEMPT') exempt += 1;
+        if (item.state === 'INVALID') invalid += 1;
       });
       const el = $('#wordBulkLiveSummary');
-      if (el) el.textContent = `입력 ${entered}/${rows.length}명 · 예상 통과 ${pass}명 · 예상 불통과 ${fail}명 · 미응시 ${absent}명`;
+      if (el) el.textContent = `입력 ${entered}/${rows.length}명 · 통과 ${pass}명 · 불통과 ${fail}명 · 미응시 ${absent}명 · 면제 ${exempt}명${invalid ? ` · 오류 ${invalid}명` : ''}`;
+    }
+
+    function applyWordBulkPaste(text, startIndex = 0) {
+      const scores = Array.from(document.querySelectorAll('[data-word-bulk-score]'));
+      if (!scores.length) return;
+      const sidSet = new Set(scores.map(el => el.dataset.wordBulkScore || '').filter(Boolean));
+      const lines = String(text || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      let applied = 0;
+      const sidRows = [];
+      const sequential = [];
+      lines.forEach(line => {
+        const cells = line.split(/\t|,/).map(cell => cell.trim()).filter(cell => cell !== '');
+        if (!cells.length) return;
+        const sidCell = cells.find(cell => sidSet.has(normalizeSid(cell)));
+        if (sidCell && cells.length >= 2) {
+          const value = cells.find(cell => cell !== sidCell && cell !== normalizeSid(sidCell)) || cells[cells.length - 1];
+          sidRows.push({ sid: normalizeSid(sidCell), value });
+        } else {
+          sequential.push(cells[cells.length - 1]);
+        }
+      });
+      if (sidRows.length) {
+        sidRows.forEach(item => {
+          setWordBulkRowValue(item.sid, item.value);
+          applied += 1;
+        });
+      } else {
+        sequential.forEach((value, offset) => {
+          const el = scores[startIndex + offset];
+          if (!el) return;
+          setWordBulkRowValue(el.dataset.wordBulkScore || '', value);
+          applied += 1;
+        });
+      }
+      updateWordBulkLiveSummary();
+      showToast(`붙여넣기 ${applied}명 적용`);
+    }
+
+    function fillBlankWordBulkAsAbsent() {
+      const rows = inspectWordBulkRows();
+      let count = 0;
+      rows.forEach(item => {
+        if (item.state === 'EMPTY') {
+          setWordBulkRowValue(item.sid, 'a');
+          count += 1;
+        }
+      });
+      updateWordBulkLiveSummary();
+      showToast(`빈칸 ${count}명을 미응시로 표시했습니다.`);
+    }
+
+    function copyWordBulkFailList() {
+      const rows = updateWordBulkRowStyles().filter(item => item.state === 'FAIL');
+      if (!rows.length) { showToast('복사할 불통과 학생이 없습니다.'); return; }
+      const text = rows.map(item => `${item.sid}\t${item.name}\t${item.score ?? ''}/${item.maxScore}`).join('\n');
+      if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+      showToast(`불통과 ${rows.length}명 목록을 복사했습니다.`);
+    }
+
+    function collectWordBulkResultsForSave() {
+      const rows = updateWordBulkRowStyles();
+      const invalids = rows.filter(item => item.invalid);
+      if (invalids.length) return { ok: false, invalids, results: [] };
+      const results = [];
+      rows.forEach(item => {
+        const els = wordBulkRowEls(item.sid);
+        const note = els.note?.value || '';
+        const createClinic = (els.clinic?.value || 'Y') === 'Y';
+        if (item.scoreRaw || item.status || note) {
+          results.push({ student_id: item.sid, correct_count: item.score === null ? '' : item.score, score: item.score === null ? '' : item.score, result_status: item.status, note, create_clinic: createClinic });
+        }
+      });
+      return { ok: true, invalids: [], results };
     }
 
     async function loadWordBulkEntry() {
@@ -7645,17 +7922,19 @@
     async function saveWordBulkResults() {
       const sessionId = ($('#wordBulkSessionId').value || $('#wordResultSessionId').value || '').trim();
       if (!sessionId) { showToast('일괄 저장할 회차 ID가 필요합니다.'); return; }
-      const results = [];
-      $$('[data-word-bulk-sid]').forEach(row => {
-        const sid = row.dataset.wordBulkSid || '';
-        const score = (document.querySelector(`[data-word-bulk-score="${CSS.escape(sid)}"]`)?.value || '').trim();
-        const resultStatus = document.querySelector(`[data-word-bulk-status="${CSS.escape(sid)}"]`)?.value || '';
-        const note = document.querySelector(`[data-word-bulk-note="${CSS.escape(sid)}"]`)?.value || '';
-        const createClinic = (document.querySelector(`[data-word-bulk-clinic="${CSS.escape(sid)}"]`)?.value || 'Y') === 'Y';
-        if (score || resultStatus || note) {
-          results.push({ student_id: sid, correct_count: score, score, result_status: resultStatus, note, create_clinic: createClinic });
+      const collected = collectWordBulkResultsForSave();
+      if (!collected.ok) {
+        const first = collected.invalids[0];
+        if (first?.sid) {
+          const el = wordBulkRowEls(first.sid).score || first.row;
+          if (el && el.focus) el.focus();
         }
-      });
+        $('#wordBulkFilter').value = 'INVALID';
+        applyWordBulkFilter();
+        showToast(`저장 전 오류 ${collected.invalids.length}건을 확인하세요.`);
+        return;
+      }
+      const results = collected.results;
       if (!results.length) { showToast('저장할 맞은 개수나 상태가 없습니다.'); return; }
       const optimisticId = safeOptimisticStart('단어 일괄 저장 중', `${results.length}명 · 화면은 먼저 확정 대기 표시`);
       const r = await rpc('wordTest.bulkEnterResults', { session_id: sessionId, results }, { timeoutMs: 60000 });
@@ -7673,6 +7952,10 @@
       await loadWordBulkEntry();
       await loadWordResults();
       await loadClinicTasks();
+      if (Number(data.fail_count || 0) > 0 && $('#wordBulkFilter')) {
+        $('#wordBulkFilter').value = 'FAIL';
+        updateWordBulkLiveSummary();
+      }
       if (App.selectedStudent && App.selectedStudent.student_id) await loadStudentProfile();
     }
 
@@ -8245,6 +8528,18 @@
       bindClick('btnEnterWordResult', enterWordResult);
       bindClick('btnLoadWordBulk', loadWordBulkEntry);
       bindClick('btnSaveWordBulk', saveWordBulkResults);
+      bindClick('btnWordBulkFillAbsent', fillBlankWordBulkAsAbsent);
+      bindClick('btnWordBulkShowFail', () => { const el = $('#wordBulkFilter'); if (el) { el.value = 'FAIL'; applyWordBulkFilter(); } });
+      bindClick('btnWordBulkCopyFail', copyWordBulkFailList);
+      bindClick('btnWordBulkApplyPaste', () => applyWordBulkPaste($('#wordBulkPasteBox')?.value || '', 0));
+      const wordBulkFilter = $('#wordBulkFilter');
+      if (wordBulkFilter) wordBulkFilter.addEventListener('change', applyWordBulkFilter);
+      const wordBulkPasteBox = $('#wordBulkPasteBox');
+      if (wordBulkPasteBox) {
+        wordBulkPasteBox.addEventListener('keydown', e => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') applyWordBulkPaste(wordBulkPasteBox.value || '', 0);
+        });
+      }
       bindClick('btnLoadWordResults', loadWordResults);
       bindClick('btnPreviewReport', previewReport);
       bindClick('btnSaveReportSnapshot', saveReportSnapshot);

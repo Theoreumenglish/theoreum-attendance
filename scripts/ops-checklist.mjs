@@ -35,7 +35,8 @@ const requiredFiles = [
   'scripts/final-readiness-check.mjs',
   'docs/FINAL_READINESS_CHECKLIST.md',
   'docs/MASTER_DATA_PORTAL.md',
-  'docs/supabase-master-speed-v2.sql'
+  'docs/supabase-master-speed-v2.sql',
+  'docs/WORD_GRID_SPEED_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -137,6 +138,13 @@ checkText('api/rpc.js', 'assistantTodayAbsenceBoardDirect', '실시간 미등원
 checkText('public/admin.html', 'todayAbsenceRows', '실시간 미등원 보드 UI');
 checkText('public/admin.html', 'startTodayAbsenceAuto', '실시간 미등원 자동 갱신');
 checkText('scripts/smoke-test.mjs', 'assistant.todayAbsenceBoard', 'smoke-test 실시간 미등원 보드 포함');
+
+checkText('public/admin.html', 'wordSpeedTools', '단어시험 엑셀형 일괄 입력 도구');
+checkText('public/admin.html', 'applyWordBulkPaste', '단어시험 붙여넣기 분배');
+checkText('public/admin.html', 'collectWordBulkResultsForSave', '단어시험 저장 전 오류 검증');
+checkText('public/admin.html', 'btnWordBulkFillAbsent', '단어시험 빈칸 미응시 처리');
+checkText('public/admin.html', 'btnWordBulkCopyFail', '단어시험 불통과 목록 복사');
+checkText('docs/WORD_GRID_SPEED_V1.md', 'word-grid-speed-v1', '단어시험 grid speed 문서');
 
 checkFile('docs/UI_UX_REFRESH_V2.md', 'UI/UX refresh v2 문서');
 
