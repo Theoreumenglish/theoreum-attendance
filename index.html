@@ -717,6 +717,74 @@
 			letter-spacing: 2px;
 		}
 
+
+    .studentKeypad {
+      margin-top: 18px;
+      border: 2px solid var(--line);
+      border-radius: var(--r-lg);
+      background: var(--card);
+      padding: 18px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .studentKeypad.hidden {
+      display: none;
+    }
+
+    .keypadStatus {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      color: var(--sub);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .keypadStatus strong {
+      color: var(--text);
+      font-size: 22px;
+    }
+
+    .keypadGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .keypadBtn {
+      min-height: 76px;
+      border: 2px solid var(--line);
+      border-radius: 20px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 34px;
+      font-weight: 950;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+      user-select: none;
+    }
+
+    .keypadBtn:active {
+      transform: scale(0.96);
+      border-color: var(--pri);
+      box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.10);
+    }
+
+    .keypadBtn.subtle {
+      font-size: 22px;
+      color: var(--sub);
+      background: transparent;
+    }
+
+    .keypadBtn.danger {
+      font-size: 22px;
+      color: #b91c1c;
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
 		.inp {
 			width: 100%;
 			border: 2px solid var(--line);
@@ -1001,6 +1069,11 @@
 			.actBtn { padding: 24px 12px; font-size: 20px; gap: 12px; }
 			.actBtn svg { width: 40px; height: 40px; }
 			.inp-big { height: 100px; font-size: 32px; padding: 16px; letter-spacing: 4px; }
+      .studentKeypad { margin-top: 14px; padding: 14px; }
+      .keypadGrid { gap: 10px; }
+      .keypadBtn { min-height: 64px; font-size: 28px; border-radius: 16px; }
+      .keypadStatus { font-size: 15px; }
+      .keypadStatus strong { font-size: 18px; }
 			.grid2, .grid3 { grid-template-columns: 1fr; }
 			.clock-time { font-size: 92px; }
 			.modal-title { font-size: 42px; }
@@ -1434,6 +1507,27 @@
 						처리 후 자동으로 일반 키오스크 상태로 돌아갑니다.
 					</div>
 				</div>
+
+        <div id="studentKeypad" class="studentKeypad" aria-label="학생 학번 숫자 키패드">
+          <div class="keypadStatus">
+            <span>학번 4자리 입력 시 자동 처리</span>
+            <strong id="keypadModeLabel">등원</strong>
+          </div>
+          <div class="keypadGrid">
+            <button class="keypadBtn" type="button" data-keypad-digit="1">1</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="2">2</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="3">3</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="4">4</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="5">5</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="6">6</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="7">7</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="8">8</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="9">9</button>
+            <button class="keypadBtn danger" type="button" data-keypad-action="clear">지움</button>
+            <button class="keypadBtn" type="button" data-keypad-digit="0">0</button>
+            <button class="keypadBtn subtle" type="button" data-keypad-action="backspace">←</button>
+          </div>
+        </div>
 			</div>
 
 			<div class="msg" id="kMsg"></div>
@@ -2448,6 +2542,22 @@
         if (btnStaffQuickOut) btnStaffQuickOut.addEventListener('click', () => Kiosk.setStaffQuickAction('OUT'));
         if (btnStaffQuickClose) btnStaffQuickClose.addEventListener('click', () => Kiosk.closeStaffQuick());
 
+        const studentKeypad = $('#studentKeypad');
+        if (studentKeypad) {
+          studentKeypad.addEventListener('click', (e) => {
+            const btn = e.target && e.target.closest ? e.target.closest('[data-keypad-digit],[data-keypad-action]') : null;
+            if (!btn) return;
+            e.preventDefault();
+
+            const digit = btn.getAttribute('data-keypad-digit');
+            const keypadAction = btn.getAttribute('data-keypad-action');
+
+            if (digit !== null) Kiosk.appendStudentDigit(digit);
+            if (keypadAction === 'clear') Kiosk.clearStudentDigits();
+            if (keypadAction === 'backspace') Kiosk.backspaceStudentDigit();
+          });
+        }
+
 				$('#btnCHECK_IN').addEventListener('click', () => Kiosk.setAction('CHECK_IN'));
 				$('#btnCHECK_OUT').addEventListener('click', () => Kiosk.setAction('CHECK_OUT'));
 				$('#btnMOVE').addEventListener('click', () => Kiosk.setAction('MOVE'));
@@ -2555,6 +2665,7 @@
 				}, 1000);
 
 				Kiosk.setAction('CHECK_IN');
+        Kiosk.refreshStudentKeypad();
 				safeFocus(input, 50);
 			},
 
@@ -2585,16 +2696,83 @@
         }
 
         if (input) {
-          if (action === 'CHECK_IN' || action === 'CHECK_OUT') {
-            input.placeholder = Kiosk.getInputPlaceholder();
-            input.setAttribute('inputmode', 'text');
-          } else {
-            input.placeholder = Kiosk.getInputPlaceholder();
-            input.setAttribute('inputmode', 'numeric');
-          }
+          input.placeholder = Kiosk.getInputPlaceholder();
+          input.setAttribute('inputmode', 'numeric');
 
+          Kiosk.refreshStudentKeypad();
           safeFocus(input, 50);
         }
+      },
+
+      isStudentKeypadMode() {
+        return !Kiosk.staffQuickOpen && ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].includes(Kiosk.action);
+      },
+
+      refreshStudentKeypad() {
+        const box = $('#studentKeypad');
+        const label = $('#keypadModeLabel');
+        const input = $('#kInput');
+
+        if (box) {
+          box.classList.toggle('hidden', !Kiosk.isStudentKeypadMode());
+        }
+
+        if (label) {
+          const map = {
+            CHECK_IN: '등원',
+            CHECK_OUT: '하원',
+            MOVE: '이동',
+            OUTING: '외출/복귀'
+          };
+          label.textContent = map[Kiosk.action] || '출결';
+        }
+
+        if (input && !Kiosk.staffQuickOpen && !Kiosk.isSubmitting) {
+          input.setAttribute('inputmode', 'numeric');
+          input.placeholder = Kiosk.getInputPlaceholder();
+        }
+      },
+
+      appendStudentDigit(digit) {
+        if (Kiosk.isSubmitting || Kiosk.staffQuickOpen) return;
+        const input = $('#kInput');
+        if (!input) return;
+
+        const d = String(digit || '').replace(/[^0-9]/g, '').slice(0, 1);
+        if (!d) return;
+
+        const next = (String(input.value || '').replace(/[^0-9]/g, '') + d).slice(-4);
+        input.value = next;
+        UI.clearMsg($('#kMsg'));
+        const dbg = $('#kDbg');
+        if (dbg) {
+          dbg.textContent = '';
+          dbg.style.display = 'none';
+        }
+
+        if (next.length === 4) {
+          Kiosk.queueSubmit(90);
+        } else {
+          safeFocus(input, 20);
+        }
+      },
+
+      clearStudentDigits() {
+        clearTimeout(Kiosk._autoTimer);
+        const input = $('#kInput');
+        if (input) {
+          input.value = '';
+          safeFocus(input, 20);
+        }
+        UI.clearMsg($('#kMsg'));
+      },
+
+      backspaceStudentDigit() {
+        clearTimeout(Kiosk._autoTimer);
+        const input = $('#kInput');
+        if (!input) return;
+        input.value = String(input.value || '').replace(/[^0-9]/g, '').slice(0, -1);
+        safeFocus(input, 20);
       },
 
       normalizeScanText(v) {
@@ -2709,6 +2887,7 @@
           safeFocus(input, 50);
         }
 
+        Kiosk.refreshStudentKeypad();
         UI.clearMsg($('#kMsg'));
         const dbg = $('#kDbg');
         if (dbg) {
@@ -2729,11 +2908,9 @@
         const input = $('#kInput');
         if (input && !Kiosk.isSubmitting) {
           input.value = '';
-          input.setAttribute(
-            'inputmode',
-            (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') ? 'text' : 'numeric'
-          );
+          input.setAttribute('inputmode', 'numeric');
           input.placeholder = Kiosk.getInputPlaceholder();
+          Kiosk.refreshStudentKeypad();
           safeFocus(input, 50);
         }
       },
@@ -2753,6 +2930,7 @@
         if (input && !Kiosk.isSubmitting) {
           input.placeholder = Kiosk.getInputPlaceholder();
         }
+        Kiosk.refreshStudentKeypad();
       },
 
 			setLoading(loading) {
@@ -2771,6 +2949,7 @@
 					input.disabled = false;
 					input.style.opacity = '1';
 					input.placeholder = Kiosk.getInputPlaceholder();
+          Kiosk.refreshStudentKeypad();
 					safeFocus(input, 50);
 				}
 			},

@@ -95,6 +95,14 @@ if (!indexHtml.includes('학번 4자리 입력 / QR 스캔도 가능')) {
   fail('키오스크 입력 안내가 학번 중심으로 변경되지 않았습니다.');
 } else ok('키오스크 입력 안내가 학번 중심으로 변경되었습니다.');
 
+if (!indexHtml.includes('id="studentKeypad"') || !indexHtml.includes('appendStudentDigit') || !indexHtml.includes('data-keypad-digit="0"')) {
+  fail('키오스크 학번 숫자 키패드가 없습니다.');
+} else ok('키오스크 학번 숫자 키패드가 있습니다.');
+
+if (!indexHtml.includes('next.length === 4') || !indexHtml.includes('Kiosk.queueSubmit(90)')) {
+  fail('학번 4자리 입력 후 자동 제출 흐름이 없습니다.');
+} else ok('학번 4자리 입력 후 자동 제출 흐름이 있습니다.');
+
 if (!html.includes('auditOpLabel') || !html.includes('auditTargetLabel')) {
   fail('감사 로그 화면 문구 변환 함수가 없습니다.');
 } else ok('감사 로그 화면 문구 변환이 있습니다.');

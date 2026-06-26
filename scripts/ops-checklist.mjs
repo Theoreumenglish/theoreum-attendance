@@ -70,7 +70,9 @@ const checklist = [
   ['단어 결과 저장 시 word_records mirror', rpc.includes('upsertWordRecordMirrorsIfAvailable') && rpc.includes('word_record_mirror')],
   ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')],
   ['학생 학번 출결 기본화 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID'") && !kiosk.includes("'NOT_EXCEPTION'")],
-  ['학생 학번 출결 기본화 키오스크 안내', rootIndex.includes('학번 4자리 입력 / QR 스캔도 가능')]
+  ['학생 학번 출결 기본화 키오스크 안내', rootIndex.includes('학번 4자리 입력 / QR 스캔도 가능')],
+  ['학생 학번 키패드 UI', rootIndex.includes('id="studentKeypad"') && rootIndex.includes('data-keypad-digit="0"') && rootIndex.includes('appendStudentDigit')],
+  ['학생 학번 4자리 자동 제출', rootIndex.includes('Kiosk.queueSubmit(90)') && rootIndex.includes('next.length === 4')]
 ];
 for (const [label, passed] of checklist) {
   if (passed) ok(label);
@@ -81,7 +83,9 @@ if (!/SMOKE_BASE_URL/.test(read('scripts/smoke-test.mjs'))) warn('smoke-test는 
 
 checkText('scripts/smoke-test.mjs', 'loadLocalSmokeEnv', 'smoke-test 로컬 env 자동 로딩');
 checkText('scripts/setup-smoke-env.ps1', '.env.smoke.local', 'smoke-test 로컬 계정 저장 스크립트');
-checkText('scripts/one-click-release.ps1', '검사 → 검증 → 빌드 → 커밋 → 푸쉬', '원클릭 release/deploy 스크립트');
+const oneClickScript = read('scripts/one-click-release.ps1');
+if (oneClickScript.includes('Done: check, verify, build, commit, push, zip, deploy, smoke-test.') || oneClickScript.includes('검사 → 검증 → 빌드 → 커밋 → 푸쉬')) ok('원클릭 release/deploy 스크립트');
+else fail('원클릭 release/deploy 스크립트 기준 미충족');
 
 
 checkFile('docs/supabase-clinic-auto-notify-v1.sql', '클리닉 자동 알림 SQL');
