@@ -238,3 +238,8 @@ SQL 파일: `docs/supabase-clinic-word-report-schema-v1.sql`
 2차 완성본에는 `admin.finalReadiness`와 관리자 포털 `설정 → 최종 운영 체크`가 포함됩니다.
 이 기능은 DB 스키마, 연락처 동기화율, 환경변수, 클리닉 알림 queue, 단어시험, 리포트, 감사 로그 준비 상태를 한 번에 점검합니다.
 배포 후에는 `npm run smoke-test`와 함께 최종 운영 체크를 실행한 뒤 메뉴별 디테일 패치로 넘어갑니다.
+
+## phone-tail-attendance-v1
+
+학생과 직원 출결 키오스크의 기본 입력 방식은 `010`을 화면에 고정 표시하고 사용자가 뒤 8자리만 입력하는 방식이다. 학생은 `students.student_phone`, 직원은 `staff` 또는 `staff_snapshot`의 phone-like 컬럼을 기준으로 매칭한다. QR은 보조수단으로 유지한다. 2차 직원 확인 기능은 이번 버전에서 제외한다.
+

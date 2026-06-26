@@ -23,6 +23,43 @@ function normalizeStaffId(input) {
     .slice(0, 40);
 }
 
+function normalizePhoneDigits(input) {
+  return String(input || '').replace(/[^0-9]/g, '');
+}
+
+function normalizePhoneTail8(input) {
+  const digits = normalizePhoneDigits(input);
+  if (/^010\d{8}$/.test(digits)) return digits.slice(-8);
+  if (/^\d{8}$/.test(digits)) return digits;
+  return '';
+}
+
+function pickStaffPhone(row) {
+  const candidates = [
+    row?.staff_phone,
+    row?.phone,
+    row?.mobile,
+    row?.mobile_phone,
+    row?.phone_number,
+    row?.tel,
+    row?.contact,
+    row?.contact_phone
+  ];
+
+  for (const c of candidates) {
+    const digits = normalizePhoneDigits(c);
+    if (/^010\d{8}$/.test(digits)) return digits;
+  }
+
+  return '';
+}
+
+function staffPhoneTailMatches(row, tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  const phone = pickStaffPhone(row);
+  return !!tail && !!phone && phone.slice(-8) === tail;
+}
+
 function normalizeRole(input) {
   const v = String(input || '').trim().toLowerCase();
   if (!v) return 'assistant';
@@ -92,6 +129,70 @@ async function readStaffForPinClock(staffId) {
   };
 }
 
+
+async function readStaffRowsForPhoneClock(tableName) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('*')
+    .limit(500);
+
+  if (error) {
+    return { data: [], error, table: tableName };
+  }
+
+  return { data: Array.isArray(data) ? data : [], error: null, table: tableName };
+}
+
+async function readStaffForPhoneClock(phoneTail8) {
+  const tail = normalizePhoneTail8(phoneTail8);
+  if (!tail) {
+    return {
+      data: null,
+      error: null,
+      code: 'BAD_PHONE_TAIL',
+      message: '010을 제외한 휴대폰 번호 8자리를 입력하세요.'
+    };
+  }
+
+  const sources = [];
+  const snap = await readStaffRowsForPhoneClock('staff_snapshot');
+  if (!snap.error || isMissingTableError('staff_snapshot', snap.error)) sources.push(...snap.data);
+  else return { data: null, error: snap.error, code: 'DB_SELECT_FAILED' };
+
+  const staff = await readStaffRowsForPhoneClock('staff');
+  if (!staff.error || isMissingTableError('staff', staff.error)) sources.push(...staff.data);
+  else return { data: null, error: staff.error, code: 'DB_SELECT_FAILED' };
+
+  const byId = new Map();
+  for (const row of sources) {
+    const staffId = normalizeStaffId(row?.staff_id);
+    if (!staffId) continue;
+    if (!staffPhoneTailMatches(row, tail)) continue;
+    if (normalizeStatus(row?.status) !== 'active' || normalizeRevoked(row?.revoked) === 'Y') continue;
+    if (!byId.has(staffId)) byId.set(staffId, row);
+  }
+
+  const matches = Array.from(byId.values());
+  if (matches.length === 1) return { data: matches[0], error: null, code: 'OK' };
+  if (matches.length > 1) {
+    return {
+      data: null,
+      error: null,
+      code: 'PHONE_AMBIGUOUS',
+      message: '같은 휴대폰 끝 8자리의 재직 직원이 여러 명입니다. 관리자에게 문의하세요.',
+      count: matches.length
+    };
+  }
+
+  return {
+    data: null,
+    error: null,
+    code: 'PHONE_NOT_FOUND',
+    message: '등록된 직원 휴대폰 번호를 찾지 못했습니다. 관리자에게 문의하세요.'
+  };
+}
+
 function normalizeInputMode(input) {
   const s = String(input || '').trim().toUpperCase();
   return ['WEB', 'QR', 'MANUAL'].includes(s) ? s : 'WEB';
@@ -133,6 +234,65 @@ export async function handleStaffClock(payload) {
 
   if (!action) {
     return fail(400, 'INVALID_INPUT', '허용되지 않는 action 입니다.');
+  }
+
+  const phoneTail8 = normalizePhoneTail8(args.phone_tail8 || args.phoneTail8 || args.phone_tail || args.phoneTail || args.phone || '');
+
+  if (phoneTail8) {
+    const staffOut = await readStaffForPhoneClock(phoneTail8);
+    if (staffOut.error) {
+      return fail(500, 'DB_SELECT_FAILED', staffOut.error.message || '직원 휴대폰 번호 조회 실패');
+    }
+    if (!staffOut.data) {
+      return fail(
+        staffOut.code === 'PHONE_AMBIGUOUS' ? 409 : 404,
+        staffOut.code || 'PHONE_NOT_FOUND',
+        staffOut.message || '등록된 직원 휴대폰 번호를 찾지 못했습니다.',
+        { phone_tail8: phoneTail8, count: staffOut.count || 0 }
+      );
+    }
+
+    const staff = staffOut.data;
+    const staffId = normalizeStaffId(staff.staff_id);
+    const role = normalizeRole(staff.role || '');
+    const name = String(staff.name || staffId).trim();
+
+    const result = await writeStaffClockAndRollup({
+      ts: new Date().toISOString(),
+      staff_id: staffId,
+      name,
+      role,
+      action,
+      note,
+      trace_id: traceId,
+      input_mode: 'PHONE_LAST8'
+    }, {
+      recentDedupeSec: 5
+    });
+
+    if (!result.ok) {
+      return fail(
+        result.status || 500,
+        result.error || 'SERVER_ERROR',
+        result.detail || 'staff.clock phone 처리 실패'
+      );
+    }
+
+    return success({
+      ok: true,
+      data: {
+        ok: true,
+        duplicate: !!result.duplicate,
+        msg: result.duplicate ? '중복 입력 방지 (이미 처리됨)' : ('휴대폰 번호 근태 기록: ' + action),
+        staff_id: staffId,
+        name,
+        role
+      },
+      traceId,
+      record: result.record || null,
+      daily: result.daily || null,
+      monthly: result.monthly || null
+    });
   }
 
   const staffIdFromPin = normalizeStaffId(args.staff_id || args.staffId || args.id || '');

@@ -367,3 +367,7 @@ Kiosk PIN example:
 
 This is used by the physical keyboard kiosk after the `staff` command. Staff QR remains available as a fallback through `staff.clock.qr`.
 
+## phone-tail-attendance-v1
+
+학생과 직원 출결 키오스크의 기본 입력 방식은 `010`을 화면에 고정 표시하고 사용자가 뒤 8자리만 입력하는 방식이다. 학생은 `students.student_phone`, 직원은 `staff` 또는 `staff_snapshot`의 phone-like 컬럼을 기준으로 매칭한다. QR은 보조수단으로 유지한다. 2차 직원 확인 기능은 이번 버전에서 제외한다.
+

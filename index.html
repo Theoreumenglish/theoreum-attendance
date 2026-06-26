@@ -1418,7 +1418,10 @@
 			</div>
 
 			<div class="input-wrapper">
-				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="학번 4자리 입력 후 Enter">
+				<div id="kPhoneInputRow" style="display:flex;align-items:center;gap:10px;">
+          <div id="kPhonePrefix" style="font-size:34px;font-weight:1000;color:var(--pri);padding:18px 18px;border-radius:20px;background:#eff6ff;border:2px solid #bfdbfe;line-height:1;">010</div>
+          <input class="inp-big" id="kInput" autocomplete="off" inputmode="numeric" placeholder="뒤 8자리 입력 후 Enter" maxlength="8" style="flex:1;">
+        </div>
 				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
 					<div class="kStaffQuickHead">
 						<div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
@@ -1431,11 +1434,11 @@
 					</div>
 
 					<div class="kStaffQuickHint">
-						직원 모드입니다. 직원 ID 입력 후 Enter → PIN 입력 후 Enter로 처리합니다.<br>
+						직원 모드입니다. 본인 휴대폰 번호에서 010을 제외한 뒤 8자리 입력 후 Enter로 처리합니다.<br>
 						직원 QR은 보조수단으로 계속 사용할 수 있습니다.
 					</div>
 					<div id="staffQuickStep" class="kStaffQuickHint" style="margin-top:8px;font-weight:900;color:var(--pri);">
-						1단계: 직원 ID 입력
+						010 제외 뒤 8자리 입력
 					</div>
 				</div>
 
@@ -1480,9 +1483,9 @@
           </div>
 
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
-            <div class="sectionTitle">학생 학번 출결</div>
+            <div class="sectionTitle">휴대폰 번호 출결</div>
             <div class="subText" style="text-align:left; font-size:16px; line-height:1.6;">
-              모든 재원생은 등원/하원 모드에서 학번 4자리만 입력하면 바로 처리됩니다.
+              학생과 직원은 본인 휴대폰 번호에서 010을 제외한 뒤 8자리만 입력하면 처리됩니다.
               QR은 계속 사용할 수 있지만 필수는 아닙니다.
             </div>
           </div>
@@ -1571,7 +1574,7 @@
               <div class="adminQuickStack">
                 <button class="adminQuickBtn warn adminJumpBtn" type="button" data-target="exSid">
                   <div class="adminQuickTitle">QR 어려운 학생 표시</div>
-                  <div class="adminQuickDesc">학번 출결은 기본 허용입니다. 이 항목은 QR이 특히 어려운 학생 표시용입니다.</div>
+                  <div class="adminQuickDesc">휴대폰 번호 출결이 기본입니다. 이 항목은 QR이 특히 어려운 학생 표시용입니다.</div>
                 </button>
 
                 <button class="adminQuickBtn adminJumpBtn" type="button" data-target="manualCorrectionSection">
@@ -1613,7 +1616,7 @@
 
           <div class="adminQrNotice">
             QR이 잘 안 찍히는 학생은 먼저 화면 밝기 최대로, 스캐너와 15~30cm 거리 유지,
-            학번 4자리 입력을 먼저 안내하세요. QR은 보조수단으로만 사용합니다.
+            010 제외 휴대폰 뒤 8자리 입력을 먼저 안내하세요. QR은 보조수단으로만 사용합니다.
           </div>
         </div>
       </div>
@@ -1628,12 +1631,12 @@
         </div>
       </div>
 
-	<!-- 관리자 전용: 상시 학번 직접 출결 허용 -->
+	<!-- 관리자 전용: 휴대폰 번호 출결 안내 -->
 	<div class="card compactCard adminOnly" style="margin-top:24px;">
 	<div class="section" style="margin-top:0; padding-top:0; border-top:none;">
 		<div class="sectionTitle">QR 어려운 학생 표시</div>
 		<div class="subText">
-		학번 출결은 모든 재원생에게 기본 허용됩니다.
+		휴대폰 번호 출결은 모든 재원생에게 기본 안내됩니다.
 		이 설정은 QR이 반복적으로 안 찍히는 학생을 운영상 표시하고 사유를 남기는 용도입니다.
 		지각·결석 연락 학생은 아래의 “오늘 미등원 문자 제외”에서 처리하세요.
 		</div>
@@ -2408,7 +2411,7 @@
 			isSubmitting: false,
       staffQuickOpen: false,
       staffQuickAction: 'IN',
-      staffQuickStep: 'STAFF_ID',
+      staffQuickStep: 'PHONE',
       staffQuickStaffId: '',
       _staffLongPressTimer: null,
       pendingKioskTraceId: '',
@@ -2499,39 +2502,33 @@
           }
 
           if (Kiosk.staffQuickOpen) {
-            if (Kiosk.staffQuickStep === 'PIN') {
-              input.value = Kiosk.normalizeStaffPinInput(input.value);
+            const v = Kiosk.normalizeScanText(input.value);
+            if (Kiosk.isCompleteStaffQr(v)) {
+              input.value = v;
+              Kiosk.queueSubmit(120);
               return;
             }
 
-            const v = Kiosk.normalizeScanText(input.value);
-            input.value = v;
-
-            if (Kiosk.isCompleteStaffQr(v)) {
-              Kiosk.queueSubmit(120);
+            const phoneTail8 = Kiosk.normalizePhoneTail8(input.value);
+            input.value = phoneTail8 || String(input.value || '').replace(/[^0-9]/g, '').slice(0, 8);
+            if (phoneTail8.length === 8) {
+              Kiosk.queueSubmit(80);
             }
             return;
           }
 
-          if (Kiosk.action === 'MOVE' || Kiosk.action === 'OUTING') {
-            const digits = String(input.value || '').replace(/[^0-9]/g, '').slice(-4);
-            input.value = digits;
-
-            if (digits.length === 4) {
-              Kiosk.queueSubmit(80);
-            }
-          } else {
-            const v = Kiosk.normalizeScanText(input.value);
-            const digits = String(v || '').replace(/[^0-9]/g, '').slice(-4);
+          const v = Kiosk.normalizeScanText(input.value);
+          if (Kiosk.isCompleteStudentQr(v)) {
             input.value = v;
+            Kiosk.queueSubmit(120);
+            return;
+          }
 
-            const shouldSubmitStudent =
-              Kiosk.isCompleteStudentQr(v) ||
-              Kiosk.shouldSubmitDirectSid(v);
+          const phoneTail8 = Kiosk.normalizePhoneTail8(input.value);
+          input.value = phoneTail8 || String(input.value || '').replace(/[^0-9]/g, '').slice(0, 8);
 
-            if (shouldSubmitStudent) {
-              Kiosk.queueSubmit(120);
-            }
+          if (phoneTail8.length === 8) {
+            Kiosk.queueSubmit(80);
           }
         });
 
@@ -2643,6 +2640,13 @@
         return prefixes.some(x => cmd === x || x.startsWith(cmd) || cmd.startsWith(x));
       },
 
+      normalizePhoneTail8(raw) {
+        const digits = String(raw || '').replace(/[^0-9]/g, '');
+        if (/^010\d{8}$/.test(digits)) return digits.slice(-8);
+        if (/^\d{8}$/.test(digits)) return digits;
+        return '';
+      },
+
       normalizeStaffIdInput(raw) {
         return String(raw || '')
           .trim()
@@ -2660,30 +2664,26 @@
       },
 
       setStaffQuickStep(step) {
-        Kiosk.staffQuickStep = step === 'PIN' ? 'PIN' : 'STAFF_ID';
+        Kiosk.staffQuickStep = 'PHONE';
 
         const input = $('#kInput');
         const stepEl = $('#staffQuickStep');
 
         if (stepEl) {
-          if (Kiosk.staffQuickStep === 'PIN') {
-            stepEl.textContent = '2단계: PIN 입력 후 Enter';
-          } else {
-            stepEl.textContent = '1단계: 직원 ID 입력 후 Enter';
-          }
+          stepEl.textContent = '010 제외 뒤 8자리 입력 후 Enter';
         }
 
         if (input && !Kiosk.isSubmitting) {
           input.value = '';
-          input.type = Kiosk.staffQuickStep === 'PIN' ? 'password' : 'text';
-          input.setAttribute('inputmode', Kiosk.staffQuickStep === 'PIN' ? 'numeric' : 'text');
+          input.type = 'text';
+          input.setAttribute('inputmode', 'numeric');
           input.placeholder = Kiosk.getInputPlaceholder();
           safeFocus(input, 50);
         }
       },
 
       resetStaffQuickState() {
-        Kiosk.staffQuickStep = 'STAFF_ID';
+        Kiosk.staffQuickStep = 'PHONE';
         Kiosk.staffQuickStaffId = '';
       },
 
@@ -2755,14 +2755,14 @@
         return /^STAFFQR1\.v1\.[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}$/i.test(String(v || '').trim());
       },
 
-      shouldSubmitDirectSid(v) {
+      shouldSubmitPhoneTail8(v) {
         const raw = String(v || '').trim();
 
         if (/^(?:QR(?:1|2)|Q3)\./i.test(raw) || /^STAFFQR1\./i.test(raw)) {
           return false;
         }
 
-        return raw.replace(/[^0-9]/g, '').slice(-4).length === 4;
+        return Kiosk.normalizePhoneTail8(raw).length === 8;
       },
 
       queueSubmit(delayMs = 120) {
@@ -2774,14 +2774,10 @@
 
       getInputPlaceholder() {
         if (Kiosk.staffQuickOpen) {
-          return Kiosk.staffQuickStep === 'PIN'
-            ? '직원 PIN 입력 후 Enter'
-            : '직원 ID 입력 후 Enter';
+          return '010 제외 뒤 8자리 입력 후 Enter';
         }
 
-        return (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
-          ? '학번 4자리 입력 후 Enter'
-          : '학번 4자리를 입력하세요';
+        return '뒤 8자리 입력 후 Enter';
       },
 
       openStaffQuick() {
@@ -2800,12 +2796,12 @@
         if (input) {
           input.type = 'text';
           input.value = '';
-          input.setAttribute('inputmode', 'text');
+          input.setAttribute('inputmode', 'numeric');
           input.placeholder = Kiosk.getInputPlaceholder();
           safeFocus(input, 50);
         }
 
-        Kiosk.setStaffQuickStep('STAFF_ID');
+        Kiosk.setStaffQuickStep('PHONE');
         UI.clearMsg($('#kMsg'));
         const dbg = $('#kDbg');
         if (dbg) {
@@ -2874,7 +2870,7 @@
 			getErrorMessage(code, defaultMsg) {
 			const map = {
 				'QR_EXPIRED': '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.',
-				'QR_REQUIRED': '등/하원은 학번 4자리 또는 학생 QR로 처리할 수 있습니다.',
+				'PHONE_REQUIRED': '010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.',
 				'QR_INVALID': '이미 사용했거나 유효하지 않은 QR입니다.',
 				'NOT_FOUND': '등록되지 않은 학생입니다. 데스크에 문의하세요.',
 				'NOT_ACTIVE': '현재 재원 상태가 아닙니다. 데스크에 문의하세요.',
@@ -2883,8 +2879,8 @@
 				'NOT_CHECKED_IN': '아직 등원 처리되지 않았습니다.',
 				'ALREADY_CHECKED_OUT': '이미 하원 처리된 학생입니다.',
 				'OUTING_ACTIVE': '외출 중입니다. 먼저 복귀 처리하세요.',
-				'NEED_PIN': '학번 출결은 PIN 없이 가능합니다. 키오스크를 새로고침한 뒤 다시 시도하세요.',
-				'NOT_EXCEPTION': '현재는 모든 재원생 학번 출결을 허용합니다. 키오스크를 새로고침한 뒤 다시 입력하세요.',
+				'PHONE_NOT_FOUND': '등록된 휴대폰 번호를 찾지 못했습니다. 데스크에 문의하세요.',
+				'PHONE_AMBIGUOUS': '같은 번호가 여러 명과 연결되어 있습니다. 데스크에 문의하세요.',
 				'NO_QR_ID': '학생 QR ID가 등록되어 있지 않습니다. 데스크에 문의하세요.',
 				'RPC_TIMEOUT': '처리 확인 중입니다. 바로 다시 스캔하지 말고 잠시 기다려주세요.'
 			};
@@ -2924,10 +2920,10 @@
 						? Kiosk.normalizeScanText(input.value)
 						: (input.value || '').trim();
 
-					const digits = String(val || '').replace(/[^0-9]/g, '').slice(-4);
+					const phoneTail8 = Kiosk.normalizePhoneTail8(val);
 					const isQr = /^(?:QR(?:1|2)|Q3)\./i.test(val);
 					const isStaffQr = /^STAFFQR1\./i.test(val);
-					const isStudentIdInput = Kiosk.shouldSubmitDirectSid(val);
+					const isPhoneTailInput = Kiosk.shouldSubmitPhoneTail8(val);
 
 					if (isQr && !Kiosk.isCompleteStudentQr(val)) {
 						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
@@ -2979,45 +2975,26 @@
 					}
 
 					if (Kiosk.staffQuickOpen && !isStaffQr) {
-            if (Kiosk.staffQuickStep === 'STAFF_ID') {
-              const staffId = Kiosk.normalizeStaffIdInput(val);
-
-              if (!staffId) {
-                UI.showModal(false, '직원 ID 입력', '직원 ID를 입력한 뒤 Enter를 누르세요.');
-                setDbg('STAFF_ID_REQUIRED');
-                UI.beep(false);
-                UI.flashScreen(false);
-                input.value = '';
-                safeFocus(input, 50);
-                return;
-              }
-
-              Kiosk.staffQuickStaffId = staffId;
-              Kiosk.setStaffQuickStep('PIN');
-              UI.toast(true, '직원 PIN을 입력하세요.');
-              return;
-            }
-
-            const staffPin = Kiosk.normalizeStaffPinInput(input.value || val);
-            if (!Kiosk.staffQuickStaffId || !staffPin) {
-              UI.showModal(false, '직원 PIN 입력', '직원 ID와 PIN을 다시 입력하세요.');
-              setDbg('STAFF_PIN_REQUIRED');
+            if (!phoneTail8) {
+              UI.showModal(false, '직원 휴대폰 번호 입력', '010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.');
+              setDbg('STAFF_PHONE_TAIL_REQUIRED');
               UI.beep(false);
               UI.flashScreen(false);
-              Kiosk.setStaffQuickStep('STAFF_ID');
+              input.value = '';
+              safeFocus(input, 50);
               return;
             }
 					}
 
-					if (!Kiosk.staffQuickOpen && (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isStudentIdInput) {
+					if (!Kiosk.staffQuickOpen && !isQr && !isStaffQr && !isPhoneTailInput) {
 						UI.showModal(
 							false,
 							'입력 오류',
-							'등원/하원은 학번 4자리 또는 학생 QR로 처리할 수 있습니다.'
+							'010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.'
 						);
-						setDbg('STUDENT_ID_OR_QR_REQUIRED');
+						setDbg('PHONE_TAIL_OR_QR_REQUIRED');
 						UI.beep(false);
-						Voice.speak('입력 방식을 확인해주세요.', 'error');
+						Voice.speak('휴대폰 번호 뒤 여덟 자리를 입력해주세요.', 'error');
 						UI.flashScreen(false);
 						return;
 					}
@@ -3060,20 +3037,16 @@
 							return;
 						}
 
-						const staffId = Kiosk.staffQuickStaffId;
-						const staffPin = Kiosk.normalizeStaffPinInput(val);
-
 						const r = await App.rpc('staff.clock', {
 							action: staffAction,
-							staff_id: staffId,
-							pin: staffPin,
-							input_mode: 'PIN',
-							note: 'KIOSK_PIN'
+							phone_tail8: phoneTail8,
+							input_mode: 'PHONE_LAST8',
+							note: 'KIOSK_PHONE_LAST8'
 						});
 
 						if (r.ok) {
 							const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
-							const staffName = (r.data && r.data.data && r.data.data.name) ? r.data.data.name : staffId;
+							const staffName = (r.data && r.data.data && r.data.data.name) ? r.data.data.name : '직원';
 
 							UI.showModal(true, title, UI.maskName(staffName) + ' 처리되었습니다.');
 							UI.beep(true);
@@ -3083,15 +3056,15 @@
 							return;
 						}
 
-						const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 PIN 처리 실패';
-						const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_PIN_FAIL';
+						const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 휴대폰 번호 처리 실패';
+						const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_PHONE_FAIL';
 
 						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg);
 						setDbg(staffErrCode);
 						UI.beep(false);
-						Voice.speak('직원 핀을 확인해주세요.', 'error');
+						Voice.speak('직원 휴대폰 번호를 확인해주세요.', 'error');
 						UI.flashScreen(false);
-						Kiosk.setStaffQuickStep('PIN');
+						Kiosk.setStaffQuickStep('PHONE');
 						return;
 					}
 
@@ -3158,11 +3131,11 @@
 						UI.showModal(
 							false,
 							'키오스크 새로고침 필요',
-							'학번 출결은 PIN 없이 가능합니다. 키오스크를 새로고침한 뒤 다시 입력하세요.'
+							'휴대폰 번호 출결로 변경되었습니다. 010 제외 뒤 8자리를 입력하세요.'
 						);
 						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 						UI.beep(false);
-						Voice.speak('키오스크를 새로고침한 뒤 다시 입력해주세요.', 'error');
+						Voice.speak('휴대폰 번호 뒤 여덟 자리를 입력해주세요.', 'error');
 						UI.flashScreen(false);
 						return;
 					}
@@ -3264,7 +3237,7 @@
             const shouldSubmit =
               Kiosk.isCompleteStudentQr(v) ||
               Kiosk.isCompleteStaffQr(v) ||
-              Kiosk.shouldSubmitDirectSid(v);
+              Kiosk.shouldSubmitPhoneTail8(v);
 
             if (shouldSubmit) {
               Kiosk.queueSubmit(40);

@@ -231,3 +231,8 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 - 모든 직원이 오늘 예정 수업 중 수업 시간이 지났는데 아직 등원하지 않은 학생을 확인할 수 있다.
 - 자동 갱신은 15초 주기이며, 서버 캐시는 8초라 화면이 빠르게 반응하면서도 과도한 DB 조회를 피한다.
 - 미등원 예외가 필요한 경우 보드의 `예외` 버튼으로 출결 메뉴의 예외 입력칸을 바로 채운다.
+
+## phone-tail-attendance-v1
+
+학생과 직원 출결 키오스크의 기본 입력 방식은 `010`을 화면에 고정 표시하고 사용자가 뒤 8자리만 입력하는 방식이다. 학생은 `students.student_phone`, 직원은 `staff` 또는 `staff_snapshot`의 phone-like 컬럼을 기준으로 매칭한다. QR은 보조수단으로 유지한다. 2차 직원 확인 기능은 이번 버전에서 제외한다.
+

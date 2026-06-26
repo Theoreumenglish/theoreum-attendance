@@ -16,6 +16,27 @@ function normalizeStudentId(input) {
   return text.padStart(4, '0');
 }
 
+function normalizePhoneDigits(input) {
+  return String(input || '').replace(/[^0-9]/g, '');
+}
+
+function normalizePhoneTail8(input) {
+  const digits = normalizePhoneDigits(input);
+  if (!digits) return '';
+
+  // Kiosk shows the 010 prefix, so users type only the remaining 8 digits.
+  // Also accept full 010XXXXXXXX input for scanners or manual fallback.
+  if (/^010\d{8}$/.test(digits)) return digits.slice(-8);
+  if (/^\d{8}$/.test(digits)) return digits;
+  return '';
+}
+
+function phoneTailMatches(phone, tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  const digits = normalizePhoneDigits(phone);
+  return !!tail && /^010\d{8}$/.test(digits) && digits.slice(-8) === tail;
+}
+
 function isStudentQrText(input) {
   return /^(?:QR(?:1|2)|Q3)\./i.test(String(input || '').trim());
 }
@@ -77,11 +98,56 @@ function getVerifySharedSecret() {
 async function findStudent(supabase, sid) {
   const { data, error } = await supabase
     .from('students')
-    .select('student_id, student_name, school, grade, parent_phone, status, qr_id, is_exception')
+    .select('student_id, student_name, school, grade, student_phone, parent_phone, status, qr_id, is_exception')
     .eq('student_id', sid)
     .maybeSingle();
 
   return { data, error };
+}
+
+async function findStudentByPhoneTail8(supabase, tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  if (!tail) {
+    return {
+      data: null,
+      error: null,
+      code: 'BAD_PHONE_TAIL',
+      message: '010을 제외한 휴대폰 번호 8자리를 입력하세요.'
+    };
+  }
+
+  const { data, error } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, student_phone, parent_phone, status, qr_id, is_exception')
+    .ilike('student_phone', `%${tail}`)
+    .limit(20);
+
+  if (error) return { data: null, error };
+
+  const matches = (Array.isArray(data) ? data : [])
+    .filter(row => phoneTailMatches(row?.student_phone, tail))
+    .filter(row => isActiveStudentStatus(row?.status));
+
+  if (matches.length === 1) {
+    return { data: matches[0], error: null, code: 'OK' };
+  }
+
+  if (matches.length > 1) {
+    return {
+      data: null,
+      error: null,
+      code: 'PHONE_AMBIGUOUS',
+      message: '같은 휴대폰 끝 8자리의 재원생이 여러 명입니다. 데스크에 문의하세요.',
+      count: matches.length
+    };
+  }
+
+  return {
+    data: null,
+    error: null,
+    code: 'PHONE_NOT_FOUND',
+    message: '등록된 학생 본인 휴대폰 번호를 찾지 못했습니다. 데스크에 문의하세요.'
+  };
 }
 
 async function findExistingTrace(supabase, traceId) {
@@ -608,17 +674,14 @@ export async function handleKioskMark(payload) {
 
   const isQr = isStudentQrText(input);
   const sidFromIdInput = normalizeStudentId(input);
+  const phoneTail8 = normalizePhoneTail8(input);
 
-  if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && !sidFromIdInput) {
+  if (!isQr && !phoneTail8 && !sidFromIdInput) {
     return fail(
       400,
-      'QR_REQUIRED',
-      '등/하원은 학번 4자리 또는 학생 QR로 처리할 수 있습니다.'
+      'PHONE_REQUIRED',
+      '010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.'
     );
-  }
-
-  if ((requestedAction === 'MOVE' || requestedAction === 'OUTING') && !sidFromIdInput) {
-    return fail(400, 'BAD_INPUT', '교실이동/외출복귀는 학번 4자리 입력만 가능합니다.');
   }
 
   try {
@@ -663,9 +726,29 @@ export async function handleKioskMark(payload) {
     }
 
     let sid = sidFromIdInput;
-    let inputMode = sidFromIdInput ? 'STUDENT_ID' : 'ID';
+    let inputMode = sidFromIdInput ? 'STUDENT_ID_LEGACY' : 'PHONE_LAST8';
     let qrId = '';
     let verifiedStudentName = '';
+    let studentFromPhone = null;
+
+    if (!isQr && phoneTail8) {
+      const phoneOut = await findStudentByPhoneTail8(supabase, phoneTail8);
+      if (phoneOut.error) {
+        return fail(500, 'SUPABASE_STUDENT_PHONE_READ_FAIL', phoneOut.error.message || '학생 휴대폰 번호 조회 실패');
+      }
+      if (!phoneOut.data) {
+        return fail(
+          phoneOut.code === 'PHONE_AMBIGUOUS' ? 409 : 404,
+          phoneOut.code || 'PHONE_NOT_FOUND',
+          phoneOut.message || '등록된 학생 본인 휴대폰 번호를 찾지 못했습니다.',
+          { phone_tail8: phoneTail8, count: phoneOut.count || 0 }
+        );
+      }
+
+      studentFromPhone = phoneOut.data;
+      sid = normalizeStudentId(studentFromPhone.student_id);
+      inputMode = 'PHONE_LAST8';
+    }
 
     if (isQr) {
       const verifyOut = await verifyStudentQrDirect(input);
@@ -681,7 +764,10 @@ export async function handleKioskMark(payload) {
       }
     }
 
-    const { data: student, error: studentErr } = await findStudent(supabase, sid);
+    const studentRead = studentFromPhone
+      ? { data: studentFromPhone, error: null }
+      : await findStudent(supabase, sid);
+    const { data: student, error: studentErr } = studentRead;
     if (studentErr) {
       return fail(500, 'SUPABASE_STUDENT_READ_FAIL', studentErr.message || 'students 조회 실패');
     }
@@ -692,11 +778,11 @@ export async function handleKioskMark(payload) {
       return fail(403, 'NOT_ACTIVE', '재원 상태 학생만 출결 처리할 수 있습니다.');
     }
 
-    if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput) {
-      // 운영 정책 v1:
-      // 등원/하원은 QR 성공률 문제를 줄이기 위해 모든 재원생에게 학번 4자리 직접 입력을 허용한다.
-      // QR은 계속 지원하지만 필수 조건이 아니다.
-      // students.is_exception은 QR이 특히 어려운 학생을 표시하는 운영 메모로만 유지한다.
+    if (!isQr && inputMode === 'PHONE_LAST8') {
+      // 운영 정책 v2:
+      // 학생 출결은 QR 성공률 문제와 학번 공유 위험을 줄이기 위해
+      // 본인 휴대폰 번호 010 제외 8자리 입력을 기본으로 사용한다.
+      // QR과 기존 4자리 학번은 운영 보조/레거시 경로로 남긴다.
     }
 
     const stateOut = await loadCurrentTodayState(supabase, sid, yyyymmdd);
@@ -727,8 +813,15 @@ export async function handleKioskMark(payload) {
       state_source: stateSource
     };
 
-    if (inputMode === 'STUDENT_ID') {
+    if (inputMode === 'PHONE_LAST8') {
+      metaJson.phone_attendance = 'Y';
+      metaJson.phone_prefix = '010';
+      metaJson.phone_tail8 = phoneTail8;
+    }
+
+    if (inputMode === 'STUDENT_ID_LEGACY') {
       metaJson.student_id_attendance = 'Y';
+      metaJson.legacy_student_id_input = 'Y';
       if (String(student.is_exception || '').trim().toUpperCase() === 'Y') {
         metaJson.exception = 'Y';
       }

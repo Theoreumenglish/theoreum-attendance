@@ -88,25 +88,25 @@ if (html.includes('id="qrCenter"')) {
 } else ok('QR Center 별도 화면을 정리했습니다.');
 
 
-if (!kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID'") || kiosk.includes("'NOT_EXCEPTION'")) {
-  fail('등원/하원 학번 기본 출결 정책이 서버에 반영되지 않았습니다.');
-} else ok('등원/하원 학번 기본 출결 정책이 서버에 반영되었습니다.');
+if (!kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID_LEGACY' : 'PHONE_LAST8'") || !kiosk.includes('findStudentByPhoneTail8')) {
+  fail('학생 휴대폰 번호 출결 정책이 서버에 반영되지 않았습니다.');
+} else ok('학생 휴대폰 번호 출결 정책이 서버에 반영되었습니다.');
 
-if (!indexHtml.includes('학번 4자리 입력 후 Enter')) {
-  fail('키오스크 입력 안내가 물리 키보드 학번 중심으로 변경되지 않았습니다.');
-} else ok('키오스크 입력 안내가 물리 키보드 학번 중심으로 변경되었습니다.');
+if (!indexHtml.includes('010 제외 뒤 8자리 입력 후 Enter') || !indexHtml.includes('kPhonePrefix')) {
+  fail('키오스크 입력 안내가 010 제외 휴대폰 뒤 8자리 중심으로 변경되지 않았습니다.');
+} else ok('키오스크 입력 안내가 010 제외 휴대폰 뒤 8자리 중심으로 변경되었습니다.');
 
 if (indexHtml.includes('id="studentKeypad"') || indexHtml.includes('appendStudentDigit') || indexHtml.includes('data-keypad-digit')) {
   fail('화면 숫자 키패드가 아직 남아 있습니다.');
 } else ok('화면 숫자 키패드를 제거했습니다.');
 
-if (!indexHtml.includes('isStaffCommandPrefix') || !indexHtml.includes('staffQuickStep') || !indexHtml.includes("staff_id: staffId") || !indexHtml.includes("pin: staffPin")) {
-  fail('직원 staff 진입어 + PIN 출퇴근 흐름이 없습니다.');
-} else ok('직원 staff 진입어 + PIN 출퇴근 흐름이 있습니다.');
+if (!indexHtml.includes('isStaffCommandPrefix') || !indexHtml.includes('staffQuickStep') || !indexHtml.includes('phone_tail8') || !indexHtml.includes('010 제외 뒤 8자리 입력 후 Enter')) {
+  fail('직원 staff 진입어 + 휴대폰 번호 출퇴근 흐름이 없습니다.');
+} else ok('직원 staff 진입어 + 휴대폰 번호 출퇴근 흐름이 있습니다.');
 
-if (!staffClock.includes('verifyAdminPinByStaffId') || !staffClock.includes("input_mode: 'PIN'")) {
-  fail('직원 PIN 출퇴근 서버 처리가 없습니다.');
-} else ok('직원 PIN 출퇴근 서버 처리가 있습니다.');
+if (!staffClock.includes('readStaffForPhoneClock') || !staffClock.includes("input_mode: 'PHONE_LAST8'")) {
+  fail('직원 휴대폰 번호 출퇴근 서버 처리가 없습니다.');
+} else ok('직원 휴대폰 번호 출퇴근 서버 처리가 있습니다.');
 
 if (!html.includes('auditOpLabel') || !html.includes('auditTargetLabel')) {
   fail('감사 로그 화면 문구 변환 함수가 없습니다.');

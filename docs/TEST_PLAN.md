@@ -389,3 +389,8 @@ npm run smoke-test
 2. `.env.smoke.local`은 Git과 release zip에 포함하지 않는다.
 3. `npm run smoke-test`는 `.env.smoke.local`을 자동으로 읽어 로그인 이후 보호 API까지 확인한다.
 4. 패치 완료 시 `scripts/one-click-release.ps1`로 문법검사, 전체검증, 빌드, 커밋, 푸쉬, 압축파일, 배포, smoke-test를 한 번에 실행할 수 있다.
+
+## phone-tail-attendance-v1
+
+학생과 직원 출결 키오스크의 기본 입력 방식은 `010`을 화면에 고정 표시하고 사용자가 뒤 8자리만 입력하는 방식이다. 학생은 `students.student_phone`, 직원은 `staff` 또는 `staff_snapshot`의 phone-like 컬럼을 기준으로 매칭한다. QR은 보조수단으로 유지한다. 2차 직원 확인 기능은 이번 버전에서 제외한다.
+

@@ -69,11 +69,11 @@ const checklist = [
   ['학생별 단어 누적 기록 API', rpc.includes("op === 'wordRecord.list'") && rpc.includes('wordRecordListDirect')],
   ['단어 결과 저장 시 word_records mirror', rpc.includes('upsertWordRecordMirrorsIfAvailable') && rpc.includes('word_record_mirror')],
   ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')],
-  ['학생 학번 출결 기본화 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID'") && !kiosk.includes("'NOT_EXCEPTION'")],
-  ['학생 학번 출결 물리 키보드 안내', rootIndex.includes('학번 4자리 입력 후 Enter')],
+  ['학생 휴대폰 번호 출결 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID_LEGACY' : 'PHONE_LAST8'") && kiosk.includes('findStudentByPhoneTail8')],
+  ['학생 휴대폰 번호 출결 물리 키보드 안내', rootIndex.includes('010 제외 뒤 8자리 입력 후 Enter') && rootIndex.includes('kPhonePrefix')],
   ['화면 숫자 키패드 제거', !rootIndex.includes('id="studentKeypad"') && !rootIndex.includes('data-keypad-digit') && !rootIndex.includes('appendStudentDigit')],
-  ['직원 staff 진입어 PIN 출퇴근 UI', rootIndex.includes('isStaffCommandPrefix') && rootIndex.includes('staffQuickStep') && rootIndex.includes('직원 ID 입력 후 Enter') && rootIndex.includes('직원 PIN 입력 후 Enter')],
-  ['직원 PIN 출퇴근 서버', read('api/staff-clock.js').includes('verifyAdminPinByStaffId') && read('api/staff-clock.js').includes("input_mode: 'PIN'")]
+  ['직원 staff 진입어 휴대폰 출퇴근 UI', rootIndex.includes('isStaffCommandPrefix') && rootIndex.includes('staffQuickStep') && rootIndex.includes('010 제외 뒤 8자리 입력 후 Enter') && rootIndex.includes('phone_tail8')],
+  ['직원 휴대폰 번호 출퇴근 서버', read('api/staff-clock.js').includes('readStaffForPhoneClock') && read('api/staff-clock.js').includes("input_mode: 'PHONE_LAST8'")] 
 ];
 for (const [label, passed] of checklist) {
   if (passed) ok(label);
