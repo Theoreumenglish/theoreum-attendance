@@ -1,6 +1,7 @@
--- TheOreum Student Word Records schema v1
--- 목적: 기존 word_test_sessions / word_test_results를 유지하면서 학생별 단어 누적 기록 테이블을 추가한다.
--- 안전 원칙: additive migration only. 기존 데이터 삭제/변경 없음.
+﻿-- TheOreum student word records schema v1
+-- Purpose: Add cumulative student-level word records.
+-- Safe migration: additive only.
+-- Existing word_test_sessions and word_test_results are preserved.
 
 create extension if not exists pgcrypto;
 
@@ -37,9 +38,20 @@ create table if not exists public.word_records (
   constraint word_records_student_chk check (length(trim(student_id)) > 0),
   constraint word_records_ymd_chk check (yyyymmdd ~ '^[0-9]{8}$'),
   constraint word_records_total_chk check (word_total_count > 0),
-  constraint word_records_correct_chk check (word_correct_count is null or (word_correct_count >= 0 and word_correct_count <= word_total_count)),
-  constraint word_records_pass_chk check (word_pass_count >= 0 and word_pass_count <= word_total_count),
-  constraint word_records_status_chk check (result_status in ('PASS','FAIL','ABSENT','EXEMPT')),
+  constraint word_records_correct_chk check (
+    word_correct_count is null
+    or (
+      word_correct_count >= 0
+      and word_correct_count <= word_total_count
+    )
+  ),
+  constraint word_records_pass_chk check (
+    word_pass_count >= 0
+    and word_pass_count <= word_total_count
+  ),
+  constraint word_records_status_chk check (
+    result_status in ('PASS','FAIL','ABSENT','EXEMPT')
+  ),
   constraint word_records_attempt_chk check (attempt_no > 0)
 );
 
@@ -63,10 +75,3 @@ create index if not exists idx_word_records_clinic
 
 create index if not exists idx_word_records_book_range
   on public.word_records (book_id, range_id, yyyymmdd desc);
-
-comment on table public.word_records is '학생별 단어 누적 기록. 기존 word_test_results와 호환되며 학생360/운영보드/리포트 기반 데이터로 사용한다.';
-comment on column public.word_records.word_total_count is '해당 범위 전체 단어 수';
-comment on column public.word_records.word_correct_count is '학생이 맞힌 단어 개수. 결석/면제는 null 가능';
-comment on column public.word_records.word_pass_count is '통과 기준 개수. 기본 정책은 전체 단어 수의 90% 이상';
-comment on column public.word_records.word_needs_retest is '재시험/재확인 필요 여부';
-comment on column public.word_records.word_needs_clinic is '클리닉 후보 연결 필요 여부';
