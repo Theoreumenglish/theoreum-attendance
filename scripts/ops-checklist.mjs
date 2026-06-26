@@ -38,7 +38,8 @@ const requiredFiles = [
   'docs/supabase-master-speed-v2.sql',
   'docs/WORD_GRID_SPEED_V1.md',
   'docs/STUDENT_WORD_RECORDS_V1.md',
-  'docs/supabase-student-word-records-v1.sql'
+  'docs/supabase-student-word-records-v1.sql',
+  'docs/STUDENT_ID_ATTENDANCE_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -52,6 +53,8 @@ const admin = read('public/admin.html');
 const rpc = read('api/rpc.js');
 const queue = read('lib/attendance-notify-queue.js');
 const notify = read('lib/attendance-notify.js');
+const kiosk = read('api/kiosk-mark.js');
+const rootIndex = read('index.html');
 
 const checklist = [
   ['단어시험 기간 조회', admin.includes('wordStartYmd') && admin.includes('wordEndYmd') && rpc.includes('start_ymd')],
@@ -63,7 +66,9 @@ const checklist = [
   ['실제 API smoke-test 스크립트', existsSync('scripts/smoke-test.mjs')],
   ['학생별 단어 누적 기록 API', rpc.includes("op === 'wordRecord.list'") && rpc.includes('wordRecordListDirect')],
   ['단어 결과 저장 시 word_records mirror', rpc.includes('upsertWordRecordMirrorsIfAvailable') && rpc.includes('word_record_mirror')],
-  ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')]
+  ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')],
+  ['학생 학번 출결 기본화 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID'") && !kiosk.includes("'NOT_EXCEPTION'")],
+  ['학생 학번 출결 기본화 키오스크 안내', rootIndex.includes('학번 4자리 입력 / QR 스캔도 가능')]
 ];
 for (const [label, passed] of checklist) {
   if (passed) ok(label);

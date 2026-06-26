@@ -19,7 +19,7 @@
 | `auth.login` | auth | 직원 로그인 | 직원 계정 | 예: 로그인 실패/잠금은 보안 로그 |
 | `auth.me` | auth | 현재 세션 확인 | 로그인 세션 | 아니오 |
 | `auth.logout` | auth | 로그아웃 | 로그인 세션 | 선택 |
-| `kiosk.mark` | kiosk | 학생 QR/학번 출결 처리 | 키오스크 | 이미 출결 로그 |
+| `kiosk.mark` | kiosk | 학생 학번/QR 출결 처리 | 키오스크 | 이미 출결 로그 |
 | `kiosk.approvePin` | legacy | 과거 학번 출결 PIN 승인 | legacy | 현재 정책상 사용하지 않음 |
 | `staff.clock` | staff | 직원 직접 출퇴근 처리 | 직원/관리 | 예 |
 | `staff.clock.qr` | staff | 직원 QR 출퇴근 처리 | 직원 QR | 예 |
@@ -50,7 +50,7 @@
 | `admin.setKioskFloor` | config | kiosk 층 설정 | 관리자 | 필수 |
 | `admin.toggleSafe` | config | safe mode toggle | 관리자 | 필수 |
 | `admin.setSafeMode` | config | safe mode 지정 | 관리자 | 필수 |
-| `admin.setStudentException` | student | QR 예외 학생 상시 학번 출결 허용/해제 | 관리자/정책상 강사·조교 검토 | 필수 |
+| `admin.setStudentException` | student | QR 어려운 학생 표시/해제. 학번 출결은 기본 허용 | 관리자/정책상 강사·조교 검토 | 필수 |
 | `teacher.setException` | student | QR 예외 alias | 정책 동기화 필요 | 필수 |
 | `admin.getStaffMonthlySummary` | staff | 월간 직원 근무 요약 | 관리자 | 아니오 |
 | `admin.getStaffDailyDetail` | staff | 직원 일별 근무 상세 | 관리자 | 아니오 |
@@ -332,3 +332,12 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 ### 운영 메모
 
 기존 `wordTest.enterResult` / `wordTest.bulkEnterResults`는 계속 `word_test_results`에 저장한다. 동시에 `word_records` 테이블이 있으면 학생별 누적 기록을 mirror 저장한다. `word_records` 테이블이 아직 없으면 기존 저장은 실패하지 않고 `word_record_warning`만 반환한다.
+
+
+## student-id-attendance-v1
+
+- 등원/하원 `kiosk.mark`는 모든 재원생에게 학번 4자리 입력을 허용한다.
+- QR은 계속 지원하지만 필수 출첵 수단이 아니다.
+- `students.is_exception`은 더 이상 학번 출결 허용 조건이 아니라, QR이 특히 어려운 학생을 표시하는 운영 메모로만 사용한다.
+- 학번 입력 출결은 `attendance_logs.meta_json.input_mode = STUDENT_ID`와 `student_id_attendance = Y`로 남긴다.
+- 교실 이동/외출·복귀는 기존처럼 학번 4자리 입력을 사용한다.

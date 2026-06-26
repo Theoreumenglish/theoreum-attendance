@@ -613,7 +613,7 @@ export async function handleKioskMark(payload) {
     return fail(
       400,
       'QR_REQUIRED',
-      '등/하원은 전용 QR 또는 예외학생 학번 입력만 가능합니다.'
+      '등/하원은 학번 4자리 또는 학생 QR로 처리할 수 있습니다.'
     );
   }
 
@@ -663,10 +663,7 @@ export async function handleKioskMark(payload) {
     }
 
     let sid = sidFromIdInput;
-    let inputMode = 'ID';
-    if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput) {
-      inputMode = 'EXCEPTION_ID';
-    }
+    let inputMode = sidFromIdInput ? 'STUDENT_ID' : 'ID';
     let qrId = '';
     let verifiedStudentName = '';
 
@@ -696,18 +693,10 @@ export async function handleKioskMark(payload) {
     }
 
     if ((requestedAction === 'CHECK_IN' || requestedAction === 'CHECK_OUT') && !isQr && sidFromIdInput) {
-      const isException = String(student.is_exception || '').trim().toUpperCase() === 'Y';
-      if (!isException) {
-        return fail(
-          400,
-          'NOT_EXCEPTION',
-          '학번 직접 출결 허용 학생이 아닙니다. 직원 화면에서 QR 예외 등록 후 다시 입력하세요.'
-        );
-      }
-
-      // 운영 정책:
-      // students.is_exception = Y 인 학생은 상시 학번 직접 출결 대상입니다.
-      // 별도 PIN 승인(kiosk_pin_approvals)은 요구하지 않습니다.
+      // 운영 정책 v1:
+      // 등원/하원은 QR 성공률 문제를 줄이기 위해 모든 재원생에게 학번 4자리 직접 입력을 허용한다.
+      // QR은 계속 지원하지만 필수 조건이 아니다.
+      // students.is_exception은 QR이 특히 어려운 학생을 표시하는 운영 메모로만 유지한다.
     }
 
     const stateOut = await loadCurrentTodayState(supabase, sid, yyyymmdd);
@@ -738,8 +727,11 @@ export async function handleKioskMark(payload) {
       state_source: stateSource
     };
 
-    if (inputMode === 'EXCEPTION_ID') {
-      metaJson.exception = 'Y';
+    if (inputMode === 'STUDENT_ID') {
+      metaJson.student_id_attendance = 'Y';
+      if (String(student.is_exception || '').trim().toUpperCase() === 'Y') {
+        metaJson.exception = 'Y';
+      }
     }
 
     if (requestedAction === 'CHECK_IN') {

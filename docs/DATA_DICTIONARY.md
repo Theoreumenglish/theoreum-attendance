@@ -20,7 +20,7 @@
 | `students.grade` | 학년 | 학생 상세/리포트 표시 |
 | `students.status` | 학생 상태 | `재원`/active 학생만 출결 대상 |
 | `students.qr_id` | 학생 QR 식별자 | QR1/QR2/Q3 호환 유지 |
-| `students.is_exception` | QR 예외 여부 | `Y`이면 상시 학번 직접 출결 가능 |
+| `students.is_exception` | QR 어려운 학생 표시 | 학번 출결은 기본 허용. `Y`이면 QR 인식 어려움/운영 메모 대상 |
 | `students.exception_note` | QR 예외 사유 | 예: 카톡 X, QR 인식 어려움 |
 | `staff.staff_id` | 직원 식별자 | 로그인/직원 QR/감사 로그 actor |
 | `staff.role` | 직원 역할 | admin, teacher, assistant 등 |
@@ -36,9 +36,9 @@
 | `attendance_logs.student_id` | 학생 ID | 4자리 문자열 |
 | `attendance_logs.action_type` | 출결 액션 | CHECK_IN, CHECK_OUT, OUTING, RETURN 등 |
 | `attendance_logs.result` | 처리 결과 | OK 또는 실패 상태 |
-| `attendance_logs.deny_reason` | 차단 사유 | 일반 학생 학번 입력 등 |
+| `attendance_logs.deny_reason` | 차단 사유 | 잘못된 학번/상태 오류 등 |
 | `attendance_logs.qr_id` | 사용 QR ID | QR 기반 처리 시 |
-| `attendance_logs.meta_json` | 부가 정보 | input_mode, exception 등 |
+| `attendance_logs.meta_json` | 부가 정보 | input_mode=STUDENT_ID/QR, student_id_attendance 등 |
 | `today_student_state.checked_in` | 오늘 등원 여부 | 빠른 조회용 상태 |
 | `today_student_state.checked_out` | 오늘 하원 여부 | 빠른 조회용 상태 |
 | `today_student_state.outing_active` | 외출 상태 | 외출/복귀 흐름 |
