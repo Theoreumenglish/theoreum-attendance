@@ -60,6 +60,10 @@ if (/점수 \$\{|점수 \${|기준점수/.test(rpc)) {
 } else ok('서버 메시지는 맞은 개수 중심입니다.');
 
 
+if (!words.includes('wordBookSelect') || !words.includes('wordRangeSelect') || !rpc.includes('wordCatalog.list')) {
+  fail('단어책/범위 catalog 선택 흐름이 없습니다.');
+} else ok('단어책/범위 catalog 선택 흐름이 있습니다.');
+
 if (!words.includes('wordStartYmd') || !words.includes('wordEndYmd')) {
   fail('단어시험 회차 조회 기간 필터가 없습니다.');
 } else ok('단어시험 회차 조회 기간 필터가 있습니다.');

@@ -11,7 +11,8 @@ const files = {
   notifyWorker: 'api/attendance-notify-worker.js',
   vercel: 'vercel.json',
   clinicWordSchema: 'docs/supabase-clinic-word-report-schema-v1.sql',
-  clinicAutoNotifySchema: 'docs/supabase-clinic-auto-notify-v1.sql'
+  clinicAutoNotifySchema: 'docs/supabase-clinic-auto-notify-v1.sql',
+  wordCatalogSchema: 'docs/supabase-word-catalog-v1.sql'
 };
 
 let failed = 0;
@@ -250,6 +251,7 @@ const requiredAdminOps = [
   'clinic.listTasks',
   'clinic.createTask',
   'clinic.updateTaskStatus',
+  'wordCatalog.list',
   'wordTest.listSessions',
   'wordTest.createSession',
   'wordTest.enterResult',
@@ -280,6 +282,12 @@ if (!rpcText.includes("op === 'clinic.listTasks'") || !rpcText.includes('clinicL
   fail('clinic.listTasks op 또는 clinicListTasksDirect 함수가 누락되었습니다.');
 } else {
   ok('clinic.listTasks 서버 op가 존재합니다.');
+}
+
+if (!rpcText.includes("op === 'wordCatalog.list'") || !rpcText.includes('wordCatalogListDirect')) {
+  fail('wordCatalog.list op 또는 wordCatalogListDirect 함수가 누락되었습니다.');
+} else {
+  ok('wordCatalog.list 서버 op가 존재합니다.');
 }
 
 if (!rpcText.includes("op === 'wordTest.enterResult'") || !rpcText.includes('wordTestEnterResultDirect')) {
@@ -334,6 +342,15 @@ if (!rpcText.includes("op === 'report.listSnapshots'") || !rpcText.includes('rep
   fail('report.listSnapshots op 또는 reportListSnapshotsDirect 함수가 누락되었습니다.');
 } else {
   ok('report.listSnapshots 서버 op가 존재합니다.');
+}
+
+const wordCatalogSchemaText = read(files.wordCatalogSchema);
+const requiredWordCatalogTables = ['word_books', 'word_book_ranges'];
+const missingWordCatalogTables = requiredWordCatalogTables.filter(name => !wordCatalogSchemaText.includes(`create table if not exists public.${name}`));
+if (missingWordCatalogTables.length) {
+  fail(`word catalog schema 테이블 누락: ${missingWordCatalogTables.join(', ')}`);
+} else {
+  ok(`word catalog schema 필수 테이블 ${requiredWordCatalogTables.length}개가 모두 있습니다.`);
 }
 
 const schemaText = read(files.clinicWordSchema);

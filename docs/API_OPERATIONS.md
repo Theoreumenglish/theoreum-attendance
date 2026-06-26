@@ -285,3 +285,13 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 - 기준 데이터는 `class_schedule`이며, 실제 출석 여부는 `today_student_state`를 우선 사용한다.
 - `absence_excuses`에 등록된 학생은 미등원 수에서 제외한다.
 - 이미 발송된 미등원 문자 단계는 `attendance_notify_queue`의 `ABSENT_5`, `ABSENT_20` trace로 표시한다.
+
+## wordCatalog.list
+
+- 목적: 단어책/범위 catalog를 조회한다.
+- 권한: assistant 이상.
+- 관련 테이블: `word_books`, `word_book_ranges`.
+- 개인정보 포함: 없음.
+- fallback: 테이블이 아직 없으면 빈 seed fallback을 반환한다.
+- 운영 원칙: 단어 원문과 뜻은 저장하지 않고 단어책/범위/word_count만 사용한다.
+- smoke test: 포함.

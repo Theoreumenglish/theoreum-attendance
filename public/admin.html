@@ -4050,6 +4050,12 @@
 <input class="inp readonlyMirror" id="wordClassId" placeholder="선택된 class_id" readonly style="margin-top:8px;"/>
 </div>
 <div>
+<div class="fieldLabel">단어책 / 범위</div>
+<select class="select" id="wordBookSelect"><option value="">단어책 선택</option></select>
+<select class="select" id="wordRangeSelect" style="margin-top:8px;"><option value="">범위 선택</option></select>
+<div class="fieldHint" id="wordCatalogSummary">단어책 catalog 조회 전입니다.</div>
+</div>
+<div>
 <div class="fieldLabel">통과개수 / 전체개수</div>
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
 <input class="inp" id="wordPassScore" inputmode="numeric" value="90" placeholder="통과"/>
@@ -4078,6 +4084,7 @@
 <div class="btnRow" style="margin-top:16px;">
 <button class="btn btnPri" id="btnCreateWordSession" type="button">회차 생성</button>
 <button class="btn btnGhost" id="btnListWordSessions" type="button">회차 조회</button>
+<span class="btn btnGhost" id="btnLoadWordCatalog" role="button" tabindex="0">단어책 불러오기</span>
 </div>
 </div>
 <div class="card cardPad">
@@ -7443,6 +7450,62 @@
       await loadNotifyQueue();
     }
 
+    function renderWordCatalog(data) {
+      const books = Array.isArray(data.books) ? data.books : [];
+      const bookSelect = $('#wordBookSelect');
+      const rangeSelect = $('#wordRangeSelect');
+      App.wordCatalog = data || {};
+      App.wordCatalogBooks = books;
+      if (bookSelect) {
+        bookSelect.innerHTML = '<option value="">단어책 선택</option>' + books.map(book => `<option value="${esc(book.book_id || '')}">${esc(book.book_title || book.title || book.book_key || '')}</option>`).join('');
+      }
+      if (rangeSelect) rangeSelect.innerHTML = '<option value="">범위 선택</option>';
+      const summary = $('#wordCatalogSummary');
+      if (summary) {
+        const source = data.seed_fallback ? 'fallback' : (data.source || 'catalog');
+        const warn = Array.isArray(data.warnings) && data.warnings.length ? ' · ' + data.warnings[0] : '';
+        summary.textContent = `단어책 ${data.count_books || books.length || 0}개 · 범위 ${data.count_ranges || 0}개 · ${source}${warn}`;
+      }
+    }
+
+    function handleWordBookSelectChange() {
+      const bookId = ($('#wordBookSelect')?.value || '').trim();
+      const rangeSelect = $('#wordRangeSelect');
+      const book = (App.wordCatalogBooks || []).find(item => String(item.book_id || '').trim() === bookId);
+      const ranges = book && Array.isArray(book.ranges) ? book.ranges : [];
+      if (rangeSelect) {
+        rangeSelect.innerHTML = '<option value="">범위 선택</option>' + ranges.map(range => `<option value="${esc(range.range_id || '')}" data-word-count="${esc(range.word_count || '')}" data-range-label="${esc(range.range_label || '')}">${esc(range.range_label || '')} · ${esc(range.word_count || 0)}개</option>`).join('');
+      }
+      if (book && !($('#wordSessionTitle')?.value || '').trim()) {
+        $('#wordSessionTitle').value = book.book_title || book.title || '';
+      }
+    }
+
+    function handleWordRangeSelectChange() {
+      const selected = $('#wordRangeSelect')?.selectedOptions?.[0];
+      if (!selected || !selected.value) return;
+      const wordCount = Number(selected.dataset.wordCount || 0);
+      const rangeLabel = selected.dataset.rangeLabel || selected.textContent || '';
+      const bookText = $('#wordBookSelect')?.selectedOptions?.[0]?.textContent || '';
+      if (Number.isFinite(wordCount) && wordCount > 0) {
+        $('#wordMaxScore').value = String(wordCount);
+        $('#wordPassScore').value = String(Math.ceil(wordCount * 0.9));
+      }
+      if (rangeLabel) $('#wordScopeText').value = rangeLabel;
+      if (bookText && rangeLabel) $('#wordSessionTitle').value = `${bookText} ${rangeLabel}`.trim();
+    }
+
+    async function loadWordCatalog() {
+      const r = await rpc('wordCatalog.list', { limit_books: 300, limit_ranges: 3000 }, { timeoutMs: 30000, cacheTtlMs: 300000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '단어책 catalog 조회 실패');
+        showResult('단어책 catalog 조회 실패', r);
+        return;
+      }
+      renderWordCatalog(r.data || {});
+      showToast('단어책 catalog를 불러왔습니다.');
+    }
+
     function renderWordSessions(data) {
       const rows = Array.isArray(data.items) ? data.items : [];
       const summary = $('#wordSessionSummary');
@@ -8525,6 +8588,9 @@
       bindClick('btnCreateClinicTask', createClinicTask);
       bindClick('btnCreateWordSession', createWordSession);
       bindClick('btnListWordSessions', listWordSessions);
+      bindClick('btnLoadWordCatalog', loadWordCatalog);
+      const wordCatalogBtn = $('#btnLoadWordCatalog');
+      if (wordCatalogBtn) wordCatalogBtn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadWordCatalog(); } });
       bindClick('btnEnterWordResult', enterWordResult);
       bindClick('btnLoadWordBulk', loadWordBulkEntry);
       bindClick('btnSaveWordBulk', saveWordBulkResults);
@@ -8532,6 +8598,11 @@
       bindClick('btnWordBulkShowFail', () => { const el = $('#wordBulkFilter'); if (el) { el.value = 'FAIL'; applyWordBulkFilter(); } });
       bindClick('btnWordBulkCopyFail', copyWordBulkFailList);
       bindClick('btnWordBulkApplyPaste', () => applyWordBulkPaste($('#wordBulkPasteBox')?.value || '', 0));
+      const wordBookSelect = $('#wordBookSelect');
+      if (wordBookSelect) wordBookSelect.addEventListener('change', handleWordBookSelectChange);
+      const wordRangeSelect = $('#wordRangeSelect');
+      if (wordRangeSelect) wordRangeSelect.addEventListener('change', handleWordRangeSelectChange);
+
       const wordBulkFilter = $('#wordBulkFilter');
       if (wordBulkFilter) wordBulkFilter.addEventListener('change', applyWordBulkFilter);
       const wordBulkPasteBox = $('#wordBulkPasteBox');

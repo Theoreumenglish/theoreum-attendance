@@ -48,6 +48,7 @@ requireIds('단어시험 결과 검수 흐름', ['btnLoadWordResults', 'wordResu
 requireFunction('단어시험 일괄 명단', 'loadWordBulkEntry', ['wordTest.bulkEntry', 'renderWordBulkRows']);
 requireFunction('단어시험 일괄 실시간 요약', 'updateWordBulkLiveSummary', ['wordBulkLiveSummary']);
 requireFunction('단어시험 일괄 저장', 'saveWordBulkResults', ['wordTest.bulkEnterResults', 'loadClinicTasks', 'loadWordResults']);
+requireFunction('단어책 catalog 조회', 'loadWordCatalog', ['wordCatalog.list', 'renderWordCatalog']);
 requireFunction('단어시험 결과 검수', 'loadWordResults', ['wordTest.listResults', 'renderWordResults']);
 
 requireIds('리포트 생성 흐름', ['reportStudentLabel', 'reportStartYmd', 'reportEndYmd', 'btnPreviewReport', 'btnSaveReportSnapshot', 'reportPreviewBox', 'reportParentTextBox']);

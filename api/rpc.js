@@ -5,6 +5,7 @@ import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
 import { authLoginDirect, authMeDirect, authLogoutDirect } from '../lib/staff-auth.js';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
+import { listSeedWordCatalog } from '../lib/word-catalog-seed.js';
 import {
   sendNcpTestMessageDirect,
   previewAttendanceNotifyPayloadDirect,
@@ -3771,6 +3772,140 @@ async function clinicQueueParentNoticeDirect(args = {}, sessionToken = '') {
 }
 
 
+
+function isMissingWordCatalogTableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.hint || '').toLowerCase();
+  return code === '42P01'
+    || code === 'PGRST205'
+    || message.includes('word_books')
+    || message.includes('word_book_ranges')
+    || message.includes('does not exist')
+    || message.includes('schema cache');
+}
+
+function normalizeCatalogStatus(raw) {
+  const value = String(raw || '').trim().toUpperCase();
+  return value === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE';
+}
+
+function mapWordRangeRow(row = {}) {
+  const wordCount = Number(row.word_count ?? row.total_count ?? row.max_score ?? 0);
+  return {
+    range_id: String(row.range_id || '').trim(),
+    academy_id: String(row.academy_id || '').trim(),
+    book_id: String(row.book_id || '').trim(),
+    range_key: String(row.range_key || '').trim(),
+    range_label: String(row.range_label || row.title || '').trim(),
+    start_index: row.start_index == null ? null : Number(row.start_index),
+    end_index: row.end_index == null ? null : Number(row.end_index),
+    word_count: Number.isFinite(wordCount) ? wordCount : 0,
+    pass_count: Number.isFinite(wordCount) && wordCount > 0 ? Math.ceil(wordCount * 0.9) : 0,
+    status: normalizeCatalogStatus(row.status),
+    sort_order: Number(row.sort_order || 0) || 0,
+    memo: String(row.memo || '').trim(),
+    source: String(row.source || '').trim()
+  };
+}
+
+function mapWordBookRow(row = {}, rangesByBook = new Map()) {
+  const bookId = String(row.book_id || '').trim();
+  const ranges = rangesByBook.get(bookId) || [];
+  return {
+    book_id: bookId,
+    academy_id: String(row.academy_id || '').trim(),
+    book_key: String(row.book_key || '').trim(),
+    book_title: String(row.book_title || row.title || '').trim(),
+    title: String(row.book_title || row.title || '').trim(),
+    publisher: String(row.publisher || '').trim(),
+    level: String(row.level || '').trim(),
+    status: normalizeCatalogStatus(row.status),
+    sort_order: Number(row.sort_order || 0) || 0,
+    range_count: ranges.length,
+    word_count: ranges.reduce((sum, item) => sum + (Number(item.word_count || 0) || 0), 0),
+    ranges
+  };
+}
+
+async function wordCatalogListDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const bookId = String(args.book_id || args.bookId || '').trim();
+  const includeInactive = normalizeBool(args.include_inactive ?? args.includeInactive, false);
+  const limitBooks = Math.max(1, Math.min(500, toPositiveInt(args.limit_books || args.limitBooks, 200)));
+  const limitRanges = Math.max(1, Math.min(3000, toPositiveInt(args.limit_ranges || args.limitRanges, 1500)));
+
+  let bookQ = supabase
+    .from('word_books')
+    .select('book_id, academy_id, book_key, book_title, publisher, level, status, sort_order, source, memo, created_at, updated_at')
+    .order('sort_order', { ascending: true })
+    .order('book_title', { ascending: true })
+    .limit(limitBooks);
+  if (bookId) bookQ = bookQ.eq('book_id', bookId);
+  if (!includeInactive) bookQ = bookQ.eq('status', 'ACTIVE');
+
+  const { data: bookRows, error: bookErr } = await bookQ;
+  if (bookErr) {
+    if (isMissingWordCatalogTableError(bookErr)) return success(listSeedWordCatalog());
+    return fail(500, 'DB_SELECT_FAILED', bookErr.message || 'word_books 조회 실패');
+  }
+
+  const booksRaw = Array.isArray(bookRows) ? bookRows : [];
+  if (!booksRaw.length) {
+    return success({
+      source: 'SUPABASE',
+      seed_fallback: false,
+      catalog_version: 'word-catalog-foundation-v1',
+      count_books: 0,
+      count_ranges: 0,
+      books: [],
+      ranges: [],
+      filter: { book_id: bookId, include_inactive: includeInactive },
+      warnings: ['word_books 테이블은 있으나 조회된 단어책이 없습니다. catalog seed 적용이 필요합니다.']
+    });
+  }
+
+  const bookIds = booksRaw.map(row => String(row.book_id || '').trim()).filter(Boolean);
+  let rangeQ = supabase
+    .from('word_book_ranges')
+    .select('range_id, academy_id, book_id, range_key, range_label, start_index, end_index, word_count, status, sort_order, source, memo, created_at, updated_at')
+    .in('book_id', bookIds)
+    .order('book_id', { ascending: true })
+    .order('sort_order', { ascending: true })
+    .order('range_label', { ascending: true })
+    .limit(limitRanges);
+  if (!includeInactive) rangeQ = rangeQ.eq('status', 'ACTIVE');
+
+  const { data: rangeRows, error: rangeErr } = await rangeQ;
+  if (rangeErr) {
+    if (isMissingWordCatalogTableError(rangeErr)) return success(listSeedWordCatalog());
+    return fail(500, 'DB_SELECT_FAILED', rangeErr.message || 'word_book_ranges 조회 실패');
+  }
+
+  const ranges = (Array.isArray(rangeRows) ? rangeRows : []).map(mapWordRangeRow);
+  const rangesByBook = ranges.reduce((map, row) => {
+    const key = String(row.book_id || '').trim();
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(row);
+    return map;
+  }, new Map());
+  const books = booksRaw.map(row => mapWordBookRow(row, rangesByBook));
+
+  return success({
+    source: 'SUPABASE',
+    seed_fallback: false,
+    catalog_version: 'word-catalog-foundation-v1',
+    count_books: books.length,
+    count_ranges: ranges.length,
+    books,
+    ranges,
+    filter: { book_id: bookId, include_inactive: includeInactive },
+    warnings: ranges.length ? [] : ['단어책은 있으나 연결된 범위가 없습니다. word_book_ranges seed 적용이 필요합니다.']
+  });
+}
+
 async function wordTestListSessionsDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
@@ -6168,6 +6303,11 @@ export default async function handler(req, res) {
 
   if (op === 'clinic.queueParentNotice') {
     const result = await clinicQueueParentNoticeDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'wordCatalog.list') {
+    const result = await wordCatalogListDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 
