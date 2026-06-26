@@ -341,3 +341,29 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 - `students.is_exception`은 더 이상 학번 출결 허용 조건이 아니라, QR이 특히 어려운 학생을 표시하는 운영 메모로만 사용한다.
 - 학번 입력 출결은 `attendance_logs.meta_json.input_mode = STUDENT_ID`와 `student_id_attendance = Y`로 남긴다.
 - 교실 이동/외출·복귀는 기존처럼 학번 4자리 입력을 사용한다.
+
+
+## staff.clock PIN mode
+
+`staff.clock` supports two modes.
+
+1. Existing session mode: `sessionToken + action`
+2. Kiosk PIN mode: `staff_id + pin + action`
+
+Kiosk PIN example:
+
+```json
+{
+  "op": "staff.clock",
+  "args": {
+    "action": "IN",
+    "staff_id": "staff_id",
+    "pin": "PIN",
+    "input_mode": "PIN",
+    "note": "KIOSK_PIN"
+  }
+}
+```
+
+This is used by the physical keyboard kiosk after the `staff` command. Staff QR remains available as a fallback through `staff.clock.qr`.
+

@@ -718,73 +718,6 @@
 		}
 
 
-    .studentKeypad {
-      margin-top: 18px;
-      border: 2px solid var(--line);
-      border-radius: var(--r-lg);
-      background: var(--card);
-      padding: 18px;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .studentKeypad.hidden {
-      display: none;
-    }
-
-    .keypadStatus {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-      color: var(--sub);
-      font-size: 18px;
-      font-weight: 900;
-    }
-
-    .keypadStatus strong {
-      color: var(--text);
-      font-size: 22px;
-    }
-
-    .keypadGrid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .keypadBtn {
-      min-height: 76px;
-      border: 2px solid var(--line);
-      border-radius: 20px;
-      background: var(--bg);
-      color: var(--text);
-      font-size: 34px;
-      font-weight: 950;
-      cursor: pointer;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-      user-select: none;
-    }
-
-    .keypadBtn:active {
-      transform: scale(0.96);
-      border-color: var(--pri);
-      box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.10);
-    }
-
-    .keypadBtn.subtle {
-      font-size: 22px;
-      color: var(--sub);
-      background: transparent;
-    }
-
-    .keypadBtn.danger {
-      font-size: 22px;
-      color: #b91c1c;
-      background: #fef2f2;
-      border-color: #fecaca;
-    }
-
 		.inp {
 			width: 100%;
 			border: 2px solid var(--line);
@@ -1069,11 +1002,6 @@
 			.actBtn { padding: 24px 12px; font-size: 20px; gap: 12px; }
 			.actBtn svg { width: 40px; height: 40px; }
 			.inp-big { height: 100px; font-size: 32px; padding: 16px; letter-spacing: 4px; }
-      .studentKeypad { margin-top: 14px; padding: 14px; }
-      .keypadGrid { gap: 10px; }
-      .keypadBtn { min-height: 64px; font-size: 28px; border-radius: 16px; }
-      .keypadStatus { font-size: 15px; }
-      .keypadStatus strong { font-size: 18px; }
 			.grid2, .grid3 { grid-template-columns: 1fr; }
 			.clock-time { font-size: 92px; }
 			.modal-title { font-size: 42px; }
@@ -1490,7 +1418,7 @@
 			</div>
 
 			<div class="input-wrapper">
-				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="학번 4자리 입력 / QR 스캔도 가능">
+				<input class="inp-big" id="kInput" autocomplete="off" inputmode="text" placeholder="학번 4자리 입력 후 Enter">
 				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
 					<div class="kStaffQuickHead">
 						<div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
@@ -1503,31 +1431,14 @@
 					</div>
 
 					<div class="kStaffQuickHint">
-						직원 모드입니다. 전용 QR을 스캔하세요.<br>
-						처리 후 자동으로 일반 키오스크 상태로 돌아갑니다.
+						직원 모드입니다. 직원 ID 입력 후 Enter → PIN 입력 후 Enter로 처리합니다.<br>
+						직원 QR은 보조수단으로 계속 사용할 수 있습니다.
+					</div>
+					<div id="staffQuickStep" class="kStaffQuickHint" style="margin-top:8px;font-weight:900;color:var(--pri);">
+						1단계: 직원 ID 입력
 					</div>
 				</div>
 
-        <div id="studentKeypad" class="studentKeypad" aria-label="학생 학번 숫자 키패드">
-          <div class="keypadStatus">
-            <span>학번 4자리 입력 시 자동 처리</span>
-            <strong id="keypadModeLabel">등원</strong>
-          </div>
-          <div class="keypadGrid">
-            <button class="keypadBtn" type="button" data-keypad-digit="1">1</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="2">2</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="3">3</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="4">4</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="5">5</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="6">6</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="7">7</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="8">8</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="9">9</button>
-            <button class="keypadBtn danger" type="button" data-keypad-action="clear">지움</button>
-            <button class="keypadBtn" type="button" data-keypad-digit="0">0</button>
-            <button class="keypadBtn subtle" type="button" data-keypad-action="backspace">←</button>
-          </div>
-        </div>
 			</div>
 
 			<div class="msg" id="kMsg"></div>
@@ -2497,6 +2408,8 @@
 			isSubmitting: false,
       staffQuickOpen: false,
       staffQuickAction: 'IN',
+      staffQuickStep: 'STAFF_ID',
+      staffQuickStaffId: '',
       _staffLongPressTimer: null,
       pendingKioskTraceId: '',
       pendingKioskAction: '',
@@ -2542,21 +2455,6 @@
         if (btnStaffQuickOut) btnStaffQuickOut.addEventListener('click', () => Kiosk.setStaffQuickAction('OUT'));
         if (btnStaffQuickClose) btnStaffQuickClose.addEventListener('click', () => Kiosk.closeStaffQuick());
 
-        const studentKeypad = $('#studentKeypad');
-        if (studentKeypad) {
-          studentKeypad.addEventListener('click', (e) => {
-            const btn = e.target && e.target.closest ? e.target.closest('[data-keypad-digit],[data-keypad-action]') : null;
-            if (!btn) return;
-            e.preventDefault();
-
-            const digit = btn.getAttribute('data-keypad-digit');
-            const keypadAction = btn.getAttribute('data-keypad-action');
-
-            if (digit !== null) Kiosk.appendStudentDigit(digit);
-            if (keypadAction === 'clear') Kiosk.clearStudentDigits();
-            if (keypadAction === 'backspace') Kiosk.backspaceStudentDigit();
-          });
-        }
 
 				$('#btnCHECK_IN').addEventListener('click', () => Kiosk.setAction('CHECK_IN'));
 				$('#btnCHECK_OUT').addEventListener('click', () => Kiosk.setAction('CHECK_OUT'));
@@ -2587,11 +2485,25 @@
             }
           }, 10000);
 
-          if (!Kiosk.staffQuickOpen && Kiosk.handleStaffCommand(input.value)) {
+          const rawValue = input.value || '';
+
+          if (!Kiosk.staffQuickOpen && Kiosk.isStaffCommandPrefix(rawValue)) {
+            const normalized = Kiosk.normalizeScanText(rawValue);
+            input.value = normalized;
+
+            if (Kiosk.handleStaffCommand(normalized)) {
+              return;
+            }
+
             return;
           }
 
           if (Kiosk.staffQuickOpen) {
+            if (Kiosk.staffQuickStep === 'PIN') {
+              input.value = Kiosk.normalizeStaffPinInput(input.value);
+              return;
+            }
+
             const v = Kiosk.normalizeScanText(input.value);
             input.value = v;
 
@@ -2665,7 +2577,6 @@
 				}, 1000);
 
 				Kiosk.setAction('CHECK_IN');
-        Kiosk.refreshStudentKeypad();
 				safeFocus(input, 50);
 			},
 
@@ -2699,80 +2610,81 @@
           input.placeholder = Kiosk.getInputPlaceholder();
           input.setAttribute('inputmode', 'numeric');
 
-          Kiosk.refreshStudentKeypad();
           safeFocus(input, 50);
         }
       },
 
-      isStudentKeypadMode() {
-        return !Kiosk.staffQuickOpen && ['CHECK_IN', 'CHECK_OUT', 'MOVE', 'OUTING'].includes(Kiosk.action);
+      isStaffCommandPrefix(raw) {
+        const cmd = Kiosk.normalizeScanText(raw)
+          .toLowerCase()
+          .replace(/[^a-z가-힣]/g, '');
+
+        if (!cmd) return false;
+
+        const prefixes = [
+          's',
+          'st',
+          'sta',
+          'staf',
+          'staff',
+          'staffi',
+          'staffin',
+          'staffo',
+          'staffou',
+          'staffout',
+          '직',
+          '직원',
+          '직원출',
+          '직원출근',
+          '직원퇴',
+          '직원퇴근'
+        ];
+
+        return prefixes.some(x => cmd === x || x.startsWith(cmd) || cmd.startsWith(x));
       },
 
-      refreshStudentKeypad() {
-        const box = $('#studentKeypad');
-        const label = $('#keypadModeLabel');
-        const input = $('#kInput');
-
-        if (box) {
-          box.classList.toggle('hidden', !Kiosk.isStudentKeypadMode());
-        }
-
-        if (label) {
-          const map = {
-            CHECK_IN: '등원',
-            CHECK_OUT: '하원',
-            MOVE: '이동',
-            OUTING: '외출/복귀'
-          };
-          label.textContent = map[Kiosk.action] || '출결';
-        }
-
-        if (input && !Kiosk.staffQuickOpen && !Kiosk.isSubmitting) {
-          input.setAttribute('inputmode', 'numeric');
-          input.placeholder = Kiosk.getInputPlaceholder();
-        }
+      normalizeStaffIdInput(raw) {
+        return String(raw || '')
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '')
+          .replace(/[^a-z0-9._-]/g, '')
+          .slice(0, 40);
       },
 
-      appendStudentDigit(digit) {
-        if (Kiosk.isSubmitting || Kiosk.staffQuickOpen) return;
-        const input = $('#kInput');
-        if (!input) return;
-
-        const d = String(digit || '').replace(/[^0-9]/g, '').slice(0, 1);
-        if (!d) return;
-
-        const next = (String(input.value || '').replace(/[^0-9]/g, '') + d).slice(-4);
-        input.value = next;
-        UI.clearMsg($('#kMsg'));
-        const dbg = $('#kDbg');
-        if (dbg) {
-          dbg.textContent = '';
-          dbg.style.display = 'none';
-        }
-
-        if (next.length === 4) {
-          Kiosk.queueSubmit(90);
-        } else {
-          safeFocus(input, 20);
-        }
+      normalizeStaffPinInput(raw) {
+        return String(raw || '')
+          .trim()
+          .replace(/\s+/g, '')
+          .slice(0, 32);
       },
 
-      clearStudentDigits() {
-        clearTimeout(Kiosk._autoTimer);
+      setStaffQuickStep(step) {
+        Kiosk.staffQuickStep = step === 'PIN' ? 'PIN' : 'STAFF_ID';
+
         const input = $('#kInput');
-        if (input) {
+        const stepEl = $('#staffQuickStep');
+
+        if (stepEl) {
+          if (Kiosk.staffQuickStep === 'PIN') {
+            stepEl.textContent = '2단계: PIN 입력 후 Enter';
+          } else {
+            stepEl.textContent = '1단계: 직원 ID 입력 후 Enter';
+          }
+        }
+
+        if (input && !Kiosk.isSubmitting) {
           input.value = '';
-          safeFocus(input, 20);
+          input.type = Kiosk.staffQuickStep === 'PIN' ? 'password' : 'text';
+          input.setAttribute('inputmode', Kiosk.staffQuickStep === 'PIN' ? 'numeric' : 'text');
+          input.placeholder = Kiosk.getInputPlaceholder();
+          safeFocus(input, 50);
         }
-        UI.clearMsg($('#kMsg'));
       },
 
-      backspaceStudentDigit() {
-        clearTimeout(Kiosk._autoTimer);
-        const input = $('#kInput');
-        if (!input) return;
-        input.value = String(input.value || '').replace(/[^0-9]/g, '').slice(0, -1);
-        safeFocus(input, 20);
+      resetStaffQuickState() {
+        Kiosk.staffQuickStep = 'STAFF_ID';
+        Kiosk.staffQuickStaffId = '';
       },
 
       normalizeScanText(v) {
@@ -2861,15 +2773,20 @@
       },
 
       getInputPlaceholder() {
-        return Kiosk.staffQuickOpen
-          ? '직원 QR 스캔'
-          : ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
-            ? '학번 4자리 입력 / QR 스캔도 가능'
-            : '학번 4자리를 입력하세요');
+        if (Kiosk.staffQuickOpen) {
+          return Kiosk.staffQuickStep === 'PIN'
+            ? '직원 PIN 입력 후 Enter'
+            : '직원 ID 입력 후 Enter';
+        }
+
+        return (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
+          ? '학번 4자리 입력 후 Enter'
+          : '학번 4자리를 입력하세요';
       },
 
       openStaffQuick() {
         Kiosk.staffQuickOpen = true;
+        Kiosk.resetStaffQuickState();
 
         const box = $('#kStaffQuick');
         if (box) {
@@ -2881,13 +2798,14 @@
 
         const input = $('#kInput');
         if (input) {
+          input.type = 'text';
           input.value = '';
           input.setAttribute('inputmode', 'text');
           input.placeholder = Kiosk.getInputPlaceholder();
           safeFocus(input, 50);
         }
 
-        Kiosk.refreshStudentKeypad();
+        Kiosk.setStaffQuickStep('STAFF_ID');
         UI.clearMsg($('#kMsg'));
         const dbg = $('#kDbg');
         if (dbg) {
@@ -2898,6 +2816,7 @@
 
       closeStaffQuick() {
         Kiosk.staffQuickOpen = false;
+        Kiosk.resetStaffQuickState();
 
         const box = $('#kStaffQuick');
         if (box) {
@@ -2907,10 +2826,10 @@
 
         const input = $('#kInput');
         if (input && !Kiosk.isSubmitting) {
+          input.type = 'text';
           input.value = '';
           input.setAttribute('inputmode', 'numeric');
           input.placeholder = Kiosk.getInputPlaceholder();
-          Kiosk.refreshStudentKeypad();
           safeFocus(input, 50);
         }
       },
@@ -2930,7 +2849,6 @@
         if (input && !Kiosk.isSubmitting) {
           input.placeholder = Kiosk.getInputPlaceholder();
         }
-        Kiosk.refreshStudentKeypad();
       },
 
 			setLoading(loading) {
@@ -2949,7 +2867,6 @@
 					input.disabled = false;
 					input.style.opacity = '1';
 					input.placeholder = Kiosk.getInputPlaceholder();
-          Kiosk.refreshStudentKeypad();
 					safeFocus(input, 50);
 				}
 			},
@@ -3003,7 +2920,7 @@
 
 					clearTimeout(Kiosk._idleClearTimer);
 
-					const val = (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
+					const val = (Kiosk.staffQuickOpen || Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT')
 						? Kiosk.normalizeScanText(input.value)
 						: (input.value || '').trim();
 
@@ -3037,7 +2954,7 @@
 					if (!val) return;
 
 					const hasNonAscii = /[^\x20-\x7E]/.test(val);
-					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
+					if (!Kiosk.staffQuickOpen && (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && hasNonAscii) {
 						UI.showModal(false, '한/영 키 오류', '키보드를 영문으로 변경 후 다시 스캔하세요.');
 						setDbg('NON_ASCII_INPUT');
 						UI.beep(false);
@@ -3062,16 +2979,37 @@
 					}
 
 					if (Kiosk.staffQuickOpen && !isStaffQr) {
-						UI.showModal(false, '직원 모드', '직원 모드에서는 직원 전용 QR만 스캔할 수 있습니다.');
-						setDbg('STAFF_QR_ONLY_IN_STAFF_MODE');
-						UI.beep(false);
-						UI.flashScreen(false);
-						input.value = '';
-						safeFocus(input, 50);
-						return;
+            if (Kiosk.staffQuickStep === 'STAFF_ID') {
+              const staffId = Kiosk.normalizeStaffIdInput(val);
+
+              if (!staffId) {
+                UI.showModal(false, '직원 ID 입력', '직원 ID를 입력한 뒤 Enter를 누르세요.');
+                setDbg('STAFF_ID_REQUIRED');
+                UI.beep(false);
+                UI.flashScreen(false);
+                input.value = '';
+                safeFocus(input, 50);
+                return;
+              }
+
+              Kiosk.staffQuickStaffId = staffId;
+              Kiosk.setStaffQuickStep('PIN');
+              UI.toast(true, '직원 PIN을 입력하세요.');
+              return;
+            }
+
+            const staffPin = Kiosk.normalizeStaffPinInput(input.value || val);
+            if (!Kiosk.staffQuickStaffId || !staffPin) {
+              UI.showModal(false, '직원 PIN 입력', '직원 ID와 PIN을 다시 입력하세요.');
+              setDbg('STAFF_PIN_REQUIRED');
+              UI.beep(false);
+              UI.flashScreen(false);
+              Kiosk.setStaffQuickStep('STAFF_ID');
+              return;
+            }
 					}
 
-					if ((Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isStudentIdInput) {
+					if (!Kiosk.staffQuickOpen && (Kiosk.action === 'CHECK_IN' || Kiosk.action === 'CHECK_OUT') && !isQr && !isStaffQr && !isStudentIdInput) {
 						UI.showModal(
 							false,
 							'입력 오류',
@@ -3090,18 +3028,54 @@
 					UI.clearMsg(msg);
 					setDbg('');
 
-					if (isStaffQr) {
+					if (Kiosk.staffQuickOpen) {
 						const staffAction = Kiosk.staffQuickAction || 'IN';
-						const r = await App.rpc('staff.clock.qr', {
+
+						if (isStaffQr) {
+							const r = await App.rpc('staff.clock.qr', {
+								action: staffAction,
+								qrText: val,
+								note: 'KIOSK_QUICK'
+							});
+
+							if (r.ok) {
+								const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
+
+								UI.showModal(true, title, '처리되었습니다.');
+								UI.beep(true);
+								UI.flashScreen(true);
+								Voice.speak('처리되었습니다.');
+								Kiosk.closeStaffQuick();
+								return;
+							}
+
+							const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
+							const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_QR_FAIL';
+
+							UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg + ' 다시 스캔해주세요.');
+							setDbg(staffErrCode);
+							UI.beep(false);
+							Voice.speak('직원 큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.', 'error');
+							UI.flashScreen(false);
+							return;
+						}
+
+						const staffId = Kiosk.staffQuickStaffId;
+						const staffPin = Kiosk.normalizeStaffPinInput(val);
+
+						const r = await App.rpc('staff.clock', {
 							action: staffAction,
-							qrText: val,
-							note: 'KIOSK_QUICK'
+							staff_id: staffId,
+							pin: staffPin,
+							input_mode: 'PIN',
+							note: 'KIOSK_PIN'
 						});
 
 						if (r.ok) {
 							const title = staffAction === 'IN' ? '직원 출근' : '직원 퇴근';
+							const staffName = (r.data && r.data.data && r.data.data.name) ? r.data.data.name : staffId;
 
-							UI.showModal(true, title, '처리되었습니다.');
+							UI.showModal(true, title, UI.maskName(staffName) + ' 처리되었습니다.');
 							UI.beep(true);
 							UI.flashScreen(true);
 							Voice.speak('처리되었습니다.');
@@ -3109,14 +3083,15 @@
 							return;
 						}
 
-						const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 QR 처리 실패';
-						const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_QR_FAIL';
+						const staffErrMsg = (r.error && r.error.message) ? r.error.message : '직원 PIN 처리 실패';
+						const staffErrCode = (r.error && r.error.code) ? r.error.code : 'STAFF_CLOCK_PIN_FAIL';
 
-						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg + ' 다시 스캔해주세요.');
+						UI.showModal(false, staffAction === 'IN' ? '직원 출근 실패' : '직원 퇴근 실패', staffErrMsg);
 						setDbg(staffErrCode);
 						UI.beep(false);
-						Voice.speak('직원 큐알 코드 스캔에 실패했습니다. 다시 스캔해주세요.', 'error');
+						Voice.speak('직원 핀을 확인해주세요.', 'error');
 						UI.flashScreen(false);
+						Kiosk.setStaffQuickStep('PIN');
 						return;
 					}
 

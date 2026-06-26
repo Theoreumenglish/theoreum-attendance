@@ -6,6 +6,7 @@ const notify = readFileSync('lib/attendance-notify.js', 'utf8');
 const queue = readFileSync('lib/attendance-notify-queue.js', 'utf8');
 const kiosk = readFileSync('api/kiosk-mark.js', 'utf8');
 const indexHtml = readFileSync('index.html', 'utf8');
+const staffClock = readFileSync('api/staff-clock.js', 'utf8');
 const admin = html;
 function assertIncludes(text, snippet, message) {
   if (!String(text || '').includes(snippet)) fail(message + ' 기준 미충족');
@@ -91,17 +92,21 @@ if (!kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID'") || kiosk.includ
   fail('등원/하원 학번 기본 출결 정책이 서버에 반영되지 않았습니다.');
 } else ok('등원/하원 학번 기본 출결 정책이 서버에 반영되었습니다.');
 
-if (!indexHtml.includes('학번 4자리 입력 / QR 스캔도 가능')) {
-  fail('키오스크 입력 안내가 학번 중심으로 변경되지 않았습니다.');
-} else ok('키오스크 입력 안내가 학번 중심으로 변경되었습니다.');
+if (!indexHtml.includes('학번 4자리 입력 후 Enter')) {
+  fail('키오스크 입력 안내가 물리 키보드 학번 중심으로 변경되지 않았습니다.');
+} else ok('키오스크 입력 안내가 물리 키보드 학번 중심으로 변경되었습니다.');
 
-if (!indexHtml.includes('id="studentKeypad"') || !indexHtml.includes('appendStudentDigit') || !indexHtml.includes('data-keypad-digit="0"')) {
-  fail('키오스크 학번 숫자 키패드가 없습니다.');
-} else ok('키오스크 학번 숫자 키패드가 있습니다.');
+if (indexHtml.includes('id="studentKeypad"') || indexHtml.includes('appendStudentDigit') || indexHtml.includes('data-keypad-digit')) {
+  fail('화면 숫자 키패드가 아직 남아 있습니다.');
+} else ok('화면 숫자 키패드를 제거했습니다.');
 
-if (!indexHtml.includes('next.length === 4') || !indexHtml.includes('Kiosk.queueSubmit(90)')) {
-  fail('학번 4자리 입력 후 자동 제출 흐름이 없습니다.');
-} else ok('학번 4자리 입력 후 자동 제출 흐름이 있습니다.');
+if (!indexHtml.includes('isStaffCommandPrefix') || !indexHtml.includes('staffQuickStep') || !indexHtml.includes("staff_id: staffId") || !indexHtml.includes("pin: staffPin")) {
+  fail('직원 staff 진입어 + PIN 출퇴근 흐름이 없습니다.');
+} else ok('직원 staff 진입어 + PIN 출퇴근 흐름이 있습니다.');
+
+if (!staffClock.includes('verifyAdminPinByStaffId') || !staffClock.includes("input_mode: 'PIN'")) {
+  fail('직원 PIN 출퇴근 서버 처리가 없습니다.');
+} else ok('직원 PIN 출퇴근 서버 처리가 있습니다.');
 
 if (!html.includes('auditOpLabel') || !html.includes('auditTargetLabel')) {
   fail('감사 로그 화면 문구 변환 함수가 없습니다.');

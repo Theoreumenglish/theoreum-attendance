@@ -70,9 +70,10 @@ const checklist = [
   ['단어 결과 저장 시 word_records mirror', rpc.includes('upsertWordRecordMirrorsIfAvailable') && rpc.includes('word_record_mirror')],
   ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')],
   ['학생 학번 출결 기본화 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID'") && !kiosk.includes("'NOT_EXCEPTION'")],
-  ['학생 학번 출결 기본화 키오스크 안내', rootIndex.includes('학번 4자리 입력 / QR 스캔도 가능')],
-  ['학생 학번 키패드 UI', rootIndex.includes('id="studentKeypad"') && rootIndex.includes('data-keypad-digit="0"') && rootIndex.includes('appendStudentDigit')],
-  ['학생 학번 4자리 자동 제출', rootIndex.includes('Kiosk.queueSubmit(90)') && rootIndex.includes('next.length === 4')]
+  ['학생 학번 출결 물리 키보드 안내', rootIndex.includes('학번 4자리 입력 후 Enter')],
+  ['화면 숫자 키패드 제거', !rootIndex.includes('id="studentKeypad"') && !rootIndex.includes('data-keypad-digit') && !rootIndex.includes('appendStudentDigit')],
+  ['직원 staff 진입어 PIN 출퇴근 UI', rootIndex.includes('isStaffCommandPrefix') && rootIndex.includes('staffQuickStep') && rootIndex.includes('직원 ID 입력 후 Enter') && rootIndex.includes('직원 PIN 입력 후 Enter')],
+  ['직원 PIN 출퇴근 서버', read('api/staff-clock.js').includes('verifyAdminPinByStaffId') && read('api/staff-clock.js').includes("input_mode: 'PIN'")]
 ];
 for (const [label, passed] of checklist) {
   if (passed) ok(label);
