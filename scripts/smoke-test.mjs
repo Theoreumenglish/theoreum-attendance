@@ -82,6 +82,7 @@ if (staffId && password) {
     assertOk('assistant.listAbsenceExcuses', await rpc('assistant.listAbsenceExcuses', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('assistant.todayAbsenceBoard', await rpc('assistant.todayAbsenceBoard', { sessionToken }), { allowAuthFail: true });
     assertOk('wordCatalog.list', await rpc('wordCatalog.list', { sessionToken, limit_books: 1, limit_ranges: 1 }), { allowAuthFail: true });
+    assertOk('wordRecord.list', await rpc('wordRecord.list', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('wordTest.listSessions', await rpc('wordTest.listSessions', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('report.listSnapshots', await rpc('report.listSnapshots', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('auth.logout', await rpc('auth.logout', { sessionToken }));

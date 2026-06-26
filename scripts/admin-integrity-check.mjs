@@ -64,6 +64,10 @@ if (!words.includes('wordBookSelect') || !words.includes('wordRangeSelect') || !
   fail('단어책/범위 catalog 선택 흐름이 없습니다.');
 } else ok('단어책/범위 catalog 선택 흐름이 있습니다.');
 
+if (!rpc.includes('wordRecord.list') || !rpc.includes('word_records') || !rpc.includes('word_record_mirror')) {
+  fail('학생별 단어 누적 기록 mirror/API 흐름이 없습니다.');
+} else ok('학생별 단어 누적 기록 mirror/API 흐름이 있습니다.');
+
 if (!words.includes('wordStartYmd') || !words.includes('wordEndYmd')) {
   fail('단어시험 회차 조회 기간 필터가 없습니다.');
 } else ok('단어시험 회차 조회 기간 필터가 있습니다.');

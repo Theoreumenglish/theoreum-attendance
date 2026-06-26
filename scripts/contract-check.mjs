@@ -12,7 +12,8 @@ const files = {
   vercel: 'vercel.json',
   clinicWordSchema: 'docs/supabase-clinic-word-report-schema-v1.sql',
   clinicAutoNotifySchema: 'docs/supabase-clinic-auto-notify-v1.sql',
-  wordCatalogSchema: 'docs/supabase-word-catalog-v1.sql'
+  wordCatalogSchema: 'docs/supabase-word-catalog-v1.sql',
+  studentWordRecordsSchema: 'docs/supabase-student-word-records-v1.sql'
 };
 
 let failed = 0;
@@ -290,6 +291,12 @@ if (!rpcText.includes("op === 'wordCatalog.list'") || !rpcText.includes('wordCat
   ok('wordCatalog.list 서버 op가 존재합니다.');
 }
 
+if (!rpcText.includes("op === 'wordRecord.list'") || !rpcText.includes('wordRecordListDirect')) {
+  fail('wordRecord.list op 또는 wordRecordListDirect 함수가 누락되었습니다.');
+} else {
+  ok('wordRecord.list 서버 op가 존재합니다.');
+}
+
 if (!rpcText.includes("op === 'wordTest.enterResult'") || !rpcText.includes('wordTestEnterResultDirect')) {
   fail('wordTest.enterResult op 또는 wordTestEnterResultDirect 함수가 누락되었습니다.');
 } else {
@@ -351,6 +358,21 @@ if (missingWordCatalogTables.length) {
   fail(`word catalog schema 테이블 누락: ${missingWordCatalogTables.join(', ')}`);
 } else {
   ok(`word catalog schema 필수 테이블 ${requiredWordCatalogTables.length}개가 모두 있습니다.`);
+}
+
+const studentWordRecordsSchemaText = read(files.studentWordRecordsSchema);
+const requiredStudentWordRecordTables = ['word_records'];
+const missingStudentWordRecordTables = requiredStudentWordRecordTables.filter(name => !studentWordRecordsSchemaText.includes(`create table if not exists public.${name}`));
+if (missingStudentWordRecordTables.length) {
+  fail(`student word records schema 테이블 누락: ${missingStudentWordRecordTables.join(', ')}`);
+} else {
+  ok(`student word records schema 필수 테이블 ${requiredStudentWordRecordTables.length}개가 모두 있습니다.`);
+}
+
+if (!studentWordRecordsSchemaText.includes('word_needs_retest') || !studentWordRecordsSchemaText.includes('word_needs_clinic')) {
+  fail('student word records schema에 재시험/클리닉 후보 컬럼이 없습니다.');
+} else {
+  ok('student word records schema에 재시험/클리닉 후보 컬럼이 있습니다.');
 }
 
 const schemaText = read(files.clinicWordSchema);

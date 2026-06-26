@@ -36,7 +36,9 @@ const requiredFiles = [
   'docs/FINAL_READINESS_CHECKLIST.md',
   'docs/MASTER_DATA_PORTAL.md',
   'docs/supabase-master-speed-v2.sql',
-  'docs/WORD_GRID_SPEED_V1.md'
+  'docs/WORD_GRID_SPEED_V1.md',
+  'docs/STUDENT_WORD_RECORDS_V1.md',
+  'docs/supabase-student-word-records-v1.sql'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -58,7 +60,10 @@ const checklist = [
   ['QR Center 출결 화면 흡수', !admin.includes('id="qrCenter"') && admin.includes('QR 인식 문제 대응 순서')],
   ['감사 로그 문구 변환', admin.includes('auditOpLabel') && admin.includes('auditTargetLabel')],
   ['클리닉 알림톡 5종 queue', rpc.includes("op === 'clinic.queueNotice'") && queue.includes('CLINIC_') && notify.includes('clinicreservationforparents') && notify.includes('clinicreservationforstudents') && notify.includes('onlineclinicabsenceforparents') && notify.includes('onlineclinicabsenceforstudents') && notify.includes('offlineclinicabsence')],
-  ['실제 API smoke-test 스크립트', existsSync('scripts/smoke-test.mjs')]
+  ['실제 API smoke-test 스크립트', existsSync('scripts/smoke-test.mjs')],
+  ['학생별 단어 누적 기록 API', rpc.includes("op === 'wordRecord.list'") && rpc.includes('wordRecordListDirect')],
+  ['단어 결과 저장 시 word_records mirror', rpc.includes('upsertWordRecordMirrorsIfAvailable') && rpc.includes('word_record_mirror')],
+  ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')]
 ];
 for (const [label, passed] of checklist) {
   if (passed) ok(label);

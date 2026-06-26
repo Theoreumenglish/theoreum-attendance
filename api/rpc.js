@@ -2915,6 +2915,191 @@ function mapWordResultRow(row, sessionMap = {}, studentNameMap = {}) {
   };
 }
 
+
+function isMissingWordRecordsTableError(error) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || error?.details || error || '').toLowerCase();
+  return code === '42P01'
+    || code === 'PGRST116'
+    || code === 'PGRST205'
+    || message.includes('word_records')
+    || message.includes('does not exist')
+    || message.includes('schema cache');
+}
+
+function mapWordRecordRow(row = {}, studentNameMap = {}) {
+  const sid = normalizeStudentId(row?.student_id);
+  const totalCount = normalizeWordTotal(row?.word_total_count ?? row?.total_count ?? row?.max_score, 0);
+  const correctRaw = row?.word_correct_count ?? row?.correct_count ?? row?.score;
+  const correctCount = correctRaw == null ? null : normalizeWordCount(correctRaw, null);
+  const passCount = normalizeWordPassCount(row?.word_pass_count ?? row?.pass_count ?? row?.pass_score, totalCount || 100, Math.ceil((totalCount || 100) * 0.9));
+  const status = String(row?.result_status || '').trim().toUpperCase();
+  const accuracy = row?.word_accuracy == null ? (correctCount === null || !totalCount ? null : Math.round((correctCount / totalCount) * 10000) / 100) : Number(row.word_accuracy);
+  return {
+    record_id: String(row?.record_id || '').trim(),
+    academy_id: String(row?.academy_id || '').trim(),
+    student_id: sid,
+    student_name: studentNameMap[sid] || '',
+    class_id: String(row?.class_id || '').trim(),
+    session_id: String(row?.session_id || '').trim(),
+    result_id: String(row?.result_id || '').trim(),
+    book_id: String(row?.book_id || '').trim(),
+    range_id: String(row?.range_id || '').trim(),
+    word_book_title: String(row?.word_book_title || '').trim(),
+    range_label: String(row?.range_label || '').trim(),
+    scope_text: String(row?.scope_text || '').trim(),
+    yyyymmdd: String(row?.yyyymmdd || '').trim(),
+    word_total_count: totalCount,
+    total_count: totalCount,
+    word_correct_count: correctCount,
+    correct_count: correctCount,
+    word_pass_count: passCount,
+    pass_count: passCount,
+    word_accuracy: Number.isFinite(accuracy) ? accuracy : null,
+    result_status: status,
+    word_passed: row?.word_passed === true || status === 'PASS' || status === 'EXEMPT',
+    word_needs_retest: row?.word_needs_retest === true || status === 'FAIL',
+    word_needs_clinic: row?.word_needs_clinic === true || status === 'FAIL',
+    clinic_task_id: String(row?.clinic_task_id || '').trim(),
+    attempt_no: Number(row?.attempt_no || 1) || 1,
+    source: String(row?.source || '').trim(),
+    note: String(row?.note || '').trim(),
+    created_by: String(row?.created_by || '').trim(),
+    created_at: String(row?.created_at || ''),
+    updated_by: String(row?.updated_by || '').trim(),
+    updated_at: String(row?.updated_at || '')
+  };
+}
+
+function buildWordRecordMirrorRow(result = {}, session = {}, auth = {}, source = 'wordTest.mirror') {
+  const totalCount = normalizeWordTotal(result.max_score ?? session.max_score, 100);
+  const correctCount = result.score == null ? null : normalizeWordCount(result.score, null);
+  const passCount = normalizeWordPassCount(result.pass_score ?? session.pass_score, totalCount, Math.ceil(totalCount * 0.9));
+  const resultStatus = normalizeWordResultStatus(result.result_status, correctCount, passCount);
+  const wordAccuracy = correctCount === null ? null : Math.round((correctCount / totalCount) * 10000) / 100;
+  return {
+    record_id: String(result.record_id || '').trim() || randomUUID(),
+    academy_id: String(session.academy_id || result.academy_id || '').trim() || null,
+    student_id: normalizeStudentId(result.student_id),
+    class_id: String(session.class_id || result.class_id || '').trim() || null,
+    session_id: String(result.session_id || session.session_id || '').trim() || null,
+    result_id: String(result.result_id || '').trim() || null,
+    book_id: String(session.book_id || result.book_id || '').trim() || null,
+    range_id: String(session.range_id || result.range_id || '').trim() || null,
+    word_book_title: normalizeLimitedText(session.book_title || session.word_book_title || '', 200),
+    range_label: normalizeLimitedText(session.range_label || '', 200),
+    scope_text: normalizeLimitedText(session.scope_text || result.scope_text || '', 1000),
+    yyyymmdd: String(session.yyyymmdd || result.yyyymmdd || kstYmd(new Date())).replace(/[^0-9]/g, '').slice(0, 8),
+    word_total_count: totalCount,
+    word_correct_count: correctCount,
+    word_pass_count: passCount,
+    word_accuracy: wordAccuracy,
+    result_status: resultStatus,
+    word_passed: resultStatus === 'PASS' || resultStatus === 'EXEMPT',
+    word_needs_retest: resultStatus === 'FAIL',
+    word_needs_clinic: resultStatus === 'FAIL',
+    clinic_task_id: String(result.clinic_task_id || '').trim() || null,
+    attempt_no: Number(result.attempt_no || 1) || 1,
+    source,
+    note: normalizeLimitedText(result.note, 1000),
+    created_by: String(result.created_by || auth?.me?.staff_id || '').trim() || null,
+    created_at: String(result.created_at || nowIso()),
+    updated_by: String(auth?.me?.staff_id || result.updated_by || '').trim() || null,
+    updated_at: nowIso(),
+    deleted_at: null
+  };
+}
+
+async function upsertWordRecordMirrorsIfAvailable(supabase, auth, results = [], session = {}, source = 'wordTest.mirror') {
+  const rows = (Array.isArray(results) ? results : [results])
+    .filter(Boolean)
+    .map(row => buildWordRecordMirrorRow(row, session, auth, source))
+    .filter(row => row.student_id && row.session_id);
+  if (!rows.length) return { ok: true, mirrored_count: 0, skipped: true, warning: '' };
+
+  const { data, error } = await supabase
+    .from('word_records')
+    .upsert(rows, { onConflict: 'session_id,student_id' })
+    .select('record_id, session_id, student_id, result_status, word_needs_retest, word_needs_clinic, updated_at');
+
+  if (error) {
+    if (isMissingWordRecordsTableError(error)) {
+      return { ok: true, mirrored_count: 0, skipped: true, warning: 'word_records 테이블이 없어 학생별 단어 누적 mirror를 건너뛰었습니다. docs/supabase-student-word-records-v1.sql 적용이 필요합니다.' };
+    }
+    return { ok: false, mirrored_count: 0, skipped: false, warning: error.message || 'word_records mirror 저장 실패' };
+  }
+  return { ok: true, mirrored_count: Array.isArray(data) ? data.length : rows.length, skipped: false, warning: '' };
+}
+
+async function wordRecordListDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const supabase = getSupabaseAdmin();
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const sessionId = String(args.session_id || args.sessionId || '').trim();
+  const status = String(args.result_status || args.resultStatus || '').trim().toUpperCase();
+  const startYmd = String(args.start_ymd || args.startYmd || args.period_start || args.periodStart || '').replace(/[^0-9]/g, '').slice(0, 8);
+  const endYmd = String(args.end_ymd || args.endYmd || args.period_end || args.periodEnd || '').replace(/[^0-9]/g, '').slice(0, 8);
+  const needsRetest = args.needs_retest ?? args.needsRetest;
+  const needsClinic = args.needs_clinic ?? args.needsClinic;
+  const limit = Math.max(1, Math.min(500, toPositiveInt(args.limit, 100)));
+
+  if (startYmd && !isStrictYmd(startYmd)) return fail(400, 'INVALID_INPUT', '조회 시작일은 YYYYMMDD 형식이어야 합니다.');
+  if (endYmd && !isStrictYmd(endYmd)) return fail(400, 'INVALID_INPUT', '조회 종료일은 YYYYMMDD 형식이어야 합니다.');
+  if (startYmd && endYmd && startYmd > endYmd) return fail(400, 'INVALID_INPUT', '조회 시작일은 종료일보다 늦을 수 없습니다.');
+
+  let q = supabase
+    .from('word_records')
+    .select('record_id, academy_id, student_id, class_id, session_id, result_id, book_id, range_id, word_book_title, range_label, scope_text, yyyymmdd, word_total_count, word_correct_count, word_pass_count, word_accuracy, result_status, word_passed, word_needs_retest, word_needs_clinic, clinic_task_id, attempt_no, source, note, created_by, created_at, updated_by, updated_at')
+    .order('yyyymmdd', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+
+  if (sid) q = q.eq('student_id', sid);
+  if (sessionId) q = q.eq('session_id', sessionId);
+  if (['PASS', 'FAIL', 'ABSENT', 'EXEMPT'].includes(status)) q = q.eq('result_status', status);
+  if (startYmd) q = q.gte('yyyymmdd', startYmd);
+  if (endYmd) q = q.lte('yyyymmdd', endYmd);
+  if (needsRetest !== undefined && needsRetest !== null && String(needsRetest).trim() !== '') q = q.eq('word_needs_retest', normalizeBool(needsRetest, false));
+  if (needsClinic !== undefined && needsClinic !== null && String(needsClinic).trim() !== '') q = q.eq('word_needs_clinic', normalizeBool(needsClinic, false));
+
+  const { data, error } = await q;
+  if (error) {
+    if (isMissingWordRecordsTableError(error)) {
+      return success({
+        source: 'MISSING_TABLE',
+        count: 0,
+        pass_count: 0,
+        fail_count: 0,
+        retest_count: 0,
+        clinic_candidate_count: 0,
+        items: [],
+        filter: { student_id: sid, session_id: sessionId, result_status: status, start_ymd: startYmd, end_ymd: endYmd, limit },
+        warnings: ['word_records 테이블이 아직 없습니다. docs/supabase-student-word-records-v1.sql 적용 후 학생별 누적 기록을 사용할 수 있습니다.']
+      });
+    }
+    return fail(500, 'DB_SELECT_FAILED', error.message || 'word_records 조회 실패');
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  const studentIds = Array.from(new Set(rows.map(row => normalizeStudentId(row?.student_id)).filter(Boolean)));
+  const studentNameMap = await readStudentNameMap(supabase, studentIds);
+  const items = rows.map(row => mapWordRecordRow(row, studentNameMap));
+  return success({
+    source: 'SUPABASE',
+    count: items.length,
+    pass_count: items.filter(row => row.result_status === 'PASS').length,
+    fail_count: items.filter(row => row.result_status === 'FAIL').length,
+    retest_count: items.filter(row => row.word_needs_retest).length,
+    clinic_candidate_count: items.filter(row => row.word_needs_clinic).length,
+    items,
+    filter: { student_id: sid, session_id: sessionId, result_status: status, start_ymd: startYmd, end_ymd: endYmd, limit },
+    warnings: []
+  });
+}
+
+
 async function appendPortalAuditLogDirect(supabase, auth, payload = {}) {
   try {
     const row = {
@@ -4154,6 +4339,8 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
 
   if (error) return fail(500, 'DB_UPSERT_FAILED', error.message || 'word_test_results 저장 실패');
 
+  const wordRecordMirror = await upsertWordRecordMirrorsIfAvailable(supabase, auth, [saved || row], session, 'wordTest.enterResult');
+
   const resolvedClinic = await resolveWordFailClinicIfNeeded(supabase, auth, row.clinic_task_id, resultStatus, {
     session_id: sessionId,
     student_id: sid,
@@ -4168,7 +4355,7 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
     action: existing ? 'UPDATE' : 'CREATE',
     before_json: existing || {},
     after_json: saved || row,
-    meta_json: { clinic_task_id: row.clinic_task_id || '', result_status: resultStatus }
+    meta_json: { clinic_task_id: row.clinic_task_id || '', result_status: resultStatus, word_record_mirror: wordRecordMirror }
   });
 
   const item = mapWordResultRow(saved || row, { [sessionId]: session }, {});
@@ -4177,6 +4364,9 @@ async function wordTestEnterResultDirect(args = {}, sessionToken = '') {
     clinic_task: clinicTask,
     created_clinic: !!clinicTask,
     resolved_clinic: resolvedClinic.resolved === true,
+    word_record_mirrored: wordRecordMirror.ok === true && wordRecordMirror.skipped !== true,
+    word_record_mirror_count: wordRecordMirror.mirrored_count || 0,
+    word_record_warning: wordRecordMirror.ok ? wordRecordMirror.warning || '' : wordRecordMirror.warning || 'word_records mirror 저장 실패',
     resolve_warning: resolvedClinic.ok ? '' : resolvedClinic.error || '',
     audit_warning: audit.ok ? '' : audit.error || ''
   });
@@ -4397,6 +4587,8 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
 
   if (saveErr) return fail(500, 'DB_UPSERT_FAILED', saveErr.message || 'word_test_results 일괄 저장 실패');
 
+  const wordRecordMirror = await upsertWordRecordMirrorsIfAvailable(supabase, auth, savedRows || rowsToUpsert, session, 'wordTest.bulkEnterResults');
+
   const resolvedClinics = [];
   for (const item of normalized) {
     const existing = existingBySid.get(item.student_id) || null;
@@ -4426,7 +4618,7 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
     action: 'BULK_UPSERT',
     before_json: beforeJson,
     after_json: { items },
-    meta_json: { count: items.length, pass_count: passCount, fail_count: failCount, absent_count: absentCount, exempt_count: exemptCount, clinic_count: clinicItems.length }
+    meta_json: { count: items.length, pass_count: passCount, fail_count: failCount, absent_count: absentCount, exempt_count: exemptCount, clinic_count: clinicItems.length, word_record_mirror: wordRecordMirror }
   });
 
   return success({
@@ -4437,6 +4629,8 @@ async function wordTestBulkEnterResultsDirect(args = {}, sessionToken = '') {
     exempt_count: exemptCount,
     created_clinic_count: clinicItems.length,
     resolved_clinic_count: resolvedClinics.length,
+    word_record_mirror_count: wordRecordMirror.mirrored_count || 0,
+    word_record_warning: wordRecordMirror.ok ? wordRecordMirror.warning || '' : wordRecordMirror.warning || 'word_records mirror 저장 실패',
     items,
     clinic_items: clinicItems,
     audit_warning: audit.ok ? '' : audit.error || ''
@@ -6308,6 +6502,11 @@ export default async function handler(req, res) {
 
   if (op === 'wordCatalog.list') {
     const result = await wordCatalogListDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'wordRecord.list') {
+    const result = await wordRecordListDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

@@ -295,3 +295,40 @@ When an existing `word_test_results` row has a linked `clinic_task_id` from a `W
 - fallback: 테이블이 아직 없으면 빈 seed fallback을 반환한다.
 - 운영 원칙: 단어 원문과 뜻은 저장하지 않고 단어책/범위/word_count만 사용한다.
 - smoke test: 포함.
+
+
+## wordRecord.list
+
+학생별 단어 누적 기록을 조회한다. `student-word-records-v1`에서 추가된 API다.
+
+### 권한
+
+`assistant` 이상.
+
+### 요청 예시
+
+```json
+{
+  "op": "wordRecord.list",
+  "args": {
+    "sessionToken": "...",
+    "student_id": "0001",
+    "start_ymd": "20260601",
+    "end_ymd": "20260630",
+    "limit": 100
+  }
+}
+```
+
+### 응답 요약
+
+- `count`
+- `pass_count`
+- `fail_count`
+- `retest_count`
+- `clinic_candidate_count`
+- `items[]`
+
+### 운영 메모
+
+기존 `wordTest.enterResult` / `wordTest.bulkEnterResults`는 계속 `word_test_results`에 저장한다. 동시에 `word_records` 테이블이 있으면 학생별 누적 기록을 mirror 저장한다. `word_records` 테이블이 아직 없으면 기존 저장은 실패하지 않고 `word_record_warning`만 반환한다.
