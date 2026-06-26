@@ -382,3 +382,10 @@ npm run smoke-test
 4. 하원 모드에서 같은 학번 4자리를 입력해 `하원 완료`가 표시되는지 확인한다.
 5. 기존 학생 QR 스캔도 계속 정상 처리되는지 확인한다.
 6. 잘못된 학번이나 재원 상태가 아닌 학생은 기존처럼 차단되는지 확인한다.
+
+## Smoke-test local env / one-click release v1
+
+1. 최초 1회 `scripts/setup-smoke-env.ps1`로 `.env.smoke.local`을 만든다.
+2. `.env.smoke.local`은 Git과 release zip에 포함하지 않는다.
+3. `npm run smoke-test`는 `.env.smoke.local`을 자동으로 읽어 로그인 이후 보호 API까지 확인한다.
+4. 패치 완료 시 `scripts/one-click-release.ps1`로 문법검사, 전체검증, 빌드, 커밋, 푸쉬, 압축파일, 배포, smoke-test를 한 번에 실행할 수 있다.

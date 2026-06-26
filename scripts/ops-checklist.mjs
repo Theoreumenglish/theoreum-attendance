@@ -32,6 +32,8 @@ const requiredFiles = [
   'docs/DATA_DICTIONARY.md',
   'docs/TEST_PLAN.md',
   'scripts/smoke-test.mjs',
+  'scripts/setup-smoke-env.ps1',
+  'scripts/one-click-release.ps1',
   'scripts/final-readiness-check.mjs',
   'docs/FINAL_READINESS_CHECKLIST.md',
   'docs/MASTER_DATA_PORTAL.md',
@@ -44,7 +46,7 @@ const requiredFiles = [
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -76,6 +78,10 @@ for (const [label, passed] of checklist) {
 }
 
 if (!/SMOKE_BASE_URL/.test(read('scripts/smoke-test.mjs'))) warn('smoke-test는 SMOKE_BASE_URL 지정 후 실행해야 합니다.');
+
+checkText('scripts/smoke-test.mjs', 'loadLocalSmokeEnv', 'smoke-test 로컬 env 자동 로딩');
+checkText('scripts/setup-smoke-env.ps1', '.env.smoke.local', 'smoke-test 로컬 계정 저장 스크립트');
+checkText('scripts/one-click-release.ps1', '검사 → 검증 → 빌드 → 커밋 → 푸쉬', '원클릭 release/deploy 스크립트');
 
 
 checkFile('docs/supabase-clinic-auto-notify-v1.sql', '클리닉 자동 알림 SQL');

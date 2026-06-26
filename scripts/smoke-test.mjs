@@ -3,7 +3,40 @@
 // Usage:
 //   SMOKE_BASE_URL=https://your-app.vercel.app npm run smoke-test
 //   SMOKE_BASE_URL=... SMOKE_STAFF_ID=... SMOKE_PASSWORD=... npm run smoke-test
+//   Or create .env.smoke.local with scripts/setup-smoke-env.ps1 and run npm run smoke-test
 
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+function parseEnvValue(raw) {
+  const v = String(raw || '').trim();
+  if ((v.startsWith('\"') && v.endsWith('\"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    return v.slice(1, -1);
+  }
+  return v;
+}
+
+function loadLocalSmokeEnv() {
+  const files = ['.env.smoke.local', '.env.local'];
+  for (const file of files) {
+    const path = resolve(process.cwd(), file);
+    if (!existsSync(path)) continue;
+    const body = readFileSync(path, 'utf8');
+    for (const line of body.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const idx = trimmed.indexOf('=');
+      if (idx <= 0) continue;
+      const key = trimmed.slice(0, idx).trim();
+      const value = parseEnvValue(trimmed.slice(idx + 1));
+      if (!key || process.env[key]) continue;
+      if (key === 'SMOKE_PASSWORD') process.env[key] = value;
+      else if (/^SMOKE_[A-Z0-9_]+$/.test(key)) process.env[key] = value;
+    }
+  }
+}
+
+loadLocalSmokeEnv();
 const baseUrl = String(process.env.SMOKE_BASE_URL || process.env.VERCEL_URL || '').trim().replace(/\/+$/, '');
 const staffId = String(process.env.SMOKE_STAFF_ID || '').trim();
 const password = String(process.env.SMOKE_PASSWORD || '').trim();

@@ -96,3 +96,10 @@ npm run smoke-test
 4. 리포트 문구 다듬기
 5. 권한별 버튼 숨김
 6. admin.html / api/rpc.js 모듈화
+
+## One-click release / smoke env
+
+- `.env.smoke.local`은 운영 smoke-test 계정 정보를 로컬에만 저장한다.
+- `.env.smoke.local`은 Git commit 및 release zip에 포함하지 않는다.
+- `scripts/one-click-release.ps1`은 검사 → 검증 → 빌드 → 커밋 → 푸쉬 → 압축파일 → 배포 → smoke-test 흐름을 한 번에 실행한다.
+- 비밀번호는 코드와 문서에 하드코딩하지 않는다.

@@ -9,3 +9,4 @@ _release/
 *.zip
 _patch*/
 _backup*/
+.env.smoke.local
