@@ -2176,6 +2176,98 @@ async function adminCentralScheduleUpdateDirect(args = {}, sessionToken = '') {
 async function adminCentralScheduleRebuildDirect(args = {}, sessionToken = '') {
   return proxyCentralBridgeManaged('bridge.schedule.rebuild', {}, sessionToken, 'admin', { timeoutMs: 90000, mutate: true });
 }
+
+function normalizeCentralStaffPhoneForStorage(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return '';
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (/^010\d{8}$/.test(digits)) return digits;
+  if (/^\d{8}$/.test(digits)) return '010' + digits;
+  return null;
+}
+
+function pickCentralStaffPhone(row = {}) {
+  const candidates = [
+    row?.staff_phone,
+    row?.phone,
+    row?.mobile,
+    row?.mobile_phone,
+    row?.phone_number,
+    row?.tel,
+    row?.contact,
+    row?.contact_phone
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeCentralStaffPhoneForStorage(candidate);
+    if (normalized) return normalized;
+  }
+  return '';
+}
+
+function centralStaffPhoneWasProvided(input = {}) {
+  return Object.prototype.hasOwnProperty.call(input, 'staff_phone') ||
+    Object.prototype.hasOwnProperty.call(input, 'phone') ||
+    Object.prototype.hasOwnProperty.call(input, 'mobile') ||
+    Object.prototype.hasOwnProperty.call(input, 'mobile_phone') ||
+    Object.prototype.hasOwnProperty.call(input, 'phone_number');
+}
+
+async function patchCentralStaffPhoneMirror(staffId, staffPhone) {
+  const sid = String(staffId || '').trim().toLowerCase();
+  if (!sid) return { ok: false, updated: [], skipped: [], error: 'missing staff_id' };
+  const supabase = getSupabaseAdmin();
+  const tables = ['staff', 'staff_snapshot'];
+  const columns = ['staff_phone', 'phone', 'mobile', 'mobile_phone', 'phone_number'];
+  const updated = [];
+  const skipped = [];
+
+  for (const table of tables) {
+    let tableDone = false;
+    for (const column of columns) {
+      try {
+        const { data, error } = await supabase
+          .from(table)
+          .update({ [column]: staffPhone })
+          .eq('staff_id', sid)
+          .select(`staff_id, ${column}`)
+          .limit(1);
+
+        if (!error) {
+          const hit = Array.isArray(data) && data.length > 0;
+          updated.push({ table, column, matched: hit });
+          tableDone = true;
+          break;
+        }
+
+        const code = String(error?.code || '').trim();
+        const message = String(error?.message || '').toLowerCase();
+        if (code === 'PGRST205' || message.includes('could not find the table')) {
+          skipped.push({ table, column, reason: 'missing_table' });
+          tableDone = true;
+          break;
+        }
+        if (code === 'PGRST204' || message.includes('column') || message.includes('schema cache')) {
+          skipped.push({ table, column, reason: 'missing_column' });
+          continue;
+        }
+        skipped.push({ table, column, reason: error.message || 'update_failed' });
+      } catch (e) {
+        skipped.push({ table, column, reason: e?.message || String(e) });
+      }
+    }
+    if (!tableDone) skipped.push({ table, column: '', reason: 'no_supported_phone_column' });
+  }
+
+  return {
+    ok: updated.some(item => item.matched),
+    updated,
+    skipped,
+    note: updated.some(item => item.matched)
+      ? '직원 휴대폰 번호가 Supabase 직원 mirror에 반영되었습니다.'
+      : '직원 mirror row가 아직 없거나 phone 컬럼이 없습니다. docs/supabase-staff-phone-v1.sql 적용 및 중앙DB 최신화를 확인하세요.'
+  };
+}
+
 async function readCentralStaffListReplicaDirect() {
   const supabase = getSupabaseAdmin();
   const readFrom = async (table) => {
@@ -2199,6 +2291,8 @@ async function readCentralStaffListReplicaDirect() {
           status,
           has_password: !!String(row?.password_hash || row?.pw_hash || '').trim(),
           has_pin: !!String(row?.pin_hash || '').trim(),
+          staff_phone: pickCentralStaffPhone(row),
+          phone: pickCentralStaffPhone(row),
           last_login_at: String(row?.last_login_at || ''),
           created_at: String(row?.created_at || ''),
           updated_at: String(row?.updated_at || '')
@@ -2249,17 +2343,38 @@ async function adminCentralStaffListDirect(args = {}, sessionToken = '') {
 }
 async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
   const input = args.staff || args || {};
+  const phoneProvided = centralStaffPhoneWasProvided(input);
+  const normalizedPhone = normalizeCentralStaffPhoneForStorage(
+    input.staff_phone || input.phone || input.mobile || input.mobile_phone || input.phone_number || ''
+  );
+  if (phoneProvided && normalizedPhone === null) {
+    return fail(400, 'INVALID_INPUT', '직원 휴대폰 번호는 010으로 시작하는 11자리 또는 뒤 8자리로 입력하세요.');
+  }
   const staff = {
     staff_id: String(input.staff_id || input.staffId || '').trim().toLowerCase().slice(0, 80),
     name: String(input.name || '').trim().slice(0, 80),
     role: String(input.role || 'assistant').trim().toLowerCase().slice(0, 30),
     revoked: String(input.revoked || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
     status: String(input.status || 'inactive').trim().toLowerCase().slice(0, 30),
+    staff_phone: normalizedPhone || '',
+    phone: normalizedPhone || '',
     password: String(input.password || '').slice(0, 200),
     pin: String(input.pin || '').replace(/[^0-9]/g, '').slice(0, 8)
   };
   if (!staff.staff_id) return fail(400, 'INVALID_INPUT', 'staff_id가 필요합니다.');
-  return proxyCentralBridgeManaged('bridge.staff.upsert', { staff }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+
+  const result = await proxyCentralBridgeManaged('bridge.staff.upsert', { staff }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
+  if (result.body?.ok === true && phoneProvided) {
+    const phonePatch = await patchCentralStaffPhoneMirror(staff.staff_id, normalizedPhone || '');
+    result.body.data = {
+      ...(result.body.data || {}),
+      staff_phone: normalizedPhone || '',
+      staff_phone_patch: phonePatch
+    };
+    fastCacheDelPrefix('central.staff.list');
+    fastCacheDelPrefix('central_staff_list');
+  }
+  return result;
 }
 async function adminCentralStaffToggleDirect(args = {}, sessionToken = '') {
   const staffId = String(args.staff_id || args.staffId || '').trim().toLowerCase();

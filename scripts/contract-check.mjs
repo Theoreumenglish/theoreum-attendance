@@ -541,6 +541,18 @@ if (!existsSync(join(root, 'docs/supabase-online-lecture-assignment-v1.sql'))) {
   ok('온라인강의 배정 SQL 문서가 존재합니다.');
 }
 
+
+if (!adminText.includes('centralStaffPhone') || !rpcText.includes('patchCentralStaffPhoneMirror')) {
+  fail('중앙DB 직원 휴대폰 입력/저장 계약이 없습니다.');
+} else {
+  ok('중앙DB 직원 휴대폰 입력/저장 계약이 있습니다.');
+}
+if (!existsSync(join(root, 'scripts/production-qa-runner.mjs'))) {
+  fail('production QA runner 스크립트가 없습니다.');
+} else {
+  ok('production QA runner 스크립트가 존재합니다.');
+}
+
 if (!existsSync(join(root, 'scripts/ops-checklist.mjs'))) {
   fail('운영 테스트 체크리스트 자동화 스크립트가 없습니다.');
 } else {

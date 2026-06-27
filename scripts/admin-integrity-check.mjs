@@ -113,6 +113,11 @@ if (!staffClock.includes('readStaffForPhoneClock') || !staffClock.includes("inpu
   fail('직원 휴대폰 번호 출퇴근 서버 처리가 없습니다.');
 } else ok('직원 휴대폰 번호 출퇴근 서버 처리가 있습니다.');
 
+if (!html.includes('centralStaffPhone') || !rpc.includes('patchCentralStaffPhoneMirror') || !rpc.includes('normalizeCentralStaffPhoneForStorage')) {
+  fail('직원 휴대폰 입력/저장/mirror 반영 흐름이 없습니다.');
+} else ok('직원 휴대폰 입력/저장/mirror 반영 흐름이 있습니다.');
+
+
 if (!html.includes('auditOpLabel') || !html.includes('auditTargetLabel')) {
   fail('감사 로그 화면 문구 변환 함수가 없습니다.');
 } else ok('감사 로그 화면 문구 변환이 있습니다.');

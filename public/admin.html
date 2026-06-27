@@ -4571,6 +4571,7 @@
 <div class="formGrid cols3" style="margin-top:16px;">
 <div><div class="fieldLabel">직원 ID</div><input class="inp" id="centralStaffId" placeholder="staff_id"/></div>
 <div><div class="fieldLabel">이름</div><input class="inp" id="centralStaffName" placeholder="직원 이름"/></div>
+<div><div class="fieldLabel">휴대폰</div><input class="inp" id="centralStaffPhone" inputmode="numeric" placeholder="01055556666 또는 55556666"/></div>
 <div><div class="fieldLabel">권한</div><select class="select" id="centralStaffRole"><option value="assistant">조교</option><option value="teacher">강사</option><option value="admin">관리자</option><option value="owner">오너</option></select></div>
 <div><div class="fieldLabel">상태</div><select class="select" id="centralStaffStatus"><option value="active">활성</option><option value="disabled">차단</option><option value="inactive">휴면</option></select></div>
 <div><div class="fieldLabel">revoked</div><select class="select" id="centralStaffRevoked"><option value="N">N</option><option value="Y">Y</option></select></div>
@@ -4578,7 +4579,7 @@
 <div><div class="fieldLabel">새 PIN</div><input class="inp" id="centralStaffPin" inputmode="numeric" placeholder="4~8자리"/></div>
 </div>
 <div class="tableWrap" style="margin-top:16px;">
-<table class="table"><thead><tr><th>ID</th><th>이름</th><th>권한</th><th>상태</th><th>인증</th><th>작업</th></tr></thead><tbody id="centralStaffRows"><tr><td colspan="6" style="color:var(--muted);">조회 전입니다.</td></tr></tbody></table>
+<table class="table"><thead><tr><th>ID</th><th>이름</th><th>휴대폰</th><th>권한</th><th>상태</th><th>인증</th><th>작업</th></tr></thead><tbody id="centralStaffRows"><tr><td colspan="7" style="color:var(--muted);">조회 전입니다.</td></tr></tbody></table>
 </div>
 </div>
 
@@ -6270,6 +6271,7 @@
     function fillCentralStaffForm(item = {}) {
       $('#centralStaffId').value = item.staff_id || '';
       $('#centralStaffName').value = item.name || '';
+      $('#centralStaffPhone').value = item.staff_phone || item.phone || item.mobile || item.mobile_phone || '';
       $('#centralStaffRole').value = item.role || 'assistant';
       $('#centralStaffStatus').value = item.status || 'inactive';
       $('#centralStaffRevoked').value = String(item.revoked || 'N').toUpperCase() === 'Y' ? 'Y' : 'N';
@@ -6283,8 +6285,8 @@
       if (!r.ok) { showToast(r.error?.message || '직원 목록 조회 실패'); showResult('직원 목록 조회 실패', r); return; }
       const items = Array.isArray(r.data?.staff) ? r.data.staff : [];
       box.innerHTML = items.length ? items.map(item => `
-        <tr><td>${esc(item.staff_id || '')}</td><td>${esc(item.name || '')}</td><td>${esc(item.role || '')}</td><td>${esc(item.status || '')}${String(item.revoked || '') === 'Y' ? ' / revoked' : ''}</td><td>${item.has_password ? 'PW' : '-'} / ${item.has_pin ? 'PIN' : '-'}</td><td><button class="btn btnGhost" type="button" data-central-staff='${esc(JSON.stringify(item))}'>선택</button></td></tr>
-      `).join('') : '<tr><td colspan="6" style="color:var(--muted);">직원이 없습니다.</td></tr>';
+        <tr><td>${esc(item.staff_id || '')}</td><td>${esc(item.name || '')}</td><td>${esc(item.staff_phone || item.phone || item.mobile || '')}</td><td>${esc(item.role || '')}</td><td>${esc(item.status || '')}${String(item.revoked || '') === 'Y' ? ' / revoked' : ''}</td><td>${item.has_password ? 'PW' : '-'} / ${item.has_pin ? 'PIN' : '-'}</td><td><button class="btn btnGhost" type="button" data-central-staff='${esc(JSON.stringify(item))}'>선택</button></td></tr>
+      `).join('') : '<tr><td colspan="7" style="color:var(--muted);">직원이 없습니다.</td></tr>';
       $$('#centralStaffRows button[data-central-staff]').forEach(btn => btn.addEventListener('click', () => { try { fillCentralStaffForm(JSON.parse(btn.dataset.centralStaff || '{}')); } catch(_) {} }));
       showToast('직원 목록을 조회했습니다.');
     }
@@ -6293,6 +6295,8 @@
       return {
         staff_id: ($('#centralStaffId')?.value || '').trim(),
         name: ($('#centralStaffName')?.value || '').trim(),
+        staff_phone: ($('#centralStaffPhone')?.value || '').trim(),
+        phone: ($('#centralStaffPhone')?.value || '').trim(),
         role: ($('#centralStaffRole')?.value || 'assistant').trim(),
         status: ($('#centralStaffStatus')?.value || 'inactive').trim(),
         revoked: ($('#centralStaffRevoked')?.value || 'N').trim(),

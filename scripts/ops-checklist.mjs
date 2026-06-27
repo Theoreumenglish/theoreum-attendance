@@ -249,6 +249,14 @@ checkText('public/admin.html', 'btnSaveLectureAssignment', '온라인강의 배�
 checkText('public/student-today.html', 'lectureBox', '학생 링크 온라인강의 표시 영역');
 checkText('scripts/smoke-test.mjs', 'admin.lectureAssignment.list', '온라인강의 배정 smoke-test');
 
+
+checkText('docs/STAFF_PHONE_MANAGEMENT_V1.md', 'staff-phone-management-v1', '직원 휴대폰 관리 문서');
+checkText('docs/supabase-staff-phone-v1.sql', 'staff_phone', '직원 휴대폰 Supabase SQL');
+checkText('public/admin.html', 'centralStaffPhone', '중앙DB 직원 휴대폰 입력 UI');
+checkText('api/rpc.js', 'patchCentralStaffPhoneMirror', '직원 휴대폰 mirror 반영 서버 함수');
+checkText('scripts/production-qa-runner.mjs', 'TheOreum production QA runner', 'production QA runner');
+checkText('docs/PRODUCTION_QA_RUNNER_V1.md', 'production-qa-runner-v1', 'production QA runner 문서');
+
 checkText('docs/KIOSK_VISUAL_QA_V1.md', 'kiosk-visual-qa-v1', '키오스크 시각/입력 QA 문서');
 checkText('index.html', 'handlePhoneSegmentKeydown(e, part)', '키오스크 물리 키보드 분할 입력 핸들러');
 checkText('scripts/kiosk-input-flow-check.mjs', 'Kiosk input flow static check passed', '키오스크 입력 flow 정적 검사');
