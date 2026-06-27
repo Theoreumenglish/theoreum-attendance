@@ -396,3 +396,11 @@ This is used by the physical keyboard kiosk after the `staff` command. Staff QR 
 - `lectureAssignment.complete`
 
 이 API들은 내부 운영 데이터 중 공개 가능한 범위만 노출해야 하며, 내부 메모와 staff-only 데이터는 절대 공개하지 않는다.
+
+
+## phone-identity-quality-v1
+
+- `admin.phoneIdentity.audit`: 휴대폰 뒤 8자리 출결 준비도를 읽기 전용으로 점검한다.
+- 권한: admin 이상.
+- DB 변경 없음.
+- 학생은 `students.student_phone`, 직원은 `staff` / `staff_snapshot` 전화번호 계열 컬럼을 기준으로 한다.

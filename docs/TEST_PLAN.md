@@ -436,3 +436,11 @@ npm run smoke-test
 ## 개발 속도 안정화 루틴
 
 원클릭 릴리즈는 `npm run verify`를 단일 전체 검증 기준으로 사용한다. `verify` 안에 문법검사와 빌드가 포함되어 있으므로 별도 `check`/`build` 중복 실행을 피한다.
+
+
+## phone-identity-quality-v1 테스트
+
+1. 관리자 로그인 후 설정 화면에서 휴대폰 출결 준비도 점검을 실행한다.
+2. 번호 없음/형식 오류/뒤 8자리 중복이 표에 표시되는지 확인한다.
+3. 수정 필요 목록 복사 버튼이 동작하는지 확인한다.
+4. `npm run smoke-test`에서 `admin.phoneIdentity.audit`가 200 응답하는지 확인한다.

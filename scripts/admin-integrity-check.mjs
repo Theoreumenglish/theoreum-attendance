@@ -170,6 +170,15 @@ if (!rpc.includes('adminSaveStaffClockManualDirect') || !rpc.includes('adminList
   fail('직원 출퇴근 수기 API Direct 연결이 없습니다.');
 } else ok('직원 출퇴근 수기 API Direct 연결이 있습니다.');
 
+
+if (!html.includes('btnPhoneIdentityAudit') || !html.includes('phoneIdentityRows') || !html.includes('copyPhoneIdentityIssues')) {
+  fail('휴대폰 출결 준비도 UI/복사 흐름이 없습니다.');
+} else ok('휴대폰 출결 준비도 UI/복사 흐름이 있습니다.');
+
+if (!rpc.includes('adminPhoneIdentityAuditDirect') || !rpc.includes("op === 'admin.phoneIdentity.audit'")) {
+  fail('휴대폰 출결 준비도 서버 API가 없습니다.');
+} else ok('휴대폰 출결 준비도 서버 API가 있습니다.');
+
 if (failed) {
   console.error(`\nAdmin integrity check failed: ${failed} issue(s)`);
   process.exit(1);

@@ -106,6 +106,7 @@ if (staffId && password) {
     assertOk('auth.me staff', await rpc('auth.me', { sessionToken }));
     assertOk('admin.getOpsOverview', await rpc('admin.getOpsOverview', { sessionToken }), { allowAuthFail: true });
     assertOk('admin.finalReadiness', await rpc('admin.finalReadiness', { sessionToken }), { allowAuthFail: true });
+    assertOk('admin.phoneIdentity.audit', await rpc('admin.phoneIdentity.audit', { sessionToken }), { allowAuthFail: true });
     assertOk('clinic.listTasks', await rpc('clinic.listTasks', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('clinic.todayBoard', await rpc('clinic.todayBoard', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('assistant.listClassOptions', await rpc('assistant.listClassOptions', { sessionToken, limit: 5, fallback: true }), { allowAuthFail: true });

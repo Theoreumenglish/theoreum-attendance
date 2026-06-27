@@ -4639,6 +4639,25 @@
 </div>
 
 <div class="card cardPad">
+<div class="sectionTitle">휴대폰 출결 준비도</div>
+<div class="sectionDesc">010 뒤 8자리 출결이 실제 현장에서 실패하지 않도록 학생/직원 번호 누락, 형식 오류, 중복을 읽기 전용으로 점검합니다.</div>
+<div class="btnRow" style="margin-top:16px;">
+<button class="btn btnPri" id="btnPhoneIdentityAudit" type="button">휴대폰 출결 점검</button>
+<span class="btn btnGhost" id="btnCopyPhoneIdentityIssues" role="button" tabindex="0">수정 필요 목록 복사</span>
+</div>
+<div class="emptyPanel" id="phoneIdentitySummary" style="margin-top:16px;">
+<h3>점검 전입니다.</h3>
+<p>전화번호 출결을 사용하기 전에 재원생/직원 번호 누락과 중복을 먼저 확인하세요.</p>
+</div>
+<div class="tableWrap" style="margin-top:16px;">
+<table class="table">
+<thead><tr><th>구분</th><th>대상</th><th>번호</th><th>문제</th><th>상태</th></tr></thead>
+<tbody id="phoneIdentityRows"><tr><td colspan="5" style="color:var(--muted);">휴대폰 출결 점검을 실행하세요.</td></tr></tbody>
+</table>
+</div>
+</div>
+
+<div class="card cardPad">
 <div class="sectionTitle">중앙DB 시스템 설정 / 정합성</div>
 <div class="sectionDesc">중앙DB 웹앱의 설정값, Self Check, 새벽 자동화 대체 점검을 포털에서 실행합니다.</div>
 <div class="btnRow" style="margin-top:16px;">
@@ -8317,6 +8336,7 @@
       if (status === 'OK') return '추가 조치 없음';
       if (key === 'schema') return 'Supabase 보강 SQL 적용 여부를 확인하세요.';
       if (key === 'phone_coverage') return '중앙DB 학생/학부모 전화번호와 replica sync 매핑을 확인하세요.';
+      if (key === 'phone_identity') return '휴대폰 출결 점검에서 번호 없음/형식 오류/뒤 8자리 중복 항목을 수정하세요.';
       if (key === 'env') return 'Vercel 환경변수와 알림톡/SMS 키를 확인하세요.';
       if (key === 'clinic_workflow') return '클리닉 업무판에서 열린 건을 확인하고 처리하세요.';
       if (key === 'clinic_notify') return '문자 메뉴에서 실패 큐 last_error를 확인하세요.';
@@ -8375,6 +8395,99 @@
         '5. 단어시험, 리포트, 감사 로그가 실제 운영 데이터와 연결됐는지 확인'
       ].join('\n');
       showResult({ ok: true, data: guide });
+    }
+
+
+    let lastPhoneIdentityAudit = null;
+
+    function phoneIdentityStatusClass(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'OK') return 'ok';
+      if (s === 'WARN') return 'warn';
+      return 'bad';
+    }
+
+    function phoneIdentityStatusLabel(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'OK') return '정상';
+      if (s === 'WARN') return '확인';
+      if (s === 'FAIL') return '수정 필요';
+      return s || '-';
+    }
+
+    function renderPhoneIdentityAudit(data) {
+      lastPhoneIdentityAudit = data || {};
+      const summary = data?.summary || {};
+      const summaryEl = $('#phoneIdentitySummary');
+      if (summaryEl) {
+        const cls = phoneIdentityStatusClass(data?.status);
+        summaryEl.innerHTML = `
+          <h3>휴대폰 출결 준비도 <span class="statusPill ${cls}">${esc(phoneIdentityStatusLabel(data?.status))}</span></h3>
+          <p>학생 ${esc(summary.student_ready || 0)}/${esc(summary.active_students || 0)}명(${esc(summary.student_ready_rate || 0)}%) · 직원 ${esc(summary.staff_ready || 0)}/${esc(summary.active_staff || 0)}명(${esc(summary.staff_ready_rate || 0)}%) · 수정 필요 ${esc(summary.blockers || 0)}건 · 확인 권장 ${esc(summary.warnings || 0)}건</p>
+        `;
+      }
+
+      const issues = Array.isArray(data?.issues) ? data.issues : [];
+      const rows = $('#phoneIdentityRows');
+      if (!rows) return;
+      if (!issues.length) {
+        rows.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">수정 필요한 휴대폰 출결 문제가 없습니다.</td></tr>';
+        return;
+      }
+
+      rows.innerHTML = issues.slice(0, 120).map(item => {
+        const target = [item.name, item.id].filter(Boolean).join(' / ') || '-';
+        const entity = item.entity === 'student' ? '학생' : (item.entity === 'staff' ? '직원' : '시스템');
+        const status = item.severity === 'blocker' ? '수정 필요' : '확인 권장';
+        return `
+          <tr>
+            <td>${esc(entity)}</td>
+            <td class="wrap">${esc(target)}</td>
+            <td>${esc(item.phone || (item.tail8 ? '010-' + item.tail8.slice(0, 4) + '-' + item.tail8.slice(4) : '-'))}</td>
+            <td class="wrap">${esc(item.message || item.type || '-')}</td>
+            <td><span class="statusPill ${item.severity === 'blocker' ? 'bad' : 'warn'}">${esc(status)}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadPhoneIdentityAudit() {
+      const res = await rpc('admin.phoneIdentity.audit', {}, { timeoutMs: 35000 });
+      if (!res.ok) {
+        showToast(res.error?.message || '휴대폰 출결 점검 실패');
+        showResult(res);
+        return;
+      }
+      renderPhoneIdentityAudit(res.data || {});
+      showToast('휴대폰 출결 준비도 점검 완료');
+    }
+
+    async function copyPhoneIdentityIssues() {
+      const data = lastPhoneIdentityAudit;
+      const issues = Array.isArray(data?.issues) ? data.issues : [];
+      if (!issues.length) {
+        showToast('복사할 수정 필요 항목이 없습니다.');
+        return;
+      }
+      const lines = [
+        '[휴대폰 출결 수정 필요]',
+        `생성시각: ${data.generated_at || '-'}`,
+        `학생 가능: ${data.summary?.student_ready || 0}/${data.summary?.active_students || 0}명`,
+        `직원 가능: ${data.summary?.staff_ready || 0}/${data.summary?.active_staff || 0}명`,
+        ''
+      ];
+      issues.slice(0, 120).forEach((item, idx) => {
+        const entity = item.entity === 'student' ? '학생' : (item.entity === 'staff' ? '직원' : '시스템');
+        const target = [item.name, item.id].filter(Boolean).join(' / ') || '-';
+        lines.push(`${idx + 1}. ${entity} · ${target} · ${item.phone || item.tail8 || '-'} · ${item.message || item.type || '-'}`);
+      });
+      const text = lines.join('\n');
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('수정 필요 목록을 복사했습니다.');
+      } catch (e) {
+        showResult({ ok: true, data: text });
+      }
     }
 
     async function loadAuditLogs() {
@@ -8779,6 +8892,8 @@
       bindClick('btnLoadAuditLogs', loadAuditLogs);
       bindClick('btnFinalReadiness', loadFinalReadiness);
       bindClick('btnFinalReadinessGuide', showFinalReadinessGuide);
+      bindClick('btnPhoneIdentityAudit', loadPhoneIdentityAudit);
+      bindClick('btnCopyPhoneIdentityIssues', copyPhoneIdentityIssues);
       bindClick('btnQuickStudentSearch', quickStudentSearch);
       bindClick('btnPulseCheck', runTodayPulse);
       bindClick('btnCommandPulse', runTodayPulse);

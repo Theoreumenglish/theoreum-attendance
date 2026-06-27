@@ -46,6 +46,7 @@ const indexText = read(files.index);
 const absentCronText = read(files.absentCron);
 const notifyWorkerText = read(files.notifyWorker);
 const vercelText = read(files.vercel);
+const smokeText = read('scripts/smoke-test.mjs');
 const uiText = `${adminText}\n${indexText}`;
 
 const handledOps = uniq(collect(/\bop\s*={2,3}\s*['"]([^'"]+)['"]/g, rpcText));
@@ -488,6 +489,23 @@ if (!existsSync(join(root, 'scripts/smoke-test.mjs'))) {
   fail('실제 API smoke-test 스크립트가 없습니다.');
 } else {
   ok('실제 API smoke-test 스크립트가 존재합니다.');
+}
+
+
+if (!rpcText.includes("op === 'admin.phoneIdentity.audit'")) {
+  fail('admin.phoneIdentity.audit 서버 op가 없습니다.');
+} else {
+  ok('admin.phoneIdentity.audit 서버 op가 존재합니다.');
+}
+if (!adminText.includes('btnPhoneIdentityAudit') || !adminText.includes('phoneIdentityRows')) {
+  fail('휴대폰 출결 준비도 관리자 UI가 없습니다.');
+} else {
+  ok('휴대폰 출결 준비도 관리자 UI가 있습니다.');
+}
+if (!smokeText.includes('admin.phoneIdentity.audit')) {
+  fail('live smoke-test에 admin.phoneIdentity.audit가 없습니다.');
+} else {
+  ok('live smoke-test에 휴대폰 출결 준비도 점검이 포함됩니다.');
 }
 
 if (!existsSync(join(root, 'scripts/ops-checklist.mjs'))) {

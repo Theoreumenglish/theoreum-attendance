@@ -5432,6 +5432,357 @@ function kstDateTextFromYmd(ymd) {
   return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;
 }
 
+
+
+function phoneIdentityDigits(raw) {
+  return String(raw || '').replace(/[^0-9]/g, '');
+}
+
+function phoneIdentityIs010(raw) {
+  return /^010\d{8}$/.test(phoneIdentityDigits(raw));
+}
+
+function phoneIdentityTail8(raw) {
+  const digits = phoneIdentityDigits(raw);
+  if (/^010\d{8}$/.test(digits)) return digits.slice(-8);
+  if (/^\d{8}$/.test(digits)) return digits;
+  return '';
+}
+
+function phoneIdentityStudentActive(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return true;
+  return !['deleted', 'delete', 'inactive', 'disabled', '졸업', '퇴원', '휴원', '비활성', '삭제'].includes(v);
+}
+
+function phoneIdentityStaffActive(row = {}) {
+  const revoked = String(row?.revoked || '').trim().toUpperCase() === 'Y';
+  if (revoked) return false;
+  const v = String(row?.status || '').trim().toLowerCase();
+  if (!v) return true;
+  return ['active', '재직', '활성', 'enabled', '1', 'y', 'yes', 'true'].includes(v);
+}
+
+function phoneIdentityPickStaffPhone(row = {}) {
+  const candidates = [
+    row?.staff_phone,
+    row?.phone,
+    row?.mobile,
+    row?.mobile_phone,
+    row?.phone_number,
+    row?.tel,
+    row?.contact,
+    row?.contact_phone
+  ];
+  for (const c of candidates) {
+    const digits = phoneIdentityDigits(c);
+    if (digits) return String(c || '').trim();
+  }
+  return '';
+}
+
+function phoneIdentityIssue(entity, type, severity, row = {}, message = '', extra = {}) {
+  return {
+    entity,
+    type,
+    severity,
+    id: String(row?.student_id || row?.staff_id || row?.id || '').trim(),
+    name: String(row?.student_name || row?.name || '').trim(),
+    status: String(row?.status || '').trim(),
+    phone: String(row?.student_phone || row?.staff_phone || row?.phone || row?.mobile || row?.mobile_phone || '').trim(),
+    tail8: phoneIdentityTail8(row?.student_phone || row?.staff_phone || row?.phone || row?.mobile || row?.mobile_phone || ''),
+    message,
+    ...extra
+  };
+}
+
+function phoneIdentityGroupByTail(items) {
+  const map = new Map();
+  for (const item of items) {
+    const tail8 = String(item.tail8 || '').trim();
+    if (!tail8) continue;
+    if (!map.has(tail8)) map.set(tail8, []);
+    map.get(tail8).push(item);
+  }
+  return Array.from(map.entries()).filter(([, list]) => list.length > 1);
+}
+
+function phoneIdentityMissingTable(error, tableName) {
+  const code = String(error?.code || '').trim();
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  const table = String(tableName || '').toLowerCase();
+  return (
+    code === 'PGRST205' ||
+    message.includes('could not find the table') ||
+    message.includes(table) ||
+    details.includes(table)
+  );
+}
+
+async function phoneIdentityReadStaffRows(supabase) {
+  const tables = ['staff_snapshot', 'staff'];
+  const rows = [];
+  const errors = [];
+
+  for (const table of tables) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .limit(1000);
+
+    if (error) {
+      if (!phoneIdentityMissingTable(error, table)) {
+        errors.push({ table, message: String(error.message || error), code: String(error.code || '') });
+      }
+      continue;
+    }
+
+    for (const row of Array.isArray(data) ? data : []) {
+      rows.push({ ...row, _source_table: table });
+    }
+  }
+
+  const byId = new Map();
+  for (const row of rows) {
+    const id = String(row?.staff_id || '').trim().toLowerCase();
+    if (!id) continue;
+    const phone = phoneIdentityPickStaffPhone(row);
+    const normalized = {
+      ...row,
+      staff_id: id,
+      staff_phone: phone,
+      status: String(row?.status || '').trim(),
+      revoked: String(row?.revoked || '').trim()
+    };
+    const prev = byId.get(id);
+    if (!prev) {
+      byId.set(id, normalized);
+      continue;
+    }
+    const prevPhone = phoneIdentityPickStaffPhone(prev);
+    if (!prevPhone && phone) byId.set(id, normalized);
+    else if (prev._source_table === 'staff' && normalized._source_table === 'staff_snapshot') byId.set(id, normalized);
+  }
+
+  return { rows: Array.from(byId.values()), errors };
+}
+
+async function buildPhoneIdentityAudit(supabase) {
+  const generatedAt = nowIso();
+  const studentIssues = [];
+  const staffIssues = [];
+  const crossIssues = [];
+
+  const studentSelect = 'student_id, student_name, school, grade, student_phone, parent_phone, teacher, status';
+  const { data: studentData, error: studentError } = await supabase
+    .from('students')
+    .select(studentSelect)
+    .limit(5000);
+
+  const studentRows = Array.isArray(studentData) ? studentData : [];
+  const activeStudents = studentRows.filter(row => phoneIdentityStudentActive(row?.status));
+  const studentIdentities = [];
+
+  if (studentError) {
+    studentIssues.push(phoneIdentityIssue('system', 'student_read_failed', 'blocker', {}, studentError.message || 'students 조회 실패'));
+  }
+
+  for (const row of activeStudents) {
+    const phone = String(row?.student_phone || '').trim();
+    const digits = phoneIdentityDigits(phone);
+    const tail8 = phoneIdentityTail8(phone);
+    const identity = {
+      entity: 'student',
+      id: String(row?.student_id || '').trim(),
+      name: String(row?.student_name || '').trim(),
+      phone,
+      digits,
+      tail8,
+      status: String(row?.status || '').trim(),
+      school: String(row?.school || '').trim(),
+      grade: String(row?.grade || '').trim()
+    };
+    studentIdentities.push(identity);
+
+    if (!digits) {
+      studentIssues.push(phoneIdentityIssue('student', 'missing_phone', 'blocker', row, '학생 본인 휴대폰 번호가 없습니다.', { school: identity.school, grade: identity.grade }));
+      continue;
+    }
+    if (!/^010\d{8}$/.test(digits)) {
+      studentIssues.push(phoneIdentityIssue('student', 'invalid_phone', 'blocker', row, '010으로 시작하는 11자리 학생 휴대폰 번호가 아닙니다.', { digits_length: digits.length, school: identity.school, grade: identity.grade }));
+      continue;
+    }
+    const parentDigits = phoneIdentityDigits(row?.parent_phone);
+    if (parentDigits && parentDigits === digits) {
+      studentIssues.push(phoneIdentityIssue('student', 'same_as_parent_phone', 'warn', row, '학생 본인 번호와 학부모 번호가 같습니다. 실제 학생 번호인지 확인하세요.', { school: identity.school, grade: identity.grade }));
+    }
+  }
+
+  for (const [tail8, list] of phoneIdentityGroupByTail(studentIdentities)) {
+    for (const item of list) {
+      studentIssues.push({
+        entity: 'student',
+        type: 'duplicate_tail8',
+        severity: 'blocker',
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        phone: item.phone,
+        tail8,
+        message: '같은 휴대폰 뒤 8자리를 가진 재원생이 여러 명입니다.',
+        duplicates: list.map(x => ({ id: x.id, name: x.name, school: x.school, grade: x.grade }))
+      });
+    }
+  }
+
+  const fullPhoneMap = new Map();
+  for (const item of studentIdentities.filter(x => /^010\d{8}$/.test(x.digits))) {
+    if (!fullPhoneMap.has(item.digits)) fullPhoneMap.set(item.digits, []);
+    fullPhoneMap.get(item.digits).push(item);
+  }
+  for (const [digits, list] of fullPhoneMap.entries()) {
+    if (list.length <= 1) continue;
+    for (const item of list) {
+      studentIssues.push({
+        entity: 'student',
+        type: 'duplicate_full_phone',
+        severity: 'blocker',
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        phone: item.phone,
+        tail8: item.tail8,
+        message: '같은 전체 휴대폰 번호를 가진 재원생이 여러 명입니다.',
+        duplicates: list.map(x => ({ id: x.id, name: x.name }))
+      });
+    }
+  }
+
+  const staffRead = await phoneIdentityReadStaffRows(supabase);
+  for (const err of staffRead.errors) {
+    staffIssues.push(phoneIdentityIssue('system', 'staff_read_failed', 'warn', {}, `${err.table} 조회 실패: ${err.message}`, { table: err.table, code: err.code }));
+  }
+
+  const activeStaff = staffRead.rows.filter(row => phoneIdentityStaffActive(row));
+  const staffIdentities = [];
+  for (const row of activeStaff) {
+    const phone = phoneIdentityPickStaffPhone(row);
+    const digits = phoneIdentityDigits(phone);
+    const tail8 = phoneIdentityTail8(phone);
+    const identity = {
+      entity: 'staff',
+      id: String(row?.staff_id || '').trim().toLowerCase(),
+      name: String(row?.name || '').trim(),
+      role: normalizeRole(row?.role || 'assistant'),
+      phone,
+      digits,
+      tail8,
+      status: String(row?.status || '').trim(),
+      source: String(row?._source_table || '').trim()
+    };
+    staffIdentities.push(identity);
+
+    if (!digits) {
+      staffIssues.push(phoneIdentityIssue('staff', 'missing_phone', 'blocker', { ...row, staff_phone: phone }, '직원 휴대폰 번호가 없습니다.', { role: identity.role, source: identity.source }));
+      continue;
+    }
+    if (!/^010\d{8}$/.test(digits)) {
+      staffIssues.push(phoneIdentityIssue('staff', 'invalid_phone', 'blocker', { ...row, staff_phone: phone }, '010으로 시작하는 11자리 직원 휴대폰 번호가 아닙니다.', { role: identity.role, digits_length: digits.length, source: identity.source }));
+    }
+  }
+
+  for (const [tail8, list] of phoneIdentityGroupByTail(staffIdentities)) {
+    for (const item of list) {
+      staffIssues.push({
+        entity: 'staff',
+        type: 'duplicate_tail8',
+        severity: 'blocker',
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        phone: item.phone,
+        tail8,
+        message: '같은 휴대폰 뒤 8자리를 가진 재직 직원이 여러 명입니다.',
+        duplicates: list.map(x => ({ id: x.id, name: x.name, role: x.role }))
+      });
+    }
+  }
+
+  const studentTailMap = new Map(studentIdentities.filter(x => x.tail8).map(x => [x.tail8, x]));
+  for (const staff of staffIdentities.filter(x => x.tail8)) {
+    const student = studentTailMap.get(staff.tail8);
+    if (!student) continue;
+    crossIssues.push({
+      entity: 'cross',
+      type: 'student_staff_tail_conflict',
+      severity: 'warn',
+      id: staff.id,
+      name: staff.name,
+      phone: staff.phone,
+      tail8: staff.tail8,
+      message: '학생과 직원의 휴대폰 뒤 8자리가 같습니다. 키오스크 모드 전환 안내를 확인하세요.',
+      student: { id: student.id, name: student.name, phone: student.phone },
+      staff: { id: staff.id, name: staff.name, phone: staff.phone }
+    });
+  }
+
+  const allIssues = [...studentIssues, ...staffIssues, ...crossIssues];
+  const blockers = allIssues.filter(x => x.severity === 'blocker');
+  const warnings = allIssues.filter(x => x.severity !== 'blocker');
+  const studentReady = activeStudents.length - new Set(studentIssues.filter(x => x.severity === 'blocker' && x.id).map(x => x.id)).size;
+  const staffReady = activeStaff.length - new Set(staffIssues.filter(x => x.severity === 'blocker' && x.id).map(x => x.id)).size;
+  const studentReadyRate = activeStudents.length ? Math.round((Math.max(0, studentReady) / activeStudents.length) * 100) : 0;
+  const staffReadyRate = activeStaff.length ? Math.round((Math.max(0, staffReady) / activeStaff.length) * 100) : 0;
+
+  return {
+    generated_at: generatedAt,
+    status: blockers.length ? 'FAIL' : (warnings.length ? 'WARN' : 'OK'),
+    summary: {
+      active_students: activeStudents.length,
+      student_ready: Math.max(0, studentReady),
+      student_ready_rate: studentReadyRate,
+      active_staff: activeStaff.length,
+      staff_ready: Math.max(0, staffReady),
+      staff_ready_rate: staffReadyRate,
+      blockers: blockers.length,
+      warnings: warnings.length,
+      total_issues: allIssues.length
+    },
+    students: {
+      total_active: activeStudents.length,
+      ready: Math.max(0, studentReady),
+      ready_rate: studentReadyRate,
+      issues: studentIssues.slice(0, 200)
+    },
+    staff: {
+      total_active: activeStaff.length,
+      ready: Math.max(0, staffReady),
+      ready_rate: staffReadyRate,
+      issues: staffIssues.slice(0, 200)
+    },
+    cross_issues: crossIssues.slice(0, 100),
+    issues: allIssues.slice(0, 300),
+    notes: [
+      '읽기 전용 점검입니다. 데이터는 수정하지 않습니다.',
+      '학생은 students.student_phone, 직원은 staff/staff_snapshot의 전화번호 계열 컬럼을 기준으로 점검합니다.',
+      '010으로 시작하는 11자리 번호와 뒤 8자리 중복 여부를 확인합니다.'
+    ]
+  };
+}
+
+async function adminPhoneIdentityAuditDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+  const supabase = getSupabaseAdmin();
+  try {
+    const audit = await buildPhoneIdentityAudit(supabase);
+    return success(audit);
+  } catch (e) {
+    return fail(500, 'PHONE_IDENTITY_AUDIT_FAILED', e?.message || '휴대폰 출결 준비도 점검 실패');
+  }
+}
+
 async function adminFinalReadinessDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
@@ -5481,6 +5832,15 @@ async function adminFinalReadinessDirect(args = {}, sessionToken = '') {
     finalCheckStatus(total > 0 && parentPhones.count > 0, total > 0 && studentRate < 80),
     total ? `학생 ${total}명 · 학부모 연락처 ${parentPhones.count}명(${parentRate}%) · 학생 연락처 ${studentPhones.count}명(${studentRate}%)` : '학생 데이터가 없습니다.',
     { total, parent_count: parentPhones.count, student_count: studentPhones.count, parent_rate: parentRate, student_rate: studentRate }
+  );
+
+  const phoneIdentity = await buildPhoneIdentityAudit(supabase);
+  add(
+    'phone_identity',
+    '휴대폰 출결 준비도',
+    phoneIdentity.status,
+    `학생 출결 가능 ${phoneIdentity.summary.student_ready}/${phoneIdentity.summary.active_students}명(${phoneIdentity.summary.student_ready_rate}%) · 직원 출퇴근 가능 ${phoneIdentity.summary.staff_ready}/${phoneIdentity.summary.active_staff}명(${phoneIdentity.summary.staff_ready_rate}%) · 수정 필요 ${phoneIdentity.summary.blockers}건 · 확인 권장 ${phoneIdentity.summary.warnings}건`,
+    phoneIdentity.summary
   );
 
   const envRequired = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
@@ -6727,6 +7087,11 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+
+  if (op === 'admin.phoneIdentity.audit') {
+    const result = await adminPhoneIdentityAuditDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
 
   if (op === 'admin.finalReadiness') {
     const result = await adminFinalReadinessDirect(payload.args || {}, sessionToken);

@@ -20,6 +20,7 @@ const pkg = JSON.parse(read('package.json'));
 must(rpc.includes('async function adminFinalReadinessDirect'), 'admin.finalReadiness Direct 함수가 있습니다.');
 must(rpc.includes("op === 'admin.finalReadiness'"), 'admin.finalReadiness RPC 라우팅이 있습니다.');
 must(rpc.includes("['students', ['student_id', 'student_name', 'student_phone', 'parent_phone']]"), '학생/학부모 연락처 스키마 점검이 있습니다.');
+must(rpc.includes("'phone_identity'"), '최종 체크에 휴대폰 출결 준비도 항목이 있습니다.');
 must(rpc.includes("['clinic_tasks', ['clinic_task_id'"), '클리닉 필수 컬럼 점검이 있습니다.');
 must(rpc.includes("TPL_CLINIC_RESERVATION_PARENT"), '클리닉 알림톡 템플릿 환경변수 점검이 있습니다.');
 must(rpc.includes("CLINIC_%"), '클리닉 알림 큐 상태 점검이 있습니다.');
@@ -31,6 +32,7 @@ must(admin.includes("rpc('admin.finalReadiness'"), '관리자 화면에서 admin
 must(admin.includes('readinessNextAction'), '최종 체크 다음 조치 문구가 있습니다.');
 
 must(smoke.includes("admin.finalReadiness"), 'live smoke-test가 admin.finalReadiness를 호출합니다.');
+must(smoke.includes("admin.phoneIdentity.audit"), 'live smoke-test가 admin.phoneIdentity.audit를 호출합니다.');
 must(pkg.scripts?.['final-readiness-check'] === 'node scripts/final-readiness-check.mjs', 'package.json에 final-readiness-check가 등록되어 있습니다.');
 must(String(pkg.scripts?.verify || '').includes('final-readiness-check'), 'npm run verify에 final-readiness-check가 포함되어 있습니다.');
 must(existsSync(join(root, 'docs/FINAL_READINESS_CHECKLIST.md')), '최종 운영 체크리스트 문서가 있습니다.');
