@@ -134,3 +134,11 @@ npm run smoke-test
 - `admin.phoneIdentity.audit`가 성공해야 한다.
 - 재원생/재직 직원의 전화번호 누락, 형식 오류, 뒤 8자리 중복을 배포 전 확인한다.
 - 전화번호 출결 준비도는 최종 운영 체크의 `phone_identity` 항목으로 표시한다.
+
+## Student today link readiness
+
+- `student_today_links` table exists before using student links.
+- `admin.studentTodayLink.create` creates links only for logged-in staff.
+- `studentToday.publicGet` returns only student-safe public data.
+- `/student-today.html` is mobile-readable.
+- Raw public tokens are not stored in DB.

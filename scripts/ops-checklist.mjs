@@ -218,6 +218,13 @@ checkText('docs/PAYMENT_SCOPE_DECISION_V1.md', '더클래스', '더클래스 결
 checkText('docs/DIRECTOR_EXPLANATION_BRIEF_V1.md', '더오름 내부 운영을 안정화하는', '원장님 설명 브리프');
 checkText('docs/PROJECT_HANDOVER.md', 'year-round-product-strategy-v1', '프로젝트 인수인계 상시 운영 전략 반영');
 checkText('docs/OPERATIONS_PORTAL_V1.md', 'parent-student portal direction', '운영 포털 학생/학부모 포털 방향 반영');
+
+checkText('docs/STUDENT_TODAY_LINK_V1.md', 'student-today-link-v1', '학생 오늘 링크 문서');
+checkText('docs/supabase-student-today-link-v1.sql', 'student_today_links', '학생 오늘 링크 SQL');
+checkText('api/rpc.js', "op === 'admin.studentTodayLink.create'", '학생 오늘 링크 생성 API 라우팅');
+checkText('api/rpc.js', "op === 'studentToday.publicGet'", '학생 오늘 링크 공개 조회 API 라우팅');
+checkText('public/admin.html', 'btnStudentTodayLinkOneClick', '학생 오늘 링크 관리자 버튼');
+checkText('public/student-today.html', 'studentToday.publicGet', '학생 오늘 링크 공개 페이지');
 checkText('docs/PHONE_IDENTITY_QUALITY_V1.md', 'admin.phoneIdentity.audit', '휴대폰 출결 준비도 문서');
 checkText('api/rpc.js', "op === 'admin.phoneIdentity.audit'", '휴대폰 출결 준비도 API 라우팅');
 checkText('public/admin.html', 'btnPhoneIdentityAudit', '휴대폰 출결 준비도 UI 버튼');

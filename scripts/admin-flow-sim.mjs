@@ -57,6 +57,10 @@ requireFunction('리포트 미리보기', 'previewReport', ['report.previewStude
 requireFunction('리포트 스냅샷 저장', 'saveReportSnapshot', ['report.createSnapshot', 'renderReportPreview', 'listReportSnapshots']);
 requireFunction('리포트 스냅샷 조회', 'listReportSnapshots', ['report.listSnapshots', 'renderReportSnapshots']);
 
+requireIds('학생 오늘 링크 흐름', ['btnStudentTodayLinkOneClick', 'studentTodayLinkBox']);
+requireFunction('학생 오늘 링크 생성', 'createStudentTodayLink', ['admin.studentTodayLink.create', 'studentTodayLinkBox']);
+
+
 requireIds('감사 로그 흐름', ['auditOpFilter', 'auditTargetTypeFilter', 'auditActorFilter', 'btnLoadAuditLogs', 'auditLogRows']);
 requireFunction('감사 로그 조회', 'loadAuditLogs', ['audit.searchLogs', 'auditLogRows', 'auditOpLabel', 'auditTargetLabel']);
 

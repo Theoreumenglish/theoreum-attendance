@@ -444,3 +444,13 @@ npm run smoke-test
 2. 번호 없음/형식 오류/뒤 8자리 중복이 표에 표시되는지 확인한다.
 3. 수정 필요 목록 복사 버튼이 동작하는지 확인한다.
 4. `npm run smoke-test`에서 `admin.phoneIdentity.audit`가 200 응답하는지 확인한다.
+
+## student-today-link-v1 test
+
+1. Apply `docs/supabase-student-today-link-v1.sql` in Supabase SQL Editor.
+2. Open Student 360 and select a student.
+3. Click `학생 링크`.
+4. Confirm the generated URL is copied.
+5. Open the URL in an incognito/mobile browser.
+6. Confirm attendance status, visible clinic items, and recent word records render.
+7. Confirm no phone numbers, parent phones, internal notes, or audit logs are visible.

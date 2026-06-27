@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { handleKioskMark } from './kiosk-mark.js';
 import { handleStaffClockQr } from './staff-clock-qr.js';
 import { handleStaffClock } from './staff-clock.js';
@@ -207,6 +207,42 @@ function success(data) {
       data
     }
   };
+}
+
+function publicTokenHash(raw) {
+  return createHash('sha256').update(String(raw || '').trim()).digest('hex');
+}
+
+function makePublicToken() {
+  return randomBytes(32).toString('base64url');
+}
+
+function normalizePublicBaseUrl(raw) {
+  const fallback = process.env.PUBLIC_BASE_URL || 'https://theoreum-attendance.vercel.app';
+  const v = String(raw || fallback).trim() || fallback;
+  return v.replace(/\/+$/, '');
+}
+
+function publicTodayStateLabel(state) {
+  if (!state) return '기록 없음';
+  if (state.outingActive) return '외출중';
+  if (state.checkedOut) return '하원';
+  if (state.checkedIn) return '등원중';
+  return '미등원';
+}
+
+function publicActionLabel(raw) {
+  const v = String(raw || '').trim().toUpperCase();
+  const map = {
+    CHECK_IN: '등원',
+    CHECK_OUT: '하원',
+    MOVE: '이동',
+    OUTING_OUT: '외출',
+    OUTING_BACK: '복귀',
+    MANUAL_CHECK_IN: '등원 정정',
+    MANUAL_CHECK_OUT: '하원 정정'
+  };
+  return map[v] || v || '-';
 }
 
 async function requireRole(sessionToken, needRole) {
@@ -5199,6 +5235,184 @@ async function assistantGetStudentProfileDirect(args = {}, sessionToken = '') {
   });
 }
 
+
+async function adminStudentTodayLinkCreateDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const expiresDays = Math.max(1, Math.min(30, toPositiveInt(args.expires_days || args.expiresDays, 7)));
+  if (!sid) return fail(400, 'INVALID_INPUT', 'student_id 4자리가 필요합니다.');
+
+  const supabase = getSupabaseAdmin();
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, status')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (studentErr) return fail(500, 'DB_SELECT_FAILED', studentErr.message || '학생 조회 실패');
+  if (!student) return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + expiresDays * 24 * 60 * 60 * 1000).toISOString();
+  const token = makePublicToken();
+  const tokenHash = publicTokenHash(token);
+  const tokenPrefix = token.slice(0, 8);
+
+  const row = {
+    link_id: randomUUID(),
+    student_id: sid,
+    audience: 'STUDENT',
+    token_hash: tokenHash,
+    token_prefix: tokenPrefix,
+    status: 'ACTIVE',
+    expires_at: expiresAt,
+    created_by: auth.me.staff_id,
+    created_at: now.toISOString(),
+    updated_by: auth.me.staff_id,
+    updated_at: now.toISOString(),
+    meta_json: {
+      source: 'admin.studentTodayLink.create',
+      actor_role: normalizeRole(auth.me.role),
+      student_name: String(student.student_name || '').trim()
+    }
+  };
+
+  const { error } = await supabase
+    .from('student_today_links')
+    .insert([row]);
+
+  if (error) {
+    return fail(500, 'DB_INSERT_FAILED', error.message || 'student_today_links 저장 실패', {
+      hint: 'docs/supabase-student-today-link-v1.sql 적용 여부를 확인하세요.'
+    });
+  }
+
+  const baseUrl = normalizePublicBaseUrl(args.origin || args.base_url || args.baseUrl);
+  const publicUrl = `${baseUrl}/student-today.html?t=${encodeURIComponent(token)}`;
+
+  return success({
+    student_id: sid,
+    student_name: String(student.student_name || '').trim(),
+    public_url: publicUrl,
+    token_prefix: tokenPrefix,
+    expires_at: expiresAt,
+    expires_days: expiresDays
+  });
+}
+
+async function studentTodayPublicGetDirect(args = {}) {
+  const token = String(args.token || args.t || '').trim();
+  if (!token || token.length < 24) return fail(400, 'INVALID_TOKEN', '유효한 링크 토큰이 필요합니다.');
+
+  const supabase = getSupabaseAdmin();
+  const hash = publicTokenHash(token);
+  const { data: link, error: linkErr } = await supabase
+    .from('student_today_links')
+    .select('link_id, student_id, audience, status, expires_at, access_count')
+    .eq('token_hash', hash)
+    .maybeSingle();
+
+  if (linkErr) return fail(500, 'DB_SELECT_FAILED', linkErr.message || '학생 링크 조회 실패');
+  if (!link || String(link.status || '').toUpperCase() !== 'ACTIVE') return fail(404, 'LINK_NOT_FOUND', '유효하지 않은 학생 링크입니다.');
+  if (Date.parse(link.expires_at) && Date.parse(link.expires_at) < Date.now()) return fail(410, 'LINK_EXPIRED', '만료된 학생 링크입니다.');
+
+  const sid = normalizeStudentId(link.student_id);
+  const yyyymmdd = String(args.yyyymmdd || args.ymd || kstYmd(new Date())).trim();
+  const warnings = [];
+
+  const { data: student, error: studentErr } = await supabase
+    .from('students')
+    .select('student_id, student_name, school, grade, status')
+    .eq('student_id', sid)
+    .maybeSingle();
+
+  if (studentErr) return fail(500, 'DB_SELECT_FAILED', studentErr.message || '학생 조회 실패');
+  if (!student) return fail(404, 'NOT_FOUND', '학생을 찾지 못했습니다.');
+
+  const todayOut = await loadManualTodayState(supabase, sid, yyyymmdd);
+  if (!todayOut.ok) warnings.push({ area: 'attendance', message: todayOut.error || '오늘 출결 상태 조회 실패' });
+
+  let clinics = [];
+  const { data: clinicRows, error: clinicErr } = await supabase
+    .from('clinic_tasks')
+    .select('clinic_task_id, title, status, due_date, due_time, clinic_mode, parent_note, parent_visible, updated_at')
+    .eq('student_id', sid)
+    .order('updated_at', { ascending: false })
+    .limit(8);
+  if (clinicErr) warnings.push({ area: 'clinic', message: clinicErr.message || '클리닉 조회 실패' });
+  else {
+    clinics = (Array.isArray(clinicRows) ? clinicRows : [])
+      .filter(row => row.parent_visible === true || ['pending','in_progress','incomplete','no_show','contact_needed'].includes(String(row.status || '').toLowerCase()))
+      .map(row => ({
+        title: String(row.title || '').trim(),
+        status: String(row.status || '').trim(),
+        due_date: String(row.due_date || '').trim(),
+        due_time: String(row.due_time || '').trim(),
+        clinic_mode: String(row.clinic_mode || '').trim(),
+        note: row.parent_visible === true ? String(row.parent_note || '').trim() : ''
+      }));
+  }
+
+  let words = [];
+  const { data: wordRows, error: wordErr } = await supabase
+    .from('word_records')
+    .select('yyyymmdd, word_book_title, range_label, scope_text, word_total_count, word_correct_count, word_pass_count, word_accuracy, result_status, word_passed, word_needs_retest, word_needs_clinic, updated_at')
+    .eq('student_id', sid)
+    .order('yyyymmdd', { ascending: false })
+    .order('updated_at', { ascending: false })
+    .limit(8);
+  if (wordErr) warnings.push({ area: 'word_records', message: wordErr.message || '단어 기록 조회 실패' });
+  else {
+    words = (Array.isArray(wordRows) ? wordRows : []).map(row => ({
+      yyyymmdd: String(row.yyyymmdd || '').trim(),
+      title: String(row.word_book_title || row.scope_text || '').trim(),
+      range_label: String(row.range_label || '').trim(),
+      total: Number(row.word_total_count || 0),
+      correct: row.word_correct_count == null ? null : Number(row.word_correct_count),
+      pass_count: Number(row.word_pass_count || 0),
+      accuracy: row.word_accuracy == null ? null : Number(row.word_accuracy),
+      result_status: String(row.result_status || '').trim(),
+      needs_retest: row.word_needs_retest === true,
+      needs_clinic: row.word_needs_clinic === true
+    }));
+  }
+
+  supabase
+    .from('student_today_links')
+    .update({
+      last_accessed_at: new Date().toISOString(),
+      access_count: Number(link.access_count || 0) + 1
+    })
+    .eq('link_id', link.link_id)
+    .then(() => {}, () => {});
+
+  return success({
+    link: {
+      audience: String(link.audience || 'STUDENT'),
+      expires_at: String(link.expires_at || '')
+    },
+    yyyymmdd,
+    student: {
+      student_id: sid,
+      student_name: String(student.student_name || '').trim(),
+      school: String(student.school || '').trim(),
+      grade: String(student.grade || '').trim(),
+      status: String(student.status || '').trim()
+    },
+    today: {
+      label: publicTodayStateLabel(todayOut.ok ? todayOut.state : null),
+      last_action: publicActionLabel(todayOut.ok ? todayOut.state?.lastActionType : ''),
+      source: todayOut.source || ''
+    },
+    clinics,
+    words,
+    lectures: [],
+    warnings
+  });
+}
+
 function bulkEndOfKstDayIso(yyyymmdd) {
   const y = Number(String(yyyymmdd || '').slice(0, 4));
   const m = Number(String(yyyymmdd || '').slice(4, 6));
@@ -6796,6 +7010,16 @@ export default async function handler(req, res) {
 
   if (op === 'auth.logout') {
     const result = await authLogoutDirect(sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'studentToday.publicGet') {
+    const result = await studentTodayPublicGetDirect(payload.args || {});
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.studentTodayLink.create') {
+    const result = await adminStudentTodayLinkCreateDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

@@ -3314,6 +3314,11 @@
 <button class="quickActionBtn warn" id="btnStudentClinicOneClick" type="button">클리닉</button>
 <button class="quickActionBtn good" id="btnStudentWordOneClick" type="button">단어</button>
 <button class="quickActionBtn" id="btnStudentReportOneClick" type="button">리포트</button>
+<button class="quickActionBtn good" id="btnStudentTodayLinkOneClick" type="button">학생 링크</button>
+</div>
+<div class="emptyPanel" id="studentTodayLinkBox" style="margin-top:14px;">
+<h3>학생 오늘 링크</h3>
+<p>선택 학생의 오늘 출결, 클리닉, 단어 기록을 모바일 링크로 확인할 수 있습니다. 링크 생성 전 학생을 선택하세요.</p>
 </div>
 </div>
 </div>
@@ -8400,6 +8405,48 @@
 
     let lastPhoneIdentityAudit = null;
 
+
+    async function createStudentTodayLink() {
+      const student = App.selectedStudent || {};
+      const sid = normalizeSid(student.student_id || '');
+      const box = $('#studentTodayLinkBox');
+      if (!sid) {
+        showToast('먼저 학생을 선택하세요.');
+        if (box) box.innerHTML = '<h3>학생 오늘 링크</h3><p>학생 검색에서 학생을 먼저 선택하세요.</p>';
+        return;
+      }
+      if (box) box.innerHTML = '<h3>학생 오늘 링크</h3><p>링크를 생성하는 중입니다...</p>';
+      const r = await rpc('admin.studentTodayLink.create', { student_id: sid, origin: window.location.origin, expires_days: 7 }, { timeoutMs: 25000 });
+      if (!r.ok) {
+        const msg = r.error && r.error.message ? r.error.message : '학생 링크 생성 실패';
+        showToast(msg);
+        if (box) box.innerHTML = `<h3>학생 오늘 링크</h3><p>${esc(msg)}</p>`;
+        return;
+      }
+      const url = r.data && r.data.public_url ? r.data.public_url : '';
+      if (url && navigator.clipboard && navigator.clipboard.writeText) {
+        try { await navigator.clipboard.writeText(url); } catch (_) {}
+      }
+      if (box) {
+        box.innerHTML = `
+          <h3>학생 오늘 링크 생성 완료</h3>
+          <p>${esc(r.data.student_name || student.student_name || '')} · 만료: ${esc(shortTs(r.data.expires_at || ''))}</p>
+          <div class="copyBox" style="margin-top:10px;word-break:break-all;">${esc(url)}</div>
+          <div class="btnRow" style="margin-top:10px;">
+            <button class="btn btnGhost" type="button" id="btnCopyStudentTodayLink">링크 다시 복사</button>
+          </div>
+        `;
+        const copyBtn = $('#btnCopyStudentTodayLink');
+        if (copyBtn) copyBtn.addEventListener('click', async () => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(url);
+            showToast('학생 링크를 복사했습니다.');
+          }
+        });
+      }
+      showToast('학생 오늘 링크를 생성하고 복사했습니다.');
+    }
+
     function phoneIdentityStatusClass(status) {
       const s = String(status || '').toUpperCase();
       if (s === 'OK') return 'ok';
@@ -8912,6 +8959,7 @@
       bindClick('btnQuickWordInput', quickStudentWordInput);
       bindClick('btnStudentWordOneClick', quickStudentWordInput);
       bindClick('btnStudentReportOneClick', () => { jumpTo('reports'); defaultReportPeriod(); });
+      bindClick('btnStudentTodayLinkOneClick', createStudentTodayLink);
 
 
       ['opsClassSelect', 'masterClassQuickSelect', 'clinicClassSelect', 'clinicClassFilterSelect', 'wordClassSelect', 'wordBulkClassSelect', 'absenceExcuseClassSelect'].forEach(id => {

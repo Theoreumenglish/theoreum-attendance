@@ -404,3 +404,14 @@ This is used by the physical keyboard kiosk after the `staff` command. Staff QR 
 - 권한: admin 이상.
 - DB 변경 없음.
 - 학생은 `students.student_phone`, 직원은 `staff` / `staff_snapshot` 전화번호 계열 컬럼을 기준으로 한다.
+
+## student-today-link-v1 API
+
+- `admin.studentTodayLink.create`: logged-in staff creates a short-lived student mobile link from Student 360.
+- `studentToday.publicGet`: public token-based read-only endpoint for `/student-today.html`.
+
+Security notes:
+- Raw token is never stored in Supabase.
+- `student_today_links.token_hash` stores SHA-256 hash only.
+- Public response must not include phone numbers, parent phones, internal notes, or audit logs.
+- Apply `docs/supabase-student-today-link-v1.sql` before creating links.

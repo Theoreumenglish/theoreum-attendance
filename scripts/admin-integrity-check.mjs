@@ -171,6 +171,11 @@ if (!rpc.includes('adminSaveStaffClockManualDirect') || !rpc.includes('adminList
 } else ok('직원 출퇴근 수기 API Direct 연결이 있습니다.');
 
 
+
+if (!html.includes('btnStudentTodayLinkOneClick') || !html.includes('studentTodayLinkBox') || !rpc.includes("admin.studentTodayLink.create") || !rpc.includes("studentToday.publicGet")) {
+  fail('학생 오늘 링크 생성/공개 조회 흐름이 없습니다.');
+} else ok('학생 오늘 링크 생성/공개 조회 흐름이 있습니다.');
+
 if (!html.includes('btnPhoneIdentityAudit') || !html.includes('phoneIdentityRows') || !html.includes('copyPhoneIdentityIssues')) {
   fail('휴대폰 출결 준비도 UI/복사 흐름이 없습니다.');
 } else ok('휴대폰 출결 준비도 UI/복사 흐름이 있습니다.');

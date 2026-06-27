@@ -508,6 +508,23 @@ if (!smokeText.includes('admin.phoneIdentity.audit')) {
   ok('live smoke-test에 휴대폰 출결 준비도 점검이 포함됩니다.');
 }
 
+
+if (!rpcText.includes("op === 'admin.studentTodayLink.create'") || !rpcText.includes("op === 'studentToday.publicGet'")) {
+  fail('학생 오늘 링크 서버 op가 없습니다.');
+} else {
+  ok('학생 오늘 링크 서버 op가 존재합니다.');
+}
+if (!adminText.includes('btnStudentTodayLinkOneClick') || !adminText.includes('studentTodayLinkBox')) {
+  fail('학생 오늘 링크 관리자 UI가 없습니다.');
+} else {
+  ok('학생 오늘 링크 관리자 UI가 있습니다.');
+}
+if (!existsSync(join(root, 'public/student-today.html'))) {
+  fail('학생 오늘 링크 공개 페이지가 없습니다.');
+} else {
+  ok('학생 오늘 링크 공개 페이지가 존재합니다.');
+}
+
 if (!existsSync(join(root, 'scripts/ops-checklist.mjs'))) {
   fail('운영 테스트 체크리스트 자동화 스크립트가 없습니다.');
 } else {
