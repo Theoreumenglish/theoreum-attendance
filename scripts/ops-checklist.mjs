@@ -48,7 +48,12 @@ const requiredFiles = [
   'docs/STUDENT_WORD_RECORDS_V1.md',
   'docs/supabase-student-word-records-v1.sql',
   'docs/STUDENT_ID_ATTENDANCE_V1.md',
-  'docs/TERMINAL_LOG_CAPTURE_V1.md'
+  'docs/TERMINAL_LOG_CAPTURE_V1.md',
+  'docs/YEAR_ROUND_PRODUCT_STRATEGY_V1.md',
+  'docs/PARENT_STUDENT_LINK_PORTAL_V1.md',
+  'docs/ONLINE_LECTURE_LINKAGE_V1.md',
+  'docs/PAYMENT_SCOPE_DECISION_V1.md',
+  'docs/DIRECTOR_EXPLANATION_BRIEF_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -199,6 +204,15 @@ checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'GitHub', '개발 표면 GitHu
 checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'OpenAI Platform', '개발 표면 OpenAI 확인 문서');
 checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Google Drive', '개발 표면 Google Drive 확인 문서');
 
+
+
+checkText('docs/YEAR_ROUND_PRODUCT_STRATEGY_V1.md', '상시 학원 운영 누락 방지 OS', '상시 운영 OS 제품 전략');
+checkText('docs/PARENT_STUDENT_LINK_PORTAL_V1.md', '모바일 웹 링크 포털', '학생/학부모 링크 포털 전략');
+checkText('docs/ONLINE_LECTURE_LINKAGE_V1.md', '온라인강의 링크/과제/시청 관리 기반', '온라인강의 연결 전략');
+checkText('docs/PAYMENT_SCOPE_DECISION_V1.md', '더클래스', '더클래스 결제 역할 분리');
+checkText('docs/DIRECTOR_EXPLANATION_BRIEF_V1.md', '더오름 내부 운영을 안정화하는', '원장님 설명 브리프');
+checkText('docs/PROJECT_HANDOVER.md', 'year-round-product-strategy-v1', '프로젝트 인수인계 상시 운영 전략 반영');
+checkText('docs/OPERATIONS_PORTAL_V1.md', 'parent-student portal direction', '운영 포털 학생/학부모 포털 방향 반영');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

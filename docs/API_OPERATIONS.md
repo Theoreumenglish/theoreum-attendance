@@ -381,3 +381,18 @@ This is used by the physical keyboard kiosk after the `staff` command. Staff QR 
 - `admin.staffClock.saveManual`: 원장/관리자가 출근/퇴근 로그를 수기로 추가하거나 `trace_id` 기준으로 수정합니다.
 - 저장 후 `staff_daily`, `staff_monthly` rollup을 재계산합니다.
 - 삭제는 v1에서 제공하지 않습니다. 오입력은 수정으로 처리합니다.
+
+## Product scope note: parent/student portal and online lecture linkage
+
+이 문서는 현재 API 운영 기준을 다룬다. 제품 방향상 학부모/학생 포털과 온라인강의 연결은 중요하지만, v1에서는 무거운 앱이나 자체 동영상 플랫폼보다 링크 포털과 공개 범위 분리부터 시작한다.
+
+향후 API 후보:
+
+- `studentPortal.today`
+- `parentPortal.summary`
+- `portalLink.issue`
+- `portalLink.revoke`
+- `lectureAssignment.list`
+- `lectureAssignment.complete`
+
+이 API들은 내부 운영 데이터 중 공개 가능한 범위만 노출해야 하며, 내부 메모와 staff-only 데이터는 절대 공개하지 않는다.

@@ -119,3 +119,11 @@ npm run smoke-test
 - `scripts/one-click-release.ps1` creates a timestamped full transcript.
 - On failure, `LAST_FAILURE_TO_SEND.txt` gives the user a copy-ready block.
 - `scripts/copy-last-run-log.ps1` is available for manual copy recovery.
+
+## Year-round OS / portal / lecture strategy check
+
+- 제품 문서가 시험기간 전용으로만 설명되어 있지 않은지 확인한다.
+- 결제/수납/청구 기능이 더클래스와 중복되는 방향으로 커지고 있지 않은지 확인한다.
+- 학생 링크 포털과 학부모 링크 포털이 장기 로드맵에 포함되어 있는지 확인한다.
+- 온라인강의는 native LMS보다 링크/과제/완료 체크/리포트 반영부터 시작하는지 확인한다.
+- 내부 메모와 학부모 공개 정보가 분리되는 원칙을 유지한다.

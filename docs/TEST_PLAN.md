@@ -420,3 +420,14 @@ npm run smoke-test
 - `npm run dev:doctor` creates `_logs/DEV_DOCTOR_TO_SEND.txt`.
 - `npm run dev:quick-check` runs local check/verify/build and creates a copy-ready summary.
 - `npm run dev:apply-patch` applies `patch-files` directly and avoids generated APPLY script path encoding issues.
+
+## Product strategy / portal direction documentation check
+
+- `docs/YEAR_ROUND_PRODUCT_STRATEGY_V1.md`가 존재한다.
+- `docs/PARENT_STUDENT_LINK_PORTAL_V1.md`가 존재한다.
+- `docs/ONLINE_LECTURE_LINKAGE_V1.md`가 존재한다.
+- `docs/PAYMENT_SCOPE_DECISION_V1.md`가 존재한다.
+- `docs/DIRECTOR_EXPLANATION_BRIEF_V1.md`가 존재한다.
+- 제품 설명이 시험기간 전용으로 고정되어 있지 않은지 확인한다.
+- 결제 기능은 더클래스와 역할 분리되어 있는지 확인한다.
+- 학생/학부모 링크 포털과 온라인강의 연결이 후속 로드맵에 명시되어 있는지 확인한다.

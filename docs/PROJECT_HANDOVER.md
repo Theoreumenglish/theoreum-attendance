@@ -236,3 +236,25 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 
 학생과 직원 출결 키오스크의 기본 입력 방식은 `010`을 화면에 고정 표시하고 사용자가 뒤 8자리만 입력하는 방식이다. 학생은 `students.student_phone`, 직원은 `staff` 또는 `staff_snapshot`의 phone-like 컬럼을 기준으로 매칭한다. QR은 보조수단으로 유지한다. 2차 직원 확인 기능은 이번 버전에서 제외한다.
 
+
+## year-round-product-strategy-v1
+
+더오름 운영 OS는 시험기간 전용 도구가 아니다. 시험기간은 사용 강도가 높은 대표 상황일 뿐이며, 제품 정체성은 **상시 학원 운영 누락 방지 OS**다.
+
+현재 제품 방향:
+
+- 상시 운영: 출결, 미등원, 단어, 클리닉, 알림, 리포트, 직원 업무 책임성
+- 고강도 운영: 시험기간 재시험/클리닉/리포트 집중 관리
+- 외부 공개: 학생 링크 포털, 학부모 링크 포털
+- 학습 연결: 온라인강의 링크/과제/시청 관리
+- 제외/후순위: 결제 처리, 청구, 자동이체, PG, 현금영수증
+
+더클래스가 결제/기본 관리 역할을 담당하므로 더오름 운영 OS는 결제를 중복 개발하지 않는다. 대신 더클래스가 약한 학습 운영, 개입 기록, 누락 방지, 리포트 근거, 학생/학부모 학습 포털에 집중한다.
+
+관련 문서:
+
+- `docs/YEAR_ROUND_PRODUCT_STRATEGY_V1.md`
+- `docs/PARENT_STUDENT_LINK_PORTAL_V1.md`
+- `docs/ONLINE_LECTURE_LINKAGE_V1.md`
+- `docs/PAYMENT_SCOPE_DECISION_V1.md`
+- `docs/DIRECTOR_EXPLANATION_BRIEF_V1.md`
