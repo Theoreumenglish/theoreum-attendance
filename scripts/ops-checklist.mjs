@@ -229,6 +229,13 @@ checkText('docs/PHONE_IDENTITY_QUALITY_V1.md', 'admin.phoneIdentity.audit', '휴
 checkText('api/rpc.js', "op === 'admin.phoneIdentity.audit'", '휴대폰 출결 준비도 API 라우팅');
 checkText('public/admin.html', 'btnPhoneIdentityAudit', '휴대폰 출결 준비도 UI 버튼');
 checkText('scripts/smoke-test.mjs', 'admin.phoneIdentity.audit', '휴대폰 출결 준비도 smoke-test');
+checkText('docs/ONLINE_LECTURE_ASSIGNMENT_V1.md', 'online-lecture-assignment-v1', '온라인강의 배정 문서');
+checkText('docs/supabase-online-lecture-assignment-v1.sql', 'student_lecture_assignments', '온라인강의 배정 SQL');
+checkText('api/rpc.js', "op === 'admin.lectureAssignment.save'", '온라인강의 배정 저장 API 라우팅');
+checkText('api/rpc.js', "op === 'admin.lectureAssignment.list'", '온라인강의 배정 조회 API 라우팅');
+checkText('public/admin.html', 'btnSaveLectureAssignment', '온라인강의 배정 관리자 UI');
+checkText('public/student-today.html', 'lectureBox', '학생 링크 온라인강의 표시 영역');
+checkText('scripts/smoke-test.mjs', 'admin.lectureAssignment.list', '온라인강의 배정 smoke-test');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

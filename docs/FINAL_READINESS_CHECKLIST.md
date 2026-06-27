@@ -142,3 +142,10 @@ npm run smoke-test
 - `studentToday.publicGet` returns only student-safe public data.
 - `/student-today.html` is mobile-readable.
 - Raw public tokens are not stored in DB.
+
+## Online lecture assignment readiness
+
+- `student_lecture_assignments` table exists before using online lecture assignment.
+- Staff can create/update assignments only after login.
+- Public student links expose only visible, non-archived online lecture links.
+- Lecture URLs must use `http://` or `https://`.

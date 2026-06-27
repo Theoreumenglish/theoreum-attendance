@@ -454,3 +454,13 @@ npm run smoke-test
 5. Open the URL in an incognito/mobile browser.
 6. Confirm attendance status, visible clinic items, and recent word records render.
 7. Confirm no phone numbers, parent phones, internal notes, or audit logs are visible.
+
+## online-lecture-assignment-v1 checks
+
+1. Select a student in Student 360.
+2. Enter lecture title and `https://` link.
+3. Save assignment.
+4. List assignments and confirm the row appears.
+5. Generate the student today link.
+6. Open the public link and confirm the online lecture section shows the assignment.
+7. Change status to `ARCHIVED` and confirm it is no longer shown to the student.

@@ -415,3 +415,11 @@ Security notes:
 - `student_today_links.token_hash` stores SHA-256 hash only.
 - Public response must not include phone numbers, parent phones, internal notes, or audit logs.
 - Apply `docs/supabase-student-today-link-v1.sql` before creating links.
+
+## online-lecture-assignment-v1
+
+- `admin.lectureAssignment.list`: logged-in staff lists online lecture link assignments for a selected student. Read-only and safe for smoke checks with a dummy student id.
+- `admin.lectureAssignment.save`: logged-in staff creates or updates an online lecture link assignment for a selected student. URLs must be `http` or `https`.
+- `studentToday.publicGet`: includes visible, non-archived online lecture assignments in the public student today link.
+
+DB: `student_lecture_assignments` from `docs/supabase-online-lecture-assignment-v1.sql`.

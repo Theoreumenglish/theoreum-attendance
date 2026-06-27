@@ -5302,6 +5302,164 @@ async function adminStudentTodayLinkCreateDirect(args = {}, sessionToken = '') {
   });
 }
 
+function normalizeLectureStatus(raw) {
+  const v = String(raw || '').trim().toUpperCase();
+  if (['ACTIVE', 'COMPLETED', 'ARCHIVED'].includes(v)) return v;
+  return 'ACTIVE';
+}
+
+function normalizeLectureUrl(raw) {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  try {
+    const url = new URL(v);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    return url.toString();
+  } catch (_) {
+    return '';
+  }
+}
+
+function mapLectureAssignmentRow(row = {}) {
+  return {
+    assignment_id: String(row.assignment_id || '').trim(),
+    student_id: normalizeStudentId(row.student_id || ''),
+    title: String(row.title || '').trim(),
+    url: String(row.url || '').trim(),
+    due_date: String(row.due_date || '').trim(),
+    status: normalizeLectureStatus(row.status || 'ACTIVE'),
+    visible_to_student: row.visible_to_student !== false,
+    note: String(row.note || '').trim(),
+    completed_at: String(row.completed_at || '').trim(),
+    created_by: String(row.created_by || '').trim(),
+    created_at: String(row.created_at || '').trim(),
+    updated_by: String(row.updated_by || '').trim(),
+    updated_at: String(row.updated_at || '').trim()
+  };
+}
+
+async function adminLectureAssignmentListDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const status = String(args.status || '').trim().toUpperCase();
+  const includeArchived = args.include_archived === true || String(args.include_archived || '').toUpperCase() === 'Y';
+  const limit = Math.max(1, Math.min(100, toPositiveInt(args.limit, 40)));
+
+  if (!sid) return fail(400, 'INVALID_INPUT', 'student_id 4자리가 필요합니다.');
+
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from('student_lecture_assignments')
+    .select('assignment_id, student_id, title, url, due_date, status, visible_to_student, note, completed_at, created_by, created_at, updated_by, updated_at')
+    .eq('student_id', sid)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (status && ['ACTIVE', 'COMPLETED', 'ARCHIVED'].includes(status)) query = query.eq('status', status);
+  if (!includeArchived) query = query.neq('status', 'ARCHIVED');
+
+  const { data, error } = await query;
+  if (error) {
+    return fail(500, 'DB_SELECT_FAILED', error.message || 'student_lecture_assignments 조회 실패', {
+      hint: 'docs/supabase-online-lecture-assignment-v1.sql 적용 여부를 확인하세요.'
+    });
+  }
+
+  const items = (Array.isArray(data) ? data : []).map(mapLectureAssignmentRow);
+  return success({ student_id: sid, count: items.length, items });
+}
+
+async function adminLectureAssignmentSaveDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'teacher');
+  if (!auth.ok) return auth.out;
+
+  const sid = normalizeStudentId(args.student_id || args.sid || '');
+  const assignmentId = String(args.assignment_id || args.assignmentId || '').trim();
+  const title = String(args.title || '').trim().slice(0, 160);
+  const url = normalizeLectureUrl(args.url || '');
+  const dueDate = normalizeYmdInput(args.due_date || args.dueDate || '');
+  const status = normalizeLectureStatus(args.status || 'ACTIVE');
+  const visible = args.visible_to_student !== false && String(args.visible_to_student || 'Y').toUpperCase() !== 'N';
+  const note = String(args.note || '').trim().slice(0, 500);
+
+  if (!sid) return fail(400, 'INVALID_INPUT', 'student_id 4자리가 필요합니다.');
+  if (!title) return fail(400, 'INVALID_INPUT', '강의 제목이 필요합니다.');
+  if (!url) return fail(400, 'INVALID_INPUT', 'http 또는 https 강의 링크가 필요합니다.');
+  if (args.due_date || args.dueDate) {
+    if (!dueDate) return fail(400, 'INVALID_INPUT', '기한은 20260627 또는 2026-06-27 형식으로 입력하세요.');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  let before = null;
+  if (assignmentId) {
+    const { data: prev, error: prevErr } = await supabase
+      .from('student_lecture_assignments')
+      .select('*')
+      .eq('assignment_id', assignmentId)
+      .maybeSingle();
+    if (prevErr) return fail(500, 'DB_SELECT_FAILED', prevErr.message || '기존 강의 배정 조회 실패');
+    if (!prev) return fail(404, 'NOT_FOUND', '수정할 강의 배정을 찾지 못했습니다.');
+    before = prev;
+  }
+
+  const row = {
+    student_id: sid,
+    title,
+    url,
+    due_date: dueDate || null,
+    status,
+    visible_to_student: visible,
+    note,
+    updated_by: auth.me.staff_id,
+    updated_at: now
+  };
+
+  let saved;
+  let error;
+  if (assignmentId) {
+    ({ data: saved, error } = await supabase
+      .from('student_lecture_assignments')
+      .update(row)
+      .eq('assignment_id', assignmentId)
+      .select('assignment_id, student_id, title, url, due_date, status, visible_to_student, note, completed_at, created_by, created_at, updated_by, updated_at')
+      .maybeSingle());
+  } else {
+    ({ data: saved, error } = await supabase
+      .from('student_lecture_assignments')
+      .insert([{
+        assignment_id: randomUUID(),
+        ...row,
+        created_by: auth.me.staff_id,
+        created_at: now
+      }])
+      .select('assignment_id, student_id, title, url, due_date, status, visible_to_student, note, completed_at, created_by, created_at, updated_by, updated_at')
+      .maybeSingle());
+  }
+
+  if (error) {
+    return fail(500, assignmentId ? 'DB_UPDATE_FAILED' : 'DB_INSERT_FAILED', error.message || '온라인강의 배정 저장 실패', {
+      hint: 'docs/supabase-online-lecture-assignment-v1.sql 적용 여부를 확인하세요.'
+    });
+  }
+
+  await appendPortalAuditLogDirect(supabase, auth, {
+    op: 'admin.lectureAssignment.save',
+    target_type: 'student_lecture_assignment',
+    target_id: String(saved?.assignment_id || assignmentId || ''),
+    action: assignmentId ? 'UPDATE' : 'CREATE',
+    before_json: before || {},
+    after_json: saved || {},
+    meta_json: { student_id: sid, visible_to_student: visible }
+  });
+
+  return success({ item: mapLectureAssignmentRow(saved || {}) });
+}
+
+
 async function studentTodayPublicGetDirect(args = {}) {
   const token = String(args.token || args.t || '').trim();
   if (!token || token.length < 24) return fail(400, 'INVALID_TOKEN', '유효한 링크 토큰이 필요합니다.');
@@ -5379,6 +5537,30 @@ async function studentTodayPublicGetDirect(args = {}) {
     }));
   }
 
+
+  let lectures = [];
+  const { data: lectureRows, error: lectureErr } = await supabase
+    .from('student_lecture_assignments')
+    .select('assignment_id, title, url, due_date, status, visible_to_student, note, completed_at, updated_at')
+    .eq('student_id', sid)
+    .eq('visible_to_student', true)
+    .neq('status', 'ARCHIVED')
+    .order('due_date', { ascending: true, nullsFirst: false })
+    .order('updated_at', { ascending: false })
+    .limit(12);
+  if (lectureErr) warnings.push({ area: 'student_lecture_assignments', message: lectureErr.message || '온라인강의 조회 실패' });
+  else {
+    lectures = (Array.isArray(lectureRows) ? lectureRows : []).map(row => ({
+      assignment_id: String(row.assignment_id || '').trim(),
+      title: String(row.title || '').trim(),
+      url: String(row.url || '').trim(),
+      due_date: String(row.due_date || '').trim(),
+      status: normalizeLectureStatus(row.status || 'ACTIVE'),
+      note: String(row.note || '').trim(),
+      completed_at: String(row.completed_at || '').trim()
+    }));
+  }
+
   supabase
     .from('student_today_links')
     .update({
@@ -5408,7 +5590,7 @@ async function studentTodayPublicGetDirect(args = {}) {
     },
     clinics,
     words,
-    lectures: [],
+    lectures,
     warnings
   });
 }
@@ -7020,6 +7202,16 @@ export default async function handler(req, res) {
 
   if (op === 'admin.studentTodayLink.create') {
     const result = await adminStudentTodayLinkCreateDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.lectureAssignment.list') {
+    const result = await adminLectureAssignmentListDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.lectureAssignment.save') {
+    const result = await adminLectureAssignmentSaveDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

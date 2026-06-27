@@ -8,6 +8,7 @@ const kiosk = readFileSync('api/kiosk-mark.js', 'utf8');
 const indexHtml = readFileSync('index.html', 'utf8');
 const staffClock = readFileSync('api/staff-clock.js', 'utf8');
 const admin = html;
+const studentToday = readFileSync('public/student-today.html', 'utf8');
 function assertIncludes(text, snippet, message) {
   if (!String(text || '').includes(snippet)) fail(message + ' 기준 미충족');
   else ok(message);
@@ -179,6 +180,14 @@ if (!html.includes('btnStudentTodayLinkOneClick') || !html.includes('studentToda
 if (!html.includes('btnPhoneIdentityAudit') || !html.includes('phoneIdentityRows') || !html.includes('copyPhoneIdentityIssues')) {
   fail('휴대폰 출결 준비도 UI/복사 흐름이 없습니다.');
 } else ok('휴대폰 출결 준비도 UI/복사 흐름이 있습니다.');
+
+if (!html.includes('btnSaveLectureAssignment') || !html.includes('lectureAssignmentRows') || !rpc.includes("op === 'admin.lectureAssignment.save'") || !rpc.includes("op === 'admin.lectureAssignment.list'")) {
+  fail('온라인강의 배정 UI/API 흐름이 없습니다.');
+} else ok('온라인강의 배정 UI/API 흐름이 있습니다.');
+
+if (!studentToday.includes('lectureBox') || !rpc.includes('student_lecture_assignments')) {
+  fail('학생 링크 온라인강의 공개 표시 흐름이 없습니다.');
+} else ok('학생 링크 온라인강의 공개 표시 흐름이 있습니다.');
 
 if (!rpc.includes('adminPhoneIdentityAuditDirect') || !rpc.includes("op === 'admin.phoneIdentity.audit'")) {
   fail('휴대폰 출결 준비도 서버 API가 없습니다.');

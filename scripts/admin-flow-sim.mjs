@@ -59,6 +59,9 @@ requireFunction('리포트 스냅샷 조회', 'listReportSnapshots', ['report.li
 
 requireIds('학생 오늘 링크 흐름', ['btnStudentTodayLinkOneClick', 'studentTodayLinkBox']);
 requireFunction('학생 오늘 링크 생성', 'createStudentTodayLink', ['admin.studentTodayLink.create', 'studentTodayLinkBox']);
+requireIds('온라인강의 배정 흐름', ['studentLectureBox', 'lectureTitle', 'lectureUrl', 'btnSaveLectureAssignment', 'lectureAssignmentRows']);
+requireFunction('온라인강의 배정 저장', 'saveLectureAssignment', ['admin.lectureAssignment.save', 'listLectureAssignments']);
+requireFunction('온라인강의 배정 조회', 'listLectureAssignments', ['admin.lectureAssignment.list', 'renderLectureAssignmentRows']);
 
 
 requireIds('감사 로그 흐름', ['auditOpFilter', 'auditTargetTypeFilter', 'auditActorFilter', 'btnLoadAuditLogs', 'auditLogRows']);

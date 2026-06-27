@@ -3320,6 +3320,29 @@
 <h3>학생 오늘 링크</h3>
 <p>선택 학생의 오늘 출결, 클리닉, 단어 기록을 모바일 링크로 확인할 수 있습니다. 링크 생성 전 학생을 선택하세요.</p>
 </div>
+<div class="emptyPanel" id="studentLectureBox" style="margin-top:14px;">
+<h3>온라인강의 배정</h3>
+<p>학생을 선택한 뒤 온라인강의 링크를 배정하면 학생 오늘 링크에 표시됩니다.</p>
+<input type="hidden" id="lectureAssignmentId" />
+<div class="grid2" style="margin-top:12px;">
+<div><div class="fieldLabel">강의 제목</div><input class="inp" id="lectureTitle" placeholder="예: 수특 3강 어휘 복습" /></div>
+<div><div class="fieldLabel">강의 링크</div><input class="inp" id="lectureUrl" placeholder="https://..." /></div>
+<div><div class="fieldLabel">기한</div><input class="inp" id="lectureDueDate" placeholder="20260627" /></div>
+<div><div class="fieldLabel">상태</div><select class="inp" id="lectureStatus"><option value="ACTIVE">진행중</option><option value="COMPLETED">완료</option><option value="ARCHIVED">숨김</option></select></div>
+</div>
+<div style="margin-top:12px;"><div class="fieldLabel">학생 표시 메모</div><input class="inp" id="lectureNote" placeholder="예: 오늘 20분까지만 듣고 노트 정리" /></div>
+<div class="btnRow" style="margin-top:12px;">
+<span class="btn btnPri" id="btnSaveLectureAssignment" role="button" tabindex="0">강의 배정 저장</span>
+<span class="btn btnGhost" id="btnListLectureAssignments" role="button" tabindex="0">강의 목록 조회</span>
+<span class="btn btnGhost" id="btnClearLectureAssignment" role="button" tabindex="0">입력 초기화</span>
+</div>
+<div class="tableWrap" style="margin-top:12px;">
+<table class="table">
+<thead><tr><th>제목</th><th>기한</th><th>상태</th><th>표시</th><th>관리</th></tr></thead>
+<tbody id="lectureAssignmentRows"><tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr></tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div class="grid3" style="margin-top:18px;">
@@ -6426,6 +6449,9 @@
       if (excuses) excuses.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
       if (clinics) clinics.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
       if (words) words.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+      const lectureRows = $('#lectureAssignmentRows');
+      if (lectureRows) lectureRows.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">학생 선택 전입니다.</td></tr>';
+      clearLectureAssignmentForm();
     }
 
     function renderStudentDetail(student) {
@@ -8406,6 +8432,94 @@
     let lastPhoneIdentityAudit = null;
 
 
+
+    function lectureStatusLabel(status) {
+      const s = String(status || '').toUpperCase();
+      if (s === 'ACTIVE') return '진행중';
+      if (s === 'COMPLETED') return '완료';
+      if (s === 'ARCHIVED') return '숨김';
+      return s || '-';
+    }
+
+    function clearLectureAssignmentForm() {
+      const ids = ['lectureAssignmentId', 'lectureTitle', 'lectureUrl', 'lectureDueDate', 'lectureNote'];
+      ids.forEach(id => { const el = $('#' + id); if (el) el.value = ''; });
+      const st = $('#lectureStatus');
+      if (st) st.value = 'ACTIVE';
+    }
+
+    function renderLectureAssignmentRows(items) {
+      const rows = $('#lectureAssignmentRows');
+      if (!rows) return;
+      if (!items || !items.length) {
+        rows.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">배정된 온라인강의가 없습니다.</td></tr>';
+        return;
+      }
+      rows.innerHTML = items.map(item => `
+        <tr>
+          <td class="wrap"><strong>${esc(item.title || '강의')}</strong><br><span class="smallText">${esc(item.url || '')}</span></td>
+          <td>${esc(item.due_date || '-')}</td>
+          <td>${esc(lectureStatusLabel(item.status))}</td>
+          <td>${item.visible_to_student === false ? '숨김' : '학생 표시'}</td>
+          <td><button class="btn btnGhost" type="button" data-lecture-edit="${esc(item.assignment_id || '')}">수정</button></td>
+        </tr>
+      `).join('');
+      $$('#lectureAssignmentRows button[data-lecture-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = items.find(x => String(x.assignment_id || '') === String(btn.dataset.lectureEdit || '')) || {};
+          $('#lectureAssignmentId').value = target.assignment_id || '';
+          $('#lectureTitle').value = target.title || '';
+          $('#lectureUrl').value = target.url || '';
+          $('#lectureDueDate').value = target.due_date || '';
+          $('#lectureStatus').value = String(target.status || 'ACTIVE').toUpperCase();
+          $('#lectureNote').value = target.note || '';
+          showToast('온라인강의 배정을 수정 폼에 불러왔습니다.');
+        });
+      });
+    }
+
+    async function listLectureAssignments() {
+      const student = App.selectedStudent || {};
+      const sid = normalizeSid(student.student_id || '');
+      if (!sid) { showToast('먼저 학생을 선택하세요.'); return; }
+      const rows = $('#lectureAssignmentRows');
+      if (rows) rows.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">온라인강의 목록을 불러오는 중입니다.</td></tr>';
+      const r = await rpc('admin.lectureAssignment.list', { student_id: sid, include_archived: true }, { timeoutMs: 25000 });
+      if (!r.ok) {
+        const msg = r.error?.message || '온라인강의 목록 조회 실패';
+        showToast(msg);
+        if (rows) rows.innerHTML = `<tr><td colspan="5" style="color:var(--danger,#b42318);">${esc(msg)}</td></tr>`;
+        return;
+      }
+      renderLectureAssignmentRows((r.data && Array.isArray(r.data.items)) ? r.data.items : []);
+      showToast('온라인강의 목록을 조회했습니다.');
+    }
+
+    async function saveLectureAssignment() {
+      const student = App.selectedStudent || {};
+      const sid = normalizeSid(student.student_id || '');
+      if (!sid) { showToast('먼저 학생을 선택하세요.'); return; }
+      const title = ($('#lectureTitle')?.value || '').trim();
+      const url = ($('#lectureUrl')?.value || '').trim();
+      if (!title) { showToast('강의 제목을 입력하세요.'); return; }
+      if (!/^https?:\/\//i.test(url)) { showToast('강의 링크는 http 또는 https로 시작해야 합니다.'); return; }
+      const args = {
+        assignment_id: ($('#lectureAssignmentId')?.value || '').trim(),
+        student_id: sid,
+        title,
+        url,
+        due_date: ($('#lectureDueDate')?.value || '').trim(),
+        status: ($('#lectureStatus')?.value || 'ACTIVE').trim(),
+        visible_to_student: ($('#lectureStatus')?.value || 'ACTIVE') !== 'ARCHIVED',
+        note: ($('#lectureNote')?.value || '').trim()
+      };
+      const r = await rpc('admin.lectureAssignment.save', args, { timeoutMs: 25000 });
+      if (!r.ok) { showToast(r.error?.message || '온라인강의 저장 실패'); showResult('온라인강의 저장 실패', r); return; }
+      clearLectureAssignmentForm();
+      await listLectureAssignments();
+      showToast('온라인강의 배정을 저장했습니다.');
+    }
+
     async function createStudentTodayLink() {
       const student = App.selectedStudent || {};
       const sid = normalizeSid(student.student_id || '');
@@ -8960,6 +9074,13 @@
       bindClick('btnStudentWordOneClick', quickStudentWordInput);
       bindClick('btnStudentReportOneClick', () => { jumpTo('reports'); defaultReportPeriod(); });
       bindClick('btnStudentTodayLinkOneClick', createStudentTodayLink);
+      bindClick('btnSaveLectureAssignment', saveLectureAssignment);
+      bindClick('btnListLectureAssignments', listLectureAssignments);
+      bindClick('btnClearLectureAssignment', clearLectureAssignmentForm);
+      ['btnSaveLectureAssignment', 'btnListLectureAssignments', 'btnClearLectureAssignment'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
+      });
 
 
       ['opsClassSelect', 'masterClassQuickSelect', 'clinicClassSelect', 'clinicClassFilterSelect', 'wordClassSelect', 'wordBulkClassSelect', 'absenceExcuseClassSelect'].forEach(id => {
