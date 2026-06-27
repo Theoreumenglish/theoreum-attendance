@@ -96,6 +96,10 @@ if (!indexHtml.includes('kPhoneMid') || !indexHtml.includes('kPhoneLast') || !in
   fail('키오스크 입력 안내가 010- 분할 입력 중심으로 변경되지 않았습니다.');
 } else ok('키오스크 입력 안내가 010- 분할 입력 중심으로 변경되었습니다.');
 
+if (!indexHtml.includes('routePhysicalKeyToPhoneSegments') || !indexHtml.includes('routePhysicalKeyToRawScanner') || !indexHtml.includes('handlePhoneSegmentBackspace')) {
+  fail('물리 키보드 입력 라우팅/Backspace 하드닝이 없습니다.');
+} else ok('물리 키보드 입력 라우팅/Backspace 하드닝이 있습니다.');
+
 if (indexHtml.includes('id="studentKeypad"') || indexHtml.includes('appendStudentDigit') || indexHtml.includes('data-keypad-digit')) {
   fail('화면 숫자 키패드가 아직 남아 있습니다.');
 } else ok('화면 숫자 키패드를 제거했습니다.');

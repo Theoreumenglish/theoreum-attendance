@@ -720,51 +720,75 @@
 
 
 		.phoneSegmentRow {
-			width: 100%;
-			height: 130px;
-			display: flex;
+			width: min(760px, 100%);
+			min-height: 118px;
+			display: grid;
+			grid-template-columns: auto 1fr auto 1fr;
 			align-items: center;
 			justify-content: center;
-			gap: 12px;
-			padding: 18px 22px;
+			gap: 10px;
+			margin: 0 auto;
+			padding: 16px 20px;
 			border: 3px solid var(--line);
-			border-radius: var(--r-lg);
-			background: var(--bg);
-			box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.04);
-			transition: all 0.2s ease;
+			border-radius: 28px;
+			background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+			box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+			transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 		}
 
 		.phoneSegmentRow:focus-within {
-			background: var(--card);
 			border-color: var(--pri);
-			box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.15);
+			box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.13), 0 20px 48px rgba(15, 23, 42, 0.12);
+			transform: translateY(-1px);
 		}
 
 		.phoneStatic {
-			font-size: 52px;
+			font-size: clamp(34px, 5.2vw, 52px);
 			font-weight: 1000;
-			letter-spacing: 2px;
+			letter-spacing: 0;
 			color: var(--text);
 			line-height: 1;
+			white-space: nowrap;
 		}
 
 		.phoneSegmentInput {
-			width: min(220px, 26vw);
-			height: 88px;
-			border: none;
+			width: 100%;
+			min-width: 0;
+			height: 82px;
+			border: 2px solid #dbe3ef;
+			border-radius: 22px;
 			outline: none;
-			background: transparent;
+			background: #ffffff;
 			color: var(--text);
 			text-align: center;
-			font-size: 52px;
+			font-size: clamp(36px, 5.8vw, 56px);
 			font-weight: 1000;
-			letter-spacing: 12px;
+			letter-spacing: 0.18em;
+			text-indent: 0.18em;
 			caret-color: var(--pri);
+			box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.05);
+		}
+
+		.phoneSegmentInput:focus {
+			border-color: var(--pri);
+			box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12), inset 0 2px 6px rgba(15, 23, 42, 0.04);
 		}
 
 		.phoneSegmentInput:disabled {
 			opacity: 0.45;
 			cursor: not-allowed;
+		}
+
+		@media (max-width: 640px) {
+			.phoneSegmentRow {
+				grid-template-columns: auto minmax(110px, 1fr) auto minmax(110px, 1fr);
+				gap: 6px;
+				padding: 14px;
+			}
+
+			.phoneSegmentInput {
+				height: 72px;
+			}
 		}
 
 		.phoneRawInput {
@@ -1481,9 +1505,9 @@
 			<div class="input-wrapper">
 				<div id="kPhoneInputRow" class="phoneSegmentRow" aria-label="휴대폰 번호 뒤 8자리 입력">
 					<span class="phoneStatic">010-</span>
-					<input class="phoneSegmentInput" id="kPhoneMid" autocomplete="off" inputmode="numeric" aria-label="휴대폰 가운데 4자리">
+					<input class="phoneSegmentInput" id="kPhoneMid" autocomplete="off" inputmode="numeric" maxlength="4" pattern="[0-9]*" aria-label="휴대폰 가운데 4자리">
 					<span class="phoneStatic">-</span>
-					<input class="phoneSegmentInput" id="kPhoneLast" autocomplete="off" inputmode="numeric" aria-label="휴대폰 뒤 4자리">
+					<input class="phoneSegmentInput" id="kPhoneLast" autocomplete="off" inputmode="numeric" maxlength="4" pattern="[0-9]*" aria-label="휴대폰 뒤 4자리">
 					<input class="inp-big phoneRawInput" id="kInput" autocomplete="off" inputmode="text" aria-hidden="true" tabindex="-1">
 				</div>
 				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
@@ -2587,9 +2611,16 @@
           phoneMid.setAttribute('autocomplete', 'off');
           phoneMid.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'mid'));
           phoneMid.addEventListener('keydown', e => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            Kiosk.submitPhoneSegmentsOnEnter();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              Kiosk.submitPhoneSegmentsOnEnter();
+              return;
+            }
+
+            if (e.key.length === 1 && !/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              e.preventDefault();
+              Kiosk.routePhysicalKeyToRawScanner(e.key);
+            }
           });
         }
 
@@ -2600,9 +2631,21 @@
           phoneLast.setAttribute('autocomplete', 'off');
           phoneLast.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'last'));
           phoneLast.addEventListener('keydown', e => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            Kiosk.submitPhoneSegmentsOnEnter();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              Kiosk.submitPhoneSegmentsOnEnter();
+              return;
+            }
+
+            if (e.key === 'Backspace' && Kiosk.handlePhoneSegmentBackspace('last')) {
+              e.preventDefault();
+              return;
+            }
+
+            if (e.key.length === 1 && !/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              e.preventDefault();
+              Kiosk.routePhysicalKeyToRawScanner(e.key);
+            }
           });
         }
 
@@ -2707,6 +2750,57 @@
         return tail;
       },
 
+      clearRawScannerInput() {
+        const input = $('#kInput');
+        if (input) input.value = '';
+      },
+
+      routePhysicalKeyToPhoneSegments(ch) {
+        const mid = Kiosk.getPhoneMidInput();
+        const last = Kiosk.getPhoneLastInput();
+        const digit = String(ch || '').replace(/[^0-9]/g, '');
+
+        if (!digit) return false;
+
+        const midDigits = mid ? String(mid.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+        const lastDigits = last ? String(last.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+
+        if (mid && midDigits.length < 4) {
+          mid.value = (midDigits + digit).slice(0, 4);
+          Kiosk.handlePhoneSegmentInput(mid, 'mid');
+          return true;
+        }
+
+        if (last && lastDigits.length < 4) {
+          last.value = (lastDigits + digit).slice(0, 4);
+          Kiosk.handlePhoneSegmentInput(last, 'last');
+          return true;
+        }
+
+        return false;
+      },
+
+      routePhysicalKeyToRawScanner(ch) {
+        const input = $('#kInput');
+        if (!input) return false;
+
+        input.value = String(input.value || '') + String(ch || '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      },
+
+      handlePhoneSegmentBackspace(part) {
+        const mid = Kiosk.getPhoneMidInput();
+        const last = Kiosk.getPhoneLastInput();
+
+        if (part === 'last' && last && !String(last.value || '').trim()) {
+          if (mid) safeFocus(mid);
+          return true;
+        }
+
+        return false;
+      },
+
       clearPhoneSegmentInputs() {
         const mid = Kiosk.getPhoneMidInput();
         const last = Kiosk.getPhoneLastInput();
@@ -2765,6 +2859,7 @@
         if (!Kiosk.staffQuickOpen && Kiosk.isStaffCommandPrefix(rawValue)) {
           if (Kiosk.handleStaffCommand(normalized)) {
             Kiosk.clearPhoneSegmentInputs();
+            Kiosk.clearRawScannerInput();
             return;
           }
           return;
@@ -2784,7 +2879,28 @@
           return;
         }
 
-        const digits = rawValue.replace(/[^0-9]/g, '').slice(0, part === 'mid' ? 4 : 4);
+        const onlyDigits = rawValue.replace(/[^0-9]/g, '');
+
+        if (onlyDigits.length > 4) {
+          const tail = /^010\d{8}$/.test(onlyDigits) ? onlyDigits.slice(-8) : onlyDigits.slice(0, 8);
+          const mid = Kiosk.getPhoneMidInput();
+          const last = Kiosk.getPhoneLastInput();
+
+          if (mid) mid.value = tail.slice(0, 4);
+          if (last) last.value = tail.slice(4, 8);
+
+          Kiosk.syncPhoneTailToRawInput();
+
+          if (tail.length >= 8) {
+            Kiosk.queueSubmit(80);
+          } else if (last) {
+            safeFocus(last, 10);
+          }
+
+          return;
+        }
+
+        const digits = onlyDigits.slice(0, 4);
         if (el) el.value = digits;
 
         if (part === 'mid' && digits.length >= 4) {
@@ -3399,8 +3515,11 @@
         }
 
         const input = $('#kInput');
+        const phoneMid = $('#kPhoneMid');
+        const phoneLast = $('#kPhoneLast');
         if (!input) return;
 
+        const isPhoneSegmentActive = document.activeElement === phoneMid || document.activeElement === phoneLast;
         const isPlainChar =
           e.key.length === 1 &&
           !e.ctrlKey &&
@@ -3412,30 +3531,42 @@
           if (modal) modal.classList.remove('show');
         }
 
-        if (document.activeElement !== input) {
-          safeFocus(input);
-
-          if (isPlainChar) {
-            input.value += e.key;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+        if (isPhoneSegmentActive) {
+          if (e.key === 'Enter') {
             e.preventDefault();
+            Kiosk.submitPhoneSegmentsOnEnter();
+          }
+          return;
+        }
+
+        if (isPlainChar) {
+          e.preventDefault();
+
+          if (/^[0-9]$/.test(e.key) && !/^(?:QR|Q3|STAFFQR)/i.test(String(input.value || ''))) {
+            Kiosk.routePhysicalKeyToPhoneSegments(e.key);
             return;
           }
 
-          if (e.key === 'Enter') {
-            e.preventDefault();
+          safeFocus(input);
+          Kiosk.routePhysicalKeyToRawScanner(e.key);
+          return;
+        }
 
-            const v = Kiosk.normalizeScanText(input.value);
-            input.value = v;
+        if (e.key === 'Enter') {
+          e.preventDefault();
 
-            const shouldSubmit =
-              Kiosk.isCompleteStudentQr(v) ||
-              Kiosk.isCompleteStaffQr(v) ||
-              Kiosk.shouldSubmitPhoneTail8(v);
+          const v = Kiosk.normalizeScanText(input.value);
+          input.value = v;
 
-            if (shouldSubmit) {
-              Kiosk.queueSubmit(40);
-            }
+          const shouldSubmit =
+            Kiosk.isCompleteStudentQr(v) ||
+            Kiosk.isCompleteStaffQr(v) ||
+            Kiosk.shouldSubmitPhoneTail8(v);
+
+          if (shouldSubmit) {
+            Kiosk.queueSubmit(40);
+          } else {
+            Kiosk.submitPhoneSegmentsOnEnter();
           }
         }
       });

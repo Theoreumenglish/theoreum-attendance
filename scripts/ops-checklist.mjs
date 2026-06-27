@@ -82,6 +82,7 @@ const checklist = [
   ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')],
   ['학생 휴대폰 번호 출결 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID_LEGACY' : 'PHONE_LAST8'") && kiosk.includes('findStudentByPhoneTail8')],
   ['학생 휴대폰 번호 010- 분할 입력 UI', rootIndex.includes('kPhoneMid') && rootIndex.includes('kPhoneLast') && rootIndex.includes('phoneSegmentRow')],
+  ['물리 키보드 번호 입력 하드닝', rootIndex.includes('routePhysicalKeyToPhoneSegments') && rootIndex.includes('routePhysicalKeyToRawScanner') && rootIndex.includes('handlePhoneSegmentBackspace')],
   ['휴대폰 번호 분할 입력 문서', existsSync('docs/PHONE_SEGMENT_INPUT_V1.md')],
   ['개발 표면 확인 루틴 문서', existsSync('docs/DEVELOPER_SURFACE_ROUTINE_V1.md')],
   ['화면 숫자 키패드 제거', !rootIndex.includes('id="studentKeypad"') && !rootIndex.includes('data-keypad-digit') && !rootIndex.includes('appendStudentDigit')],
