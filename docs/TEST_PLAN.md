@@ -413,3 +413,10 @@ npm run smoke-test
 - Run `npm run one-click-release` and confirm `_logs/LAST_RUN.log` is created.
 - Force a harmless failure in a local sandbox when needed and confirm `_logs/LAST_FAILURE_TO_SEND.txt` is created.
 - Confirm `npm run copy-last-log` copies the latest copy-ready log summary.
+
+
+## dev-convenience-suite-v1
+
+- `npm run dev:doctor` creates `_logs/DEV_DOCTOR_TO_SEND.txt`.
+- `npm run dev:quick-check` runs local check/verify/build and creates a copy-ready summary.
+- `npm run dev:apply-patch` applies `patch-files` directly and avoids generated APPLY script path encoding issues.

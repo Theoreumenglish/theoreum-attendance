@@ -35,6 +35,11 @@ const requiredFiles = [
   'scripts/setup-smoke-env.ps1',
   'scripts/one-click-release.ps1',
   'scripts/copy-last-run-log.ps1',
+  'scripts/apply-patch-files.ps1',
+  'scripts/dev-doctor.ps1',
+  'scripts/quick-local-check.ps1',
+  'scripts/rollback-latest-backup.ps1',
+  'docs/DEV_CONVENIENCE_SUITE_V1.md',
   'scripts/final-readiness-check.mjs',
   'docs/FINAL_READINESS_CHECKLIST.md',
   'docs/MASTER_DATA_PORTAL.md',
@@ -48,7 +53,7 @@ const requiredFiles = [
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -179,6 +184,19 @@ checkText('public/admin.html', 'btnWordBulkCopyFail', '단어시험 불통과 �
 checkText('docs/WORD_GRID_SPEED_V1.md', 'word-grid-speed-v1', '단어시험 grid speed 문서');
 
 checkFile('docs/UI_UX_REFRESH_V2.md', 'UI/UX refresh v2 문서');
+
+
+checkText('scripts/apply-patch-files.ps1', 'patch-files', '개발 편의 patch-files 직접 적용 helper');
+checkText('scripts/apply-patch-files.ps1', 'LAST_PATCH_APPLY.txt', '패치 적용 요약 로그 생성');
+checkText('scripts/dev-doctor.ps1', 'DEV_DOCTOR_TO_SEND.txt', '개발 상태 공유용 dev doctor');
+checkText('scripts/quick-local-check.ps1', 'LAST_QUICK_CHECK_TO_SEND.txt', '빠른 로컬 검증 실패 요약');
+checkText('scripts/rollback-latest-backup.ps1', '_patch_backup_', '최근 패치 백업 rollback helper');
+checkText('docs/DEV_CONVENIENCE_SUITE_V1.md', 'dev:apply-patch', '개발 편의 suite 문서');
+checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Vercel', '개발 표면 Vercel 확인 문서');
+checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Supabase', '개발 표면 Supabase 확인 문서');
+checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'GitHub', '개발 표면 GitHub 확인 문서');
+checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'OpenAI Platform', '개발 표면 OpenAI 확인 문서');
+checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Google Drive', '개발 표면 Google Drive 확인 문서');
 
 
 if (failed) {

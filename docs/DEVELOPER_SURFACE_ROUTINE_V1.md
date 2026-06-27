@@ -18,3 +18,25 @@
 - PowerShell 한글 경로 깨짐 방지를 위해 APPLY_PATCH 스크립트 실행을 기본으로 쓰지 않는다.
 - 실패 시 `_logs/LAST_FAILURE_TO_SEND.txt`를 우선 확인한다.
 - 비밀번호와 API key는 Git에 넣지 않는다.
+
+
+## Developer convenience additions
+
+Use these helper scripts before and after patches:
+
+```powershell
+npm run dev:doctor
+npm run dev:quick-check
+npm run dev:apply-patch -- -PatchZip "$env:USERPROFILE\Downloads\PATCH_NAME.zip" -CommitMessage "commit message"
+npm run dev:rollback-latest
+```
+
+Default patch application should use `scripts/apply-patch-files.ps1` because it copies `patch-files` directly and avoids Korean path encoding problems in generated `APPLY_PATCH_*.ps1` files.
+
+If an error happens, send one of these files first:
+
+```txt
+_logs/LAST_FAILURE_TO_SEND.txt
+_logs/LAST_QUICK_CHECK_TO_SEND.txt
+_logs/DEV_DOCTOR_TO_SEND.txt
+```
