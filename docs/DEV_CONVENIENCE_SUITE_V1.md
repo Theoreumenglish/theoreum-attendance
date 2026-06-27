@@ -93,3 +93,7 @@ _logs/
 ```
 
 Release zip generation must exclude logs and local env files.
+
+## SQL-required patch safety
+
+`dev:apply-patch` detects `docs/supabase-*.sql` in patch files. It applies files locally, writes `_logs/LAST_SQL_TO_APPLY.txt`, and stops before deployment until Supabase SQL is applied.

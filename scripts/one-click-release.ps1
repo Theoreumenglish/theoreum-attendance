@@ -2,7 +2,9 @@ param(
   [string]$CommitMessage = "chore: update theoreum portal",
   [string]$Branch = "migration-phase1-hotpath",
   [switch]$SkipDeploy,
-  [switch]$NoClipboard
+  [switch]$NoClipboard,
+  [switch]$SqlApplied,
+  [switch]$SkipSqlGate
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +22,10 @@ $TranscriptPath = Join-Path $LogDir ("one-click-release_" + $RunId + ".log")
 $LastRunPath = Join-Path $LogDir "LAST_RUN.log"
 $FailureCopyPath = Join-Path $LogDir "LAST_FAILURE_TO_SEND.txt"
 $SuccessSummaryPath = Join-Path $LogDir "LAST_SUCCESS_SUMMARY.txt"
+$PendingSqlPath = Join-Path $LogDir "PENDING_SQL_MIGRATIONS.txt"
+$LastSqlPath = Join-Path $LogDir "LAST_SQL_TO_APPLY.txt"
+$SqlGateCopyPath = Join-Path $LogDir "LAST_SQL_GATE_TO_SEND.txt"
+$SmokeCopyPath = Join-Path $LogDir "LAST_SMOKE_TO_SEND.txt"
 
 $TranscriptStarted = $false
 $StepNo = 1
@@ -88,6 +94,68 @@ function Copy-TextSafe {
   }
 }
 
+function Check-SqlMigrationGate {
+  Write-Step "DB migration gate"
+
+  if ($SkipSqlGate) {
+    Write-Host "SQL gate skipped by -SkipSqlGate." -ForegroundColor Yellow
+    return
+  }
+
+  if (!(Test-Path $PendingSqlPath)) {
+    Write-Host "No pending Supabase SQL migration marker." -ForegroundColor Green
+    return
+  }
+
+  $PendingText = Get-Content $PendingSqlPath -Raw
+
+  if (-not $SqlApplied) {
+    $Text = @"
+=== COPY FROM HERE ===
+TheOreum release stopped before deploy/smoke because Supabase SQL migration is pending.
+
+Run ID: $RunId
+Pending marker:
+$PendingSqlPath
+
+SQL to apply:
+$LastSqlPath
+
+What happened:
+A patch added or changed docs/supabase-*.sql. This is a database migration. To avoid the same smoke-test failure again, the release is intentionally blocked until the SQL is applied in Supabase.
+
+What to do now:
+1. Open _logs/LAST_SQL_TO_APPLY.txt.
+2. Copy the SQL from that file into Supabase SQL Editor and run it.
+3. After SQL succeeds, run this command from the project folder:
+
+npm run dev:release -- -CommitMessage "$CommitMessage" -Branch "$Branch" -SqlApplied
+
+Pending details:
+$PendingText
+=== COPY TO HERE ===
+"@
+    Set-Content -Path $SqlGateCopyPath -Value $Text -Encoding UTF8
+    Copy-TextSafe $Text
+    Write-Host "SQL migration required before release." -ForegroundColor Red
+    Write-Host $SqlGateCopyPath -ForegroundColor Yellow
+    throw "SQL migration gate blocked release. Apply Supabase SQL first, then rerun with -SqlApplied."
+  }
+
+  $AppliedArchive = Join-Path $LogDir ("APPLIED_SQL_MIGRATIONS_" + $RunId + ".txt")
+  $ArchiveText = @"
+Confirmed with -SqlApplied during one-click release.
+Run ID: $RunId
+Confirmed at: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+
+$PendingText
+"@
+  Set-Content -Path $AppliedArchive -Value $ArchiveText -Encoding UTF8
+  Remove-Item $PendingSqlPath -Force
+  Write-Host "Pending SQL marker cleared because -SqlApplied was provided." -ForegroundColor Green
+  Write-Host $AppliedArchive -ForegroundColor Yellow
+}
+
 function New-FailureSummary {
   param([string]$Message)
 
@@ -102,6 +170,17 @@ function New-FailureSummary {
     $Tail = (Get-Content $TranscriptPath -Tail 180) -join [Environment]::NewLine
   }
 
+  $Extra = ""
+  if (Test-Path $SqlGateCopyPath) {
+    $Extra += "`nSQL gate details:`n$SqlGateCopyPath`n"
+  }
+  if (Test-Path $SmokeCopyPath) {
+    $Extra += "`nSmoke-test details:`n$SmokeCopyPath`n"
+  }
+  if (Test-Path $LastSqlPath) {
+    $Extra += "`nSQL to apply:`n$LastSqlPath`n"
+  }
+
   $Summary = @"
 === COPY FROM HERE ===
 TheOreum one-click release failed.
@@ -112,10 +191,11 @@ $Message
 
 Full log:
 $TranscriptPath
-
+$Extra
 What I need you to send ChatGPT:
 1. This whole block.
 2. If asked, also attach or paste the full log file.
+3. If this mentions SQL gate or smoke-test details, send those files too.
 
 Last 180 log lines:
 $Tail
@@ -169,6 +249,7 @@ try {
   Write-Host ("Log: " + $TranscriptPath)
 
   Load-SmokeEnv
+  Check-SqlMigrationGate
 
   Invoke-NativeStep "Git status before checks" { git status }
 

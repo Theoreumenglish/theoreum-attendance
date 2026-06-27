@@ -39,6 +39,8 @@ const requiredFiles = [
   'scripts/dev-doctor.ps1',
   'scripts/quick-local-check.ps1',
   'scripts/rollback-latest-backup.ps1',
+  'scripts/db-migration-status.ps1',
+  'docs/DB_MIGRATION_GATE_V1.md',
   'docs/DEV_CONVENIENCE_SUITE_V1.md',
   'docs/DEV_SPEED_STABILITY_V1.md',
   'scripts/final-readiness-check.mjs',
@@ -60,7 +62,7 @@ const requiredFiles = [
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'dev:fast-check', 'dev:release', 'verify:no-build', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'dev:fast-check', 'dev:release', 'db:migration-status', 'verify:no-build', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -201,6 +203,16 @@ checkText('scripts/quick-local-check.ps1', 'LAST_QUICK_CHECK_TO_SEND.txt', '빠�
 checkText('scripts/rollback-latest-backup.ps1', '_patch_backup_', '최근 패치 백업 rollback helper');
 checkText('docs/DEV_CONVENIENCE_SUITE_V1.md', 'dev:apply-patch', '개발 편의 suite 문서');
 checkText('docs/DEV_SPEED_STABILITY_V1.md', '중복 검증 제거', '개발 속도 안정화 문서');
+
+checkText('scripts/apply-patch-files.ps1', 'PENDING_SQL_MIGRATIONS.txt', 'SQL 필요 패치 release gate marker');
+checkText('scripts/apply-patch-files.ps1', 'LAST_SQL_TO_APPLY.txt', 'SQL 필요 패치 복사용 SQL bundle');
+checkText('scripts/one-click-release.ps1', 'Check-SqlMigrationGate', '원클릭 release SQL gate');
+checkText('scripts/one-click-release.ps1', '-SqlApplied', 'SQL 적용 확인 옵션');
+checkText('scripts/smoke-test.mjs', 'LAST_SMOKE_TO_SEND.txt', 'smoke-test 실패 상세 로그');
+checkText('scripts/smoke-test.mjs', 'migrationHintFor', 'smoke-test Supabase migration hint');
+checkText('scripts/copy-last-run-log.ps1', 'LAST_SQL_TO_APPLY.txt', 'SQL 복사 우선순위');
+checkText('docs/DB_MIGRATION_GATE_V1.md', 'DB Migration Gate v1', 'DB migration gate 문서');
+
 if (oneClickScript.includes('Full verify (includes syntax check and build)') && !oneClickScript.includes('Invoke-NativeStep "Syntax check"') && !oneClickScript.includes('Invoke-NativeStep "Build"')) ok('원클릭 릴리즈 중복 check/build 제거');
 else fail('원클릭 릴리즈 중복 check/build 제거 기준 미충족');
 checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Vercel', '개발 표면 Vercel 확인 문서');

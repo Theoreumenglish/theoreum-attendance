@@ -62,3 +62,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\copy-last-run-log.ps1 -FullLo
 `npm run verify` 안에는 문법검사와 빌드가 이미 포함되어 있다. 따라서 원클릭 릴리즈는 별도의 `npm run check`와 `npm run build`를 중복 실행하지 않고 `npm run verify`를 단일 기준으로 사용한다.
 
 이 원칙은 개발 속도를 높이고, 같은 오류가 여러 번 출력되어 원인 파악이 어려워지는 문제를 줄이기 위한 것이다.
+
+## DB migration gate
+
+If a patch contains `docs/supabase-*.sql`, `dev:apply-patch` now pauses before release/deploy/smoke and writes `_logs/LAST_SQL_TO_APPLY.txt`. Apply the SQL in Supabase first, then run `npm run dev:release -- -CommitMessage "..." -SqlApplied`.

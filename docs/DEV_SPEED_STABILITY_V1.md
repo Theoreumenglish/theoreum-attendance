@@ -44,3 +44,7 @@ cd "C:\Users\USER\Desktop\더오름_출결"; npm run dev:apply-patch -- -CommitM
 ## 제품 표면 점검
 
 매 패치마다 Vercel, Supabase, GitHub, OpenAI Platform, Google Drive 영향 여부를 확인한다. 실제 변경이 없는 표면은 “변경 없음”으로 명시한다.
+
+## Fast but safe DB changes
+
+Speed optimization must not skip DB safety. SQL-backed patches are gated before deploy/smoke through `DB_MIGRATION_GATE_V1`.

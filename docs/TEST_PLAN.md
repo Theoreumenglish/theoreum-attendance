@@ -464,3 +464,7 @@ npm run smoke-test
 5. Generate the student today link.
 6. Open the public link and confirm the online lecture section shows the assignment.
 7. Change status to `ARCHIVED` and confirm it is no longer shown to the student.
+
+## DB migration gate smoke prevention
+
+For patches with `docs/supabase-*.sql`, confirm `npm run dev:apply-patch` pauses before deploy and creates `_logs/LAST_SQL_TO_APPLY.txt`. After applying SQL in Supabase, rerun `npm run dev:release -- -SqlApplied`.

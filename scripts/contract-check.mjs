@@ -584,6 +584,30 @@ if (!existsSync(autoSchemaPath)) {
   }
 }
 
+
+
+// db-migration-gate-v1
+{
+  const oneClick = read('scripts/one-click-release.ps1');
+  const applyPatch = read('scripts/apply-patch-files.ps1');
+  const smoke = read('scripts/smoke-test.mjs');
+  if (!oneClick.includes('Check-SqlMigrationGate') || !oneClick.includes('PENDING_SQL_MIGRATIONS.txt') || !oneClick.includes('SqlApplied')) {
+    fail('one-click-release SQL migration gate가 부족합니다.');
+  } else {
+    ok('one-click-release SQL migration gate가 존재합니다.');
+  }
+  if (!applyPatch.includes('supabase-.*') || !applyPatch.includes('LAST_SQL_TO_APPLY.txt')) {
+    fail('apply-patch SQL 감지/복사 기능이 부족합니다.');
+  } else {
+    ok('apply-patch SQL 감지/복사 기능이 존재합니다.');
+  }
+  if (!smoke.includes('LAST_SMOKE_TO_SEND.txt') || !smoke.includes('migrationHintFor')) {
+    fail('smoke-test 실패 상세 로그/마이그레이션 힌트가 부족합니다.');
+  } else {
+    ok('smoke-test 실패 상세 로그/마이그레이션 힌트가 존재합니다.');
+  }
+}
+
 if (failed > 0) {
   console.error('');
   console.error(`Contract check failed: ${failed} issue(s)`);

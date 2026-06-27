@@ -423,3 +423,7 @@ Security notes:
 - `studentToday.publicGet`: includes visible, non-archived online lecture assignments in the public student today link.
 
 DB: `student_lecture_assignments` from `docs/supabase-online-lecture-assignment-v1.sql`.
+
+## SQL-backed API deployment rule
+
+When a new API depends on a new Supabase table or column, the patch must include `docs/supabase-*.sql` and must pass through the DB migration gate before live smoke-test.

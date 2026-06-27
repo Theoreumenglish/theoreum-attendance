@@ -149,3 +149,7 @@ npm run smoke-test
 - Staff can create/update assignments only after login.
 - Public student links expose only visible, non-archived online lecture links.
 - Lecture URLs must use `http://` or `https://`.
+
+## DB migration gate
+
+Before production deploy, there should be no `_logs/PENDING_SQL_MIGRATIONS.txt` unless the operator intentionally reruns release with `-SqlApplied` after applying Supabase SQL.

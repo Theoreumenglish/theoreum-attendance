@@ -60,11 +60,14 @@ if (Test-Path ".\package.json") {
 }
 
 $LastFailurePath = Join-Path $LogDir "LAST_FAILURE_TO_SEND.txt"
+$PendingSqlPath = Join-Path $LogDir "PENDING_SQL_MIGRATIONS.txt"
+$LastSqlPath = Join-Path $LogDir "LAST_SQL_TO_APPLY.txt"
+$LastSmokePath = Join-Path $LogDir "LAST_SMOKE_TO_SEND.txt"
 $LastSuccessPath = Join-Path $LogDir "LAST_SUCCESS_SUMMARY.txt"
 $LastRunPath = Join-Path $LogDir "LAST_RUN.log"
 
 $LastLogInfo = @()
-foreach ($p in @($LastFailurePath, $LastSuccessPath, $LastRunPath)) {
+foreach ($p in @($PendingSqlPath, $LastSqlPath, $LastSmokePath, $LastFailurePath, $LastSuccessPath, $LastRunPath)) {
   if (Test-Path $p) {
     $item = Get-Item $p
     $LastLogInfo += "$($item.Name): $($item.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))"
@@ -107,6 +110,10 @@ $ReportParts += ""
 $ReportParts += "## Runtime"
 $ReportParts += (Run-Capture "node version" { node -v })
 $ReportParts += (Run-Capture "npm version" { npm -v })
+$ReportParts += ""
+$ReportParts += "## DB migration gate"
+$ReportParts += "pending SQL marker exists: $(Test-Path $PendingSqlPath)"
+$ReportParts += "last SQL bundle exists: $(Test-Path $LastSqlPath)"
 $ReportParts += ""
 $ReportParts += "## Last logs"
 if ($LastLogInfo.Count -gt 0) {
