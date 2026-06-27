@@ -468,3 +468,10 @@ npm run smoke-test
 ## DB migration gate smoke prevention
 
 For patches with `docs/supabase-*.sql`, confirm `npm run dev:apply-patch` pauses before deploy and creates `_logs/LAST_SQL_TO_APPLY.txt`. After applying SQL in Supabase, rerun `npm run dev:release -- -SqlApplied`.
+
+
+## kiosk-visual-qa-v1 test
+
+- Run `npm run kiosk-input-check`.
+- Manually verify rapid physical keyboard input: `12345678` must split into `1234` / `5678`.
+- Manually verify `staff`, `staffin`, and `staffout` still open staff quick mode.

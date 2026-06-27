@@ -249,8 +249,14 @@ checkText('public/admin.html', 'btnSaveLectureAssignment', '온라인강의 배�
 checkText('public/student-today.html', 'lectureBox', '학생 링크 온라인강의 표시 영역');
 checkText('scripts/smoke-test.mjs', 'admin.lectureAssignment.list', '온라인강의 배정 smoke-test');
 
+checkText('docs/KIOSK_VISUAL_QA_V1.md', 'kiosk-visual-qa-v1', '키오스크 시각/입력 QA 문서');
+checkText('index.html', 'handlePhoneSegmentKeydown(e, part)', '키오스크 물리 키보드 분할 입력 핸들러');
+checkText('scripts/kiosk-input-flow-check.mjs', 'Kiosk input flow static check passed', '키오스크 입력 flow 정적 검사');
+
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
   process.exit(1);
 }
+
+
 console.log('\nOperational checklist passed.');

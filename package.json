@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "check": "node scripts/check-js.mjs",
     "contract-check": "node scripts/contract-check.mjs",
-    "verify": "npm run check && npm run contract-check && npm run ux-check && npm run flow-sim && npm run integrity-check && npm run ops-checklist && npm run final-readiness-check && npm run build",
+    "verify": "npm run check && npm run contract-check && npm run ux-check && npm run kiosk-input-check && npm run flow-sim && npm run integrity-check && npm run ops-checklist && npm run final-readiness-check && npm run build",
     "ux-check": "node scripts/admin-ux-check.mjs",
     "flow-sim": "node scripts/admin-flow-sim.mjs",
     "integrity-check": "node scripts/admin-integrity-check.mjs",
@@ -26,10 +26,11 @@
     "dev:quick-check": "powershell -ExecutionPolicy Bypass -File scripts/quick-local-check.ps1",
     "dev:apply-patch": "powershell -ExecutionPolicy Bypass -File scripts/apply-patch-files.ps1",
     "dev:rollback-latest": "powershell -ExecutionPolicy Bypass -File scripts/rollback-latest-backup.ps1",
-    "verify:no-build": "npm run check && npm run contract-check && npm run ux-check && npm run flow-sim && npm run integrity-check && npm run ops-checklist && npm run final-readiness-check",
-    "dev:fast-check": "npm run check && npm run contract-check && npm run integrity-check",
+    "verify:no-build": "npm run check && npm run contract-check && npm run ux-check && npm run kiosk-input-check && npm run flow-sim && npm run integrity-check && npm run ops-checklist && npm run final-readiness-check",
+    "dev:fast-check": "npm run check && npm run contract-check && npm run kiosk-input-check && npm run integrity-check",
     "dev:release": "powershell -ExecutionPolicy Bypass -File scripts/one-click-release.ps1",
-    "db:migration-status": "powershell -ExecutionPolicy Bypass -File scripts/db-migration-status.ps1"
+    "db:migration-status": "powershell -ExecutionPolicy Bypass -File scripts/db-migration-status.ps1",
+    "kiosk-input-check": "node scripts/kiosk-input-flow-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

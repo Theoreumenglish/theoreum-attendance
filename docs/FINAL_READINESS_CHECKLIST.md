@@ -153,3 +153,10 @@ npm run smoke-test
 ## DB migration gate
 
 Before production deploy, there should be no `_logs/PENDING_SQL_MIGRATIONS.txt` unless the operator intentionally reruns release with `-SqlApplied` after applying Supabase SQL.
+
+
+## Kiosk visual QA
+
+- `npm run kiosk-input-check` must pass.
+- Phone input should fit common kiosk screens without bottom clipping.
+- Physical keyboard digit flow and staff hotword flow must both work.

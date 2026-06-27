@@ -41,3 +41,8 @@
 - `staff`, `staffin`, `staffout` 같은 직원 진입어와 QR 스캐너 입력은 숨겨진 raw input으로 라우팅한다.
 - 전역 keydown이 보이는 전화번호 입력칸의 숫자 입력을 가로채지 않도록 한다.
 - 화면에는 `010-`과 구분 하이픈만 표시하고 `xxxx` placeholder는 표시하지 않는다.
+
+
+## kiosk-visual-qa-v1 hardening
+
+Rapid physical keyboard input is guarded by `handlePhoneSegmentKeydown`. If the first 4-digit box is already full, the next digit is routed into the second box instead of being lost.

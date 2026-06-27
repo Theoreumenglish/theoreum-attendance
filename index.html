@@ -325,7 +325,70 @@
 			transition: background 0.25s ease;
 		}
 
-		.heroCard { max-width: 1000px; }
+		.heroCard { max-width: 960px; }
+
+		/* kiosk-visual-qa-v1: compact enough for common kiosk/tablet heights */
+		@media (min-width: 769px) {
+			.main {
+				padding: 24px 20px;
+			}
+
+			.heroCard {
+				padding: 36px 48px;
+			}
+
+			.titleWrap {
+				margin-bottom: 28px;
+			}
+
+			.actGrid {
+				gap: 18px;
+				margin-bottom: 22px;
+			}
+
+			.actBtn {
+				min-height: 142px;
+				padding: 28px 16px;
+			}
+		}
+
+		@media (max-height: 850px) and (min-width: 769px) {
+			.main {
+				padding: 14px 20px;
+			}
+
+			.heroCard {
+				max-width: 940px;
+				padding: 30px 44px;
+			}
+
+			.titleWrap {
+				margin-bottom: 22px;
+			}
+
+			.floor-badge {
+				margin-bottom: 12px;
+			}
+
+			.cardTitle {
+				font-size: 42px;
+			}
+
+			.actGrid {
+				gap: 16px;
+				margin-bottom: 20px;
+			}
+
+			.actBtn {
+				min-height: 132px;
+				padding: 20px 14px;
+			}
+
+			.actBtn svg {
+				width: 46px;
+				height: 46px;
+			}
+		}
 
 		.titleWrap {
 			display: flex;
@@ -720,17 +783,17 @@
 
 
 		.phoneSegmentRow {
-			width: min(760px, 100%);
-			min-height: 118px;
+			width: min(720px, 100%);
+			min-height: 104px;
 			display: grid;
 			grid-template-columns: auto 1fr auto 1fr;
 			align-items: center;
 			justify-content: center;
 			gap: 10px;
 			margin: 0 auto;
-			padding: 16px 20px;
+			padding: 12px 18px;
 			border: 3px solid var(--line);
-			border-radius: 28px;
+			border-radius: 24px;
 			background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 			box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.75);
 			transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
@@ -754,7 +817,7 @@
 		.phoneSegmentInput {
 			width: 100%;
 			min-width: 0;
-			height: 82px;
+			height: 72px;
 			border: 2px solid #dbe3ef;
 			border-radius: 22px;
 			outline: none;
@@ -777,6 +840,17 @@
 		.phoneSegmentInput:disabled {
 			opacity: 0.45;
 			cursor: not-allowed;
+		}
+
+		@media (max-height: 850px) and (min-width: 769px) {
+			.phoneSegmentRow {
+				min-height: 92px;
+				padding: 10px 16px;
+			}
+
+			.phoneSegmentInput {
+				height: 64px;
+			}
 		}
 
 		@media (max-width: 640px) {
@@ -2610,18 +2684,7 @@
           phoneMid.setAttribute('spellcheck', 'false');
           phoneMid.setAttribute('autocomplete', 'off');
           phoneMid.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'mid'));
-          phoneMid.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              Kiosk.submitPhoneSegmentsOnEnter();
-              return;
-            }
-
-            if (e.key.length === 1 && !/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-              e.preventDefault();
-              Kiosk.routePhysicalKeyToRawScanner(e.key);
-            }
-          });
+          phoneMid.addEventListener('keydown', e => Kiosk.handlePhoneSegmentKeydown(e, 'mid'));
         }
 
         if (phoneLast) {
@@ -2630,23 +2693,7 @@
           phoneLast.setAttribute('spellcheck', 'false');
           phoneLast.setAttribute('autocomplete', 'off');
           phoneLast.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'last'));
-          phoneLast.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              Kiosk.submitPhoneSegmentsOnEnter();
-              return;
-            }
-
-            if (e.key === 'Backspace' && Kiosk.handlePhoneSegmentBackspace('last')) {
-              e.preventDefault();
-              return;
-            }
-
-            if (e.key.length === 1 && !/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-              e.preventDefault();
-              Kiosk.routePhysicalKeyToRawScanner(e.key);
-            }
-          });
+          phoneLast.addEventListener('keydown', e => Kiosk.handlePhoneSegmentKeydown(e, 'last'));
         }
 
 				input.addEventListener('keydown', e => {
@@ -2789,6 +2836,55 @@
         return true;
       },
 
+      handlePhoneSegmentKeydown(e, part) {
+        // kiosk-visual-qa-v1: prevent rapid physical keyboard input from being lost
+        // when focus is still on the first 4-digit box during the immediate handoff.
+        if (!e) return;
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          Kiosk.submitPhoneSegmentsOnEnter();
+          return;
+        }
+
+        if (part === 'last' && e.key === 'Backspace' && Kiosk.handlePhoneSegmentBackspace('last')) {
+          e.preventDefault();
+          return;
+        }
+
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const key = String(e.key || '');
+        if (key.length !== 1) return;
+
+        if (/^[0-9]$/.test(key)) {
+          const mid = Kiosk.getPhoneMidInput();
+          const last = Kiosk.getPhoneLastInput();
+          const midDigits = mid ? String(mid.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+          const lastDigits = last ? String(last.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+
+          if (part === 'mid' && midDigits.length >= 4) {
+            e.preventDefault();
+            if (last && lastDigits.length < 4) {
+              last.value = (lastDigits + key).slice(0, 4);
+              Kiosk.handlePhoneSegmentInput(last, 'last');
+              safeFocus(last, 0);
+            }
+            return;
+          }
+
+          if (part === 'last' && lastDigits.length >= 4) {
+            e.preventDefault();
+            return;
+          }
+
+          return;
+        }
+
+        e.preventDefault();
+        Kiosk.routePhysicalKeyToRawScanner(key);
+      },
+
       handlePhoneSegmentBackspace(part) {
         const mid = Kiosk.getPhoneMidInput();
         const last = Kiosk.getPhoneLastInput();
@@ -2905,7 +3001,7 @@
 
         if (part === 'mid' && digits.length >= 4) {
           const last = Kiosk.getPhoneLastInput();
-          if (last) safeFocus(last, 10);
+          if (last) safeFocus(last, 0);
         }
 
         const tail = Kiosk.syncPhoneTailToRawInput();
@@ -3617,8 +3713,6 @@
 
 const StaffUI = {
 			me: null,
-			studentSearchTimer: null,
-			studentSearchSeq: 0,
 			studentSearchTimer: null,
 			studentSearchSeq: 0,
 			studentOptionMap: new Map(),
