@@ -20,7 +20,8 @@
     "ops-checklist": "node scripts/ops-checklist.mjs",
     "final-readiness-check": "node scripts/final-readiness-check.mjs",
     "one-click-release": "powershell -ExecutionPolicy Bypass -File scripts/one-click-release.ps1",
-    "setup-smoke-env": "powershell -ExecutionPolicy Bypass -File scripts/setup-smoke-env.ps1"
+    "setup-smoke-env": "powershell -ExecutionPolicy Bypass -File scripts/setup-smoke-env.ps1",
+    "copy-last-log": "powershell -ExecutionPolicy Bypass -File scripts/copy-last-run-log.ps1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

@@ -10,3 +10,4 @@ _release/
 _patch*/
 _backup*/
 .env.smoke.local
+_logs/

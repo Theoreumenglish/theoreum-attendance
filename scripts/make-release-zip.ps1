@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -14,7 +14,8 @@ $excludeDirs = @(
   ".vercel",
   "node_modules",
   "dist",
-  "_release"
+  "_release",
+  "_logs"
 )
 
 $excludeFiles = @(

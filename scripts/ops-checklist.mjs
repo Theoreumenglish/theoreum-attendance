@@ -34,6 +34,7 @@ const requiredFiles = [
   'scripts/smoke-test.mjs',
   'scripts/setup-smoke-env.ps1',
   'scripts/one-click-release.ps1',
+  'scripts/copy-last-run-log.ps1',
   'scripts/final-readiness-check.mjs',
   'docs/FINAL_READINESS_CHECKLIST.md',
   'docs/MASTER_DATA_PORTAL.md',
@@ -41,12 +42,13 @@ const requiredFiles = [
   'docs/WORD_GRID_SPEED_V1.md',
   'docs/STUDENT_WORD_RECORDS_V1.md',
   'docs/supabase-student-word-records-v1.sql',
-  'docs/STUDENT_ID_ATTENDANCE_V1.md'
+  'docs/STUDENT_ID_ATTENDANCE_V1.md',
+  'docs/TERMINAL_LOG_CAPTURE_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -59,6 +61,10 @@ const kiosk = read('api/kiosk-mark.js');
 const rootIndex = read('index.html');
 
 const checklist = [
+  ['원클릭 릴리즈 로그 자동 저장', existsSync('scripts/one-click-release.ps1') && read('scripts/one-click-release.ps1').includes('Start-Transcript') && read('scripts/one-click-release.ps1').includes('LAST_FAILURE_TO_SEND.txt') && read('scripts/one-click-release.ps1').includes('LAST_RUN.log')],
+  ['마지막 로그 복사용 스크립트', existsSync('scripts/copy-last-run-log.ps1') && read('scripts/copy-last-run-log.ps1').includes('Set-Clipboard') && read('scripts/copy-last-run-log.ps1').includes('LAST_FAILURE_TO_SEND.txt')],
+  ['릴리즈 zip 로그 제외', existsSync('scripts/make-release-zip.ps1') && read('scripts/make-release-zip.ps1').includes('"_logs"')],
+  ['터미널 로그 캡처 문서', existsSync('docs/TERMINAL_LOG_CAPTURE_V1.md') && read('docs/TERMINAL_LOG_CAPTURE_V1.md').includes('LAST_FAILURE_TO_SEND.txt')],
   ['단어시험 기간 조회', admin.includes('wordStartYmd') && admin.includes('wordEndYmd') && rpc.includes('start_ymd')],
   ['단어시험 일괄 입력 실시간 요약', admin.includes('wordBulkLiveSummary') && admin.includes('updateWordBulkLiveSummary')],
   ['리포트 학부모용 문구', admin.includes('reportParentTextBox') && admin.includes('학부모 전달 문구')],

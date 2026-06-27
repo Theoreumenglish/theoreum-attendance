@@ -406,3 +406,10 @@ npm run smoke-test
 6. 시간/구분/메모 수정 후 저장
 7. 일별 근무 상세과 월간 근무 요약이 재계산되는지 확인
 8. 조교/강사 권한에서 접근 시 403 또는 권한 오류 확인
+
+
+## Terminal log capture v1
+
+- Run `npm run one-click-release` and confirm `_logs/LAST_RUN.log` is created.
+- Force a harmless failure in a local sandbox when needed and confirm `_logs/LAST_FAILURE_TO_SEND.txt` is created.
+- Confirm `npm run copy-last-log` copies the latest copy-ready log summary.

@@ -111,3 +111,11 @@ npm run smoke-test
 - Vercel build log에서 Node 20.x deprecation 경고가 사라졌는지 확인
 - 직원 탭에서 관리자/원장이 출퇴근 로그를 수기로 추가/수정할 수 있는지 확인
 - 수기 저장 후 staff_daily / staff_monthly가 재계산되는지 확인
+
+
+## Terminal log capture v1
+
+- `_logs/` is ignored by Git and release zip.
+- `scripts/one-click-release.ps1` creates a timestamped full transcript.
+- On failure, `LAST_FAILURE_TO_SEND.txt` gives the user a copy-ready block.
+- `scripts/copy-last-run-log.ps1` is available for manual copy recovery.

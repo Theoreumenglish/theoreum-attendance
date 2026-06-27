@@ -36,3 +36,22 @@ powershell -ExecutionPolicy Bypass -File .\scripts\one-click-release.ps1 -Commit
 - 검증 실패: 해당 npm script 로그부터 확인한다.
 - 배포 실패: Vercel CLI 로그인/권한/환경변수를 확인한다.
 - smoke-test 실패: `.env.smoke.local`의 `SMOKE_BASE_URL`, `SMOKE_STAFF_ID`, `SMOKE_PASSWORD`를 확인한다.
+
+
+## 로그 자동 저장
+
+`one-click-release.ps1`는 실행할 때마다 `_logs/one-click-release_yyyyMMdd_HHmmss.log`를 생성한다.
+
+실패 시에는 `_logs/LAST_FAILURE_TO_SEND.txt`가 만들어지며, 이 파일에는 ChatGPT에 바로 붙여넣을 수 있는 실패 메시지와 마지막 로그 180줄이 들어간다.
+
+다시 복사해야 할 때:
+
+```powershell
+npm run copy-last-log
+```
+
+전체 로그를 복사해야 할 때:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\copy-last-run-log.ps1 -FullLog
+```
