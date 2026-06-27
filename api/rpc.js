@@ -48,6 +48,54 @@ const MAX_BODY_BYTES = 64 * 1024;
 
 const RPC_FAST_CACHE = new Map();
 
+const QA_FEATURE_MATRIX = Object.freeze({
+  release_tag: 'production-qa-parity-megapatch-v1',
+  generated_at: '2026-06-27',
+  static_pages: ['/', '/student-qr.html', '/student-today.html'],
+  required_ops: [
+    'meta.ping',
+    'meta.supportedOps',
+    'auth.login',
+    'auth.me',
+    'auth.logout',
+    'admin.finalReadiness',
+    'admin.phoneIdentity.audit',
+    'admin.central.staff.list',
+    'assistant.listClassOptions',
+    'admin.master.searchStudents',
+    'admin.studentTodayLink.create',
+    'studentToday.publicGet',
+    'admin.lectureAssignment.list',
+    'admin.lectureAssignment.save',
+    'wordCatalog.list',
+    'wordRecord.list',
+    'clinic.todayBoard'
+  ],
+  features: {
+    phone_identity_quality: true,
+    student_today_public_page: true,
+    online_lecture_assignment: true,
+    staff_phone_management: true,
+    production_qa_runner: true,
+    deployment_parity_check: true
+  }
+});
+
+function buildSupportedOpsMeta() {
+  return {
+    ...QA_FEATURE_MATRIX,
+    runtime: {
+      node: process.version,
+      vercel: Boolean(process.env.VERCEL),
+      vercel_env: process.env.VERCEL_ENV || '',
+      vercel_url: process.env.VERCEL_URL || '',
+      public_base_url: process.env.PUBLIC_BASE_URL || ''
+    }
+  };
+}
+
+
+
 function fastCacheSec(name, fallback = 20, max = 300) {
   const envName = 'RPC_CACHE_' + String(name || '').toUpperCase() + '_SEC';
   const n = Number(process.env[envName] || fallback);
@@ -7292,7 +7340,11 @@ export default async function handler(req, res) {
         }
       });
     }
-    return send(res, 200, { ok: true, data: meta.data });
+    return send(res, 200, { ok: true, data: { ...meta.data, qa_feature_matrix: buildSupportedOpsMeta() } });
+  }
+
+  if (op === 'meta.supportedOps') {
+    return send(res, 200, { ok: true, data: buildSupportedOpsMeta() });
   }
 
   if (op === 'auth.login') {
@@ -7325,7 +7377,17 @@ export default async function handler(req, res) {
     return send(res, result.status, result.body);
   }
 
+  if (op === 'lectureAssignment.list' || op === 'admin.onlineLecture.list') {
+    const result = await adminLectureAssignmentListDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
   if (op === 'admin.lectureAssignment.save') {
+    const result = await adminLectureAssignmentSaveDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'lectureAssignment.save' || op === 'admin.onlineLecture.save') {
     const result = await adminLectureAssignmentSaveDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
@@ -7620,6 +7682,11 @@ export default async function handler(req, res) {
 
 
   if (op === 'admin.phoneIdentity.audit') {
+    const result = await adminPhoneIdentityAuditDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'phoneIdentity.audit' || op === 'admin.phoneIdentityAudit') {
     const result = await adminPhoneIdentityAuditDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }

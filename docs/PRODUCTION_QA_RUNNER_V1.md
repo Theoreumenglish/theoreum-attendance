@@ -38,3 +38,11 @@ npm run prod:qa:write
 - 온라인강의 배정 저장(write 모드)
 - 단어/클리닉 주요 read API
 - 직원 휴대폰 출근 처리(write 모드, QA_STAFF_TAIL8 있을 때)
+
+
+## v2 보강
+
+- deployment parity check 추가
+- `meta.supportedOps`로 최신 배포 여부 확인
+- `/student-today.html` 404와 BAD_OP가 동시에 나오면 오래된 Vercel preview URL 가능성을 우선 안내
+- 최신 production URL 또는 방금 배포된 최신 preview URL 사용 권장

@@ -434,3 +434,8 @@ When a new API depends on a new Supabase table or column, the patch must include
 - 중앙DB 직원 관리 화면에서 휴대폰 번호를 입력할 수 있는지 확인한다.
 - Supabase `staff`/`staff_snapshot` mirror에 `staff_phone` 컬럼이 있는지 확인한다.
 - `npm run prod:qa`로 preview/production 로그인과 주요 API를 실제 URL 기준으로 점검한다.
+
+
+## meta.supportedOps
+
+`meta.supportedOps`는 현재 배포본이 지원해야 하는 핵심 op 목록과 정적 페이지 목록을 반환한다. production QA에서 오래된 Vercel preview URL을 잡는 기준으로 사용한다.

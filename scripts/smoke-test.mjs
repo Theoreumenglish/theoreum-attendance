@@ -8,6 +8,18 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
+const SMOKE_REQUIRED_OPS = [
+  'meta.supportedOps',
+  'admin.phoneIdentity.audit',
+  'admin.lectureAssignment.list',
+  'studentToday.publicGet',
+  'admin.studentTodayLink.create'
+];
+
+function staleDeploymentHint() {
+  return 'BAD_OP 또는 /student-today.html 404가 나오면 오래된 Vercel preview URL일 수 있습니다. 최신 production URL(https://theoreum-attendance.vercel.app) 또는 최신 preview URL로 다시 실행하세요.';
+}
+
 function parseEnvValue(raw) {
   const v = String(raw || '').trim();
   if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
@@ -65,6 +77,7 @@ function looksLikeMissingMigration(text = '') {
 
 function migrationHintFor(label = '', body = {}) {
   const raw = `${label}\n${body?.error?.message || ''}\n${body?.error?.hint || ''}\n${JSON.stringify(body?.error?.details || {})}`;
+  if (String(body?.error?.code || '') === 'BAD_OP' || String(body?.error?.message || '').includes('지원하지 않는 op')) return staleDeploymentHint();
   if (!looksLikeMissingMigration(raw)) return '';
   const hints = [];
   if (raw.includes('student_lecture_assignments') || label.includes('lectureAssignment')) {
@@ -93,6 +106,21 @@ if (!baseUrl) {
   console.error('SMOKE_BASE_URL이 필요합니다. 예:');
   console.error('  $env:SMOKE_BASE_URL="https://your-app.vercel.app"; npm run smoke-test');
   process.exit(2);
+}
+
+
+async function getPage(pathname) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const started = Date.now();
+  try {
+    const res = await fetch(baseUrl + pathname, { method: 'GET', signal: controller.signal });
+    return { op: 'GET ' + pathname, httpStatus: res.status, ms: Date.now() - started, body: { ok: res.ok, error: res.ok ? null : { code: 'HTTP_' + res.status, message: 'GET ' + pathname + ' failed' } } };
+  } catch (e) {
+    return { op: 'GET ' + pathname, httpStatus: 0, ms: Date.now() - started, body: { ok: false, error: { code: e?.name || 'FETCH_ERROR', message: e?.message || String(e) } } };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function rpc(op, args = {}) {
@@ -178,6 +206,18 @@ function writeSmokeFailureSummary() {
 
 console.log('== TheOreum live API smoke test ==');
 console.log('Base:', baseUrl);
+
+assertOk('page /', await getPage('/'));
+assertOk('page /student-today.html', await getPage('/student-today.html'));
+
+const supported = await rpc('meta.supportedOps');
+const supportedBody = assertOk('meta.supportedOps', supported);
+const supportedOps = supportedBody?.data?.required_ops || supportedBody?.data?.supported_ops || [];
+if (Array.isArray(supportedOps) && supportedOps.length) {
+  const missing = SMOKE_REQUIRED_OPS.filter(op => !supportedOps.includes(op));
+  if (missing.length) fail('deployment required ops missing: ' + missing.join(', ') + ' | ' + staleDeploymentHint(), { label: 'meta.supportedOps required ops', op: 'meta.supportedOps', code: 'DEPLOYMENT_OUT_OF_DATE', message: missing.join(', ') });
+  else ok('deployment required ops present');
+}
 
 const ping = await rpc('meta.ping');
 assertOk('meta.ping', ping);

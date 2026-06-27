@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>더오름영어 오늘 할 일</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--ink:#172033;--muted:#667085;--pri:#2563eb;--line:#dde3ef;--good:#157347;--warn:#b45309;--bad:#b42318;}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink)}
+    .wrap{max-width:760px;margin:0 auto;padding:22px 16px 48px}.hero{border-radius:24px;padding:22px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;box-shadow:0 18px 40px rgba(15,23,42,.18)}
+    h1{font-size:24px;margin:0 0 8px}.hero p{margin:0;color:#dbeafe;line-height:1.5}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;margin-top:16px;padding:18px;box-shadow:0 10px 28px rgba(15,23,42,.06)}
+    .label{font-size:13px;color:var(--muted);font-weight:800}.value{font-size:28px;font-weight:950;margin-top:4px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pill{display:inline-flex;padding:5px 10px;border-radius:999px;background:#eef2ff;color:#1e40af;font-size:12px;font-weight:800}.item{padding:12px 0;border-top:1px solid var(--line)}.item:first-child{border-top:0}.title{font-weight:900}.desc{margin-top:4px;color:var(--muted);font-size:14px;line-height:1.45}.empty{color:var(--muted);line-height:1.5}.bad{color:var(--bad)}.warn{color:var(--warn)}.good{color:var(--good)}
+    button{border:0;border-radius:14px;padding:12px 14px;background:var(--pri);color:#fff;font-weight:900;width:100%;font-size:16px}a{color:var(--pri)}
+    @media(max-width:520px){.grid{grid-template-columns:1fr}.value{font-size:24px}.wrap{padding:14px 12px 36px}.hero{border-radius:20px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>더오름영어 오늘 할 일</h1>
+      <p id="heroText">링크 정보를 불러오는 중입니다.</p>
+    </section>
+    <section class="card" id="statusCard"><div class="empty">잠시만 기다려 주세요.</div></section>
+    <section class="card"><div class="label">클리닉 / 보완</div><div id="clinicBox" class="empty" style="margin-top:10px;">불러오는 중입니다.</div></section>
+    <section class="card"><div class="label">최근 단어 기록</div><div id="wordBox" class="empty" style="margin-top:10px;">불러오는 중입니다.</div></section>
+    <section class="card"><div class="label">온라인강의</div><div id="lectureBox" class="empty" style="margin-top:10px;">온라인강의 링크는 다음 단계에서 연결됩니다.</div></section>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function ymdText(v){const s=String(v||'');return s.length===8?`${s.slice(0,4)}.${s.slice(4,6)}.${s.slice(6,8)}`:s||'-'}
+    async function rpc(op,args){
+      const res=await fetch('/api/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({op,args})});
+      const json=await res.json().catch(()=>({ok:false,error:{message:'응답 해석 실패'}}));
+      if(!res.ok&&!json.error) json.error={message:`HTTP ${res.status}`};
+      return json;
+    }
+    function renderItems(id,items,empty,fn){$(id).innerHTML=items&&items.length?items.map(fn).join(''):`<div class="empty">${esc(empty)}</div>`}
+    async function load(){
+      const token=new URLSearchParams(location.search).get('t')||'';
+      if(!token){$('heroText').textContent='링크 토큰이 없습니다.';$('statusCard').innerHTML='<div class="empty bad">잘못된 링크입니다.</div>';return;}
+      const r=await rpc('studentToday.publicGet',{token});
+      if(!r.ok){const msg=r.error?.message||'링크를 불러오지 못했습니다.';$('heroText').textContent=msg;$('statusCard').innerHTML=`<div class="empty bad">${esc(msg)}</div>`;return;}
+      const d=r.data||{}; const st=d.student||{}; const today=d.today||{};
+      $('heroText').textContent=`${st.student_name||'학생'} · ${st.school||''} ${st.grade||''} · ${ymdText(d.yyyymmdd)}`;
+      $('statusCard').innerHTML=`<div class="grid"><div><div class="label">오늘 출결</div><div class="value">${esc(today.label||'-')}</div><div class="desc">마지막 동작: ${esc(today.last_action||'-')}</div></div><div><div class="label">링크 만료</div><div class="value" style="font-size:18px">${esc((d.link&&d.link.expires_at)||'-')}</div><div class="desc">문제가 있으면 학원으로 연락해 주세요.</div></div></div>`;
+      renderItems('clinicBox',d.clinics||[],'표시할 클리닉/보완 항목이 없습니다.',x=>`<div class="item"><div class="title">${esc(x.title||'클리닉')}</div><div class="desc">상태: ${esc(x.status||'-')} · 기한: ${esc(x.due_date||'-')} ${esc(x.due_time||'')}</div>${x.note?`<div class="desc">${esc(x.note)}</div>`:''}</div>`);
+      renderItems('wordBox',d.words||[],'최근 단어 기록이 없습니다.',x=>`<div class="item"><div class="title">${esc(ymdText(x.yyyymmdd))} · ${esc(x.title||'단어')}</div><div class="desc">${esc(x.range_label||'')} · ${x.correct==null?'-':esc(x.correct)}/${esc(x.total||0)} · 상태: ${esc(x.result_status||'-')}${x.needs_retest?' · 재시험 필요':''}</div></div>`);
+      renderItems('lectureBox',d.lectures||[],'온라인강의 링크는 다음 단계에서 연결됩니다.',x=>`<div class="item"><div class="title">${esc(x.title||'강의')}</div><div class="desc"><a href="${esc(x.url||'#')}" target="_blank" rel="noreferrer">강의 열기</a></div></div>`);
+    }
+    load();
+  </script>
+</body>
+</html>

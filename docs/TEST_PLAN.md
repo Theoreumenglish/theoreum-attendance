@@ -482,3 +482,9 @@ For patches with `docs/supabase-*.sql`, confirm `npm run dev:apply-patch` pauses
 - 중앙DB 직원 관리 화면에서 휴대폰 번호를 입력할 수 있는지 확인한다.
 - Supabase `staff`/`staff_snapshot` mirror에 `staff_phone` 컬럼이 있는지 확인한다.
 - `npm run prod:qa`로 preview/production 로그인과 주요 API를 실제 URL 기준으로 점검한다.
+
+
+## production-qa-parity-megapatch-v1
+
+- `npm run prod:qa`로 `/student-today.html`, `meta.supportedOps`, `admin.phoneIdentity.audit`, `admin.lectureAssignment.list`를 확인한다.
+- BAD_OP/404 조합은 stale Vercel preview URL 가능성을 먼저 확인한다.

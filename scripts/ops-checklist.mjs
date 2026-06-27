@@ -57,7 +57,8 @@ const requiredFiles = [
   'docs/ONLINE_LECTURE_LINKAGE_V1.md',
   'docs/PAYMENT_SCOPE_DECISION_V1.md',
   'docs/DIRECTOR_EXPLANATION_BRIEF_V1.md',
-  'docs/PHONE_IDENTITY_QUALITY_V1.md'
+  'docs/PHONE_IDENTITY_QUALITY_V1.md',
+  'docs/PRODUCTION_QA_PARITY_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -260,6 +261,17 @@ checkText('docs/PRODUCTION_QA_RUNNER_V1.md', 'production-qa-runner-v1', 'product
 checkText('docs/KIOSK_VISUAL_QA_V1.md', 'kiosk-visual-qa-v1', '키오스크 시각/입력 QA 문서');
 checkText('index.html', 'handlePhoneSegmentKeydown(e, part)', '키오스크 물리 키보드 분할 입력 핸들러');
 checkText('scripts/kiosk-input-flow-check.mjs', 'Kiosk input flow static check passed', '키오스크 입력 flow 정적 검사');
+
+
+checkText('api/rpc.js', 'QA_FEATURE_MATRIX', 'production QA feature matrix');
+checkText('api/rpc.js', "op === 'meta.supportedOps'", 'deployment supported ops API');
+checkText('scripts/production-qa-runner.mjs', 'deployment parity required ops', 'production QA deployment parity check');
+checkText('scripts/production-qa-runner.mjs', 'staleDeploymentHint', 'production QA stale preview hint');
+checkText('scripts/smoke-test.mjs', 'page /student-today.html', 'smoke-test student-today static page check');
+checkText('scripts/smoke-test.mjs', 'meta.supportedOps', 'smoke-test supported ops check');
+checkText('vite.config.js', 'studentToday', 'Vite student-today build input');
+checkText('student-today.html', 'studentToday.publicGet', 'root student-today static page');
+checkText('docs/PRODUCTION_QA_PARITY_V1.md', 'production-qa-parity-megapatch-v1', 'production QA parity 문서');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

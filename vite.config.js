@@ -9,7 +9,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        studentQr: resolve(__dirname, 'student-qr.html')
+        studentQr: resolve(__dirname, 'student-qr.html'),
+        studentToday: resolve(__dirname, 'student-today.html')
       }
     }
   }
