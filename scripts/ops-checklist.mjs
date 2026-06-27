@@ -40,6 +40,7 @@ const requiredFiles = [
   'scripts/quick-local-check.ps1',
   'scripts/rollback-latest-backup.ps1',
   'docs/DEV_CONVENIENCE_SUITE_V1.md',
+  'docs/DEV_SPEED_STABILITY_V1.md',
   'scripts/final-readiness-check.mjs',
   'docs/FINAL_READINESS_CHECKLIST.md',
   'docs/MASTER_DATA_PORTAL.md',
@@ -58,7 +59,7 @@ const requiredFiles = [
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'dev:fast-check', 'dev:release', 'verify:no-build', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -107,7 +108,7 @@ if (!/SMOKE_BASE_URL/.test(read('scripts/smoke-test.mjs'))) warn('smoke-test는 
 checkText('scripts/smoke-test.mjs', 'loadLocalSmokeEnv', 'smoke-test 로컬 env 자동 로딩');
 checkText('scripts/setup-smoke-env.ps1', '.env.smoke.local', 'smoke-test 로컬 계정 저장 스크립트');
 const oneClickScript = read('scripts/one-click-release.ps1');
-if (oneClickScript.includes('Done: check, verify, build, commit, push, zip, deploy, smoke-test.') || oneClickScript.includes('검사 → 검증 → 빌드 → 커밋 → 푸쉬')) ok('원클릭 release/deploy 스크립트');
+if (oneClickScript.includes('Done: verify, commit, push, zip, deploy, smoke-test.') || oneClickScript.includes('Done: check, verify, build, commit, push, zip, deploy, smoke-test.') || oneClickScript.includes('검사 → 검증 → 빌드 → 커밋 → 푸쉬')) ok('원클릭 release/deploy 스크립트');
 else fail('원클릭 release/deploy 스크립트 기준 미충족');
 
 
@@ -198,6 +199,9 @@ checkText('scripts/dev-doctor.ps1', 'DEV_DOCTOR_TO_SEND.txt', '개발 상태 공
 checkText('scripts/quick-local-check.ps1', 'LAST_QUICK_CHECK_TO_SEND.txt', '빠른 로컬 검증 실패 요약');
 checkText('scripts/rollback-latest-backup.ps1', '_patch_backup_', '최근 패치 백업 rollback helper');
 checkText('docs/DEV_CONVENIENCE_SUITE_V1.md', 'dev:apply-patch', '개발 편의 suite 문서');
+checkText('docs/DEV_SPEED_STABILITY_V1.md', '중복 검증 제거', '개발 속도 안정화 문서');
+if (oneClickScript.includes('Full verify (includes syntax check and build)') && !oneClickScript.includes('Invoke-NativeStep "Syntax check"') && !oneClickScript.includes('Invoke-NativeStep "Build"')) ok('원클릭 릴리즈 중복 check/build 제거');
+else fail('원클릭 릴리즈 중복 check/build 제거 기준 미충족');
 checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Vercel', '개발 표면 Vercel 확인 문서');
 checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'Supabase', '개발 표면 Supabase 확인 문서');
 checkText('docs/DEVELOPER_SURFACE_ROUTINE_V1.md', 'GitHub', '개발 표면 GitHub 확인 문서');

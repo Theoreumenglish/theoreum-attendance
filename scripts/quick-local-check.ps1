@@ -43,9 +43,7 @@ try {
   Write-Host "Run ID: $RunId"
 
   Run-Step "[1] git status" { git status }
-  Run-Step "[2] npm run check" { npm run check }
-  Run-Step "[3] npm run verify" { npm run verify }
-  Run-Step "[4] npm run build" { npm run build }
+  Run-Step "[2] npm run verify (includes syntax check and build)" { npm run verify }
 
   Stop-LocalTranscript
 
@@ -57,7 +55,7 @@ Full log:
 $TranscriptPath
 
 Result:
-git status / check / verify / build passed.
+git status / verify passed. verify includes syntax check and build.
 "@
 
   Set-Content -Path $SummaryPath -Value $Summary -Encoding UTF8

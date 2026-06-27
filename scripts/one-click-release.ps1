@@ -147,7 +147,7 @@ Full log:
 $TranscriptPath
 
 Final status:
-check / verify / build / commit / push / zip / deploy / smoke-test completed.
+verify / commit / push / zip / deploy / smoke-test completed. verify includes syntax check and build.
 "@
 
   Set-Content -Path $SuccessSummaryPath -Value $Summary -Encoding UTF8
@@ -172,11 +172,7 @@ try {
 
   Invoke-NativeStep "Git status before checks" { git status }
 
-  Invoke-NativeStep "Syntax check" { npm run check }
-
-  Invoke-NativeStep "Full verify" { npm run verify }
-
-  Invoke-NativeStep "Build" { npm run build }
+  Invoke-NativeStep "Full verify (includes syntax check and build)" { npm run verify }
 
   Write-Step "Git add and commit if needed"
   git add -A
@@ -244,7 +240,7 @@ try {
   Invoke-NativeStep "Final git status" { git status }
 
   Write-Host ""
-  Write-Host "Done: check, verify, build, commit, push, zip, deploy, smoke-test." -ForegroundColor Green
+  Write-Host "Done: verify, commit, push, zip, deploy, smoke-test. verify includes syntax check and build." -ForegroundColor Green
 
   New-SuccessSummary
   exit 0

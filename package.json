@@ -25,7 +25,10 @@
     "dev:doctor": "powershell -ExecutionPolicy Bypass -File scripts/dev-doctor.ps1",
     "dev:quick-check": "powershell -ExecutionPolicy Bypass -File scripts/quick-local-check.ps1",
     "dev:apply-patch": "powershell -ExecutionPolicy Bypass -File scripts/apply-patch-files.ps1",
-    "dev:rollback-latest": "powershell -ExecutionPolicy Bypass -File scripts/rollback-latest-backup.ps1"
+    "dev:rollback-latest": "powershell -ExecutionPolicy Bypass -File scripts/rollback-latest-backup.ps1",
+    "verify:no-build": "npm run check && npm run contract-check && npm run ux-check && npm run flow-sim && npm run integrity-check && npm run ops-checklist && npm run final-readiness-check",
+    "dev:fast-check": "npm run check && npm run contract-check && npm run integrity-check",
+    "dev:release": "powershell -ExecutionPolicy Bypass -File scripts/one-click-release.ps1"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
