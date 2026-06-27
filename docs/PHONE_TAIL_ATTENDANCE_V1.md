@@ -57,3 +57,12 @@ Possible later versions:
 - Staff confirmation workflow.
 - Suspicious rapid-entry detection.
 - Per-student attendance PIN.
+
+
+## v1.1 입력 UI 보정
+
+- 키오스크 화면의 큰 `010` 박스는 제거한다.
+- 입력란은 `010-` 고정 표시 + 4자리 입력칸 + `-` + 4자리 입력칸으로 구성한다.
+- `xxxx` placeholder는 표시하지 않는다.
+- 첫 4자리 입력 완료 시 다음 칸으로 자동 이동한다.
+- 두 번째 4자리 입력 완료 시 자동 제출한다.

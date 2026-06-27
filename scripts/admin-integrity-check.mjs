@@ -92,15 +92,15 @@ if (!kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID_LEGACY' : 'PHONE_L
   fail('학생 휴대폰 번호 출결 정책이 서버에 반영되지 않았습니다.');
 } else ok('학생 휴대폰 번호 출결 정책이 서버에 반영되었습니다.');
 
-if (!indexHtml.includes('010 제외 뒤 8자리 입력 후 Enter') || !indexHtml.includes('kPhonePrefix')) {
-  fail('키오스크 입력 안내가 010 제외 휴대폰 뒤 8자리 중심으로 변경되지 않았습니다.');
-} else ok('키오스크 입력 안내가 010 제외 휴대폰 뒤 8자리 중심으로 변경되었습니다.');
+if (!indexHtml.includes('kPhoneMid') || !indexHtml.includes('kPhoneLast') || !indexHtml.includes('phoneSegmentRow')) {
+  fail('키오스크 입력 안내가 010- 분할 입력 중심으로 변경되지 않았습니다.');
+} else ok('키오스크 입력 안내가 010- 분할 입력 중심으로 변경되었습니다.');
 
 if (indexHtml.includes('id="studentKeypad"') || indexHtml.includes('appendStudentDigit') || indexHtml.includes('data-keypad-digit')) {
   fail('화면 숫자 키패드가 아직 남아 있습니다.');
 } else ok('화면 숫자 키패드를 제거했습니다.');
 
-if (!indexHtml.includes('isStaffCommandPrefix') || !indexHtml.includes('staffQuickStep') || !indexHtml.includes('phone_tail8') || !indexHtml.includes('010 제외 뒤 8자리 입력 후 Enter')) {
+if (!indexHtml.includes('isStaffCommandPrefix') || !indexHtml.includes('staffQuickStep') || !indexHtml.includes('phone_tail8') || !indexHtml.includes('kPhoneMid') || !indexHtml.includes('kPhoneLast')) {
   fail('직원 staff 진입어 + 휴대폰 번호 출퇴근 흐름이 없습니다.');
 } else ok('직원 staff 진입어 + 휴대폰 번호 출퇴근 흐름이 있습니다.');
 

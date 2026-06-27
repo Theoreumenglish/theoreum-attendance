@@ -718,6 +718,67 @@
 		}
 
 
+
+		.phoneSegmentRow {
+			width: 100%;
+			height: 130px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 12px;
+			padding: 18px 22px;
+			border: 3px solid var(--line);
+			border-radius: var(--r-lg);
+			background: var(--bg);
+			box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.04);
+			transition: all 0.2s ease;
+		}
+
+		.phoneSegmentRow:focus-within {
+			background: var(--card);
+			border-color: var(--pri);
+			box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.15);
+		}
+
+		.phoneStatic {
+			font-size: 52px;
+			font-weight: 1000;
+			letter-spacing: 2px;
+			color: var(--text);
+			line-height: 1;
+		}
+
+		.phoneSegmentInput {
+			width: min(220px, 26vw);
+			height: 88px;
+			border: none;
+			outline: none;
+			background: transparent;
+			color: var(--text);
+			text-align: center;
+			font-size: 52px;
+			font-weight: 1000;
+			letter-spacing: 12px;
+			caret-color: var(--pri);
+		}
+
+		.phoneSegmentInput:disabled {
+			opacity: 0.45;
+			cursor: not-allowed;
+		}
+
+		.phoneRawInput {
+			position: absolute !important;
+			width: 1px !important;
+			height: 1px !important;
+			padding: 0 !important;
+			border: 0 !important;
+			opacity: 0 !important;
+			pointer-events: none !important;
+			left: -9999px !important;
+		}
+
+
 		.inp {
 			width: 100%;
 			border: 2px solid var(--line);
@@ -1418,10 +1479,13 @@
 			</div>
 
 			<div class="input-wrapper">
-				<div id="kPhoneInputRow" style="display:flex;align-items:center;gap:10px;">
-          <div id="kPhonePrefix" style="font-size:34px;font-weight:1000;color:var(--pri);padding:18px 18px;border-radius:20px;background:#eff6ff;border:2px solid #bfdbfe;line-height:1;">010</div>
-          <input class="inp-big" id="kInput" autocomplete="off" inputmode="numeric" placeholder="뒤 8자리 입력 후 Enter" maxlength="8" style="flex:1;">
-        </div>
+				<div id="kPhoneInputRow" class="phoneSegmentRow" aria-label="휴대폰 번호 뒤 8자리 입력">
+					<span class="phoneStatic">010-</span>
+					<input class="phoneSegmentInput" id="kPhoneMid" autocomplete="off" inputmode="numeric" aria-label="휴대폰 가운데 4자리">
+					<span class="phoneStatic">-</span>
+					<input class="phoneSegmentInput" id="kPhoneLast" autocomplete="off" inputmode="numeric" aria-label="휴대폰 뒤 4자리">
+					<input class="inp-big phoneRawInput" id="kInput" autocomplete="off" inputmode="text" aria-hidden="true" tabindex="-1">
+				</div>
 				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
 					<div class="kStaffQuickHead">
 						<div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
@@ -1434,11 +1498,11 @@
 					</div>
 
 					<div class="kStaffQuickHint">
-						직원 모드입니다. 본인 휴대폰 번호에서 010을 제외한 뒤 8자리 입력 후 Enter로 처리합니다.<br>
+						직원 모드입니다. 휴대폰 번호 입력란에 010- 뒤 8자리를 4자리씩 입력하면 처리됩니다.<br>
 						직원 QR은 보조수단으로 계속 사용할 수 있습니다.
 					</div>
 					<div id="staffQuickStep" class="kStaffQuickHint" style="margin-top:8px;font-weight:900;color:var(--pri);">
-						010 제외 뒤 8자리 입력
+						010- 뒤 8자리 입력
 					</div>
 				</div>
 
@@ -1485,7 +1549,7 @@
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
             <div class="sectionTitle">휴대폰 번호 출결</div>
             <div class="subText" style="text-align:left; font-size:16px; line-height:1.6;">
-              학생과 직원은 본인 휴대폰 번호에서 010을 제외한 뒤 8자리만 입력하면 처리됩니다.
+              학생과 직원은 본인 휴대폰 번호 입력란에 010- 뒤 8자리만 입력하면 처리됩니다.
               QR은 계속 사용할 수 있지만 필수는 아닙니다.
             </div>
           </div>
@@ -2475,9 +2539,7 @@
 				input.addEventListener('input', () => {
           clearTimeout(Kiosk._idleClearTimer);
           Kiosk._idleClearTimer = setTimeout(() => {
-            if (input && document.contains(input)) {
-              input.value = '';
-            }
+            Kiosk.clearPhoneSegmentInputs();
 
             UI.clearMsg($('#kMsg'));
 
@@ -2501,36 +2563,48 @@
             return;
           }
 
-          if (Kiosk.staffQuickOpen) {
-            const v = Kiosk.normalizeScanText(input.value);
-            if (Kiosk.isCompleteStaffQr(v)) {
-              input.value = v;
-              Kiosk.queueSubmit(120);
-              return;
-            }
-
-            const phoneTail8 = Kiosk.normalizePhoneTail8(input.value);
-            input.value = phoneTail8 || String(input.value || '').replace(/[^0-9]/g, '').slice(0, 8);
-            if (phoneTail8.length === 8) {
-              Kiosk.queueSubmit(80);
-            }
-            return;
-          }
-
           const v = Kiosk.normalizeScanText(input.value);
-          if (Kiosk.isCompleteStudentQr(v)) {
+          if (Kiosk.staffQuickOpen && Kiosk.isCompleteStaffQr(v)) {
             input.value = v;
             Kiosk.queueSubmit(120);
             return;
           }
 
-          const phoneTail8 = Kiosk.normalizePhoneTail8(input.value);
-          input.value = phoneTail8 || String(input.value || '').replace(/[^0-9]/g, '').slice(0, 8);
-
-          if (phoneTail8.length === 8) {
-            Kiosk.queueSubmit(80);
+          if (!Kiosk.staffQuickOpen && Kiosk.isCompleteStudentQr(v)) {
+            input.value = v;
+            Kiosk.queueSubmit(120);
+            return;
           }
         });
+
+        const phoneMid = $('#kPhoneMid');
+        const phoneLast = $('#kPhoneLast');
+
+        if (phoneMid) {
+          phoneMid.setAttribute('autocapitalize', 'off');
+          phoneMid.setAttribute('autocorrect', 'off');
+          phoneMid.setAttribute('spellcheck', 'false');
+          phoneMid.setAttribute('autocomplete', 'off');
+          phoneMid.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'mid'));
+          phoneMid.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            Kiosk.submitPhoneSegmentsOnEnter();
+          });
+        }
+
+        if (phoneLast) {
+          phoneLast.setAttribute('autocapitalize', 'off');
+          phoneLast.setAttribute('autocorrect', 'off');
+          phoneLast.setAttribute('spellcheck', 'false');
+          phoneLast.setAttribute('autocomplete', 'off');
+          phoneLast.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'last'));
+          phoneLast.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            Kiosk.submitPhoneSegmentsOnEnter();
+          });
+        }
 
 				input.addEventListener('keydown', e => {
 					if (e.key !== 'Enter') return;
@@ -2548,8 +2622,8 @@
 						UI.showModal(false, 'QR 일부 입력', 'QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
 						UI.beep(false);
 						UI.flashScreen(false);
-						input.value = '';
-						safeFocus(input, 80);
+						Kiosk.clearPhoneSegmentInputs();
+						Kiosk.focusPhoneSegment(80);
 						return;
 					}
 
@@ -2557,8 +2631,8 @@
 						UI.showModal(false, '직원 QR 일부 입력', '직원 QR이 끝까지 입력되지 않았습니다. 다시 스캔해주세요.');
 						UI.beep(false);
 						UI.flashScreen(false);
-						input.value = '';
-						safeFocus(input, 80);
+						Kiosk.clearPhoneSegmentInputs();
+						Kiosk.focusPhoneSegment(80);
 						return;
 					}
 
@@ -2567,14 +2641,16 @@
 
 				if (Kiosk.focusTimer) clearInterval(Kiosk.focusTimer);
 				Kiosk.focusTimer = setInterval(() => {
-					const el = $('#kInput');
-					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && document.activeElement !== el) {
-						safeFocus(el);
+					const mid = $('#kPhoneMid');
+					const last = $('#kPhoneLast');
+					const activeIsPhoneInput = document.activeElement === mid || document.activeElement === last;
+					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && !activeIsPhoneInput) {
+						Kiosk.focusPhoneSegment();
 					}
 				}, 1000);
 
 				Kiosk.setAction('CHECK_IN');
-				safeFocus(input, 50);
+				Kiosk.focusPhoneSegment(50);
 			},
 
 			setAction(action) {
@@ -2591,8 +2667,9 @@
         const msg = $('#kMsg');
         const dbg = $('#kDbg');
 
+        Kiosk.clearPhoneSegmentInputs();
+
         if (input) {
-          input.value = '';
           try { input.blur(); } catch (_) {}
         }
 
@@ -2603,12 +2680,136 @@
           dbg.textContent = '';
         }
 
-        if (input) {
-          input.placeholder = Kiosk.getInputPlaceholder();
-          input.setAttribute('inputmode', 'numeric');
+        Kiosk.focusPhoneSegment(50);
+      },
 
-          safeFocus(input, 50);
+
+      getPhoneMidInput() {
+        return $('#kPhoneMid');
+      },
+
+      getPhoneLastInput() {
+        return $('#kPhoneLast');
+      },
+
+      getPhoneTail8FromSegments() {
+        const mid = Kiosk.getPhoneMidInput();
+        const last = Kiosk.getPhoneLastInput();
+        const a = mid ? String(mid.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+        const b = last ? String(last.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+        return (a.length === 4 && b.length === 4) ? (a + b) : '';
+      },
+
+      syncPhoneTailToRawInput() {
+        const input = $('#kInput');
+        const tail = Kiosk.getPhoneTail8FromSegments();
+        if (input) input.value = tail;
+        return tail;
+      },
+
+      clearPhoneSegmentInputs() {
+        const mid = Kiosk.getPhoneMidInput();
+        const last = Kiosk.getPhoneLastInput();
+        const input = $('#kInput');
+        if (mid) mid.value = '';
+        if (last) last.value = '';
+        if (input) input.value = '';
+      },
+
+      focusPhoneSegment(delayMs = 0) {
+        const run = () => {
+          const mid = Kiosk.getPhoneMidInput();
+          const last = Kiosk.getPhoneLastInput();
+          if (last && mid && String(mid.value || '').replace(/[^0-9]/g, '').length >= 4) {
+            safeFocus(last);
+            return;
+          }
+          if (mid) {
+            safeFocus(mid);
+            return;
+          }
+          safeFocus($('#kInput'));
+        };
+
+        if (delayMs) {
+          setTimeout(run, delayMs);
+        } else {
+          run();
         }
+      },
+
+      setPhoneSegmentDisabled(disabled) {
+        [Kiosk.getPhoneMidInput(), Kiosk.getPhoneLastInput()].forEach(el => {
+          if (!el) return;
+          el.disabled = !!disabled;
+          el.style.opacity = disabled ? '0.45' : '1';
+        });
+      },
+
+      handlePhoneSegmentInput(el, part) {
+        clearTimeout(Kiosk._idleClearTimer);
+        Kiosk._idleClearTimer = setTimeout(() => {
+          Kiosk.clearPhoneSegmentInputs();
+          UI.clearMsg($('#kMsg'));
+
+          const dbgEl = $('#kDbg');
+          if (dbgEl) {
+            dbgEl.style.display = 'none';
+            dbgEl.textContent = '';
+          }
+        }, 10000);
+
+        const rawValue = String((el && el.value) || '');
+        const normalized = Kiosk.normalizeScanText(rawValue);
+
+        if (!Kiosk.staffQuickOpen && Kiosk.isStaffCommandPrefix(rawValue)) {
+          if (Kiosk.handleStaffCommand(normalized)) {
+            Kiosk.clearPhoneSegmentInputs();
+            return;
+          }
+          return;
+        }
+
+        if (Kiosk.staffQuickOpen && Kiosk.isCompleteStaffQr(normalized)) {
+          const input = $('#kInput');
+          if (input) input.value = normalized;
+          Kiosk.queueSubmit(120);
+          return;
+        }
+
+        if (!Kiosk.staffQuickOpen && Kiosk.isCompleteStudentQr(normalized)) {
+          const input = $('#kInput');
+          if (input) input.value = normalized;
+          Kiosk.queueSubmit(120);
+          return;
+        }
+
+        const digits = rawValue.replace(/[^0-9]/g, '').slice(0, part === 'mid' ? 4 : 4);
+        if (el) el.value = digits;
+
+        if (part === 'mid' && digits.length >= 4) {
+          const last = Kiosk.getPhoneLastInput();
+          if (last) safeFocus(last, 10);
+        }
+
+        const tail = Kiosk.syncPhoneTailToRawInput();
+        if (tail.length === 8) {
+          Kiosk.queueSubmit(80);
+        }
+      },
+
+      submitPhoneSegmentsOnEnter() {
+        clearTimeout(Kiosk._autoTimer);
+        const tail = Kiosk.syncPhoneTailToRawInput();
+        if (tail.length === 8) {
+          Kiosk.submit();
+          return;
+        }
+
+        UI.showModal(false, '입력 오류', '010 뒤 번호를 4자리씩 모두 입력하세요.');
+        UI.beep(false);
+        UI.flashScreen(false);
+        Kiosk.focusPhoneSegment(50);
       },
 
       isStaffCommandPrefix(raw) {
@@ -2670,15 +2871,18 @@
         const stepEl = $('#staffQuickStep');
 
         if (stepEl) {
-          stepEl.textContent = '010 제외 뒤 8자리 입력 후 Enter';
+          stepEl.textContent = '010- 뒤 8자리 입력';
         }
 
         if (input && !Kiosk.isSubmitting) {
-          input.value = '';
+          Kiosk.clearPhoneSegmentInputs();
           input.type = 'text';
-          input.setAttribute('inputmode', 'numeric');
-          input.placeholder = Kiosk.getInputPlaceholder();
-          safeFocus(input, 50);
+          input.setAttribute('inputmode', 'text');
+        }
+
+        if (!Kiosk.isSubmitting) {
+          Kiosk.clearPhoneSegmentInputs();
+          Kiosk.focusPhoneSegment(50);
         }
       },
 
@@ -2731,11 +2935,8 @@
         Kiosk.setStaffQuickAction(action);
         Kiosk.openStaffQuick();
 
-        const input = $('#kInput');
-        if (input) {
-          input.value = '';
-          safeFocus(input, 50);
-        }
+        Kiosk.clearPhoneSegmentInputs();
+        Kiosk.focusPhoneSegment(50);
 
         UI.toast(true, action === 'IN' ? '직원 출근 모드' : '직원 퇴근 모드');
 
@@ -2773,11 +2974,7 @@
       },
 
       getInputPlaceholder() {
-        if (Kiosk.staffQuickOpen) {
-          return '010 제외 뒤 8자리 입력 후 Enter';
-        }
-
-        return '뒤 8자리 입력 후 Enter';
+        return '010- 뒤 8자리 입력';
       },
 
       openStaffQuick() {
@@ -2795,10 +2992,8 @@
         const input = $('#kInput');
         if (input) {
           input.type = 'text';
-          input.value = '';
-          input.setAttribute('inputmode', 'numeric');
-          input.placeholder = Kiosk.getInputPlaceholder();
-          safeFocus(input, 50);
+          Kiosk.clearPhoneSegmentInputs();
+          input.setAttribute('inputmode', 'text');
         }
 
         Kiosk.setStaffQuickStep('PHONE');
@@ -2823,10 +3018,10 @@
         const input = $('#kInput');
         if (input && !Kiosk.isSubmitting) {
           input.type = 'text';
-          input.value = '';
-          input.setAttribute('inputmode', 'numeric');
-          input.placeholder = Kiosk.getInputPlaceholder();
-          safeFocus(input, 50);
+          Kiosk.clearPhoneSegmentInputs();
+          input.setAttribute('inputmode', 'text');
+          Kiosk.clearPhoneSegmentInputs();
+          Kiosk.focusPhoneSegment(50);
         }
       },
 
@@ -2843,8 +3038,9 @@
 
         const input = $('#kInput');
         if (input && !Kiosk.isSubmitting) {
-          input.placeholder = Kiosk.getInputPlaceholder();
+          input.setAttribute('inputmode', 'text');
         }
+        Kiosk.focusPhoneSegment(50);
       },
 
 			setLoading(loading) {
@@ -2853,24 +3049,22 @@
 				if (btn) btn.classList.toggle('loading', loading);
 
 				const input = $('#kInput');
-				if (!input) return;
+				if (input) {
+					input.disabled = !!loading;
+					input.style.opacity = loading ? '0.5' : '1';
+				}
 
-				if (loading) {
-					input.disabled = true;
-					input.style.opacity = '0.5';
-					input.placeholder = '⏳ 처리 중입니다...';
-				} else {
-					input.disabled = false;
-					input.style.opacity = '1';
-					input.placeholder = Kiosk.getInputPlaceholder();
-					safeFocus(input, 50);
+				Kiosk.setPhoneSegmentDisabled(loading);
+
+				if (!loading) {
+					Kiosk.focusPhoneSegment(50);
 				}
 			},
 
 			getErrorMessage(code, defaultMsg) {
 			const map = {
 				'QR_EXPIRED': '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.',
-				'PHONE_REQUIRED': '010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.',
+				'PHONE_REQUIRED': '010 뒤 번호를 4자리씩 모두 입력하세요.',
 				'QR_INVALID': '이미 사용했거나 유효하지 않은 QR입니다.',
 				'NOT_FOUND': '등록되지 않은 학생입니다. 데스크에 문의하세요.',
 				'NOT_ACTIVE': '현재 재원 상태가 아닙니다. 데스크에 문의하세요.',
@@ -2931,8 +3125,8 @@
 						UI.beep(false);
 						Voice.speak('큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.', 'error');
 						UI.flashScreen(false);
-						input.value = '';
-						safeFocus(input, 80);
+						Kiosk.clearPhoneSegmentInputs();
+						Kiosk.focusPhoneSegment(80);
 						return;
 					}
 
@@ -2942,8 +3136,8 @@
 						UI.beep(false);
 						Voice.speak('직원 큐알 코드가 끝까지 입력되지 않았습니다. 다시 스캔해주세요.', 'error');
 						UI.flashScreen(false);
-						input.value = '';
-						safeFocus(input, 80);
+						Kiosk.clearPhoneSegmentInputs();
+						Kiosk.focusPhoneSegment(80);
 						return;
 					}
 
@@ -2957,9 +3151,9 @@
 						Voice.speak('한영 키를 확인해주세요.', 'error');
 						UI.flashScreen(false);
 
-						input.value = '';
+						Kiosk.clearPhoneSegmentInputs();
 						UI.clearMsg(msg);
-						safeFocus(input, 50);
+						Kiosk.focusPhoneSegment(50);
 						return;
 					}
 
@@ -2969,19 +3163,19 @@
 						UI.beep(false);
 						Voice.speak('직원 모드를 먼저 열어주세요.', 'error');
 						UI.flashScreen(false);
-						input.value = '';
-						safeFocus(input, 50);
+						Kiosk.clearPhoneSegmentInputs();
+						Kiosk.focusPhoneSegment(50);
 						return;
 					}
 
 					if (Kiosk.staffQuickOpen && !isStaffQr) {
             if (!phoneTail8) {
-              UI.showModal(false, '직원 휴대폰 번호 입력', '010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.');
+              UI.showModal(false, '직원 휴대폰 번호 입력', '010 뒤 번호를 4자리씩 모두 입력하세요.');
               setDbg('STAFF_PHONE_TAIL_REQUIRED');
               UI.beep(false);
               UI.flashScreen(false);
-              input.value = '';
-              safeFocus(input, 50);
+              Kiosk.clearPhoneSegmentInputs();
+              Kiosk.focusPhoneSegment(50);
               return;
             }
 					}
@@ -2990,7 +3184,7 @@
 						UI.showModal(
 							false,
 							'입력 오류',
-							'010을 제외한 본인 휴대폰 번호 8자리를 입력하세요.'
+							'010 뒤 번호를 4자리씩 모두 입력하세요.'
 						);
 						setDbg('PHONE_TAIL_OR_QR_REQUIRED');
 						UI.beep(false);
@@ -3001,7 +3195,7 @@
 
 					if (!val) return;
 
-					input.value = '';
+					Kiosk.clearPhoneSegmentInputs();
 					UI.clearMsg(msg);
 					setDbg('');
 
@@ -3131,7 +3325,7 @@
 						UI.showModal(
 							false,
 							'키오스크 새로고침 필요',
-							'휴대폰 번호 출결로 변경되었습니다. 010 제외 뒤 8자리를 입력하세요.'
+							'휴대폰 번호 출결로 변경되었습니다. 010 뒤 번호를 4자리씩 입력하세요.'
 						);
 						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 						UI.beep(false);
