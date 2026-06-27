@@ -39,6 +39,10 @@ import {
   adminGetStaffMonthlySummaryDirect,
   adminGetStaffDailyDetailDirect
 } from '../lib/rpc-direct-read.js';
+import {
+  adminListStaffClockLogsDirect,
+  adminSaveStaffClockManualDirect
+} from '../lib/staff-clock-admin.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
 
@@ -6452,6 +6456,16 @@ export default async function handler(req, res) {
 
   if (op === 'staff.clock.qr') {
     const result = await handleStaffClockQr(payload);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.staffClock.listLogs') {
+    const result = await adminListStaffClockLogsDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'admin.staffClock.saveManual') {
+    const result = await adminSaveStaffClockManualDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

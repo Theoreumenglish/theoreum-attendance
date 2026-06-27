@@ -112,6 +112,7 @@ if (staffId && password) {
     assertOk('admin.master.searchStudents', await rpc('admin.master.searchStudents', { sessionToken, q: '0', limit: 1 }), { allowAuthFail: true });
     assertOk('admin.central.props.get', await rpc('admin.central.props.get', { sessionToken }), { allowAuthFail: true });
     assertOk('admin.central.staff.list', await rpc('admin.central.staff.list', { sessionToken }), { allowAuthFail: true });
+    assertOk('admin.staffClock.listLogs', await rpc('admin.staffClock.listLogs', { sessionToken, staff_id: 'fubao', yyyymmdd: new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }).replaceAll('-', '') }), { allowAuthFail: true });
     assertOk('assistant.listAbsenceExcuses', await rpc('assistant.listAbsenceExcuses', { sessionToken, limit: 1 }), { allowAuthFail: true });
     assertOk('assistant.todayAbsenceBoard', await rpc('assistant.todayAbsenceBoard', { sessionToken }), { allowAuthFail: true });
     assertOk('wordCatalog.list', await rpc('wordCatalog.list', { sessionToken, limit_books: 1, limit_ranges: 1 }), { allowAuthFail: true });

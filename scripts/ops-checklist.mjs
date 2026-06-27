@@ -73,7 +73,10 @@ const checklist = [
   ['학생 휴대폰 번호 출결 물리 키보드 안내', rootIndex.includes('010 제외 뒤 8자리 입력 후 Enter') && rootIndex.includes('kPhonePrefix')],
   ['화면 숫자 키패드 제거', !rootIndex.includes('id="studentKeypad"') && !rootIndex.includes('data-keypad-digit') && !rootIndex.includes('appendStudentDigit')],
   ['직원 staff 진입어 휴대폰 출퇴근 UI', rootIndex.includes('isStaffCommandPrefix') && rootIndex.includes('staffQuickStep') && rootIndex.includes('010 제외 뒤 8자리 입력 후 Enter') && rootIndex.includes('phone_tail8')],
-  ['직원 휴대폰 번호 출퇴근 서버', read('api/staff-clock.js').includes('readStaffForPhoneClock') && read('api/staff-clock.js').includes("input_mode: 'PHONE_LAST8'")] 
+  ['직원 휴대폰 번호 출퇴근 서버', read('api/staff-clock.js').includes('readStaffForPhoneClock') && read('api/staff-clock.js').includes("input_mode: 'PHONE_LAST8'")],
+  ['직원 수기 근태 API', read('api/rpc.js').includes("op === 'admin.staffClock.saveManual'") && read('lib/staff-clock-admin.js').includes('adminSaveStaffClockManualDirect')],
+  ['직원 수기 근태 UI', read('public/admin.html').includes('staffManualStaffId') && read('public/admin.html').includes('btnStaffManualSave')],
+  ['Vercel Node 24 engine', read('package.json').includes('"node": "24.x"')]
 ];
 for (const [label, passed] of checklist) {
   if (passed) ok(label);

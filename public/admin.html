@@ -4485,13 +4485,44 @@
 <th>마지막 퇴근</th>
 <th>근무분</th>
 <th>상태</th>
+<th>수기</th>
 </tr>
 </thead>
 <tbody id="staffDailyRows">
-<tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>
+<tr><td colspan="6" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>
 </tbody>
 </table>
 </div>
+</div>
+</div>
+</div>
+
+<div class="card cardPad" style="margin-top:18px;">
+<div class="cardHead">
+<div>
+<div class="sectionTitle">직원 출퇴근 수기 추가/수정</div>
+<div class="sectionDesc">원장/관리자가 직원 출근·퇴근 시간을 직접 추가하거나 기존 로그를 수정합니다. 저장 후 일별/월간 합계가 다시 계산됩니다.</div>
+</div>
+<span class="statusPill warn">owner/admin</span>
+</div>
+<div class="formGrid cols3" style="margin-top:16px;">
+<div><div class="fieldLabel">직원 ID</div><input class="inp" id="staffManualStaffId" placeholder="staff_id"/></div>
+<div><div class="fieldLabel">날짜</div><input class="inp" id="staffManualYmd" inputmode="numeric" placeholder="YYYYMMDD"/></div>
+<div><div class="fieldLabel">시간</div><input class="inp" id="staffManualTime" inputmode="numeric" placeholder="HH:mm 또는 HHmm"/></div>
+<div><div class="fieldLabel">구분</div><select class="select" id="staffManualAction"><option value="IN">출근</option><option value="OUT">퇴근</option></select></div>
+<div><div class="fieldLabel">수정 trace_id</div><input class="inp" id="staffManualTraceId" placeholder="수정 시 자동 입력" readonly/></div>
+<div><div class="fieldLabel">메모</div><input class="inp" id="staffManualNote" placeholder="수기 추가/수정 사유"/></div>
+</div>
+<div class="btnRow" style="margin-top:14px;">
+<button class="btn btnPri" id="btnStaffManualSave" type="button">수기 추가/수정</button>
+<button class="btn btnGhost" id="btnStaffManualLoadLogs" type="button">당일 로그 조회</button>
+<button class="btn btnGhost" id="btnStaffManualClear" type="button">입력 초기화</button>
+</div>
+<div class="tableWrap" style="margin-top:16px;">
+<table class="table">
+<thead><tr><th>시각</th><th>구분</th><th>입력</th><th>메모</th><th>trace</th><th>수정</th></tr></thead>
+<tbody id="staffManualLogRows"><tr><td colspan="6" style="color:var(--muted);">직원과 날짜를 선택한 뒤 조회하세요.</td></tr></tbody>
+</table>
 </div>
 </div>
 
@@ -7015,6 +7046,8 @@
 
     async function loadStaffDaily(staffId, staffName) {
       const yyyymm = ($('#staffYyyymm').value || kstYmd(new Date()).slice(0, 6)).trim();
+      $('#staffManualStaffId').value = staffId || $('#staffManualStaffId').value || '';
+      $('#staffManualYmd').value = $('#staffManualYmd').value || kstYmd(new Date());
       $('#staffDailyTitle').textContent = '일별 근무 상세 · ' + (staffName || staffId);
       $('#staffDailyDesc').textContent = yyyymm + ' · staff_id: ' + staffId;
       const r = await rpc('admin.getStaffDailyDetail', { yyyymm, staff_id: staffId }, { timeoutMs: 30000 });
@@ -7027,28 +7060,153 @@
       const box = $('#staffDailyRows');
       if (!box) return;
       if (!rows.length) {
-        box.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">일별 근무 기록이 없습니다.</td></tr>';
+        box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">일별 근무 기록이 없습니다.</td></tr>';
         return;
       }
       box.innerHTML = rows.map(row => {
         const minutes = Number(row.worked_minutes || 0) || 0;
+        const ymd = String(row.yyyymmdd || '').trim();
         return `
           <tr>
-            <td>${esc(row.yyyymmdd || '')}</td>
+            <td>${esc(ymd)}</td>
             <td class="wrap">${esc(shortTs(row.first_in_ts || ''))}</td>
             <td class="wrap">${esc(shortTs(row.last_out_ts || ''))}</td>
             <td>${esc(minutes)} / ${esc(fmtMinutes(minutes))}</td>
             <td>${esc(row.status || row.work_status || '-')}</td>
+            <td><button class="btn btnGhost" type="button" data-staff-log-day="${esc(ymd)}" data-staff-log-staff="${esc(staffId)}">로그</button></td>
           </tr>
         `;
       }).join('');
+
+      $$('#staffDailyRows button[data-staff-log-day]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          $('#staffManualStaffId').value = btn.dataset.staffLogStaff || staffId || '';
+          $('#staffManualYmd').value = btn.dataset.staffLogDay || kstYmd(new Date());
+          loadStaffManualLogsFromUi();
+        });
+      });
     }
 
     function clearStaffDaily() {
       $('#staffDailyTitle').textContent = '일별 근무 상세';
       $('#staffDailyDesc').textContent = '월간 요약에서 직원을 선택하세요.';
-      $('#staffDailyRows').innerHTML = '<tr><td colspan="5" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>';
+      $('#staffDailyRows').innerHTML = '<tr><td colspan="6" style="color:var(--muted);">선택된 직원이 없습니다.</td></tr>';
+      clearStaffManualForm();
     }
+
+    function staffActionLabel(action) {
+      const v = String(action || '').toUpperCase();
+      if (v === 'IN') return '출근';
+      if (v === 'OUT') return '퇴근';
+      return v || '-';
+    }
+
+    function kstTimeFromIso(value) {
+      const date = new Date(value || '');
+      if (Number.isNaN(date.getTime())) return '';
+      const parts = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).formatToParts(date).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+      }, {});
+      return (parts.hour || '00') + ':' + (parts.minute || '00');
+    }
+
+    function clearStaffManualForm() {
+      $('#staffManualTraceId').value = '';
+      $('#staffManualTime').value = '';
+      $('#staffManualNote').value = '';
+      $('#staffManualAction').value = 'IN';
+      if (!$('#staffManualYmd').value) $('#staffManualYmd').value = kstYmd(new Date());
+      $('#staffManualLogRows').innerHTML = '<tr><td colspan="6" style="color:var(--muted);">직원과 날짜를 선택한 뒤 조회하세요.</td></tr>';
+    }
+
+    function setStaffManualFromLog(row) {
+      $('#staffManualStaffId').value = String(row.staff_id || '').trim();
+      $('#staffManualYmd').value = $('#staffManualYmd').value || kstYmd(new Date());
+      $('#staffManualTime').value = kstTimeFromIso(row.ts || '');
+      $('#staffManualAction').value = String(row.action || '').toUpperCase() === 'OUT' ? 'OUT' : 'IN';
+      $('#staffManualTraceId').value = String(row.trace_id || '').trim();
+      $('#staffManualNote').value = String(row.note || '').replace(/^\[관리자(?:추가|수정)\]\s*/, '');
+    }
+
+    function renderStaffManualLogs(data) {
+      const rows = Array.isArray(data && data.items) ? data.items : [];
+      const box = $('#staffManualLogRows');
+      if (!box) return;
+      if (!rows.length) {
+        box.innerHTML = '<tr><td colspan="6" style="color:var(--muted);">당일 출퇴근 로그가 없습니다.</td></tr>';
+        return;
+      }
+      box.innerHTML = rows.map((row, idx) => `
+        <tr>
+          <td class="wrap">${esc(shortTs(row.ts || ''))}</td>
+          <td>${esc(staffActionLabel(row.action))}</td>
+          <td>${esc(row.input_mode || '-')}</td>
+          <td class="wrap">${esc(row.note || '')}</td>
+          <td class="wrap">${esc(row.trace_id || '')}</td>
+          <td><button class="btn btnGhost" type="button" data-staff-log-edit="${idx}">수정</button></td>
+        </tr>
+      `).join('');
+      $$('#staffManualLogRows button[data-staff-log-edit]').forEach(btn => {
+        btn.addEventListener('click', () => setStaffManualFromLog(rows[Number(btn.dataset.staffLogEdit || 0)] || {}));
+      });
+    }
+
+    async function loadStaffManualLogsFromUi() {
+      const staffId = ($('#staffManualStaffId').value || '').trim();
+      const yyyymmdd = ($('#staffManualYmd').value || kstYmd(new Date())).trim();
+      $('#staffManualYmd').value = yyyymmdd;
+      if (!staffId) {
+        showToast('직원 ID를 입력하세요.');
+        return;
+      }
+      const r = await rpc('admin.staffClock.listLogs', { staff_id: staffId, yyyymmdd }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '직원 출퇴근 로그 조회 실패');
+        showResult('직원 출퇴근 로그 조회 실패', r);
+        return;
+      }
+      renderStaffManualLogs(r.data || {});
+      showToast('직원 출퇴근 로그를 조회했습니다.');
+    }
+
+    async function saveStaffManualClock() {
+      const staffId = ($('#staffManualStaffId').value || '').trim();
+      const yyyymmdd = ($('#staffManualYmd').value || '').trim();
+      const time = ($('#staffManualTime').value || '').trim();
+      const action = ($('#staffManualAction').value || 'IN').trim();
+      const traceId = ($('#staffManualTraceId').value || '').trim();
+      const note = ($('#staffManualNote').value || '').trim();
+      if (!staffId || !yyyymmdd || !time || !action) {
+        showToast('직원 ID, 날짜, 시간, 구분을 모두 입력하세요.');
+        return;
+      }
+      const r = await rpc('admin.staffClock.saveManual', {
+        staff_id: staffId,
+        yyyymmdd,
+        time,
+        action,
+        trace_id: traceId,
+        note
+      }, { timeoutMs: 30000 });
+      if (!r.ok) {
+        showToast(r.error && r.error.message ? r.error.message : '직원 출퇴근 수기 저장 실패');
+        showResult('직원 출퇴근 수기 저장 실패', r);
+        return;
+      }
+      showToast(traceId ? '직원 출퇴근 로그를 수정했습니다.' : '직원 출퇴근 로그를 추가했습니다.');
+      $('#staffManualTraceId').value = '';
+      $('#staffManualTime').value = '';
+      $('#staffManualNote').value = '';
+      await loadStaffManualLogsFromUi();
+      await loadStaffMonthly();
+    }
+
 
 
     function selectedStudentOrToast() {
@@ -8581,6 +8739,9 @@
       bindClick('btnMessageWorkerRuns', listWorkerRuns);
       bindClick('btnLoadStaffMonthly', loadStaffMonthly);
       bindClick('btnClearStaffDetail', clearStaffDaily);
+      bindClick('btnStaffManualSave', saveStaffManualClock);
+      bindClick('btnStaffManualLoadLogs', loadStaffManualLogsFromUi);
+      bindClick('btnStaffManualClear', clearStaffManualForm);
       bindClick('btnLoadClinicTasks', loadClinicTasks);
       bindClick('btnLoadTodayClinicTasks', loadTodayClinicTasks);
       bindClick('btnClinicLocalStudentSearch', searchClinicLocalStudents);

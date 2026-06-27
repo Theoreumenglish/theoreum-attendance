@@ -103,3 +103,11 @@ npm run smoke-test
 - `.env.smoke.local`은 Git commit 및 release zip에 포함하지 않는다.
 - `scripts/one-click-release.ps1`은 검사 → 검증 → 빌드 → 커밋 → 푸쉬 → 압축파일 → 배포 → smoke-test 흐름을 한 번에 실행한다.
 - 비밀번호는 코드와 문서에 하드코딩하지 않는다.
+
+
+## Node 24 / 직원 근태 수기 보정
+
+- package.json engines.node가 24.x인지 확인
+- Vercel build log에서 Node 20.x deprecation 경고가 사라졌는지 확인
+- 직원 탭에서 관리자/원장이 출퇴근 로그를 수기로 추가/수정할 수 있는지 확인
+- 수기 저장 후 staff_daily / staff_monthly가 재계산되는지 확인

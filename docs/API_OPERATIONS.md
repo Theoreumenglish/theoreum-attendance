@@ -371,3 +371,13 @@ This is used by the physical keyboard kiosk after the `staff` command. Staff QR 
 
 학생과 직원 출결 키오스크의 기본 입력 방식은 `010`을 화면에 고정 표시하고 사용자가 뒤 8자리만 입력하는 방식이다. 학생은 `students.student_phone`, 직원은 `staff` 또는 `staff_snapshot`의 phone-like 컬럼을 기준으로 매칭한다. QR은 보조수단으로 유지한다. 2차 직원 확인 기능은 이번 버전에서 제외한다.
 
+
+
+## admin.staffClock.listLogs / admin.staffClock.saveManual
+
+직원 근태 수기 보정용 관리자 API입니다.
+
+- `admin.staffClock.listLogs`: 특정 직원/일자의 원본 출퇴근 로그를 조회합니다.
+- `admin.staffClock.saveManual`: 원장/관리자가 출근/퇴근 로그를 수기로 추가하거나 `trace_id` 기준으로 수정합니다.
+- 저장 후 `staff_daily`, `staff_monthly` rollup을 재계산합니다.
+- 삭제는 v1에서 제공하지 않습니다. 오입력은 수정으로 처리합니다.

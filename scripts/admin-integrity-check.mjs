@@ -158,6 +158,14 @@ assertIncludes(rpc, 'clinicBulkUpdateStatusDirect', '클리닉 일괄 상태 변
 assertIncludes(rpc, 'clinic.createClassTasks', '수업 클리닉 반 전체 생성 감사 로그가 있습니다.');
 assertIncludes(rpc, 'clinic.bulkUpdateStatus', '클리닉 일괄 변경 감사 로그가 있습니다.');
 
+if (!html.includes('staffManualStaffId') || !html.includes('btnStaffManualSave') || !rpc.includes("admin.staffClock.saveManual")) {
+  fail('관리자 직원 출퇴근 수기 추가/수정 흐름이 없습니다.');
+} else ok('관리자 직원 출퇴근 수기 추가/수정 흐름이 있습니다.');
+
+if (!rpc.includes('adminSaveStaffClockManualDirect') || !rpc.includes('adminListStaffClockLogsDirect')) {
+  fail('직원 출퇴근 수기 API Direct 연결이 없습니다.');
+} else ok('직원 출퇴근 수기 API Direct 연결이 있습니다.');
+
 if (failed) {
   console.error(`\nAdmin integrity check failed: ${failed} issue(s)`);
   process.exit(1);
