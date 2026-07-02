@@ -62,7 +62,9 @@ const reportPath = resolve(logDir, 'PRODUCTION_DEEP_QA_REPORT.md');
 const copyPath = resolve(logDir, 'PRODUCTION_DEEP_QA_TO_SEND.txt');
 const lastDirPath = resolve(logDir, 'PRODUCTION_DEEP_QA_LAST_DIR.txt');
 const rawJsonPath = resolve(logDir, 'PRODUCTION_DEEP_QA_RAW.json');
-const bundlePath = resolve(logDir, 'PRODUCTION_DEEP_QA_BUNDLE.zip');
+const latestBundlePath = resolve(logDir, 'PRODUCTION_DEEP_QA_BUNDLE.zip');
+const runBundlePath = resolve(logDir, `PRODUCTION_DEEP_QA_BUNDLE_${runId}.zip`);
+const bundlePath = runBundlePath;
 
 mkdirSync(runDir, { recursive: true });
 
@@ -121,17 +123,25 @@ function createScreenshotBundle() {
       const ps = [
         '$ErrorActionPreference = "Stop"',
         `$src = ${JSON.stringify(join(runDir, '*'))}`,
-        `$dest = ${JSON.stringify(bundlePath)}`,
+        `$dest = ${JSON.stringify(runBundlePath)}`,
+        `$latest = ${JSON.stringify(latestBundlePath)}`,
         'if (Test-Path $dest) { Remove-Item $dest -Force }',
-        'Compress-Archive -Path $src -DestinationPath $dest -Force'
+        'if (Test-Path $latest) { Remove-Item $latest -Force }',
+        'Compress-Archive -Path $src -DestinationPath $dest -Force',
+        'Copy-Item -Path $dest -Destination $latest -Force'
       ].join('; ');
       const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { encoding: 'utf8' });
-      if (out.status === 0 && existsSync(bundlePath)) return { ok: true, path: bundlePath, method: 'powershell_Compress-Archive' };
+      if (out.status === 0 && existsSync(runBundlePath)) return { ok: true, path: runBundlePath, latestPath: latestBundlePath, method: 'powershell_Compress-Archive' };
       return { ok: false, reason: (out.stderr || out.stdout || 'Compress-Archive failed').slice(0, 500) };
     }
 
-    const out = spawnSync('zip', ['-qr', bundlePath, basename(runDir)], { cwd: dirname(runDir), encoding: 'utf8' });
-    if (out.status === 0 && existsSync(bundlePath)) return { ok: true, path: bundlePath, method: 'zip' };
+    try { if (existsSync(runBundlePath)) spawnSync('rm', ['-f', runBundlePath]); } catch {}
+    try { if (existsSync(latestBundlePath)) spawnSync('rm', ['-f', latestBundlePath]); } catch {}
+    const out = spawnSync('zip', ['-qr', runBundlePath, '.'], { cwd: runDir, encoding: 'utf8' });
+    if (out.status === 0 && existsSync(runBundlePath)) {
+      spawnSync('cp', ['-f', runBundlePath, latestBundlePath]);
+      return { ok: true, path: runBundlePath, latestPath: latestBundlePath, method: 'zip' };
+    }
     return { ok: false, reason: (out.stderr || out.stdout || 'zip command failed').slice(0, 500) };
   } catch (e) {
     return { ok: false, reason: e?.message || String(e) };
@@ -642,18 +652,10 @@ async function run() {
   await domAudit('student_today_static');
 }
 
-function writeReports() {
-  const bundleResult = createScreenshotBundle();
-  if (!bundleResult.ok) {
-    stepWarned += 1;
-    results.push({ status: 'WARN', label: 'screenshot bundle failed', detail: mask(bundleResult.reason || 'unknown'), at: new Date().toISOString() });
-  } else {
-    results.push({ status: 'OK', label: 'screenshot bundle created', detail: mask(bundleResult.path || bundlePath), at: new Date().toISOString() });
-  }
-
+function buildReportLines(bundleResult = null) {
   const failedCount = stepFailed;
   const warnCount = stepWarned + consoleEvents.length + pageErrors.length + failedRequests.length + badResponses.length;
-  const lines = [
+  return [
     '# TheOreum Production Deep Click QA Report',
     '',
     `- Base URL: ${baseUrl}`,
@@ -663,7 +665,8 @@ function writeReports() {
     `- Failed: ${failedCount}`,
     `- Warnings/Signals: ${warnCount}`,
     `- Screenshot dir: ${runDir}`,
-    `- Screenshot bundle: ${bundlePath}`,
+    `- Screenshot bundle: ${runBundlePath}`,
+    `- Latest screenshot bundle alias: ${latestBundlePath}`,
     '',
     '## What this checked',
     '- Real browser page load',
@@ -689,6 +692,11 @@ function writeReports() {
     '## Screenshots',
     ...screenshots.map(s => `- ${s.label}: ${s.path}`),
     '',
+    '## Screenshot bundle',
+    `- Timestamped zip: ${runBundlePath}`,
+    `- Latest alias: ${latestBundlePath}`,
+    bundleResult ? `- Bundle status: ${bundleResult.ok ? 'OK' : 'WARN'}${bundleResult.reason ? ` — ${bundleResult.reason}` : ''}` : '- Bundle status: pending',
+    '',
     '## Console events',
     ...(consoleEvents.length ? consoleEvents.slice(0, 80).map(e => `- ${e.type}: ${e.text}`) : ['- none']),
     '',
@@ -707,15 +715,34 @@ function writeReports() {
     '## API results',
     ...(apiResults.length ? apiResults.map(e => `- ${e.ok ? 'OK' : 'FAIL'} ${e.op} — http=${e.httpStatus}, ${e.ms}ms${e.error ? `, code=${e.error.code || ''}, msg=${mask(e.error.message || '')}` : ''}`) : ['- none'])
   ];
-  const report = lines.join('\n');
-  writeFileSync(reportPath, report, 'utf8');
-  writeFileSync(copyPath, ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n'), 'utf8');
-  writeFileSync(lastDirPath, runDir, 'utf8');
-  writeFileSync(rawJsonPath, JSON.stringify({
+}
+
+function writeRunDirCompanionFiles(bundleResult = null) {
+  const readme = [
+    'TheOreum Production Deep QA screenshot bundle',
+    `Generated: ${new Date().toISOString()}`,
+    `Run ID: ${runId}`,
+    `Base URL: ${baseUrl}`,
+    '',
+    'Open PRODUCTION_DEEP_QA_TO_SEND.txt first.',
+    'PNG files are captured Playwright page screenshots.',
+    '*_dom.json files are DOM audits for debugging.',
+    '',
+    'Screenshot capture note:',
+    '- QA uses Playwright page.screenshot, so it captures the browser page DOM, not your entire Windows desktop.',
+    '- Other apps/windows on your monitor are not captured in these PNG files.',
+    '- Do not touch the QA browser while the runner is typing/clicking, because keyboard/mouse focus can affect the test flow.'
+  ].join('\r\n');
+  writeFileSync(join(runDir, 'README_SCREENSHOTS.txt'), readme, 'utf8');
+
+  const raw = JSON.stringify({
     baseUrl,
     writeMode,
     headless,
+    runId,
     runDir,
+    runBundlePath,
+    latestBundlePath,
     results,
     consoleEvents,
     pageErrors,
@@ -725,11 +752,47 @@ function writeReports() {
     screenshots,
     screenshotBundle: bundleResult,
     apiResults
-  }, null, 2), 'utf8');
+  }, null, 2);
+  writeFileSync(rawJsonPath, raw, 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_RAW.json'), raw, 'utf8');
+}
+
+function writeReports() {
+  // First pass: write a complete report/copy/raw into both _logs and the run folder.
+  // Then zip the run folder to a timestamped file. Then write the final report again
+  // so the report itself includes the bundle result and exact zip path.
+  writeRunDirCompanionFiles(null);
+  let report = buildReportLines(null).join('\n');
+  writeFileSync(reportPath, report, 'utf8');
+  writeFileSync(copyPath, ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n'), 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_REPORT.md'), report, 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_TO_SEND.txt'), ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n'), 'utf8');
+  writeFileSync(lastDirPath, runDir, 'utf8');
+
+  const bundleResult = createScreenshotBundle();
+  if (!bundleResult.ok) {
+    stepWarned += 1;
+    results.push({ status: 'WARN', label: 'screenshot bundle failed', detail: mask(bundleResult.reason || 'unknown'), at: new Date().toISOString() });
+  } else {
+    results.push({ status: 'OK', label: 'screenshot bundle created', detail: mask(bundleResult.path || runBundlePath), at: new Date().toISOString() });
+  }
+
+  writeRunDirCompanionFiles(bundleResult);
+  report = buildReportLines(bundleResult).join('\n');
+  const copyBlock = ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n');
+  writeFileSync(reportPath, report, 'utf8');
+  writeFileSync(copyPath, copyBlock, 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_REPORT.md'), report, 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_TO_SEND.txt'), copyBlock, 'utf8');
+
+  // Recreate once more so the zip contains the final report that mentions the zip itself.
+  createScreenshotBundle();
+
   console.log('\nReport:', reportPath);
   console.log('Copy block:', copyPath);
   console.log('Screenshots:', runDir);
-  console.log('Screenshot bundle:', bundlePath);
+  console.log('Timestamped screenshot bundle:', runBundlePath);
+  console.log('Latest screenshot bundle alias:', latestBundlePath);
 }
 
 function finishAndExit(code) {

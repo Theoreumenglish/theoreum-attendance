@@ -12,6 +12,7 @@ $SqlApplyPath = Join-Path $LogDir "LAST_SQL_TO_APPLY.txt"
 $SmokePath = Join-Path $LogDir "LAST_SMOKE_TO_SEND.txt"
 $DeepQaPath = Join-Path $LogDir "PRODUCTION_DEEP_QA_TO_SEND.txt"
 $DeepQaBundlePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_BUNDLE.zip"
+$DeepQaTimestampedBundle = Get-ChildItem -Path $LogDir -Filter "PRODUCTION_DEEP_QA_BUNDLE_*.zip" -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 $LastRunPath = Join-Path $LogDir "LAST_RUN.log"
 $SuccessPath = Join-Path $LogDir "LAST_SUCCESS_SUMMARY.txt"
 
@@ -52,9 +53,14 @@ try {
   Set-Clipboard -Value $Text
   Write-Host "Copied to clipboard:" -ForegroundColor Green
   Write-Host $Target -ForegroundColor Yellow
-  if ($Target -eq $DeepQaPath -and (Test-Path $DeepQaBundlePath)) {
-    Write-Host "Deep QA screenshot bundle to attach if needed:" -ForegroundColor Green
-    Write-Host $DeepQaBundlePath -ForegroundColor Yellow
+  if ($Target -eq $DeepQaPath) {
+    if ($DeepQaTimestampedBundle) {
+      Write-Host "Deep QA timestamped screenshot bundle to attach if needed:" -ForegroundColor Green
+      Write-Host $DeepQaTimestampedBundle.FullName -ForegroundColor Yellow
+    } elseif (Test-Path $DeepQaBundlePath) {
+      Write-Host "Deep QA screenshot bundle to attach if needed:" -ForegroundColor Green
+      Write-Host $DeepQaBundlePath -ForegroundColor Yellow
+    }
   }
 } catch {
   Write-Host "Could not copy to clipboard. Open this file manually:" -ForegroundColor Yellow

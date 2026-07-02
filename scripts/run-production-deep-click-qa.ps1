@@ -59,13 +59,14 @@ if ($Headless) { $ArgsList += "--headless" }
 $ExitCode = $LASTEXITCODE
 
 $LastDirPath = Join-Path $LogDir "PRODUCTION_DEEP_QA_LAST_DIR.txt"
-$BundlePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_BUNDLE.zip"
-if (Test-Path $BundlePath) { Remove-Item $BundlePath -Force }
+$LatestBundlePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_BUNDLE.zip"
 
 if (Test-Path $LastDirPath) {
   $LastDir = (Get-Content $LastDirPath -Raw).Trim()
   if ($LastDir -and (Test-Path $LastDir)) {
     try {
+      $RunId = Split-Path $LastDir -Leaf
+      $TimestampedBundlePath = Join-Path $LogDir ("PRODUCTION_DEEP_QA_BUNDLE_" + $RunId + ".zip")
       $CopyPathForBundle = Join-Path $LogDir "PRODUCTION_DEEP_QA_TO_SEND.txt"
       $ReportPathForBundle = Join-Path $LogDir "PRODUCTION_DEEP_QA_REPORT.md"
       $RawPathForBundle = Join-Path $LogDir "PRODUCTION_DEEP_QA_RAW.json"
@@ -76,15 +77,24 @@ if (Test-Path $LastDirPath) {
       $IndexText = @(
         "TheOreum Production Deep QA screenshot bundle",
         "Generated: $(Get-Date -Format o)",
+        "Run ID: $RunId",
         "Base URL: $($env:QA_BASE_URL)",
         "",
         "Open PRODUCTION_DEEP_QA_TO_SEND.txt first.",
-        "PNG files are the captured screens. *_dom.json files are DOM audits for debugging."
+        "PNG files are Playwright page screenshots. They capture the tested browser page, not your whole desktop.",
+        "Other apps/windows on your monitor are not included in these screenshots.",
+        "Do not type/click in the QA browser while the runner is working, because focus can affect the test.",
+        "*_dom.json files are DOM audits for debugging."
       ) -join "`r`n"
       Set-Content -Path $IndexPath -Value $IndexText -Encoding UTF8
-      Compress-Archive -Path (Join-Path $LastDir "*") -DestinationPath $BundlePath -Force
-      Write-Host "Deep QA screenshot bundle:" -ForegroundColor Green
-      Write-Host $BundlePath -ForegroundColor Yellow
+      if (Test-Path $TimestampedBundlePath) { Remove-Item $TimestampedBundlePath -Force }
+      if (Test-Path $LatestBundlePath) { Remove-Item $LatestBundlePath -Force }
+      Compress-Archive -Path (Join-Path $LastDir "*") -DestinationPath $TimestampedBundlePath -Force
+      Copy-Item -Path $TimestampedBundlePath -Destination $LatestBundlePath -Force
+      Write-Host "Deep QA timestamped screenshot bundle:" -ForegroundColor Green
+      Write-Host $TimestampedBundlePath -ForegroundColor Yellow
+      Write-Host "Deep QA latest bundle alias:" -ForegroundColor Green
+      Write-Host $LatestBundlePath -ForegroundColor Yellow
     } catch {
       Write-Host "Could not create screenshot bundle: $($_.Exception.Message)" -ForegroundColor Yellow
     }

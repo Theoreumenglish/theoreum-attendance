@@ -301,6 +301,13 @@ checkText('scripts/production-deep-click-qa.mjs', "state === 'loaded'", 'deep QA
 checkFile('public/favicon.ico', 'favicon 404 방지 파일');
 
 
+
+checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_BUNDLE_${runId}.zip', 'deep QA timestamped screenshot bundle 생성');
+checkText('scripts/production-deep-click-qa.mjs', 'Latest screenshot bundle alias', 'deep QA latest bundle alias 보고서 표기');
+checkText('scripts/run-production-deep-click-qa.ps1', 'PRODUCTION_DEEP_QA_BUNDLE_" + $RunId + ".zip', 'PowerShell deep QA timestamped bundle 생성');
+checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_BUNDLE_*.zip', 'copy-last-log timestamped deep QA bundle 안내');
+checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'Timestamped screenshot bundles', 'deep QA timestamped bundle 문서');
+
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
   process.exit(1);

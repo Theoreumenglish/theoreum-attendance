@@ -83,3 +83,15 @@ Deep QA now writes `_logs/PRODUCTION_DEEP_QA_BUNDLE.zip` automatically. The oper
 `run-production-deep-click-qa.ps1` now copies the copy-ready report, raw JSON, and a screenshot README into the screenshot directory before creating `PRODUCTION_DEEP_QA_BUNDLE.zip`. This keeps screenshots and logs together so the user does not need to manually compress the folder.
 
 Student search QA uses the visible top student search button (`btnStudentSearchNow`) rather than the lower centralDB maintenance search button.
+
+
+## Timestamped screenshot bundles
+
+Each deep QA run must produce two zip files in `_logs`:
+
+- `PRODUCTION_DEEP_QA_BUNDLE_<runId>.zip` — permanent timestamped bundle for that run.
+- `PRODUCTION_DEEP_QA_BUNDLE.zip` — latest-run alias for quick attachment.
+
+The bundle includes screenshots, DOM audit JSON files, the copy-ready QA report, the full markdown report, raw JSON, and `README_SCREENSHOTS.txt`.
+
+Screenshots are captured with Playwright `page.screenshot`, so they capture the tested browser page DOM rather than the entire Windows desktop. Other apps/windows on the monitor are not included, but the user should not type or click in the QA browser while the runner is working because focus can affect keyboard/click automation.
