@@ -58,12 +58,15 @@ const requiredFiles = [
   'docs/PAYMENT_SCOPE_DECISION_V1.md',
   'docs/DIRECTOR_EXPLANATION_BRIEF_V1.md',
   'docs/PHONE_IDENTITY_QUALITY_V1.md',
-  'docs/PRODUCTION_QA_PARITY_V1.md'
+  'docs/PRODUCTION_QA_PARITY_V1.md',
+  'scripts/production-deep-click-qa.mjs',
+  'scripts/run-production-deep-click-qa.ps1',
+  'docs/PRODUCTION_DEEP_CLICK_QA_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
 const pkg = JSON.parse(read('package.json'));
-for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'dev:fast-check', 'dev:release', 'db:migration-status', 'verify:no-build', 'verify']) {
+for (const scriptName of ['check', 'contract-check', 'ux-check', 'flow-sim', 'integrity-check', 'ops-checklist', 'final-readiness-check', 'smoke-test', 'setup-smoke-env', 'one-click-release', 'copy-last-log', 'dev:doctor', 'dev:quick-check', 'dev:apply-patch', 'dev:rollback-latest', 'dev:fast-check', 'dev:release', 'db:migration-status', 'verify:no-build', 'prod:qa:deep', 'prod:qa:deep:write', 'verify']) {
   if (!pkg.scripts?.[scriptName]) fail(`package.json scripts.${scriptName} 누락`);
   else ok(`npm run ${scriptName} 등록`);
 }
@@ -272,6 +275,14 @@ checkText('scripts/smoke-test.mjs', 'meta.supportedOps', 'smoke-test supported o
 checkText('vite.config.js', 'studentToday', 'Vite student-today build input');
 checkText('student-today.html', 'studentToday.publicGet', 'root student-today static page');
 checkText('docs/PRODUCTION_QA_PARITY_V1.md', 'production-qa-parity-megapatch-v1', 'production QA parity 문서');
+
+checkText('scripts/production-deep-click-qa.mjs', 'TheOreum Production Deep Click QA Report', 'production deep click QA report');
+checkText('scripts/production-deep-click-qa.mjs', 'kiosk staff hotword', 'production deep click QA kiosk staff hotword');
+checkText('scripts/production-deep-click-qa.mjs', 'phone identity audit UI', 'production deep click QA phone identity UI');
+checkText('scripts/run-production-deep-click-qa.ps1', 'npm install --no-save playwright@1', 'production deep click QA auto Playwright install');
+checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_TO_SEND.txt', 'copy-last-log deep QA priority');
+checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'production-deep-click-qa-v1', 'production deep click QA 문서');
+
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

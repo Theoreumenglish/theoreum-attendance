@@ -488,3 +488,8 @@ For patches with `docs/supabase-*.sql`, confirm `npm run dev:apply-patch` pauses
 
 - `npm run prod:qa`로 `/student-today.html`, `meta.supportedOps`, `admin.phoneIdentity.audit`, `admin.lectureAssignment.list`를 확인한다.
 - BAD_OP/404 조합은 stale Vercel preview URL 가능성을 먼저 확인한다.
+
+
+## Production deep click QA
+
+실제 사이트 화면 클릭 검증은 `npm run prod:qa:deep` 또는 쓰기 포함 `npm run prod:qa:deep:write`로 실행한다. 결과는 `_logs/PRODUCTION_DEEP_QA_TO_SEND.txt`와 `_logs/PRODUCTION_DEEP_QA_BUNDLE.zip`에 저장된다.

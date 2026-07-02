@@ -258,3 +258,8 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 - `docs/ONLINE_LECTURE_LINKAGE_V1.md`
 - `docs/PAYMENT_SCOPE_DECISION_V1.md`
 - `docs/DIRECTOR_EXPLANATION_BRIEF_V1.md`
+
+
+## Production deep click QA
+
+`docs/PRODUCTION_DEEP_CLICK_QA_V1.md` 기준으로 네 PC에서 실제 production/preview를 브라우저로 자동 클릭하여 오류/스크린샷을 수집한다. ChatGPT에는 `_logs/PRODUCTION_DEEP_QA_TO_SEND.txt`를 보내면 된다.

@@ -33,7 +33,9 @@
     "kiosk-input-check": "node scripts/kiosk-input-flow-check.mjs",
     "prod:qa": "node scripts/production-qa-runner.mjs",
     "prod:qa:read": "node scripts/production-qa-runner.mjs --read-only",
-    "prod:qa:write": "node scripts/production-qa-runner.mjs --write"
+    "prod:qa:write": "node scripts/production-qa-runner.mjs --write",
+    "prod:qa:deep": "powershell -ExecutionPolicy Bypass -File scripts/run-production-deep-click-qa.ps1",
+    "prod:qa:deep:write": "powershell -ExecutionPolicy Bypass -File scripts/run-production-deep-click-qa.ps1 -Write"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

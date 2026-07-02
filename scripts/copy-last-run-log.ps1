@@ -10,6 +10,7 @@ $FailurePath = Join-Path $LogDir "LAST_FAILURE_TO_SEND.txt"
 $SqlGatePath = Join-Path $LogDir "LAST_SQL_GATE_TO_SEND.txt"
 $SqlApplyPath = Join-Path $LogDir "LAST_SQL_TO_APPLY.txt"
 $SmokePath = Join-Path $LogDir "LAST_SMOKE_TO_SEND.txt"
+$DeepQaPath = Join-Path $LogDir "PRODUCTION_DEEP_QA_TO_SEND.txt"
 $LastRunPath = Join-Path $LogDir "LAST_RUN.log"
 $SuccessPath = Join-Path $LogDir "LAST_SUCCESS_SUMMARY.txt"
 
@@ -24,7 +25,9 @@ if ($FullLog) {
     $Target = $LastRunPath
   }
 } else {
-  if (Test-Path $SqlGatePath) {
+  if (Test-Path $DeepQaPath) {
+    $Target = $DeepQaPath
+  } elseif (Test-Path $SqlGatePath) {
     $Target = $SqlGatePath
   } elseif (Test-Path $SqlApplyPath) {
     $Target = $SqlApplyPath
