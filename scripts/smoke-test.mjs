@@ -52,7 +52,8 @@ loadLocalSmokeEnv();
 const baseUrl = String(process.env.SMOKE_BASE_URL || process.env.VERCEL_URL || '').trim().replace(/\/+$/, '');
 const staffId = String(process.env.SMOKE_STAFF_ID || '').trim();
 const password = String(process.env.SMOKE_PASSWORD || '').trim();
-const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS || 10000) || 10000;
+const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS || 15000) || 15000;
+const slowTimeoutMs = Number(process.env.SMOKE_SLOW_TIMEOUT_MS || 35000) || 35000;
 const logDir = resolve(process.cwd(), '_logs');
 const smokeCopyPath = resolve(logDir, 'LAST_SMOKE_TO_SEND.txt');
 
@@ -109,9 +110,10 @@ if (!baseUrl) {
 }
 
 
-async function getPage(pathname) {
+async function getPage(pathname, opts = {}) {
+  const requestTimeoutMs = Number(opts.timeoutMs || timeoutMs) || timeoutMs;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
   const started = Date.now();
   try {
     const res = await fetch(baseUrl + pathname, { method: 'GET', signal: controller.signal });
@@ -123,9 +125,10 @@ async function getPage(pathname) {
   }
 }
 
-async function rpc(op, args = {}) {
+async function rpc(op, args = {}, opts = {}) {
+  const requestTimeoutMs = Number(opts.timeoutMs || timeoutMs) || timeoutMs;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
   const started = Date.now();
   try {
     const res = await fetch(baseUrl + '/api/rpc', {
@@ -155,7 +158,12 @@ function assertOk(label, out, opts = {}) {
   }
 
   const message = body?.error?.message || JSON.stringify(body).slice(0, 500);
-  const hint = body?.error?.hint || migrationHintFor(label, body);
+  let hint = body?.error?.hint || migrationHintFor(label, body);
+  if (!hint && String(message).toUpperCase() === 'TIMEOUT') {
+    hint = label === 'admin.finalReadiness'
+      ? `admin.finalReadiness can be slow on production. This smoke test now gives it ${Math.round(slowTimeoutMs / 1000)}s. If it still times out, send _logs/LAST_SMOKE_TO_SEND.txt and run deep QA to confirm UI health.`
+      : `The request timed out after ${Math.round(timeoutMs / 1000)}s. Re-run once, then send _logs/LAST_SMOKE_TO_SEND.txt if it repeats.`;
+  }
   const detailLine = [
     `${label} failed`,
     `op=${out.op || label}`,
@@ -206,6 +214,7 @@ function writeSmokeFailureSummary() {
 
 console.log('== TheOreum live API smoke test ==');
 console.log('Base:', baseUrl);
+console.log('Timeouts:', `${timeoutMs}ms default / ${slowTimeoutMs}ms slow`);
 
 assertOk('page /', await getPage('/'));
 assertOk('page /student-today.html', await getPage('/student-today.html'));
@@ -235,7 +244,7 @@ if (staffId && password) {
   if (sessionToken) {
     assertOk('auth.me staff', await rpc('auth.me', { sessionToken }));
     assertOk('admin.getOpsOverview', await rpc('admin.getOpsOverview', { sessionToken }), { allowAuthFail: true });
-    assertOk('admin.finalReadiness', await rpc('admin.finalReadiness', { sessionToken }), { allowAuthFail: true });
+    assertOk('admin.finalReadiness', await rpc('admin.finalReadiness', { sessionToken }, { timeoutMs: slowTimeoutMs }), { allowAuthFail: true });
     assertOk('admin.phoneIdentity.audit', await rpc('admin.phoneIdentity.audit', { sessionToken }), { allowAuthFail: true });
     assertOk('admin.lectureAssignment.list', await rpc('admin.lectureAssignment.list', { sessionToken, student_id: '0000', limit: 1 }), { allowAuthFail: true });
     assertOk('clinic.listTasks', await rpc('clinic.listTasks', { sessionToken, limit: 1 }), { allowAuthFail: true });

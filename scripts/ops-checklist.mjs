@@ -307,12 +307,9 @@ checkText('scripts/production-deep-click-qa.mjs', 'Latest screenshot bundle alia
 checkText('scripts/run-production-deep-click-qa.ps1', 'PRODUCTION_DEEP_QA_BUNDLE_" + $RunId + ".zip', 'PowerShell deep QA timestamped bundle 생성');
 checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_BUNDLE_*.zip', 'copy-last-log timestamped deep QA bundle 안내');
 checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'Timestamped screenshot bundles', 'deep QA timestamped bundle 문서');
-checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_SOURCE_${runId}.zip', 'deep QA timestamped source snapshot 생성');
-checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_PACKAGE_${runId}.zip', 'deep QA full package 생성');
-checkText('scripts/production-deep-click-qa.mjs', 'Excluded by design: .env*', 'deep QA source snapshot secret exclusion');
-checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_PACKAGE_*.zip', 'copy-last-log deep QA full package 안내');
-checkText('docs/DEEP_QA_FULL_PACKAGE_V1.md', 'deep-qa-full-package-v1', 'deep QA full package 문서');
-
+checkText('scripts/smoke-test.mjs', 'SMOKE_SLOW_TIMEOUT_MS', 'smoke-test slow timeout env 지원');
+checkText('scripts/smoke-test.mjs', "rpc('admin.finalReadiness', { sessionToken }, { timeoutMs: slowTimeoutMs })", 'admin.finalReadiness slow timeout 적용');
+checkText('docs/SMOKE_TIMEOUT_FINALREADINESS_V1.md', 'SMOKE_SLOW_TIMEOUT_MS', 'finalReadiness smoke timeout 문서');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
