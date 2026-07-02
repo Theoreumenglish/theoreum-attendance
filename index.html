@@ -1501,40 +1501,55 @@
   width: min(100%, 680px);
   border-radius: 30px;
 }
-.touchPad {
+.kioskPhysicalInputWrap {
   width: min(100%, 560px);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 18px auto 0;
+  margin: 24px auto 0;
 }
-.touchPadBtn {
-  min-height: 66px;
+.kioskPhysicalInput {
+  width: 100%;
+  height: 96px;
+  border: 3px solid #c7d2fe;
+  border-radius: 30px;
+  background: #ffffff;
+  color: #111827;
+  font-size: clamp(34px, 5vw, 54px);
+  font-weight: 950;
+  letter-spacing: 0.18em;
+  text-align: center;
+  outline: none;
+  box-shadow: 0 18px 45px rgba(79,70,229,.14);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.kioskPhysicalInput:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 8px rgba(79,70,229,.13), 0 22px 52px rgba(79,70,229,.16);
+  transform: translateY(-1px);
+}
+.kioskPhysicalHint {
+  margin-top: 12px;
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.5;
+}
+.kioskStaffOpenBtn {
+  width: min(100%, 560px);
+  margin: 16px auto 0;
+  min-height: 60px;
   border: 0;
   border-radius: 22px;
-  background: #f8fafc;
-  color: #0f172a;
-  font-size: 28px;
-  font-weight: 950;
-  cursor: pointer;
-  box-shadow: inset 0 0 0 1px #e2e8f0, 0 8px 18px rgba(15,23,42,.05);
-  transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
-}
-.touchPadBtn:hover { background: #eef2ff; }
-.touchPadBtn:active {
-  transform: scale(.94);
-  background: #dbeafe;
-  box-shadow: inset 0 0 0 2px #93c5fd;
-}
-.touchPadBtn.action {
-  font-size: 17px;
   background: #111827;
   color: #fff;
+  font-size: 20px;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 16px 34px rgba(15,23,42,.18);
+  transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
 }
-.touchPadBtn.muted {
-  font-size: 17px;
-  color: #475569;
-}
+.kioskStaffOpenBtn:hover { background: #0f172a; }
+.kioskStaffOpenBtn:active { transform: scale(.985); box-shadow: 0 10px 22px rgba(15,23,42,.14); }
+.kioskStaffOpenBtn.is-open { background: #4f46e5; }
 @media (min-width: 1500px) {
   .kioskModernV3 .viewport { width: min(860px, 100%); }
 }
@@ -1543,7 +1558,6 @@
   .kioskModernV3 .heroCard { border-radius: 26px; }
   .kioskModernV3 .actGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kioskModernV3 .actBtn { min-height: 104px; }
-  .touchPadBtn { min-height: 58px; font-size: 24px; }
 }
 
 </style>
@@ -1671,13 +1685,13 @@
 			</div>
 
 			<div class="input-wrapper">
-				<div id="kPhoneInputRow" class="phoneSegmentRow" aria-label="휴대폰 번호 뒤 8자리 입력">
-					<span class="phoneStatic">010-</span>
-					<input class="phoneSegmentInput" id="kPhoneMid" autocomplete="off" inputmode="numeric" maxlength="4" pattern="[0-9]*" aria-label="휴대폰 가운데 4자리">
-					<span class="phoneStatic">-</span>
-					<input class="phoneSegmentInput" id="kPhoneLast" autocomplete="off" inputmode="numeric" maxlength="4" pattern="[0-9]*" aria-label="휴대폰 뒤 4자리">
-					<input class="inp-big phoneRawInput" id="kInput" autocomplete="off" inputmode="text" aria-hidden="true" tabindex="-1">
+				<div class="kioskPhysicalInputWrap" aria-label="휴대폰 번호 뒤 8자리 또는 QR 스캔 입력">
+					<input class="kioskPhysicalInput" id="kInput" autocomplete="off" inputmode="numeric" maxlength="64" pattern="[0-9A-Za-z.:-]*" aria-label="휴대폰 번호 뒤 8자리 또는 QR 스캔" placeholder="뒤 8자리 입력" autofocus>
+					<div class="kioskPhysicalHint" id="kInputHint">물리 키보드/스캐너 전용 · 입력 후 Enter</div>
 				</div>
+
+				<button id="btnOpenStaffQuick" class="kioskStaffOpenBtn" type="button">직원 출퇴근 열기</button>
+
 				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
 					<div class="kStaffQuickHead">
 						<div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
@@ -1690,31 +1704,15 @@
 					</div>
 
 					<div class="kStaffQuickHint">
-						직원 모드입니다. 휴대폰 번호 입력란에 010- 뒤 8자리를 4자리씩 입력하면 처리됩니다.<br>
+						직원 휴대폰 번호 뒤 8자리를 입력하고 Enter를 누르면 바로 처리됩니다.<br>
 						직원 QR은 보조수단으로 계속 사용할 수 있습니다.
 					</div>
 					<div id="staffQuickStep" class="kStaffQuickHint" style="margin-top:8px;font-weight:900;color:var(--pri);">
-						010- 뒤 8자리 입력
+						직원 번호 뒤 8자리 입력
 					</div>
 				</div>
 
 			</div>
-
-      <div class="touchPad" id="touchPad" aria-label="터치 번호패드">
-        <button class="touchPadBtn" type="button" data-touch-digit="1">1</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="2">2</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="3">3</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="4">4</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="5">5</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="6">6</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="7">7</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="8">8</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="9">9</button>
-        <button class="touchPadBtn muted" type="button" data-touch-action="clear">지우기</button>
-        <button class="touchPadBtn" type="button" data-touch-digit="0">0</button>
-        <button class="touchPadBtn action" type="button" data-touch-action="enter">확인</button>
-      </div>
-
 
 			<div class="msg" id="kMsg"></div>
 			<div class="mono" id="kDbg" style="display:none;"></div>
@@ -1757,7 +1755,7 @@
           <div class="section" style="margin-top:0; padding-top:0; border-top:none;">
             <div class="sectionTitle">휴대폰 번호 출결</div>
             <div class="subText" style="text-align:left; font-size:16px; line-height:1.6;">
-              학생과 직원은 본인 휴대폰 번호 입력란에 010- 뒤 8자리만 입력하면 처리됩니다.
+              학생과 직원은 물리 키보드/스캐너 입력창에 휴대폰 뒤 8자리만 입력하면 처리됩니다.
               QR은 계속 사용할 수 있지만 필수는 아닙니다.
             </div>
           </div>
@@ -2729,6 +2727,14 @@
         if (btnStaffQuickIn) btnStaffQuickIn.addEventListener('click', () => Kiosk.setStaffQuickAction('IN'));
         if (btnStaffQuickOut) btnStaffQuickOut.addEventListener('click', () => Kiosk.setStaffQuickAction('OUT'));
         if (btnStaffQuickClose) btnStaffQuickClose.addEventListener('click', () => Kiosk.closeStaffQuick());
+        const btnOpenStaffQuick = $('#btnOpenStaffQuick');
+        if (btnOpenStaffQuick) btnOpenStaffQuick.addEventListener('click', () => {
+          if (Kiosk.staffQuickOpen) {
+            Kiosk.closeStaffQuick();
+          } else {
+            Kiosk.openStaffQuick();
+          }
+        });
 
 
 				$('#btnCHECK_IN').addEventListener('click', () => Kiosk.setAction('CHECK_IN'));
@@ -2772,16 +2778,20 @@
           }
 
           const v = Kiosk.normalizeScanText(input.value);
-          if (Kiosk.staffQuickOpen && Kiosk.isCompleteStaffQr(v)) {
-            input.value = v;
+          input.value = v;
+          if (
+            (Kiosk.staffQuickOpen && Kiosk.isCompleteStaffQr(v)) ||
+            (!Kiosk.staffQuickOpen && Kiosk.isCompleteStudentQr(v)) ||
+            Kiosk.shouldSubmitPhoneTail8(v)
+          ) {
             Kiosk.queueSubmit(120);
             return;
           }
+        });
 
-          if (!Kiosk.staffQuickOpen && Kiosk.isCompleteStudentQr(v)) {
-            input.value = v;
-            Kiosk.queueSubmit(120);
-            return;
+        input.addEventListener('blur', () => {
+          if (App.currentView === 'kiosk' && !Kiosk.isSubmitting) {
+            Kiosk.focusPhoneSegment(30);
           }
         });
 
@@ -2805,33 +2815,6 @@
           phoneLast.addEventListener('input', e => Kiosk.handlePhoneSegmentInput(e.target, 'last'));
           phoneLast.addEventListener('keydown', e => Kiosk.handlePhoneSegmentKeydown(e, 'last'));
         }
-
-        document.querySelectorAll('[data-touch-digit]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (Kiosk.isSubmitting) return;
-            const digit = String(btn.dataset.touchDigit || '').replace(/[^0-9]/g, '');
-            if (!digit) return;
-            const modal = $('#fullModal');
-            if (modal) modal.classList.remove('show');
-            Kiosk.routePhysicalKeyToPhoneSegments(digit);
-          });
-        });
-        document.querySelectorAll('[data-touch-action]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (Kiosk.isSubmitting) return;
-            const action = btn.dataset.touchAction || '';
-            if (action === 'clear') {
-              Kiosk.clearPhoneSegmentInputs();
-              Kiosk.focusPhoneSegment(30);
-              UI.clearMsg($('#kMsg'));
-              return;
-            }
-            if (action === 'enter') {
-              Kiosk.submitPhoneSegmentsOnEnter();
-            }
-          });
-        });
-
 
 				input.addEventListener('keydown', e => {
 					if (e.key !== 'Enter') return;
@@ -2868,13 +2851,12 @@
 
 				if (Kiosk.focusTimer) clearInterval(Kiosk.focusTimer);
 				Kiosk.focusTimer = setInterval(() => {
-					const mid = $('#kPhoneMid');
-					const last = $('#kPhoneLast');
-					const activeIsPhoneInput = document.activeElement === mid || document.activeElement === last;
-					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && !activeIsPhoneInput) {
+					const input = $('#kInput');
+					const activeIsKioskInput = document.activeElement === input;
+					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && !activeIsKioskInput) {
 						Kiosk.focusPhoneSegment();
 					}
-				}, 1000);
+				}, 700);
 
 				Kiosk.setAction('CHECK_IN');
 				Kiosk.focusPhoneSegment(50);
@@ -2922,15 +2904,20 @@
       getPhoneTail8FromSegments() {
         const mid = Kiosk.getPhoneMidInput();
         const last = Kiosk.getPhoneLastInput();
+        const input = $('#kInput');
         const a = mid ? String(mid.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
         const b = last ? String(last.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
-        return (a.length === 4 && b.length === 4) ? (a + b) : '';
+        if (a.length === 4 && b.length === 4) return a + b;
+        const raw = String((input && input.value) || '').replace(/[^0-9]/g, '');
+        if (/^010\d{8}$/.test(raw)) return raw.slice(-8);
+        if (/^\d{8}$/.test(raw)) return raw;
+        return '';
       },
 
       syncPhoneTailToRawInput() {
         const input = $('#kInput');
         const tail = Kiosk.getPhoneTail8FromSegments();
-        if (input) input.value = tail;
+        if (input && tail) input.value = tail;
         return tail;
       },
 
@@ -2959,6 +2946,16 @@
           last.value = (lastDigits + digit).slice(0, 4);
           Kiosk.handlePhoneSegmentInput(last, 'last');
           return true;
+        }
+
+        const input = $('#kInput');
+        if (input) {
+          const digits = String(input.value || '').replace(/[^0-9]/g, '').slice(0, 8);
+          if (digits.length < 8) {
+            input.value = (digits + digit).slice(0, 8);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            return true;
+          }
         }
 
         return false;
@@ -3198,13 +3195,17 @@
 
       submitPhoneSegmentsOnEnter() {
         clearTimeout(Kiosk._autoTimer);
-        const tail = Kiosk.syncPhoneTailToRawInput();
-        if (tail.length === 8) {
+        const input = $('#kInput');
+        const raw = Kiosk.normalizeScanText((input && input.value) || '');
+        if (input) input.value = raw;
+        const tail = Kiosk.getPhoneTail8FromSegments();
+        if (Kiosk.isCompleteStudentQr(raw) || Kiosk.isCompleteStaffQr(raw) || Kiosk.shouldSubmitPhoneTail8(raw) || tail.length === 8) {
+          if (input && tail.length === 8 && !Kiosk.isCompleteStudentQr(raw) && !Kiosk.isCompleteStaffQr(raw)) input.value = tail;
           Kiosk.submit();
           return;
         }
 
-        UI.showModal(false, '입력 오류', '010 뒤 번호를 4자리씩 모두 입력하세요.');
+        UI.showModal(false, '입력 오류', '휴대폰 번호 뒤 8자리를 입력한 뒤 Enter를 누르세요.');
         UI.beep(false);
         UI.flashScreen(false);
         Kiosk.focusPhoneSegment(50);
@@ -3269,7 +3270,7 @@
         const stepEl = $('#staffQuickStep');
 
         if (stepEl) {
-          stepEl.textContent = '010- 뒤 8자리 입력';
+          stepEl.textContent = '뒤 8자리 입력';
         }
 
         if (input && !Kiosk.isSubmitting) {
@@ -3372,7 +3373,7 @@
       },
 
       getInputPlaceholder() {
-        return '010- 뒤 8자리 입력';
+        return '뒤 8자리 입력';
       },
 
       openStaffQuick() {
@@ -3380,9 +3381,14 @@
         Kiosk.resetStaffQuickState();
 
         const box = $('#kStaffQuick');
+        const openBtn = $('#btnOpenStaffQuick');
         if (box) {
           box.classList.add('show');
           box.setAttribute('aria-hidden', 'false');
+        }
+        if (openBtn) {
+          openBtn.classList.add('is-open');
+          openBtn.textContent = '직원 출퇴근 닫기';
         }
 
         Kiosk.setStaffQuickAction(Kiosk.staffQuickAction || 'IN');
@@ -3408,9 +3414,14 @@
         Kiosk.resetStaffQuickState();
 
         const box = $('#kStaffQuick');
+        const openBtn = $('#btnOpenStaffQuick');
         if (box) {
           box.classList.remove('show');
           box.setAttribute('aria-hidden', 'true');
+        }
+        if (openBtn) {
+          openBtn.classList.remove('is-open');
+          openBtn.textContent = '직원 출퇴근 열기';
         }
 
         const input = $('#kInput');
@@ -3462,7 +3473,7 @@
 			getErrorMessage(code, defaultMsg) {
 			const map = {
 				'QR_EXPIRED': '시간이 초과되었습니다. 학생 앱에서 새 QR을 발급하세요.',
-				'PHONE_REQUIRED': '010 뒤 번호를 4자리씩 모두 입력하세요.',
+				'PHONE_REQUIRED': '휴대폰 번호 뒤 8자리를 입력한 뒤 Enter를 누르세요.',
 				'QR_INVALID': '이미 사용했거나 유효하지 않은 QR입니다.',
 				'NOT_FOUND': '등록되지 않은 학생입니다. 데스크에 문의하세요.',
 				'NOT_ACTIVE': '현재 재원 상태가 아닙니다. 데스크에 문의하세요.',
@@ -3568,7 +3579,7 @@
 
 					if (Kiosk.staffQuickOpen && !isStaffQr) {
             if (!phoneTail8) {
-              UI.showModal(false, '직원 휴대폰 번호 입력', '010 뒤 번호를 4자리씩 모두 입력하세요.');
+              UI.showModal(false, '직원 휴대폰 번호 입력', '휴대폰 번호 뒤 8자리를 입력한 뒤 Enter를 누르세요.');
               setDbg('STAFF_PHONE_TAIL_REQUIRED');
               UI.beep(false);
               UI.flashScreen(false);
@@ -3582,7 +3593,7 @@
 						UI.showModal(
 							false,
 							'입력 오류',
-							'010 뒤 번호를 4자리씩 모두 입력하세요.'
+							'휴대폰 번호 뒤 8자리를 입력한 뒤 Enter를 누르세요.'
 						);
 						setDbg('PHONE_TAIL_OR_QR_REQUIRED');
 						UI.beep(false);
@@ -3723,7 +3734,7 @@
 						UI.showModal(
 							false,
 							'키오스크 새로고침 필요',
-							'휴대폰 번호 출결로 변경되었습니다. 010 뒤 번호를 4자리씩 입력하세요.'
+							'휴대폰 번호 출결로 변경되었습니다. 휴대폰 번호 뒤 8자리를 입력하세요.'
 						);
 						setDbg('NEED_PIN · ' + sid + ' ' + nm + ' · ' + ((r.error && r.error.traceId) ? r.error.traceId : ''));
 						UI.beep(false);
@@ -3797,11 +3808,8 @@
         }
 
         const input = $('#kInput');
-        const phoneMid = $('#kPhoneMid');
-        const phoneLast = $('#kPhoneLast');
         if (!input) return;
 
-        const isPhoneSegmentActive = document.activeElement === phoneMid || document.activeElement === phoneLast;
         const isPlainChar =
           e.key.length === 1 &&
           !e.ctrlKey &&
@@ -3811,26 +3819,11 @@
         if (isPlainChar) {
           const modal = $('#fullModal');
           if (modal) modal.classList.remove('show');
-        }
-
-        if (isPhoneSegmentActive) {
-          if (e.key === 'Enter') {
+          if (document.activeElement !== input) {
             e.preventDefault();
-            Kiosk.submitPhoneSegmentsOnEnter();
+            safeFocus(input);
+            Kiosk.routePhysicalKeyToRawScanner(e.key);
           }
-          return;
-        }
-
-        if (isPlainChar) {
-          e.preventDefault();
-
-          if (/^[0-9]$/.test(e.key) && !/^(?:QR|Q3|STAFFQR)/i.test(String(input.value || ''))) {
-            Kiosk.routePhysicalKeyToPhoneSegments(e.key);
-            return;
-          }
-
-          safeFocus(input);
-          Kiosk.routePhysicalKeyToRawScanner(e.key);
           return;
         }
 

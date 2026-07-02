@@ -2,18 +2,23 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
 const required = [
-  ['shared segment keydown handler', 'handlePhoneSegmentKeydown(e, part)'],
-  ['mid segment keydown bound to shared handler', "phoneMid.addEventListener('keydown', e => Kiosk.handlePhoneSegmentKeydown(e, 'mid'))"],
-  ['last segment keydown bound to shared handler', "phoneLast.addEventListener('keydown', e => Kiosk.handlePhoneSegmentKeydown(e, 'last'))"],
-  ['phone stabilization marker', 'phone-attendance-stabilization-v1'],
-  ['mid accepts first 4 physical digits', "part === 'mid'"],
-  ['mid segment manually writes physical digit', "mid.value = (midDigits + key).slice(0, 4)"],
-  ['last segment manually writes physical digit', "last.value = (lastDigits + key).slice(0, 4)"],
-  ['non-digit route to staff/raw scanner', 'Kiosk.routePhysicalKeyToRawScanner(key)'],
-  ['immediate focus handoff', 'safeFocus(last, 0)'],
-  ['compact kiosk visual marker', 'kiosk-visual-qa-v1'],
-  ['phone row still displays 010', '<span class="phoneStatic">010-</span>'],
-  ['phone row still displays dash separator', '<span class="phoneStatic">-</span>']
+  ['physical keyboard input class', 'kioskPhysicalInput'],
+  ['single raw kiosk input exists', 'id="kInput"'],
+  ['kiosk input autofocus', 'autofocus'],
+  ['focus loss guard', "input.addEventListener('blur'"],
+  ['focus watchdog prefers raw input', 'activeIsKioskInput'],
+  ['phone tail raw input submit', 'Kiosk.shouldSubmitPhoneTail8(v)'],
+  ['enter submits physical input', 'Kiosk.submitPhoneSegmentsOnEnter()'],
+  ['staff clock visible opener', 'btnOpenStaffQuick'],
+  ['staff quick phone clock path', "App.rpc('staff.clock'"],
+  ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
+];
+
+const forbidden = [
+  ['touch keypad container removed', 'id="touchPad"'],
+  ['touch keypad digit handlers removed', 'data-touch-digit'],
+  ['visible phone mid input removed', 'id="kPhoneMid"'],
+  ['visible phone last input removed', 'id="kPhoneLast"']
 ];
 
 let failed = 0;
@@ -26,6 +31,15 @@ for (const [label, needle] of required) {
   }
 }
 
+for (const [label, needle] of forbidden) {
+  if (html.includes(needle)) {
+    console.error(`FAIL ${label}: still found ${needle}`);
+    failed += 1;
+  } else {
+    console.log(`OK ${label}`);
+  }
+}
+
 if (/studentSearchTimer:\s*null,[\s\S]*studentSearchTimer:\s*null,/.test(html)) {
   console.error('FAIL duplicate StaffUI studentSearchTimer property remains');
   failed += 1;
@@ -34,4 +48,4 @@ if (/studentSearchTimer:\s*null,[\s\S]*studentSearchTimer:\s*null,/.test(html)) 
 }
 
 if (failed) process.exit(1);
-console.log('Kiosk input flow static check passed.');
+console.log('Kiosk physical keyboard flow static check passed.');
