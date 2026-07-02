@@ -61,7 +61,8 @@ const requiredFiles = [
   'docs/PRODUCTION_QA_PARITY_V1.md',
   'scripts/production-deep-click-qa.mjs',
   'scripts/run-production-deep-click-qa.ps1',
-  'docs/PRODUCTION_DEEP_CLICK_QA_V1.md'
+  'docs/PRODUCTION_DEEP_CLICK_QA_V1.md',
+  'docs/UI_UX_CLEAN_OPERATOR_MODE_V2.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -145,6 +146,11 @@ checkText('api/rpc.js', 'classes_fallback', '클래스 일정 없음 fallback �
 checkText('api/rpc.js', 'fastCacheSet(cacheKey', '클래스 조회 캐시');
 checkText('lib/staff-auth.js', 'AUTH_SESSION_CACHE', '세션 인증 캐시');
 
+
+checkText('public/admin.html', 'operatorHome', '간편 운영 홈 UI');
+checkText('public/admin.html', 'cleanActionCard', '핵심 업무 4개 카드 UI');
+checkText('public/admin.html', 'setOperatorMode', '간편/전체 기능 토글');
+checkText('docs/UI_UX_CLEAN_OPERATOR_MODE_V2.md', '검색 1개와 핵심 업무 4개', '간편 운영 모드 문서');
 
 checkText('public/admin.html', 'masterClassId', '클래스 생성/수정 UI');
 checkText('public/admin.html', 'masterStudentId', '학생DB 추가/수정 UI');

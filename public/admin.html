@@ -3029,6 +3029,178 @@
 .studentSearchBar .btn{height:44px; justify-content:center;}
 @media (max-width:720px){.studentSearchBar{grid-template-columns:1fr;}.studentSearchBar .btn{width:100%;}}
 
+
+/* UI/UX clean operator mode v2: reduce clutter, keep advanced functions available */
+.operatorHome {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+}
+.operatorClean .uxStartBoard,
+.operatorClean .quickDock,
+.operatorClean .recentRail,
+.operatorClean .smartBoard {
+  display: none !important;
+}
+.operatorClean.expertMode .uxStartBoard,
+.operatorClean.expertMode .quickDock,
+.operatorClean.expertMode .recentRail,
+.operatorClean.expertMode .smartBoard {
+  display: grid !important;
+}
+.operatorClean.expertMode .quickDock { display: block !important; }
+.operatorClean.expertMode .recentRail { display: flex !important; }
+.cleanHero {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.055);
+  padding: 24px;
+}
+.cleanHeroTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+}
+.cleanEyebrow {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cleanHero h2 {
+  margin: 5px 0 0;
+  color: var(--text);
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+}
+.cleanHero p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.cleanModeToggle {
+  height: 40px;
+  border-radius: 999px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.cleanModeToggle:hover { color: var(--text); border-color: rgba(15,23,42,.18); }
+.cleanSearchBox {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 124px;
+  gap: 10px;
+  margin-top: 18px;
+  max-width: 760px;
+}
+.cleanSearchBox .inp {
+  height: 54px;
+  border-radius: 18px;
+  font-size: 16px;
+  padding-left: 18px;
+}
+.cleanSearchBox .btn { border-radius: 18px; font-size: 15px; }
+.cleanActionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.cleanActionCard {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 96px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.cleanActionCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15,23,42,.07);
+  border-color: rgba(15,23,42,.16);
+}
+.cleanActionIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 950;
+}
+.cleanActionCard.primary { border-color: rgba(15,23,42,.16); background: #0f172a; }
+.cleanActionCard.primary .cleanActionIcon { background: rgba(255,255,255,.12); color: #fff; }
+.cleanActionCard.primary strong, .cleanActionCard.primary span { color: #fff; }
+.cleanActionCard.good { background: #f0fdf4; border-color: rgba(5,150,105,.18); }
+.cleanActionCard.warn { background: #fffbeb; border-color: rgba(180,83,9,.20); }
+.cleanActionCard.blue { background: #eff6ff; border-color: rgba(37,99,235,.18); }
+.cleanActionCard strong {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+.cleanActionCard span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.cleanSummaryLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.cleanSummaryLine span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.operatorClean:not(.expertMode) .slimMetrics .compactOnly { display: none !important; }
+.operatorClean:not(.expertMode) .todayConsole .sectionDesc { display: none; }
+.operatorClean:not(.expertMode) .simpleCommandRow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.operatorClean:not(.expertMode) .commandButton {
+  min-height: 74px;
+  border-radius: 20px;
+}
+.operatorClean:not(.expertMode) .pageDesc { display: none; }
+@media (max-width: 980px) {
+  .cleanHeroTop { grid-template-columns: 1fr; }
+  .cleanActionGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .cleanSearchBox { grid-template-columns: 1fr; }
+  .cleanActionGrid { grid-template-columns: 1fr; }
+  .cleanHero { padding: 18px; border-radius: 22px; }
+}
+
 </style>
 </head>
 <body>
@@ -3076,7 +3248,7 @@
 </div>
 </div>
 </div>
-<div class="shell hidden dailyQuiet" id="appView">
+<div class="shell hidden dailyQuiet operatorClean" id="appView">
 <aside class="side">
 <div class="sideBrand">
 <div class="brandMark">↑</div>
@@ -3123,6 +3295,41 @@
 <button class="btn btnGhost" onclick="location.href='/'" type="button">키오스크</button>
 <button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
 </div>
+</div>
+
+
+<div class="operatorHome" id="operatorHome">
+  <div class="cleanHero">
+    <div class="cleanHeroTop">
+      <div>
+        <div class="cleanEyebrow">THE OREUM OPERATION</div>
+        <h2>학생 이름부터 검색하세요.</h2>
+        <p>처음 쓰는 직원은 검색과 네 가지 업무만 쓰면 됩니다. 복잡한 설정은 필요할 때만 왼쪽 메뉴에서 열어보세요.</p>
+      </div>
+      <span class="cleanModeToggle" id="btnCleanModeToggle" role="button" tabindex="0">전체 기능 보기</span>
+    </div>
+    <div class="cleanSearchBox">
+      <input autocomplete="off" class="inp" id="operatorStudentSearch" placeholder="학생 이름 또는 학번 입력" />
+      <span class="btn btnPri" id="btnOperatorStudentSearch" role="button" tabindex="0">학생 찾기</span>
+    </div>
+  </div>
+  <div class="cleanActionGrid" aria-label="핵심 업무">
+    <div class="cleanActionCard primary" data-operator-action="absence" role="button" tabindex="0">
+      <i class="cleanActionIcon">1</i><span><strong>오늘 미등원</strong><span>안 온 학생만 확인</span></span>
+    </div>
+    <div class="cleanActionCard blue" data-operator-action="studentPhone" role="button" tabindex="0">
+      <i class="cleanActionIcon">2</i><span><strong>학생 번호</strong><span>학생/학부모 번호 출결</span></span>
+    </div>
+    <div class="cleanActionCard blue" data-operator-action="staffPhone" role="button" tabindex="0">
+      <i class="cleanActionIcon">3</i><span><strong>직원 번호</strong><span>기존 계정에 휴대폰만 저장</span></span>
+    </div>
+    <div class="cleanActionCard warn" data-operator-action="wordClinic" role="button" tabindex="0">
+      <i class="cleanActionIcon">4</i><span><strong>단어·클리닉</strong><span>오늘 처리할 학습 업무</span></span>
+    </div>
+  </div>
+  <div class="cleanSummaryLine" aria-label="운영 원칙">
+    <span>자동화 우선</span><span>기본 화면은 4개 업무만</span><span>고급 기능은 필요할 때만</span>
+  </div>
 </div>
 
 <div class="uxStartBoard" id="uxStartBoard">
@@ -9202,6 +9409,68 @@
       openCommandPalette();
     }
 
+
+    function setOperatorMode(isExpert) {
+      const app = document.getElementById('appView');
+      if (!app) return;
+      app.classList.toggle('expertMode', !!isExpert);
+      try { localStorage.setItem('theoreum_operator_expert_mode', isExpert ? '1' : '0'); } catch (_) {}
+      const btn = document.getElementById('btnCleanModeToggle');
+      if (btn) btn.textContent = isExpert ? '간편 화면으로' : '전체 기능 보기';
+    }
+
+    function initOperatorMode() {
+      let expert = false;
+      try { expert = localStorage.getItem('theoreum_operator_expert_mode') === '1'; } catch (_) {}
+      setOperatorMode(expert);
+    }
+
+    async function operatorStudentSearch() {
+      const source = document.getElementById('operatorStudentSearch');
+      const target = document.getElementById('studentQuery');
+      const q = (source?.value || '').trim();
+      jumpTo('students');
+      if (target) target.value = q;
+      focusSoon('#studentQuery');
+      if (q) {
+        try { await searchStudentsNow(); } catch (e) { showToast(e?.message || '학생 검색 실패'); }
+      } else {
+        showToast('학생 이름이나 학번을 입력하세요.');
+      }
+    }
+
+    function runOperatorAction(action) {
+      if (action === 'absence') {
+        jumpTo('dashboard');
+        writeActionLog('간편 업무', '오늘 미등원 확인');
+        loadTodayAbsenceBoard({ force: true });
+        showToast('오늘 미등원만 확인합니다.');
+        return;
+      }
+      if (action === 'studentPhone') {
+        jumpTo('students');
+        writeActionLog('간편 업무', '학생 전화번호 출결 설정');
+        focusSoon('#studentQuery');
+        showToast('학생을 찾고 학생번호 또는 학부모번호를 저장하세요.');
+        return;
+      }
+      if (action === 'staffPhone') {
+        jumpTo('staff');
+        writeActionLog('간편 업무', '직원 전화번호 출퇴근 설정');
+        loadCentralStaff().catch(() => {});
+        focusSoon('#centralStaffPhone');
+        showToast('직원을 선택한 뒤 휴대폰만 저장을 누르세요.');
+        return;
+      }
+      if (action === 'wordClinic') {
+        jumpTo('words');
+        writeActionLog('간편 업무', '단어·클리닉 처리');
+        openTodayWordSessions();
+        showToast('오늘 단어시험부터 확인합니다. 클리닉은 왼쪽 메뉴에서 이어서 처리하세요.');
+        return;
+      }
+    }
+
     async function runTodayPulse() {
       writeActionLog('오늘 전체 점검 시작', '운영 요약 → 미등원 실패 → 클리닉 후보 → 오늘 단어시험');
       await loadOverview();
@@ -9502,6 +9771,26 @@
           }
         });
       });
+
+      bindClick('btnCleanModeToggle', () => {
+        const app = document.getElementById('appView');
+        setOperatorMode(!(app?.classList.contains('expertMode')));
+      });
+      bindClick('btnOperatorStudentSearch', operatorStudentSearch);
+      const operatorSearch = document.getElementById('operatorStudentSearch');
+      if (operatorSearch) operatorSearch.addEventListener('keydown', e => {
+        if (e.key === 'Enter') operatorStudentSearch();
+      });
+      $$('.cleanActionCard[data-operator-action]').forEach(card => {
+        card.addEventListener('click', () => runOperatorAction(card.dataset.operatorAction || ''));
+        card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); runOperatorAction(card.dataset.operatorAction || ''); } });
+      });
+      ['btnCleanModeToggle','btnOperatorStudentSearch'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
+      });
+      initOperatorMode();
+
       $$('.uxTaskCard[data-ux-task]').forEach(tile => {
         const fire = () => runUxTask(tile.dataset.uxTask || '');
         tile.addEventListener('click', fire);
