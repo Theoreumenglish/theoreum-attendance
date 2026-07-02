@@ -287,6 +287,14 @@ checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_TO_SEND.txt', 'co
 checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'production-deep-click-qa-v1', 'production deep click QA 문서');
 checkText('docs/PHONE_ATTENDANCE_STABILIZATION_V1.md', 'phone-attendance-stabilization-v1', '전화번호 출석화 안정화 문서');
 
+checkText('docs/PHONE_ATTENDANCE_FINAL_LOCK_V1.md', 'phone-attendance-final-lock-v1', '전화번호 출석화 최종 잠금 문서');
+checkText('docs/supabase-staff-phone-v1.sql', 'enable row level security', '직원 휴대폰 directory RLS 활성화 SQL');
+checkText('public/admin.html', 'data-qa-state="idle"', '휴대폰 출결 준비도 QA 상태 속성');
+checkText('public/admin.html', "dataset.qaState = 'loaded'", '휴대폰 출결 준비도 UI 로드 완료 상태');
+checkText('scripts/production-deep-click-qa.mjs', 'Ignored benign aborted requests', 'deep QA benign abort 분리 보고');
+checkText('scripts/production-deep-click-qa.mjs', "state === 'loaded'", 'deep QA phone identity UI loaded state 대기');
+checkFile('public/favicon.ico', 'favicon 404 방지 파일');
+
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

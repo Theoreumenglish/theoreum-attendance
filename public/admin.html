@@ -4674,7 +4674,7 @@
 <button class="btn btnPri" id="btnPhoneIdentityAudit" type="button">휴대폰 출결 점검</button>
 <span class="btn btnGhost" id="btnCopyPhoneIdentityIssues" role="button" tabindex="0">수정 필요 목록 복사</span>
 </div>
-<div class="emptyPanel" id="phoneIdentitySummary" style="margin-top:16px;">
+<div class="emptyPanel" id="phoneIdentitySummary" data-qa-state="idle" style="margin-top:16px;">
 <h3>점검 전입니다.</h3>
 <p>전화번호 출결을 사용하기 전에 재원생/직원 번호 누락과 중복을 먼저 확인하세요.</p>
 </div>
@@ -8586,9 +8586,12 @@
       const summaryEl = $('#phoneIdentitySummary');
       if (summaryEl) {
         const cls = phoneIdentityStatusClass(data?.status);
+        summaryEl.dataset.qaState = 'loaded';
+        summaryEl.dataset.updatedAt = data?.generated_at || new Date().toISOString();
         summaryEl.innerHTML = `
           <h3>휴대폰 출결 준비도 <span class="statusPill ${cls}">${esc(phoneIdentityStatusLabel(data?.status))}</span></h3>
           <p>학생 ${esc(summary.student_ready || 0)}/${esc(summary.active_students || 0)}명(${esc(summary.student_ready_rate || 0)}%) · 직원 ${esc(summary.staff_ready || 0)}/${esc(summary.active_staff || 0)}명(${esc(summary.staff_ready_rate || 0)}%) · 수정 필요 ${esc(summary.blockers || 0)}건 · 확인 권장 ${esc(summary.warnings || 0)}건</p>
+          <p class="smallText">마지막 점검: ${esc(data?.generated_at || new Date().toISOString())}</p>
         `;
       }
 
@@ -8617,14 +8620,31 @@
     }
 
     async function loadPhoneIdentityAudit() {
-      const res = await rpc('admin.phoneIdentity.audit', {}, { timeoutMs: 35000 });
-      if (!res.ok) {
-        showToast(res.error?.message || '휴대폰 출결 점검 실패');
-        showResult(res);
-        return;
+      const summaryEl = $('#phoneIdentitySummary');
+      const rowsEl = $('#phoneIdentityRows');
+      const btn = $('#btnPhoneIdentityAudit');
+      if (summaryEl) {
+        summaryEl.dataset.qaState = 'loading';
+        summaryEl.innerHTML = '<h3>휴대폰 출결 준비도 점검 중입니다.</h3><p>학생/직원 번호 누락, 010 형식, 뒤 8자리 중복을 확인하고 있습니다.</p>';
       }
-      renderPhoneIdentityAudit(res.data || {});
-      showToast('휴대폰 출결 준비도 점검 완료');
+      if (rowsEl) rowsEl.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">점검 중입니다...</td></tr>';
+      if (btn) btn.disabled = true;
+      try {
+        const res = await rpc('admin.phoneIdentity.audit', {}, { timeoutMs: 35000 });
+        if (!res.ok) {
+          if (summaryEl) {
+            summaryEl.dataset.qaState = 'failed';
+            summaryEl.innerHTML = `<h3>휴대폰 출결 점검 실패</h3><p>${esc(res.error?.message || '휴대폰 출결 점검 실패')}</p>`;
+          }
+          showToast(res.error?.message || '휴대폰 출결 점검 실패');
+          showResult(res);
+          return;
+        }
+        renderPhoneIdentityAudit(res.data || {});
+        showToast('휴대폰 출결 준비도 점검 완료');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     }
 
     async function copyPhoneIdentityIssues() {

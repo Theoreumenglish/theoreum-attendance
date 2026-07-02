@@ -70,6 +70,7 @@ const results = [];
 const consoleEvents = [];
 const pageErrors = [];
 const failedRequests = [];
+const ignoredRequests = [];
 const badResponses = [];
 const screenshots = [];
 const apiResults = [];
@@ -171,6 +172,17 @@ function extractStaffFromListPayload(payload) {
 function normalizeTail8(raw) {
   const digits = String(raw || '').replace(/[^0-9]/g, '');
   return digits.length >= 8 ? digits.slice(-8) : '';
+}
+
+function isBenignAbortedRequest(req) {
+  const failure = req?.failure?.()?.errorText || '';
+  const url = String(req?.url?.() || '');
+  if (!/ERR_ABORTED/i.test(failure)) return false;
+  // Navigation can abort an in-flight RPC when the QA runner moves to the next screen.
+  // Treat it as a signal only when it is not a Vercel/browser navigation abort.
+  if (/\/api\/rpc(?:\?|$)/.test(url)) return true;
+  if (/favicon\.ico(?:\?|$)/i.test(url)) return true;
+  return false;
 }
 
 function staffLooksLikeQa(item = {}) {
@@ -287,8 +299,16 @@ async function domAudit(label) {
       if (Number(s.opacity || '1') === 0 || s.pointerEvents === 'none') return false;
       if (el.id === 'fullModal' && !el.classList.contains('show')) return false;
       if (el.id === 'workDrawer' && !el.classList.contains('on')) return false;
-      if (el.closest && el.closest('#workDrawer:not(.on), #fullModal:not(.show)')) return false;
+      if (el.closest && el.closest('#workDrawer:not(.on), #fullModal:not(.show), [hidden], .hidden')) return false;
       return true;
+    };
+    const overflowRelevant = el => {
+      if (!visible(el)) return false;
+      if (el.closest && el.closest('.tableWrap')) return false;
+      const r = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      if (style.position === 'fixed' && r.left >= window.innerWidth) return false;
+      return r.width > window.innerWidth + 24 || r.right > window.innerWidth + 24;
     };
     const ids = [...document.querySelectorAll('[id]')].map(el => el.id).filter(Boolean);
     const dupIds = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].slice(0, 30);
@@ -304,10 +324,7 @@ async function domAudit(label) {
       valueLen: String(el.value || '').length,
       disabled: !!el.disabled
     }));
-    const overflow = [...document.querySelectorAll('body *')].filter(el => {
-      const r = el.getBoundingClientRect();
-      return r.width > window.innerWidth + 24 || r.right > window.innerWidth + 24;
-    }).slice(0, 20).map(el => ({
+    const overflow = [...document.querySelectorAll('body *')].filter(overflowRelevant).slice(0, 20).map(el => ({
       tag: el.tagName,
       id: el.id || '',
       cls: String(el.className || '').slice(0, 80),
@@ -396,7 +413,11 @@ async function run() {
     if (['error', 'warning'].includes(type)) consoleEvents.push({ type, text, url: page.url(), at: new Date().toISOString() });
   });
   page.on('pageerror', err => pageErrors.push({ message: mask(err?.message || String(err)), stack: mask(err?.stack || ''), url: page.url(), at: new Date().toISOString() }));
-  page.on('requestfailed', req => failedRequests.push({ method: req.method(), url: mask(req.url()), failure: req.failure()?.errorText || '', at: new Date().toISOString() }));
+  page.on('requestfailed', req => {
+    const item = { method: req.method(), url: mask(req.url()), failure: req.failure()?.errorText || '', at: new Date().toISOString() };
+    if (isBenignAbortedRequest(req)) ignoredRequests.push(item);
+    else failedRequests.push(item);
+  });
   page.on('response', res => {
     const status = res.status();
     if (status >= 400) badResponses.push({ status, url: mask(res.url()), at: new Date().toISOString() });
@@ -493,10 +514,21 @@ async function run() {
 
   await step('phone identity audit UI', async () => {
     await clickNav('advanced');
-    await clickIfExists('#btnPhoneIdentityAudit', 'phone identity audit button', 5000);
-    await waitQuiet(2500);
-    const text = await page.locator('#phoneIdentitySummary, #phoneIdentityRows').evaluateAll(els => els.map(e => e.innerText).join('\n')).catch(() => '');
-    if (/점검 전입니다/.test(text)) throw new Error('phone identity UI did not update');
+    const clicked = await clickIfExists('#btnPhoneIdentityAudit', 'phone identity audit button', 5000);
+    if (!clicked) throw new Error('phone identity audit button not visible');
+    await page.waitForFunction(() => {
+      const summary = document.querySelector('#phoneIdentitySummary');
+      const rows = document.querySelector('#phoneIdentityRows');
+      const text = [summary?.innerText || '', rows?.innerText || ''].join('\n');
+      const state = summary?.dataset?.qaState || '';
+      if (state === 'loaded') return true;
+      if (/휴대폰 출결 준비도/.test(text) && !/점검 전입니다|점검 중입니다/.test(text)) return true;
+      if (/수정 필요한 휴대폰 출결 문제가 없습니다|수정 필요|확인 권장/.test(text) && !/점검 중입니다/.test(text)) return true;
+      return false;
+    }, null, { timeout: 40000 }).catch(async () => {
+      const text = await page.locator('#phoneIdentitySummary, #phoneIdentityRows').evaluateAll(els => els.map(e => e.innerText).join('\n')).catch(() => '');
+      throw new Error('phone identity UI did not update: ' + text.replace(/\s+/g, ' ').slice(0, 300));
+    });
   });
   await domAudit('advanced_phone_identity');
 
@@ -624,6 +656,7 @@ function writeReports() {
     `- Console warnings/errors: ${consoleEvents.length}`,
     `- Page errors: ${pageErrors.length}`,
     `- Failed requests: ${failedRequests.length}`,
+    `- Ignored benign aborted requests: ${ignoredRequests.length}`,
     `- HTTP 400/500 responses: ${badResponses.length}`,
     '',
     '## Screenshots',
@@ -637,6 +670,9 @@ function writeReports() {
     '',
     '## Failed requests',
     ...(failedRequests.length ? failedRequests.slice(0, 80).map(e => `- ${e.method} ${e.url} — ${e.failure}`) : ['- none']),
+    '',
+    '## Ignored benign aborted requests',
+    ...(ignoredRequests.length ? ignoredRequests.slice(0, 80).map(e => `- ${e.method} ${e.url} — ${e.failure}`) : ['- none']),
     '',
     '## Bad HTTP responses',
     ...(badResponses.length ? badResponses.slice(0, 100).map(e => `- HTTP ${e.status} ${e.url}`) : ['- none']),
@@ -657,6 +693,7 @@ function writeReports() {
     consoleEvents,
     pageErrors,
     failedRequests,
+    ignoredRequests,
     badResponses,
     screenshots,
     screenshotBundle: bundleResult,

@@ -38,3 +38,7 @@ create index if not exists idx_staff_phone_directory_phone
 
 create index if not exists idx_staff_phone_directory_status
   on public.staff_phone_directory (status, revoked);
+
+-- Keep staff phone lookup private from anon/authenticated clients.
+-- Server-side service_role calls still work; no public policy is granted here.
+alter table public.staff_phone_directory enable row level security;
