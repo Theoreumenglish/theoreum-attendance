@@ -325,3 +325,8 @@ if (failed) {
 
 
 console.log('\nOperational checklist passed.');
+
+checkText('api/rpc.js', "op === 'admin.central.staff.phoneOnly'", '기존 직원 계정 휴대폰만 저장 API');
+checkText('public/admin.html', 'btnCentralSaveStaffPhoneOnly', '기존 직원 계정 휴대폰만 저장 UI');
+checkText('api/kiosk-mark.js', 'parent_phone_fallback', '학생 번호 없음 시 학부모 번호 출결 fallback');
+checkText('docs/PARENT_PHONE_ATTENDANCE_FALLBACK_V1.md', 'parent_phone_fallback', '학부모 번호 출결 fallback 문서');

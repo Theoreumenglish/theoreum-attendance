@@ -61,6 +61,7 @@ const QA_FEATURE_MATRIX = Object.freeze({
     'admin.finalReadiness',
     'admin.phoneIdentity.audit',
     'admin.central.staff.list',
+    'admin.central.staff.phoneOnly',
     'assistant.listClassOptions',
     'admin.master.searchStudents',
     'admin.studentTodayLink.create',
@@ -76,6 +77,8 @@ const QA_FEATURE_MATRIX = Object.freeze({
     student_today_public_page: true,
     online_lecture_assignment: true,
     staff_phone_management: true,
+    student_parent_phone_fallback: true,
+    staff_phone_only_assignment: true,
     production_qa_runner: true,
     deployment_parity_check: true
   }
@@ -2591,6 +2594,47 @@ async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
   }
   return result;
 }
+
+async function adminCentralStaffPhoneOnlyDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'admin');
+  if (!auth.ok) return auth.out;
+
+  const input = args.staff || args || {};
+  const staffId = String(input.staff_id || input.staffId || '').trim().toLowerCase().slice(0, 80);
+  const normalizedPhone = normalizeCentralStaffPhoneForStorage(
+    input.staff_phone || input.phone || input.mobile || input.mobile_phone || input.phone_number || ''
+  );
+
+  if (!staffId) return fail(400, 'INVALID_INPUT', 'staff_id가 필요합니다.');
+  if (!normalizedPhone) {
+    return fail(400, 'INVALID_INPUT', '직원 휴대폰 번호는 010으로 시작하는 11자리 또는 뒤 8자리로 입력하세요.');
+  }
+
+  const phoneStaff = {
+    staff_id: staffId,
+    name: String(input.name || '').trim().slice(0, 80),
+    role: String(input.role || 'assistant').trim().toLowerCase().slice(0, 30),
+    revoked: String(input.revoked || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
+    status: String(input.status || 'active').trim().toLowerCase().slice(0, 30),
+    staff_phone: normalizedPhone,
+    phone: normalizedPhone,
+    source: 'admin.central.staff.phoneOnly'
+  };
+
+  const phoneDirectory = await upsertStaffPhoneDirectory(phoneStaff, auth.me?.staff_id || '');
+  const phonePatch = await patchCentralStaffPhoneMirror(staffId, normalizedPhone);
+  fastCacheDelPrefix('central.staff.list');
+  fastCacheDelPrefix('central_staff_list');
+
+  return success({
+    staff_id: staffId,
+    staff_phone: normalizedPhone,
+    staff_phone_directory: phoneDirectory,
+    staff_phone_patch: phonePatch,
+    note: '기존 직원 계정의 비밀번호/PIN/권한을 건드리지 않고 휴대폰 번호만 출퇴근용으로 저장했습니다.'
+  });
+}
+
 async function adminCentralStaffToggleDirect(args = {}, sessionToken = '') {
   const staffId = String(args.staff_id || args.staffId || '').trim().toLowerCase();
   if (!staffId) return fail(400, 'INVALID_INPUT', 'staff_id가 필요합니다.');
@@ -6315,9 +6359,16 @@ async function buildPhoneIdentityAudit(supabase) {
   }
 
   for (const row of activeStudents) {
-    const phone = String(row?.student_phone || '').trim();
-    const digits = phoneIdentityDigits(phone);
-    const tail8 = phoneIdentityTail8(phone);
+    const studentPhone = String(row?.student_phone || '').trim();
+    const parentPhone = String(row?.parent_phone || '').trim();
+    const studentDigits = phoneIdentityDigits(studentPhone);
+    const parentDigits = phoneIdentityDigits(parentPhone);
+    const studentValid = /^010\d{8}$/.test(studentDigits);
+    const parentValid = /^010\d{8}$/.test(parentDigits);
+    const useParentFallback = !studentValid && parentValid;
+    const phone = studentValid ? studentPhone : (useParentFallback ? parentPhone : studentPhone);
+    const digits = studentValid ? studentDigits : (useParentFallback ? parentDigits : studentDigits);
+    const tail8 = phoneIdentityTail8(digits);
     const identity = {
       entity: 'student',
       id: String(row?.student_id || '').trim(),
@@ -6325,22 +6376,28 @@ async function buildPhoneIdentityAudit(supabase) {
       phone,
       digits,
       tail8,
+      phone_source: studentValid ? 'student_phone' : (useParentFallback ? 'parent_phone_fallback' : 'student_phone'),
+      student_phone: studentPhone,
+      parent_phone: parentPhone,
       status: String(row?.status || '').trim(),
       school: String(row?.school || '').trim(),
       grade: String(row?.grade || '').trim()
     };
     studentIdentities.push(identity);
 
-    if (!digits) {
-      studentIssues.push(phoneIdentityIssue('student', 'missing_phone', 'blocker', row, '학생 본인 휴대폰 번호가 없습니다.', { school: identity.school, grade: identity.grade }));
+    if (useParentFallback) {
+      studentIssues.push(phoneIdentityIssue('student', 'student_phone_parent_fallback', 'warn', { ...row, student_phone: parentPhone }, '학생 본인 번호가 없어 학부모 번호로 출결 가능합니다. 형제/자매 중복 여부만 확인하세요.', { school: identity.school, grade: identity.grade, phone_source: 'parent_phone_fallback' }));
       continue;
     }
-    if (!/^010\d{8}$/.test(digits)) {
-      studentIssues.push(phoneIdentityIssue('student', 'invalid_phone', 'blocker', row, '010으로 시작하는 11자리 학생 휴대폰 번호가 아닙니다.', { digits_length: digits.length, school: identity.school, grade: identity.grade }));
+    if (!studentDigits) {
+      studentIssues.push(phoneIdentityIssue('student', 'missing_phone', 'blocker', row, '학생 본인 휴대폰 번호가 없고, 출결 fallback으로 사용할 010 형식 학부모 번호도 없습니다.', { school: identity.school, grade: identity.grade }));
       continue;
     }
-    const parentDigits = phoneIdentityDigits(row?.parent_phone);
-    if (parentDigits && parentDigits === digits) {
+    if (!studentValid) {
+      studentIssues.push(phoneIdentityIssue('student', 'invalid_phone', 'blocker', row, '010으로 시작하는 11자리 학생 휴대폰 번호가 아니며, 출결 fallback으로 사용할 010 형식 학부모 번호도 없습니다.', { digits_length: studentDigits.length, school: identity.school, grade: identity.grade }));
+      continue;
+    }
+    if (parentDigits && parentDigits === studentDigits) {
       studentIssues.push(phoneIdentityIssue('student', 'same_as_parent_phone', 'warn', row, '학생 본인 번호와 학부모 번호가 같습니다. 실제 학생 번호인지 확인하세요.', { school: identity.school, grade: identity.grade }));
     }
   }
@@ -6459,6 +6516,7 @@ async function buildPhoneIdentityAudit(supabase) {
   const studentReady = activeStudents.length - new Set(studentIssues.filter(x => x.severity === 'blocker' && x.id).map(x => x.id)).size;
   const staffReady = activeStaff.length - new Set(staffIssues.filter(x => x.severity === 'blocker' && x.id).map(x => x.id)).size;
   const studentReadyRate = activeStudents.length ? Math.round((Math.max(0, studentReady) / activeStudents.length) * 100) : 0;
+  const studentParentFallbackReady = studentIdentities.filter(x => x.phone_source === 'parent_phone_fallback' && /^010\d{8}$/.test(x.digits)).length;
   const staffReadyRate = activeStaff.length ? Math.round((Math.max(0, staffReady) / activeStaff.length) * 100) : 0;
 
   return {
@@ -6468,6 +6526,7 @@ async function buildPhoneIdentityAudit(supabase) {
       active_students: activeStudents.length,
       student_ready: Math.max(0, studentReady),
       student_ready_rate: studentReadyRate,
+      student_parent_fallback_ready: studentParentFallbackReady,
       active_staff: activeStaff.length,
       staff_ready: Math.max(0, staffReady),
       staff_ready_rate: staffReadyRate,
@@ -6479,6 +6538,7 @@ async function buildPhoneIdentityAudit(supabase) {
       total_active: activeStudents.length,
       ready: Math.max(0, studentReady),
       ready_rate: studentReadyRate,
+      parent_fallback_ready: studentParentFallbackReady,
       issues: studentIssues.slice(0, 200)
     },
     staff: {
@@ -6491,7 +6551,8 @@ async function buildPhoneIdentityAudit(supabase) {
     issues: allIssues.slice(0, 300),
     notes: [
       '읽기 전용 점검입니다. 데이터는 수정하지 않습니다.',
-      '학생은 students.student_phone, 직원은 staff/staff_snapshot의 전화번호 계열 컬럼을 기준으로 점검합니다.',
+      '학생은 students.student_phone을 우선 사용하고, 학생 번호가 없거나 유효하지 않으면 parent_phone을 출결 fallback으로 사용할 수 있습니다.',
+      '직원은 staff_phone_directory/staff/staff_snapshot의 전화번호 계열 컬럼을 기준으로 점검합니다.',
       '010으로 시작하는 11자리 번호와 뒤 8자리 중복 여부를 확인합니다.'
     ]
   };
@@ -7740,6 +7801,7 @@ export default async function handler(req, res) {
   if (op === 'admin.central.schedule.rebuild') { const result = await adminCentralScheduleRebuildDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
   if (op === 'admin.central.staff.list') { const result = await adminCentralStaffListDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
   if (op === 'admin.central.staff.upsert') { const result = await adminCentralStaffUpsertDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
+  if (op === 'admin.central.staff.phoneOnly') { const result = await adminCentralStaffPhoneOnlyDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
   if (op === 'admin.central.staff.toggle') { const result = await adminCentralStaffToggleDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
   if (op === 'admin.central.staff.resetSecret') { const result = await adminCentralStaffResetSecretDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }
   if (op === 'admin.central.props.get') { const result = await adminCentralPropsGetDirect(payload.args || {}, sessionToken); return send(res, result.status, result.body); }

@@ -119,17 +119,29 @@ async function findStudentByPhoneTail8(supabase, tail8) {
   const { data, error } = await supabase
     .from('students')
     .select('student_id, student_name, school, grade, student_phone, parent_phone, status, qr_id, is_exception')
-    .ilike('student_phone', `%${tail}`)
-    .limit(20);
+    .or(`student_phone.ilike.%${tail}%,parent_phone.ilike.%${tail}%`)
+    .limit(50);
 
   if (error) return { data: null, error };
 
-  const matches = (Array.isArray(data) ? data : [])
-    .filter(row => phoneTailMatches(row?.student_phone, tail))
-    .filter(row => isActiveStudentStatus(row?.status));
+  const matches = [];
+  for (const row of (Array.isArray(data) ? data : [])) {
+    if (!isActiveStudentStatus(row?.status)) continue;
+    const studentTail = normalizePhoneTail8(row?.student_phone);
+    const studentMatch = phoneTailMatches(row?.student_phone, tail);
+    // 학생 본인 번호가 없거나 010 형식이 아닌 경우에만 학부모 번호를 출결 fallback으로 사용합니다.
+    // 형제/자매처럼 같은 학부모 번호가 여러 명에게 걸리면 아래 ambiguous 처리로 막습니다.
+    const parentFallbackMatch = !studentTail && phoneTailMatches(row?.parent_phone, tail);
+    if (studentMatch || parentFallbackMatch) {
+      matches.push({
+        ...row,
+        phone_identity_source: studentMatch ? 'student_phone' : 'parent_phone_fallback'
+      });
+    }
+  }
 
   if (matches.length === 1) {
-    return { data: matches[0], error: null, code: 'OK' };
+    return { data: matches[0], error: null, code: matches[0].phone_identity_source === 'parent_phone_fallback' ? 'OK_PARENT_FALLBACK' : 'OK' };
   }
 
   if (matches.length > 1) {
@@ -146,7 +158,7 @@ async function findStudentByPhoneTail8(supabase, tail8) {
     data: null,
     error: null,
     code: 'PHONE_NOT_FOUND',
-    message: '등록된 학생 본인 휴대폰 번호를 찾지 못했습니다. 데스크에 문의하세요.'
+    message: '등록된 학생 또는 학부모 휴대폰 번호를 찾지 못했습니다. 데스크에 문의하세요.'
   };
 }
 

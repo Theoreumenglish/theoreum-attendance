@@ -203,3 +203,7 @@ if (failed) {
   process.exit(1);
 }
 console.log('\nAdmin integrity check passed.');
+
+assertIncludes(admin, 'btnCentralSaveStaffPhoneOnly', '직원 휴대폰만 저장 버튼이 있습니다.');
+assertIncludes(rpc, "admin.central.staff.phoneOnly", '직원 휴대폰만 저장 API가 있습니다.');
+assertIncludes(kiosk, 'parent_phone_fallback', '학생 번호 없음 시 학부모 번호 출결 fallback이 있습니다.');

@@ -43,6 +43,7 @@ const rpcText = read(files.rpc);
 const notifyText = read('lib/attendance-notify.js');
 const adminText = read(files.admin);
 const indexText = read(files.index);
+const kioskText = read('api/kiosk-mark.js');
 const absentCronText = read(files.absentCron);
 const notifyWorkerText = read(files.notifyWorker);
 const vercelText = read(files.vercel);
@@ -628,3 +629,19 @@ if (failed > 0) {
 
 console.log('');
 console.log('Contract check passed.');
+
+if (!rpcText.includes("op === 'admin.central.staff.phoneOnly'")) {
+  fail('admin.central.staff.phoneOnly 서버 op가 없습니다.');
+} else {
+  ok('admin.central.staff.phoneOnly 서버 op가 존재합니다.');
+}
+if (!adminText.includes('btnCentralSaveStaffPhoneOnly')) {
+  fail('직원 휴대폰만 저장 버튼이 없습니다.');
+} else {
+  ok('직원 휴대폰만 저장 버튼이 존재합니다.');
+}
+if (!kioskText.includes('parent_phone') || !kioskText.includes('parent_phone_fallback')) {
+  fail('학생 학부모 번호 출결 fallback 코드가 없습니다.');
+} else {
+  ok('학생 학부모 번호 출결 fallback 코드가 존재합니다.');
+}

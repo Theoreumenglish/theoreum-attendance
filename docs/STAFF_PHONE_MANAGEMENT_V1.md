@@ -27,3 +27,7 @@ alter table if exists public.staff_snapshot add column if not exists staff_phone
 ## v2 note: staff_phone_directory
 
 Phone-tail staff attendance now also uses `staff_phone_directory`. This prevents CentralDB-only staff accounts from failing phone clock-in/out before the full `staff` / `staff_snapshot` mirror catches up.
+
+
+## 기존 계정 전화번호만 할당
+직원 메뉴 → 중앙DB 직원 계정 관리 → 직원 선택 → 휴대폰 입력 → `휴대폰만 저장`을 사용한다. 이 흐름은 비밀번호/PIN/권한을 바꾸지 않는다.
