@@ -2260,6 +2260,147 @@ function centralStaffPhoneWasProvided(input = {}) {
     Object.prototype.hasOwnProperty.call(input, 'phone_number');
 }
 
+function normalizeDirectoryStaffId(input) {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9._\-\u3131-\u318E\uAC00-\uD7A3]/g, '')
+    .slice(0, 80);
+}
+
+function normalizeDirectoryStaffStatus(input) {
+  const v = String(input || '').trim().toLowerCase();
+  if (!v) return 'active';
+  if (['active', '재직', '활성', 'enabled', '1', 'y', 'yes', 'true'].includes(v)) return 'active';
+  if (['inactive', '비활성', '퇴사', 'disabled', '0', 'n', 'no', 'false'].includes(v)) return 'inactive';
+  return v.slice(0, 30) || 'active';
+}
+
+function normalizeDirectoryStaffRevoked(input) {
+  const v = String(input || '').trim().toLowerCase();
+  return ['y', 'yes', '1', 'true', 'revoked', '중지', '해지', '퇴사'].includes(v) ? 'Y' : 'N';
+}
+
+async function upsertStaffPhoneDirectory(staff = {}, actor = '') {
+  const staffId = normalizeDirectoryStaffId(staff.staff_id || staff.staffId || staff.id || '');
+  const staffPhone = normalizeCentralStaffPhoneForStorage(
+    staff.staff_phone || staff.phone || staff.mobile || staff.mobile_phone || staff.phone_number || ''
+  );
+
+  if (!staffId || !staffPhone) {
+    return { ok: false, skipped: true, reason: !staffId ? 'missing_staff_id' : 'missing_or_invalid_phone' };
+  }
+
+  const supabase = getSupabaseAdmin();
+  const row = {
+    staff_id: staffId,
+    name: String(staff.name || staff.staff_name || '').trim().slice(0, 80),
+    role: normalizeRole(staff.role || 'assistant'),
+    status: normalizeDirectoryStaffStatus(staff.status || 'active'),
+    revoked: normalizeDirectoryStaffRevoked(staff.revoked || 'N'),
+    staff_phone: staffPhone,
+    source: String(staff.source || 'central_staff_upsert').trim().slice(0, 80) || 'central_staff_upsert',
+    updated_by: String(actor || '').trim().slice(0, 80),
+    updated_at: nowIso(),
+    meta_json: {
+      source: 'central_staff_phone_management',
+      written_at: nowIso()
+    }
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('staff_phone_directory')
+      .upsert(row, { onConflict: 'staff_id' })
+      .select('staff_id, staff_phone, updated_at')
+      .maybeSingle();
+
+    if (error) {
+      return { ok: false, skipped: false, reason: error.message || 'directory_upsert_failed', code: String(error.code || '') };
+    }
+
+    return { ok: true, row: data || row };
+  } catch (e) {
+    return { ok: false, skipped: false, reason: e?.message || String(e) };
+  }
+}
+
+async function readStaffPhoneDirectoryMap() {
+  const supabase = getSupabaseAdmin();
+  try {
+    const { data, error } = await supabase
+      .from('staff_phone_directory')
+      .select('staff_id, name, role, status, revoked, staff_phone, updated_at')
+      .limit(1000);
+
+    if (error) {
+      if (phoneIdentityMissingTable(error, 'staff_phone_directory')) {
+        return { ok: true, missing: true, map: new Map(), items: [] };
+      }
+      return { ok: false, missing: false, map: new Map(), items: [], error };
+    }
+
+    const items = (Array.isArray(data) ? data : [])
+      .map(row => ({
+        staff_id: normalizeDirectoryStaffId(row?.staff_id),
+        name: String(row?.name || '').trim(),
+        role: normalizeRole(row?.role || 'assistant'),
+        status: normalizeDirectoryStaffStatus(row?.status || 'active'),
+        revoked: normalizeDirectoryStaffRevoked(row?.revoked || 'N'),
+        staff_phone: pickCentralStaffPhone(row),
+        phone: pickCentralStaffPhone(row),
+        updated_at: String(row?.updated_at || ''),
+        _source_table: 'staff_phone_directory'
+      }))
+      .filter(row => row.staff_id && row.staff_phone);
+
+    return { ok: true, missing: false, items, map: new Map(items.map(row => [row.staff_id, row])) };
+  } catch (e) {
+    return { ok: false, missing: false, map: new Map(), items: [], error: e };
+  }
+}
+
+function mergeStaffPhoneDirectoryItems(items = [], directory = { map: new Map(), items: [] }) {
+  const out = Array.isArray(items) ? items.map(item => ({ ...item })) : [];
+  const map = directory && directory.map instanceof Map ? directory.map : new Map();
+  const seen = new Set();
+
+  for (const item of out) {
+    const id = normalizeDirectoryStaffId(item.staff_id || item.id || '');
+    if (!id) continue;
+    seen.add(id);
+    const dir = map.get(id);
+    if (!dir) continue;
+    const dirPhone = pickCentralStaffPhone(dir);
+    if (dirPhone && !pickCentralStaffPhone(item)) {
+      item.staff_phone = dirPhone;
+      item.phone = dirPhone;
+      item.phone_source = 'staff_phone_directory';
+    }
+  }
+
+  for (const dir of directory.items || []) {
+    const id = normalizeDirectoryStaffId(dir.staff_id || '');
+    if (!id || seen.has(id)) continue;
+    out.push({
+      staff_id: id,
+      name: dir.name || id,
+      role: dir.role || 'assistant',
+      revoked: dir.revoked || 'N',
+      status: dir.status || 'active',
+      has_password: false,
+      has_pin: false,
+      staff_phone: dir.staff_phone,
+      phone: dir.staff_phone,
+      source: 'staff_phone_directory',
+      phone_source: 'staff_phone_directory'
+    });
+  }
+
+  return out;
+}
+
 async function patchCentralStaffPhoneMirror(staffId, staffPhone) {
   const sid = String(staffId || '').trim().toLowerCase();
   if (!sid) return { ok: false, updated: [], skipped: [], error: 'missing staff_id' };
@@ -2361,33 +2502,55 @@ async function adminCentralStaffListDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
 
+  const directory = await readStaffPhoneDirectoryMap();
   const cacheKey = 'central.staff.list.replica|{}';
   if (!args.force && !args.refresh && String(args.source || '').toLowerCase() !== 'central') {
     const cached = fastCacheGet(cacheKey);
-    if (cached) return success({ ...cached, cache: { hit: true, source: 'memory_fresh' } });
+    if (cached) {
+      const merged = mergeStaffPhoneDirectoryItems(cached.staff || cached.items || [], directory);
+      return success({ ...cached, staff: merged, items: merged, count: merged.length, cache: { hit: true, source: 'memory_fresh' } });
+    }
 
     const replica = await readCentralStaffListReplicaDirect();
     if (replica.ok && replica.items.length) {
+      const staffItems = mergeStaffPhoneDirectoryItems(replica.items, directory);
       const out = {
-        staff: replica.items,
-        count: replica.items.length,
+        staff: staffItems,
+        items: staffItems,
+        count: staffItems.length,
         source: 'supabase_replica',
         replica_table: replica.table,
+        phone_directory: { ok: !!directory.ok, missing: !!directory.missing, count: directory.items?.length || 0 },
         fast: true,
-        note: '중앙DB 직원 목록을 Supabase replica에서 우선 조회했습니다. 강제 원본 확인은 force=true로 호출합니다.'
+        note: '중앙DB 직원 목록을 Supabase replica에서 우선 조회하고, staff_phone_directory로 휴대폰 번호를 보강했습니다. 강제 원본 확인은 force=true로 호출합니다.'
       };
       fastCacheSet(cacheKey, out, fastCacheSec('central_staff_list', 45, 300), fastCacheStaleSec('central_staff_list', 900, 3600));
       return success(out);
     }
   }
 
-  return proxyCentralBridgeManaged('bridge.staff.list', {}, sessionToken, 'admin', {
+  const result = await proxyCentralBridgeManaged('bridge.staff.list', {}, sessionToken, 'admin', {
     timeoutMs: 35000,
     cacheKey: 'central.staff.list',
     cacheTtlSec: fastCacheSec('central_staff_list', 45, 300),
     cacheStaleSec: fastCacheStaleSec('central_staff_list', 900, 3600),
     cacheName: 'central_staff_list'
   });
+
+  if (result.body?.ok === true && result.body.data) {
+    const data = result.body.data;
+    const baseItems = Array.isArray(data.staff) ? data.staff : (Array.isArray(data.items) ? data.items : []);
+    const staffItems = mergeStaffPhoneDirectoryItems(baseItems, directory);
+    result.body.data = {
+      ...data,
+      staff: staffItems,
+      items: staffItems,
+      count: staffItems.length,
+      phone_directory: { ok: !!directory.ok, missing: !!directory.missing, count: directory.items?.length || 0 }
+    };
+  }
+
+  return result;
 }
 async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
   const input = args.staff || args || {};
@@ -2413,10 +2576,14 @@ async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
 
   const result = await proxyCentralBridgeManaged('bridge.staff.upsert', { staff }, sessionToken, 'admin', { timeoutMs: 65000, mutate: true });
   if (result.body?.ok === true && phoneProvided) {
+    const auth = await authMeDirect(String(sessionToken || '').trim(), { touch: false }).catch(() => null);
+    const actor = auth?.staff_id || '';
+    const phoneDirectory = await upsertStaffPhoneDirectory({ ...staff, source: 'admin.central.staff.upsert' }, actor);
     const phonePatch = await patchCentralStaffPhoneMirror(staff.staff_id, normalizedPhone || '');
     result.body.data = {
       ...(result.body.data || {}),
       staff_phone: normalizedPhone || '',
+      staff_phone_directory: phoneDirectory,
       staff_phone_patch: phonePatch
     };
     fastCacheDelPrefix('central.staff.list');
@@ -6080,7 +6247,7 @@ function phoneIdentityMissingTable(error, tableName) {
 }
 
 async function phoneIdentityReadStaffRows(supabase) {
-  const tables = ['staff_snapshot', 'staff'];
+  const tables = ['staff_phone_directory', 'staff_snapshot', 'staff'];
   const rows = [];
   const errors = [];
 

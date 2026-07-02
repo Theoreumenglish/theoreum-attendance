@@ -256,8 +256,10 @@ checkText('scripts/smoke-test.mjs', 'admin.lectureAssignment.list', '온라인�
 
 checkText('docs/STAFF_PHONE_MANAGEMENT_V1.md', 'staff-phone-management-v1', '직원 휴대폰 관리 문서');
 checkText('docs/supabase-staff-phone-v1.sql', 'staff_phone', '직원 휴대폰 Supabase SQL');
+checkText('docs/supabase-staff-phone-v1.sql', 'staff_phone_directory', '직원 휴대폰 directory SQL');
 checkText('public/admin.html', 'centralStaffPhone', '중앙DB 직원 휴대폰 입력 UI');
 checkText('api/rpc.js', 'patchCentralStaffPhoneMirror', '직원 휴대폰 mirror 반영 서버 함수');
+checkText('api/rpc.js', 'upsertStaffPhoneDirectory', '중앙DB 직원 휴대폰 directory upsert');
 checkText('scripts/production-qa-runner.mjs', 'TheOreum production QA runner', 'production QA runner');
 checkText('docs/PRODUCTION_QA_RUNNER_V1.md', 'production-qa-runner-v1', 'production QA runner 문서');
 
@@ -279,9 +281,11 @@ checkText('docs/PRODUCTION_QA_PARITY_V1.md', 'production-qa-parity-megapatch-v1'
 checkText('scripts/production-deep-click-qa.mjs', 'TheOreum Production Deep Click QA Report', 'production deep click QA report');
 checkText('scripts/production-deep-click-qa.mjs', 'kiosk staff hotword', 'production deep click QA kiosk staff hotword');
 checkText('scripts/production-deep-click-qa.mjs', 'phone identity audit UI', 'production deep click QA phone identity UI');
+checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_BUNDLE.zip', 'production deep click QA screenshot bundle');
 checkText('scripts/run-production-deep-click-qa.ps1', 'npm install --no-save playwright@1', 'production deep click QA auto Playwright install');
 checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_TO_SEND.txt', 'copy-last-log deep QA priority');
 checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'production-deep-click-qa-v1', 'production deep click QA 문서');
+checkText('docs/PHONE_ATTENDANCE_STABILIZATION_V1.md', 'phone-attendance-stabilization-v1', '전화번호 출석화 안정화 문서');
 
 
 if (failed) {

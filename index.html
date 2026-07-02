@@ -2837,9 +2837,15 @@
       },
 
       handlePhoneSegmentKeydown(e, part) {
-        // kiosk-visual-qa-v1: prevent rapid physical keyboard input from being lost
-        // when focus is still on the first 4-digit box during the immediate handoff.
+        // phone-attendance-stabilization-v1:
+        // Physical-keyboard digits must be written by this handler because it calls
+        // preventDefault() to keep the hidden QR/staff scanner input from stealing focus.
         if (!e) return;
+
+        if (e.ctrlKey && e.shiftKey && String(e.key || '').toLowerCase() === 'q') {
+          location.reload();
+          return;
+        }
 
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -2852,19 +2858,56 @@
           return;
         }
 
+        if (App.currentView !== 'kiosk') return;
+
+        const modeMap = {
+          'F1': 'CHECK_IN',
+          '1': 'CHECK_IN',
+          'F2': 'CHECK_OUT',
+          '2': 'CHECK_OUT',
+          'F3': 'MOVE',
+          '3': 'MOVE',
+          'F4': 'OUTING',
+          '4': 'OUTING'
+        };
+
+        if (
+          ['F1', 'F2', 'F3', 'F4'].includes(e.key) ||
+          (e.altKey && ['1', '2', '3', '4'].includes(e.key))
+        ) {
+          e.preventDefault();
+          Kiosk.setAction(modeMap[e.key]);
+          return;
+        }
+
+        if (e.getModifierState && e.getModifierState('CapsLock')) {
+          UI.toast(false, '⚠️ Caps Lock을 꺼주세요.');
+        }
+
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         const key = String(e.key || '');
         if (key.length !== 1) return;
 
-        if (/^[0-9]$/.test(key)) {
-          const mid = Kiosk.getPhoneMidInput();
-          const last = Kiosk.getPhoneLastInput();
-          const midDigits = mid ? String(mid.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
-          const lastDigits = last ? String(last.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+        const input = $('#kInput');
+        const mid = Kiosk.getPhoneMidInput();
+        const last = Kiosk.getPhoneLastInput();
+        const midDigits = mid ? String(mid.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
+        const lastDigits = last ? String(last.value || '').replace(/[^0-9]/g, '').slice(0, 4) : '';
 
-          if (part === 'mid' && midDigits.length >= 4) {
-            e.preventDefault();
+        const modal = $('#fullModal');
+        if (modal) modal.classList.remove('show');
+
+        if (/^[0-9]$/.test(key)) {
+          e.preventDefault();
+
+          if (part === 'mid') {
+            if (mid && midDigits.length < 4) {
+              mid.value = (midDigits + key).slice(0, 4);
+              Kiosk.handlePhoneSegmentInput(mid, 'mid');
+              return;
+            }
+
             if (last && lastDigits.length < 4) {
               last.value = (lastDigits + key).slice(0, 4);
               Kiosk.handlePhoneSegmentInput(last, 'last');
@@ -2873,16 +2916,22 @@
             return;
           }
 
-          if (part === 'last' && lastDigits.length >= 4) {
-            e.preventDefault();
+          if (part === 'last') {
+            if (last && lastDigits.length < 4) {
+              last.value = (lastDigits + key).slice(0, 4);
+              Kiosk.handlePhoneSegmentInput(last, 'last');
+            }
             return;
           }
 
+          Kiosk.routePhysicalKeyToPhoneSegments(key);
           return;
         }
 
+        // Staff hotwords and QR scanner text typed while a phone segment is focused
+        // should still flow into the hidden raw scanner input.
         e.preventDefault();
-        Kiosk.routePhysicalKeyToRawScanner(key);
+        if (input) Kiosk.routePhysicalKeyToRawScanner(key);
       },
 
       handlePhoneSegmentBackspace(part) {

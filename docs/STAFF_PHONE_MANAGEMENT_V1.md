@@ -23,3 +23,7 @@ alter table if exists public.staff_snapshot add column if not exists staff_phone
 ## 주의
 
 중앙DB GAS 원본이 phone 컬럼을 아직 저장하지 않는 경우에도, Vercel 서버가 Supabase 직원 mirror에 `staff_phone`을 best-effort로 반영한다. 장기적으로는 중앙DB GAS 직원 시트에도 phone/staff_phone 헤더를 추가하는 것이 좋다.
+
+## v2 note: staff_phone_directory
+
+Phone-tail staff attendance now also uses `staff_phone_directory`. This prevents CentralDB-only staff accounts from failing phone clock-in/out before the full `staff` / `staff_snapshot` mirror catches up.

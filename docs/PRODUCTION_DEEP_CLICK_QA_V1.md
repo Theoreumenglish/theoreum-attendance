@@ -72,3 +72,7 @@ npm install --no-save playwright@1
 ```
 
 package.json에는 저장하지 않으므로 운영 의존성은 늘어나지 않는다.
+
+## v2 note: automatic screenshot bundle
+
+Deep QA now writes `_logs/PRODUCTION_DEEP_QA_BUNDLE.zip` automatically. The operator no longer has to manually compress the screenshot folder.

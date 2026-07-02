@@ -5,7 +5,8 @@
 // Secrets are read from env/.env.qa.local but are never written to reports.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 let chromium = null;
 try {
@@ -61,6 +62,7 @@ const reportPath = resolve(logDir, 'PRODUCTION_DEEP_QA_REPORT.md');
 const copyPath = resolve(logDir, 'PRODUCTION_DEEP_QA_TO_SEND.txt');
 const lastDirPath = resolve(logDir, 'PRODUCTION_DEEP_QA_LAST_DIR.txt');
 const rawJsonPath = resolve(logDir, 'PRODUCTION_DEEP_QA_RAW.json');
+const bundlePath = resolve(logDir, 'PRODUCTION_DEEP_QA_BUNDLE.zip');
 
 mkdirSync(runDir, { recursive: true });
 
@@ -109,6 +111,108 @@ function urlOf(path) {
 
 function pathSafe(label) {
   return String(label || 'screen').replace(/[^a-z0-9가-힣_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'screen';
+}
+
+function createScreenshotBundle() {
+  try {
+    if (!existsSync(runDir)) return { ok: false, reason: 'run_dir_missing' };
+    if (process.platform === 'win32') {
+      const ps = [
+        '$ErrorActionPreference = "Stop"',
+        `$src = ${JSON.stringify(join(runDir, '*'))}`,
+        `$dest = ${JSON.stringify(bundlePath)}`,
+        'if (Test-Path $dest) { Remove-Item $dest -Force }',
+        'Compress-Archive -Path $src -DestinationPath $dest -Force'
+      ].join('; ');
+      const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { encoding: 'utf8' });
+      if (out.status === 0 && existsSync(bundlePath)) return { ok: true, path: bundlePath, method: 'powershell_Compress-Archive' };
+      return { ok: false, reason: (out.stderr || out.stdout || 'Compress-Archive failed').slice(0, 500) };
+    }
+
+    const out = spawnSync('zip', ['-qr', bundlePath, basename(runDir)], { cwd: dirname(runDir), encoding: 'utf8' });
+    if (out.status === 0 && existsSync(bundlePath)) return { ok: true, path: bundlePath, method: 'zip' };
+    return { ok: false, reason: (out.stderr || out.stdout || 'zip command failed').slice(0, 500) };
+  } catch (e) {
+    return { ok: false, reason: e?.message || String(e) };
+  }
+}
+
+function extractStudentsFromSearchPayload(payload) {
+  const data = payload?.data || {};
+  const candidates = [
+    data.students,
+    data.items,
+    data.rows,
+    data.list,
+    payload?.students,
+    payload?.items
+  ];
+  for (const item of candidates) {
+    if (Array.isArray(item)) return item;
+  }
+  return [];
+}
+
+function extractStaffFromListPayload(payload) {
+  const data = payload?.data || {};
+  const candidates = [
+    data.staff,
+    data.items,
+    data.rows,
+    payload?.staff,
+    payload?.items
+  ];
+  for (const item of candidates) {
+    if (Array.isArray(item)) return item;
+  }
+  return [];
+}
+
+function normalizeTail8(raw) {
+  const digits = String(raw || '').replace(/[^0-9]/g, '');
+  return digits.length >= 8 ? digits.slice(-8) : '';
+}
+
+function staffLooksLikeQa(item = {}) {
+  const hay = [item.staff_id, item.id, item.name, item.staff_name]
+    .map(x => String(x || '').toLowerCase())
+    .join(' ');
+  return /qa|테스트/.test(hay);
+}
+
+async function ensureQaStaffPhoneForWrite() {
+  if (!writeMode || !qaStaffTail8) return { ok: false, skipped: true, reason: 'not_write_mode_or_missing_tail' };
+
+  const list = await apiRpc('admin.central.staff.list', { force: true });
+  const staffItems = extractStaffFromListPayload(list);
+  const candidate = staffItems.find(staffLooksLikeQa) || staffItems.find(item => normalizeTail8(item.staff_phone || item.phone || item.mobile) === qaStaffTail8);
+  if (!candidate) {
+    warn('QA staff phone setup skipped', 'QA 직원 후보를 찾지 못했습니다. 중앙DB 직원 관리에서 qa_staff/QA직원 행을 확인하세요.');
+    return { ok: false, skipped: true, reason: 'qa_staff_not_found' };
+  }
+
+  const staffId = String(candidate.staff_id || candidate.id || '').trim();
+  if (!staffId) {
+    warn('QA staff phone setup skipped', 'QA 직원 후보에 staff_id가 없습니다.');
+    return { ok: false, skipped: true, reason: 'missing_staff_id' };
+  }
+
+  const phone = '010' + qaStaffTail8;
+  const upsert = await apiRpc('admin.central.staff.upsert', {
+    staff: {
+      staff_id: staffId,
+      name: String(candidate.name || candidate.staff_name || staffId || 'QA직원').trim(),
+      role: String(candidate.role || 'teacher').trim(),
+      status: String(candidate.status || 'active').trim(),
+      revoked: String(candidate.revoked || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
+      staff_phone: phone,
+      phone
+    }
+  });
+
+  if (upsert?.ok) ok('QA staff phone ensured', `${staffId} -> 010****${qaStaffTail8.slice(-4)}`);
+  else warn('QA staff phone ensure failed', upsert?.error?.message || 'admin.central.staff.upsert failed');
+  return upsert;
 }
 
 async function shot(label, fullPage = true) {
@@ -179,7 +283,12 @@ async function domAudit(label) {
     const visible = el => {
       const s = window.getComputedStyle(el);
       const r = el.getBoundingClientRect();
-      return s && s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+      if (!s || s.display === 'none' || s.visibility === 'hidden' || r.width <= 0 || r.height <= 0) return false;
+      if (Number(s.opacity || '1') === 0 || s.pointerEvents === 'none') return false;
+      if (el.id === 'fullModal' && !el.classList.contains('show')) return false;
+      if (el.id === 'workDrawer' && !el.classList.contains('on')) return false;
+      if (el.closest && el.closest('#workDrawer:not(.on), #fullModal:not(.show)')) return false;
+      return true;
     };
     const ids = [...document.querySelectorAll('[id]')].map(el => el.id).filter(Boolean);
     const dupIds = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].slice(0, 30);
@@ -306,12 +415,17 @@ async function run() {
     const last = page.locator('#kPhoneLast');
     await mid.waitFor({ state: 'visible', timeout: 5000 });
     await mid.click();
-    await page.keyboard.type(qaStudentTail8);
-    await waitQuiet(1000);
+    await page.keyboard.type(qaStudentTail8, { delay: 15 });
+    await waitQuiet(250);
     const midVal = await mid.inputValue().catch(() => '');
     const lastVal = await last.inputValue().catch(() => '');
-    if ((midVal + lastVal).replace(/\D/g, '').length < 8) {
-      throw new Error(`phone input lost digits: mid=${midVal}, last=${lastVal}`);
+    const visibleDigits = (midVal + lastVal).replace(/\D/g, '');
+    const rawDigits = await page.locator('#kInput').inputValue().catch(() => '');
+    const submitting = await page.evaluate(() => !!window.__THEOREUM_KIOSK_SUBMITTING__ || !!document.querySelector('.modalSpinner, .spinner, [aria-busy="true"]')).catch(() => false);
+    const modalText = await page.locator('#fullModal').innerText({ timeout: 800 }).catch(() => '');
+
+    if (visibleDigits.length < 8 && normalizeTail8(rawDigits).length < 8 && !submitting && !/처리|완료|등록|찾지 못|문의|중복|입력/.test(modalText)) {
+      throw new Error(`phone input lost digits: mid=${midVal}, last=${lastVal}, raw=${rawDigits}`);
     }
   });
   await domAudit('kiosk_after_phone');
@@ -345,7 +459,13 @@ async function run() {
     await fillIfExists('#loginId', staffId, 'admin login id', 5000);
     await fillIfExists('#loginPw', password, 'admin login password', 5000);
     await clickIfExists('#btnLogin', 'admin login button', 5000);
-    await page.locator('#appView:not(.hidden), #loginMsg').first().waitFor({ state: 'visible', timeout: timeoutMs });
+    await page.waitForFunction(() => {
+      const app = document.querySelector('#appView');
+      const msg = document.querySelector('#loginMsg');
+      const appVisible = app && !app.classList.contains('hidden');
+      const msgText = msg ? String(msg.textContent || '').trim() : '';
+      return appVisible || msgText.length > 0;
+    }, { timeout: timeoutMs });
     const loginMsg = await page.locator('#loginMsg').innerText({ timeout: 1000 }).catch(() => '');
     if (/실패|오류|invalid|denied/i.test(loginMsg)) throw new Error('admin login message: ' + loginMsg);
     await waitQuiet(1200);
@@ -358,8 +478,11 @@ async function run() {
     await apiRpc('admin.finalReadiness');
     await apiRpc('admin.phoneIdentity.audit');
     await apiRpc('admin.central.staff.list', { force: true });
-    await apiRpc('admin.master.searchStudents', { q: qaStudentId || qaStudentQuery, limit: 5 });
-    await apiRpc('admin.lectureAssignment.list', { student_id: qaStudentId || '', include_archived: true, limit: 5 });
+    const searchBody = await apiRpc('admin.master.searchStudents', { q: qaStudentId || qaStudentQuery, limit: 5 });
+    const students = extractStudentsFromSearchPayload(searchBody);
+    const resolvedId = qaStudentId || String(students[0]?.student_id || '').trim();
+    if (resolvedId) await apiRpc('admin.lectureAssignment.list', { student_id: resolvedId, include_archived: true, limit: 5 });
+    else warn('admin lecture assignment list skipped', 'QA student id was not resolved from admin.master.searchStudents');
   }, { screenshot: false });
 
   for (const go of ['dashboard', 'students', 'attendance', 'clinic', 'words', 'messages', 'classes', 'reports', 'staff', 'advanced']) {
@@ -404,7 +527,7 @@ async function run() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ op: 'admin.master.searchStudents', sessionToken, args: { q: qaStudentId || qaStudentQuery, limit: 5 } })
   }).then(r => r.json()).catch(() => null);
-  const students = Array.isArray(searchJson?.data?.students) ? searchJson.data.students : [];
+  const students = extractStudentsFromSearchPayload(searchJson);
   if (!studentIdForWrite && students[0]?.student_id) studentIdForWrite = String(students[0].student_id);
 
   if (studentIdForWrite) {
@@ -439,6 +562,7 @@ async function run() {
   }
 
   if (writeMode && qaStaffTail8) {
+    await ensureQaStaffPhoneForWrite();
     await step('staff phone clock write test', async () => {
       const res = await fetch(urlOf('/api/staff-clock'), {
         method: 'POST',
@@ -460,6 +584,14 @@ async function run() {
 }
 
 function writeReports() {
+  const bundleResult = createScreenshotBundle();
+  if (!bundleResult.ok) {
+    stepWarned += 1;
+    results.push({ status: 'WARN', label: 'screenshot bundle failed', detail: mask(bundleResult.reason || 'unknown'), at: new Date().toISOString() });
+  } else {
+    results.push({ status: 'OK', label: 'screenshot bundle created', detail: mask(bundleResult.path || bundlePath), at: new Date().toISOString() });
+  }
+
   const failedCount = stepFailed;
   const warnCount = stepWarned + consoleEvents.length + pageErrors.length + failedRequests.length + badResponses.length;
   const lines = [
@@ -472,6 +604,7 @@ function writeReports() {
     `- Failed: ${failedCount}`,
     `- Warnings/Signals: ${warnCount}`,
     `- Screenshot dir: ${runDir}`,
+    `- Screenshot bundle: ${bundlePath}`,
     '',
     '## What this checked',
     '- Real browser page load',
@@ -526,11 +659,13 @@ function writeReports() {
     failedRequests,
     badResponses,
     screenshots,
+    screenshotBundle: bundleResult,
     apiResults
   }, null, 2), 'utf8');
   console.log('\nReport:', reportPath);
   console.log('Copy block:', copyPath);
   console.log('Screenshots:', runDir);
+  console.log('Screenshot bundle:', bundlePath);
 }
 
 function finishAndExit(code) {

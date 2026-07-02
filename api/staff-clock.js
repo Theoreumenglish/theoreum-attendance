@@ -19,8 +19,8 @@ function normalizeStaffId(input) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
-    .replace(/[^a-z0-9._-]/g, '')
-    .slice(0, 40);
+    .replace(/[^a-z0-9._\-\u3131-\u318E\uAC00-\uD7A3]/g, '')
+    .slice(0, 80);
 }
 
 function normalizePhoneDigits(input) {
@@ -130,6 +130,20 @@ async function readStaffForPinClock(staffId) {
 }
 
 
+async function readStaffPhoneDirectoryRowsForClock() {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('staff_phone_directory')
+    .select('staff_id, name, role, status, revoked, staff_phone')
+    .limit(1000);
+
+  if (error) {
+    return { data: [], error, table: 'staff_phone_directory' };
+  }
+
+  return { data: Array.isArray(data) ? data : [], error: null, table: 'staff_phone_directory' };
+}
+
 async function readStaffRowsForPhoneClock(tableName) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -156,6 +170,10 @@ async function readStaffForPhoneClock(phoneTail8) {
   }
 
   const sources = [];
+  const directory = await readStaffPhoneDirectoryRowsForClock();
+  if (!directory.error || isMissingTableError('staff_phone_directory', directory.error)) sources.push(...directory.data);
+  else return { data: null, error: directory.error, code: 'DB_SELECT_FAILED' };
+
   const snap = await readStaffRowsForPhoneClock('staff_snapshot');
   if (!snap.error || isMissingTableError('staff_snapshot', snap.error)) sources.push(...snap.data);
   else return { data: null, error: snap.error, code: 'DB_SELECT_FAILED' };
