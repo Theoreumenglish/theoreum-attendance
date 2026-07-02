@@ -2846,6 +2846,185 @@
     .wordBulkHiddenByFilter { display: none; }
 
 
+
+/* Task-first UX revamp v1 */
+.uxStartBoard {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+}
+.uxStartHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.11), transparent 28%),
+    linear-gradient(135deg, #ffffff, #f8fafc);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+.uxStartHero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+.uxStartHero h2 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 32px);
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+}
+.uxStartHero p {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 14px;
+  font-weight: 650;
+}
+.uxHeroAction {
+  display: grid;
+  gap: 8px;
+  min-width: 190px;
+}
+.uxHeroAction .btn {
+  height: 46px;
+  justify-content: center;
+}
+.uxTaskGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(126px, 1fr));
+  gap: 10px;
+}
+.uxTaskCard {
+  min-height: 118px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.045);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+}
+.uxTaskCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.26);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.075);
+}
+.uxTaskCard strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.22;
+  letter-spacing: -0.035em;
+}
+.uxTaskCard span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.42;
+  font-weight: 650;
+}
+.uxTaskCard b {
+  align-self: flex-start;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
+}
+.uxTaskCard.hot { border-color: rgba(220, 38, 38, 0.18); background: linear-gradient(180deg, #fff, #fff7f7); }
+.uxTaskCard.blue { border-color: rgba(37, 99, 235, 0.18); background: linear-gradient(180deg, #fff, #f8fbff); }
+.uxTaskCard.good { border-color: rgba(5, 150, 105, 0.18); background: linear-gradient(180deg, #fff, #f7fffb); }
+.uxTaskCard.warn { border-color: rgba(180, 83, 9, 0.2); background: linear-gradient(180deg, #fff, #fffaf1); }
+.uxSimpleHint {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+}
+.uxSimpleHint strong {
+  font-size: 14px;
+  letter-spacing: -0.035em;
+}
+.uxSimpleHint p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.uxMiniSteps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.uxMiniSteps span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-size: 12px;
+  font-weight: 850;
+}
+.navBtn {
+  min-height: 44px;
+}
+.navBtn::before {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.05);
+  font-size: 13px;
+}
+.navBtn[data-go="dashboard"]::before { content: "1"; }
+.navBtn[data-go="students"]::before { content: "2"; }
+.navBtn[data-go="attendance"]::before { content: "3"; }
+.navBtn[data-go="clinic"]::before { content: "4"; }
+.navBtn[data-go="words"]::before { content: "5"; }
+.navBtn[data-go="messages"]::before { content: "문"; }
+.navBtn[data-go="classes"]::before { content: "반"; }
+.navBtn[data-go="reports"]::before { content: "리"; }
+.navBtn[data-go="staff"]::before { content: "직"; }
+.navBtn[data-go="advanced"]::before { content: "설"; }
+.navBtn.on::before {
+  background: rgba(17, 24, 39, 0.1);
+}
+.pageHeader {
+  align-items: flex-start;
+}
+@media (max-width: 1280px) {
+  .uxTaskGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 840px) {
+  .uxStartHero { grid-template-columns: 1fr; }
+  .uxHeroAction { min-width: 0; }
+  .uxTaskGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .uxTaskGrid { grid-template-columns: 1fr; }
+  .uxTaskCard { min-height: auto; }
+}
+
 .studentSearchBar{display:grid; grid-template-columns:minmax(0,1fr) 132px; gap:10px; align-items:center;}
 .studentSearchBar .btn{height:44px; justify-content:center;}
 @media (max-width:720px){.studentSearchBar{grid-template-columns:1fr;}.studentSearchBar .btn{width:100%;}}
@@ -2908,19 +3087,19 @@
 </div>
 <div class="sideSectionLabel">핵심 업무</div>
 <nav aria-label="핵심 운영 메뉴" class="sideNav primaryNav">
-<button class="navBtn on" data-go="dashboard" type="button">오늘 <span>›</span></button>
-<button class="navBtn" data-go="students" type="button">학생 <span>›</span></button>
-<button class="navBtn" data-go="attendance" type="button">출결 <span>›</span></button>
+<button class="navBtn on" data-go="dashboard" type="button">오늘 할 일 <span>›</span></button>
+<button class="navBtn" data-go="students" type="button">학생 관리 <span>›</span></button>
+<button class="navBtn" data-go="attendance" type="button">출결 확인 <span>›</span></button>
 <button class="navBtn" data-go="clinic" type="button">클리닉 <span>›</span></button>
-<button class="navBtn" data-go="words" type="button">단어 <span>›</span></button>
+<button class="navBtn" data-go="words" type="button">단어시험 <span>›</span></button>
 </nav>
 <div class="sideSectionLabel">관리/확인</div>
 <nav aria-label="관리 및 확인 메뉴" class="sideNav secondaryNav">
-<button class="navBtn" data-go="messages" type="button">문자 <span>›</span></button>
-<button class="navBtn" data-go="classes" type="button">클래스 <span>›</span></button>
+<button class="navBtn" data-go="messages" type="button">문자/알림 <span>›</span></button>
+<button class="navBtn" data-go="classes" type="button">반 관리 <span>›</span></button>
 <button class="navBtn" data-go="reports" type="button">리포트 <span>›</span></button>
-<button class="navBtn" data-go="staff" type="button">직원 <span>›</span></button>
-<button class="navBtn" data-go="advanced" type="button">설정 <span>›</span></button>
+<button class="navBtn" data-go="staff" type="button">직원 관리 <span>›</span></button>
+<button class="navBtn" data-go="advanced" type="button">설정/점검 <span>›</span></button>
 </nav>
 <div class="sideFooter">
 <div class="userBox">
@@ -2945,6 +3124,46 @@
 <button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
 </div>
 </div>
+
+<div class="uxStartBoard" id="uxStartBoard">
+  <div class="uxStartHero">
+    <div>
+      <div class="eyebrow">처음 쓰는 사람용 · 오늘은 이 순서대로</div>
+      <h2>복잡한 메뉴 말고, 해야 할 일부터 누르세요.</h2>
+      <p>설정 화면을 뒤지는 방식이 아니라 “미등원 확인 → 학생/직원 전화번호 설정 → 단어·클리닉 → 학생 링크/온라인강의” 순서로 바로 이동합니다.</p>
+    </div>
+    <div class="uxHeroAction">
+      <span class="btn btnPri" id="btnUxTodayFlow" role="button" tabindex="0">오늘 업무 시작</span>
+      <span class="btn btnGhost" id="btnUxOpenCommand" role="button" tabindex="0">전체 기능 검색</span>
+    </div>
+  </div>
+  <div class="uxTaskGrid" aria-label="쉬운 업무 시작 카드">
+    <div class="uxTaskCard hot" data-ux-task="absence" role="button" tabindex="0">
+      <div><strong>미등원 먼저 확인</strong><span>오늘 안 온 학생과 연락 실패만 봅니다.</span></div><b>1번</b>
+    </div>
+    <div class="uxTaskCard blue" data-ux-task="studentPhone" role="button" tabindex="0">
+      <div><strong>학생 전화번호 출결 설정</strong><span>학생 번호 또는 학부모 번호로 출결 가능하게 합니다.</span></div><b>학생</b>
+    </div>
+    <div class="uxTaskCard blue" data-ux-task="staffPhone" role="button" tabindex="0">
+      <div><strong>직원 전화번호 출퇴근 설정</strong><span>기존 계정에 휴대폰만 붙입니다.</span></div><b>직원</b>
+    </div>
+    <div class="uxTaskCard warn" data-ux-task="wordClinic" role="button" tabindex="0">
+      <div><strong>단어·클리닉 처리</strong><span>오늘 단어 입력과 클리닉 후보를 확인합니다.</span></div><b>학습</b>
+    </div>
+    <div class="uxTaskCard good" data-ux-task="studentLink" role="button" tabindex="0">
+      <div><strong>학생 링크·온라인강의</strong><span>학생용 링크와 온라인강의 배정을 처리합니다.</span></div><b>포털</b>
+    </div>
+    <div class="uxTaskCard" data-ux-task="systemCheck" role="button" tabindex="0">
+      <div><strong>운영 점검</strong><span>휴대폰 출결 준비도와 최종 체크를 한 번에 봅니다.</span></div><b>점검</b>
+    </div>
+  </div>
+  <div class="uxSimpleHint" id="uxSimpleHint">
+    <strong>운영 규칙</strong>
+    <p>선생님·조교에게는 이 카드만 설명하면 됩니다. “학생은 학생 메뉴, 직원은 직원 메뉴, 오늘 사고 날 일은 오늘 화면”으로 고정합니다.</p>
+    <div class="uxMiniSteps"><span>학생 검색</span><span>전화번호 저장</span><span>출결 확인</span><span>단어 입력</span><span>클리닉 완료</span></div>
+  </div>
+</div>
+
 <div aria-label="원클릭 업무 런처" class="quickDock" id="quickDock">
 <div class="quickDockMain">
 <div>
@@ -8920,6 +9139,69 @@
       await listWordSessions();
     }
 
+
+    function focusSoon(selector) {
+      setTimeout(() => {
+        const el = typeof selector === 'string' ? document.querySelector(selector) : selector;
+        if (el && typeof el.focus === 'function') {
+          el.focus();
+          if (typeof el.select === 'function') el.select();
+        }
+      }, 160);
+    }
+
+    function runUxTask(task) {
+      if (task === 'absence') {
+        jumpTo('dashboard');
+        writeActionLog('쉬운 업무 시작', '미등원 먼저 확인');
+        loadTodayAbsenceBoard({ force: true });
+        showToast('미등원 보드로 이동했습니다.');
+        return;
+      }
+      if (task === 'studentPhone') {
+        jumpTo('students');
+        writeActionLog('쉬운 업무 시작', '학생 전화번호 출결 설정');
+        focusSoon('#studentQuery');
+        showToast('학생을 검색한 뒤 학생 휴대폰 또는 학부모 휴대폰을 저장하세요.');
+        return;
+      }
+      if (task === 'staffPhone') {
+        jumpTo('staff');
+        writeActionLog('쉬운 업무 시작', '직원 전화번호 출퇴근 설정');
+        loadCentralStaff().catch(() => {});
+        focusSoon('#centralStaffPhone');
+        showToast('직원을 선택하고 휴대폰만 저장을 누르세요.');
+        return;
+      }
+      if (task === 'wordClinic') {
+        writeActionLog('쉬운 업무 시작', '단어시험/클리닉 처리');
+        jumpTo('words');
+        openTodayWordSessions();
+        showToast('오늘 단어시험을 먼저 확인합니다. 클리닉은 C 키로 바로 볼 수 있습니다.');
+        return;
+      }
+      if (task === 'studentLink') {
+        jumpTo('students');
+        writeActionLog('쉬운 업무 시작', '학생 링크/온라인강의');
+        focusSoon('#studentQuery');
+        showToast('학생 선택 후 학생 링크와 온라인강의를 처리하세요.');
+        return;
+      }
+      if (task === 'systemCheck') {
+        jumpTo('advanced');
+        writeActionLog('쉬운 업무 시작', '운영 점검');
+        loadPhoneIdentityAudit().catch(() => {});
+        loadFinalReadiness().catch(() => {});
+        showToast('휴대폰 출결 준비도와 최종 체크를 실행합니다.');
+        return;
+      }
+      if (task === 'todayFlow') {
+        runTodayPulse();
+        return;
+      }
+      openCommandPalette();
+    }
+
     async function runTodayPulse() {
       writeActionLog('오늘 전체 점검 시작', '운영 요약 → 미등원 실패 → 클리닉 후보 → 오늘 단어시험');
       await loadOverview();
@@ -8947,7 +9229,10 @@
       { id: 'classes', title: '클래스 관리', hint: '반/명단/휴강/일정', key: 'G C', run: () => jumpTo('classes') },
       { id: 'messages', title: '문자 실패 확인', hint: '실패 큐', key: 'M', run: () => openFailedAbsentQueue() },
       { id: 'report', title: '학부모 리포트', hint: '선택 학생 기준', key: 'R', run: () => { jumpTo('reports'); defaultReportPeriod(); } },
-      { id: 'settings', title: '설정/점검', hint: '중앙DB / 최종 체크', key: 'G S', run: () => jumpTo('advanced') }
+      { id: 'settings', title: '설정/점검', hint: '중앙DB / 최종 체크', key: 'G S', run: () => jumpTo('advanced') },
+      { id: 'studentPhone', title: '학생 전화번호 출결 설정', hint: '학생 번호 또는 학부모 번호 fallback', key: 'P S', run: () => runUxTask('studentPhone') },
+      { id: 'staffPhone', title: '직원 전화번호 출퇴근 설정', hint: '기존 직원 계정에 휴대폰만 저장', key: 'P T', run: () => runUxTask('staffPhone') },
+      { id: 'studentLinkPortal', title: '학생 링크/온라인강의', hint: '학생용 링크와 온라인강의 배정', key: 'L', run: () => runUxTask('studentLink') }
     ];
 
     function filteredCommands(query = '') {
@@ -9203,6 +9488,24 @@
         el.addEventListener('keydown', e => {
           if (e.key === 'Enter') login();
         });
+      });
+
+      bindClick('btnUxTodayFlow', () => runUxTask('todayFlow'));
+      bindClick('btnUxOpenCommand', () => openCommandPalette());
+      ['btnUxTodayFlow', 'btnUxOpenCommand'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (id === 'btnUxTodayFlow') runUxTask('todayFlow');
+            else openCommandPalette();
+          }
+        });
+      });
+      $$('.uxTaskCard[data-ux-task]').forEach(tile => {
+        const fire = () => runUxTask(tile.dataset.uxTask || '');
+        tile.addEventListener('click', fire);
+        tile.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
       });
 
       $$('.smartActionTile[data-smart-action]').forEach(tile => {

@@ -197,7 +197,8 @@ checkText('public/admin.html', 'btnWordBulkFillAbsent', '단어시험 빈칸 미
 checkText('public/admin.html', 'btnWordBulkCopyFail', '단어시험 불통과 목록 복사');
 checkText('docs/WORD_GRID_SPEED_V1.md', 'word-grid-speed-v1', '단어시험 grid speed 문서');
 
-checkFile('docs/UI_UX_REFRESH_V2.md', 'UI/UX refresh v2 문서');
+checkFile('docs/UI_UX_REFRESH_V2.md',
+  'docs/UI_UX_TASK_FIRST_REVAMP_V1.md', 'UI/UX refresh v2 문서');
 
 
 checkText('scripts/apply-patch-files.ps1', 'patch-files', '개발 편의 patch-files 직접 적용 helper');
