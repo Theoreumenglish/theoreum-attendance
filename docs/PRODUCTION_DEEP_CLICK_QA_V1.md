@@ -95,3 +95,10 @@ Each deep QA run must produce two zip files in `_logs`:
 The bundle includes screenshots, DOM audit JSON files, the copy-ready QA report, the full markdown report, raw JSON, and `README_SCREENSHOTS.txt`.
 
 Screenshots are captured with Playwright `page.screenshot`, so they capture the tested browser page DOM rather than the entire Windows desktop. Other apps/windows on the monitor are not included, but the user should not type or click in the QA browser while the runner is working because focus can affect keyboard/click automation.
+
+
+## Midcycle QA UI review
+
+From `midcycle-qa-ui-review-v1`, the deep QA bundle also includes `SCREENSHOT_INDEX.html`. Open it inside the zip to review all screenshots in one page.
+
+The student today public page must expose `data-qa-state="loaded"` after real data is rendered. Deep QA waits for that state before capturing the public student link screenshot, so a loading-only screen is no longer accepted as a pass.

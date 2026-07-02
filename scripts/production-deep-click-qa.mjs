@@ -617,9 +617,16 @@ async function run() {
         await step('student today public link opens', async () => {
           const res = await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
           if (!res || !res.ok()) throw new Error(`GET student today public link failed: ${res?.status()}`);
-          await waitQuiet(1200);
+          await page.waitForFunction(() => {
+            const root = document.querySelector('#studentTodayRoot');
+            const state = document.body?.dataset?.qaState || root?.dataset?.qaState || '';
+            return state === 'loaded' || state === 'error';
+          }, null, { timeout: 40000 });
+          const state = await page.evaluate(() => document.body?.dataset?.qaState || document.querySelector('#studentTodayRoot')?.dataset?.qaState || '');
           const body = await page.locator('body').innerText({ timeout: 5000 });
-          if (!/온라인강의|오늘/.test(body)) throw new Error('student today page did not render expected text');
+          if (state !== 'loaded') throw new Error('student today page did not load successfully: ' + body.replace(/\s+/g, ' ').slice(0, 500));
+          if (/불러오는 중입니다|잠시만 기다려 주세요/.test(body)) throw new Error('student today page screenshot captured while still loading');
+          if (!/온라인강의|오늘 할 일|오늘 출결/.test(body)) throw new Error('student today page did not render expected text');
         });
         await domAudit('student_today_public');
       }
@@ -648,6 +655,10 @@ async function run() {
   await step('student-today static page exists', async () => {
     const res = await page.goto(urlOf('/student-today.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
     if (!res || !res.ok()) throw new Error(`GET /student-today.html failed: ${res?.status()}`);
+    await page.waitForFunction(() => {
+      const state = document.body?.dataset?.qaState || document.querySelector('#studentTodayRoot')?.dataset?.qaState || '';
+      return state === 'error' || state === 'loaded';
+    }, null, { timeout: 10000 }).catch(() => {});
   });
   await domAudit('student_today_static');
 }
@@ -717,6 +728,38 @@ function buildReportLines(bundleResult = null) {
   ];
 }
 
+
+function writeScreenshotIndexHtml() {
+  const rows = screenshots.map((s, idx) => {
+    const safeFile = String(s.file || '').replace(/"/g, '&quot;');
+    const safeLabel = String(s.label || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return `<article class="shot"><div class="num">${idx + 1}</div><img src="${safeFile}" alt="${safeLabel}" loading="lazy"><h2>${safeLabel}</h2><p>${safeFile}</p></article>`;
+  }).join('\n');
+  const html = `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>TheOreum Deep QA Screenshot Index ${runId}</title>
+  <style>
+    body{margin:0;padding:24px;background:#f5f7fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033}
+    h1{margin:0 0 6px;font-size:24px}.meta{color:#667085;margin-bottom:18px;line-height:1.5}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px}
+    .shot{position:relative;background:#fff;border:1px solid #dde3ef;border-radius:18px;padding:12px;box-shadow:0 10px 28px rgba(15,23,42,.06)}
+    .shot img{width:100%;height:240px;object-fit:contain;background:#f8fafc;border:1px solid #edf1f7;border-radius:12px}
+    .shot h2{font-size:15px;margin:10px 0 4px}.shot p{font-size:12px;color:#667085;margin:0;word-break:break-all}
+    .num{position:absolute;top:18px;left:18px;background:#111827;color:#fff;border-radius:999px;font-size:12px;font-weight:900;padding:4px 8px}
+  </style>
+</head>
+<body>
+  <h1>더오름 Deep QA 화면 인덱스</h1>
+  <div class="meta">Run ID: ${runId}<br>Base URL: ${baseUrl}<br>이 HTML은 압축파일 안에서 스크린샷을 한눈에 보기 위한 파일입니다.</div>
+  <div class="grid">${rows || '<p>스크린샷이 없습니다.</p>'}</div>
+</body>
+</html>`;
+  writeFileSync(join(runDir, 'SCREENSHOT_INDEX.html'), html, 'utf8');
+}
+
+
 function writeRunDirCompanionFiles(bundleResult = null) {
   const readme = [
     'TheOreum Production Deep QA screenshot bundle',
@@ -724,9 +767,10 @@ function writeRunDirCompanionFiles(bundleResult = null) {
     `Run ID: ${runId}`,
     `Base URL: ${baseUrl}`,
     '',
-    'Open PRODUCTION_DEEP_QA_TO_SEND.txt first.',
+    'Open PRODUCTION_DEEP_QA_TO_SEND.txt first. For visual review, open SCREENSHOT_INDEX.html in this zip.',
     'PNG files are captured Playwright page screenshots.',
     '*_dom.json files are DOM audits for debugging.',
+    'SCREENSHOT_INDEX.html is an at-a-glance visual index of all screenshots.',
     '',
     'Screenshot capture note:',
     '- QA uses Playwright page.screenshot, so it captures the browser page DOM, not your entire Windows desktop.',
@@ -734,6 +778,7 @@ function writeRunDirCompanionFiles(bundleResult = null) {
     '- Do not touch the QA browser while the runner is typing/clicking, because keyboard/mouse focus can affect the test flow.'
   ].join('\r\n');
   writeFileSync(join(runDir, 'README_SCREENSHOTS.txt'), readme, 'utf8');
+  writeScreenshotIndexHtml();
 
   const raw = JSON.stringify({
     baseUrl,

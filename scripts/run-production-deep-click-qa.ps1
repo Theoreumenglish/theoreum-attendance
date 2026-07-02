@@ -81,10 +81,12 @@ if (Test-Path $LastDirPath) {
         "Base URL: $($env:QA_BASE_URL)",
         "",
         "Open PRODUCTION_DEEP_QA_TO_SEND.txt first.",
+        "For visual review, open SCREENSHOT_INDEX.html inside the zip.",
         "PNG files are Playwright page screenshots. They capture the tested browser page, not your whole desktop.",
         "Other apps/windows on your monitor are not included in these screenshots.",
         "Do not type/click in the QA browser while the runner is working, because focus can affect the test.",
-        "*_dom.json files are DOM audits for debugging."
+        "*_dom.json files are DOM audits for debugging.",
+        "SCREENSHOT_INDEX.html is an at-a-glance visual index of all screenshots."
       ) -join "`r`n"
       Set-Content -Path $IndexPath -Value $IndexText -Encoding UTF8
       if (Test-Path $TimestampedBundlePath) { Remove-Item $TimestampedBundlePath -Force }
