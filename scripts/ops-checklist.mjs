@@ -338,6 +338,11 @@ checkText('index.html', 'kioskModernV3', '키오스크 중앙 정렬 모던 UI')
 checkText('index.html', 'btnOpenStaffQuick', '직원 출퇴근 명시 버튼');
 checkText('student-today.html', 'studentMobileV3', '학생/학부모 모바일 우선 UI');
 checkText('docs/UI_UX_SAAS_OPERATION_REWRITE_V3.md', 'search-first', 'SaaS 운영 UI/UX 전면 개편 문서');
+checkText('docs/UI_KIOSK_STAFF_FAST_BUTTON_V6.md', 'ui-kiosk-staff-fast-button-v6', '키오스크 직원 빠른 버튼 v6 문서');
+checkText('index.html', 'btnStaffClockInFast', '키오스크 직원 출근 빠른 버튼');
+checkText('index.html', 'btnStaffClockOutFast', '키오스크 직원 퇴근 빠른 버튼');
+checkText('index.html', 'bindGlobalStaffHotkeys', '키오스크 직원 hotword focus guard');
+checkText('public/admin.html', 'consoleOperatorGuard', '관리자 콘솔 노이즈 가드');
 
 
 checkText('api/rpc.js', "op === 'admin.central.staff.phoneOnly'", '기존 직원 계정 휴대폰만 저장 API');

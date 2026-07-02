@@ -493,6 +493,60 @@
         line-height: 1.45;
       }
 
+      /* ui-kiosk-staff-fast-button-v6: old 4-button kiosk + one clear staff lane. */
+      .staffClockLane {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 20px;
+      }
+
+      .staffClockLaneBtn {
+        min-height: 72px;
+        border: 2px solid rgba(15, 23, 42, 0.10);
+        border-radius: 24px;
+        background: #ffffff;
+        color: #0f172a;
+        font-size: 24px;
+        font-weight: 950;
+        letter-spacing: -0.04em;
+        cursor: pointer;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+        transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+      }
+
+      .staffClockLaneBtn.active,
+      .staffClockLaneBtn:hover,
+      .staffClockLaneBtn:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(37, 99, 235, 0.40);
+        background: #f8fbff;
+        box-shadow: 0 18px 38px rgba(37, 99, 235, 0.14);
+        outline: none;
+      }
+
+      .staffClockLaneBtn.in {
+        border-color: rgba(37, 99, 235, 0.22);
+      }
+
+      .staffClockLaneBtn.out {
+        border-color: rgba(245, 158, 11, 0.28);
+      }
+
+      .staffClockLaneHint {
+        grid-column: 1 / -1;
+        margin-top: -4px;
+        color: var(--sub);
+        font-size: 14px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        .staffClockLane { grid-template-columns: 1fr; }
+        .staffClockLaneBtn { min-height: 62px; font-size: 21px; }
+      }
+
       .adminWorkHeader {
         display: flex;
         align-items: flex-start;
@@ -1671,7 +1725,6 @@
 					autocomplete="off"
 					inputmode="text"
 					maxlength="128"
-					pattern="[0-9A-Za-z.:-]*"
 					aria-label="QR/스캐너 보조 입력"
 					tabindex="-1"
 				>
@@ -1697,6 +1750,12 @@
 				</div>
 
 			</div>
+
+      <div class="staffClockLane" aria-label="직원 출퇴근 빠른 실행">
+        <button class="staffClockLaneBtn in" id="btnStaffClockInFast" type="button">직원 출근</button>
+        <button class="staffClockLaneBtn out" id="btnStaffClockOutFast" type="button">직원 퇴근</button>
+        <div class="staffClockLaneHint">직원은 이 버튼을 누른 뒤 휴대폰 번호 뒤 8자리만 입력합니다.</div>
+      </div>
 
 			<div class="msg" id="kMsg"></div>
 			<div class="mono" id="kDbg" style="display:none;"></div>
@@ -2668,6 +2727,8 @@
       staffQuickStep: 'PHONE',
       staffQuickStaffId: '',
       _staffLongPressTimer: null,
+      _staffHotwordBuffer: '',
+      _globalKeyBound: false,
       pendingKioskTraceId: '',
       pendingKioskAction: '',
       pendingKioskInput: '',
@@ -2711,6 +2772,13 @@
         if (btnStaffQuickIn) btnStaffQuickIn.addEventListener('click', () => Kiosk.setStaffQuickAction('IN'));
         if (btnStaffQuickOut) btnStaffQuickOut.addEventListener('click', () => Kiosk.setStaffQuickAction('OUT'));
         if (btnStaffQuickClose) btnStaffQuickClose.addEventListener('click', () => Kiosk.closeStaffQuick());
+
+        const btnStaffClockInFast = $('#btnStaffClockInFast');
+        const btnStaffClockOutFast = $('#btnStaffClockOutFast');
+        if (btnStaffClockInFast) btnStaffClockInFast.addEventListener('click', () => Kiosk.openStaffQuickFor('IN'));
+        if (btnStaffClockOutFast) btnStaffClockOutFast.addEventListener('click', () => Kiosk.openStaffQuickFor('OUT'));
+        Kiosk.bindGlobalStaffHotkeys();
+
         const btnOpenStaffQuick = $('#btnOpenStaffQuick');
         if (btnOpenStaffQuick) btnOpenStaffQuick.addEventListener('click', () => {
           if (Kiosk.staffQuickOpen) {
@@ -3358,6 +3426,50 @@
         }, delayMs);
       },
 
+      bindGlobalStaffHotkeys() {
+        if (Kiosk._globalKeyBound) return;
+        Kiosk._globalKeyBound = true;
+
+        document.addEventListener('keydown', event => {
+          if (App.currentView !== 'kiosk') return;
+          if (Kiosk.isSubmitting || Kiosk.staffQuickOpen) return;
+          if (!event || event.ctrlKey || event.metaKey || event.altKey) return;
+
+          const key = String(event.key || '');
+          if (key === 'Escape') {
+            Kiosk.closeStaffQuick();
+            return;
+          }
+
+          if (key.length !== 1 || !/^[a-zA-Z가-힣]$/.test(key)) return;
+
+          const normalizedKey = Kiosk.normalizeScanText(key).toLowerCase();
+          Kiosk._staffHotwordBuffer = (String(Kiosk._staffHotwordBuffer || '') + normalizedKey).slice(-12);
+
+          if (Kiosk._staffHotwordBuffer.endsWith('staffout') || Kiosk._staffHotwordBuffer.endsWith('직원퇴근')) {
+            event.preventDefault();
+            Kiosk._staffHotwordBuffer = '';
+            Kiosk.openStaffQuickFor('OUT');
+            return;
+          }
+
+          if (Kiosk._staffHotwordBuffer.endsWith('staff') || Kiosk._staffHotwordBuffer.endsWith('직원')) {
+            event.preventDefault();
+            Kiosk._staffHotwordBuffer = '';
+            Kiosk.openStaffQuickFor('IN');
+          }
+        }, true);
+      },
+
+      openStaffQuickFor(action = 'IN') {
+        Kiosk.staffQuickAction = String(action || '').toUpperCase() === 'OUT' ? 'OUT' : 'IN';
+        Kiosk.openStaffQuick();
+        Kiosk.setStaffQuickAction(Kiosk.staffQuickAction);
+        Kiosk.clearPhoneSegmentInputs();
+        Kiosk.focusPhoneSegment(50);
+        UI.toast(true, Kiosk.staffQuickAction === 'OUT' ? '직원 퇴근 모드' : '직원 출근 모드');
+      },
+
       getInputPlaceholder() {
         return '뒤 8자리 입력';
       },
@@ -3387,6 +3499,7 @@
         }
 
         Kiosk.setStaffQuickStep('PHONE');
+        Kiosk.focusPhoneSegment(50);
         UI.clearMsg($('#kMsg'));
         const dbg = $('#kDbg');
         if (dbg) {
@@ -3409,6 +3522,10 @@
           openBtn.classList.remove('is-open');
           openBtn.textContent = '직원 출퇴근 열기';
         }
+        const fastIn = $('#btnStaffClockInFast');
+        const fastOut = $('#btnStaffClockOutFast');
+        if (fastIn) fastIn.classList.remove('active');
+        if (fastOut) fastOut.classList.remove('active');
 
         const input = $('#kInput');
         if (input && !Kiosk.isSubmitting) {
@@ -3429,6 +3546,10 @@
 
         if (btnIn) btnIn.classList.toggle('on', Kiosk.staffQuickAction === 'IN');
         if (btnOut) btnOut.classList.toggle('on', Kiosk.staffQuickAction === 'OUT');
+        const fastIn = $('#btnStaffClockInFast');
+        const fastOut = $('#btnStaffClockOutFast');
+        if (fastIn) fastIn.classList.toggle('active', Kiosk.staffQuickOpen && Kiosk.staffQuickAction === 'IN');
+        if (fastOut) fastOut.classList.toggle('active', Kiosk.staffQuickOpen && Kiosk.staffQuickAction === 'OUT');
         if (label) label.textContent = Kiosk.staffQuickAction === 'IN' ? '직원 출근' : '직원 퇴근';
 
         const input = $('#kInput');

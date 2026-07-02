@@ -2026,6 +2026,173 @@
       line-height: 1.35;
     }
 
+
+    /* ui-admin-console-operator-guard-v6: calmer list/detail pattern without changing data APIs. */
+    body.consoleOperatorGuard .studentResultCard {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 66px;
+      padding: 12px 14px;
+      text-align: left;
+    }
+
+    body.consoleOperatorGuard .studentResultCheck {
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      color: transparent;
+      font-weight: 950;
+    }
+
+    body.consoleOperatorGuard .studentResultCard:hover .studentResultCheck {
+      border-color: #94a3b8;
+      color: #94a3b8;
+    }
+
+    body.consoleOperatorGuard .studentResultTitle {
+      display: block;
+      color: #111827;
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: -0.035em;
+    }
+
+    body.consoleOperatorGuard .studentResultMeta {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    body.consoleOperatorGuard .studentResultAction strong {
+      display: none !important;
+    }
+
+    body.consoleOperatorGuard .studentKebabDots {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 20px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    body.consoleOperatorGuard #students .compactStudentActions,
+    body.consoleOperatorGuard #students .subtleActions {
+      display: none !important;
+    }
+
+    body.consoleOperatorGuard .drawerTabs {
+      display: flex;
+      gap: 8px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #f8fafc;
+      margin: 12px 0 16px;
+      overflow-x: auto;
+    }
+
+    body.consoleOperatorGuard .drawerTab {
+      white-space: nowrap;
+      border: 0;
+      border-radius: 12px;
+      padding: 9px 12px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    body.consoleOperatorGuard .drawerTab.on {
+      background: #111827;
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    }
+
+    body.consoleOperatorGuard .drawerMiniCard {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #ffffff;
+      padding: 14px;
+      margin: 10px 0;
+    }
+
+    body.consoleOperatorGuard .drawerMiniCard strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+    }
+
+    body.consoleOperatorGuard .drawerMiniCard p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    body.consoleOperatorGuard .floatingActionBar {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      z-index: 91;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      transform: translateX(-50%);
+      padding: 12px 14px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #ffffff;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.34);
+    }
+
+    body.consoleOperatorGuard .floatingActionBar.on {
+      display: flex;
+      animation: fabUp .16s ease-out;
+    }
+
+    body.consoleOperatorGuard .floatingActionBar strong {
+      padding: 0 10px;
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    body.consoleOperatorGuard .floatingActionBar button,
+    body.consoleOperatorGuard .floatingActionBar span[role="button"] {
+      min-height: 38px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      color: #ffffff;
+      padding: 0 13px;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    @keyframes fabUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
     .quickProgress {
       display: flex;
       align-items: center;
@@ -6079,6 +6246,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
 <div class="commandList" id="commandList"></div>
 </div>
 </div>
+<div class="floatingActionBar" id="studentFloatingActionBar" aria-live="polite"><strong id="studentFloatingCount">선택된 0명</strong><span role="button" tabindex="0" data-floating-action="attendance">일괄 출석/하원</span><span role="button" tabindex="0" data-floating-action="message">일괄 알림톡</span></div>
 <div class="drawerOverlay" id="drawerOverlay"></div>
 <aside class="workDrawer" id="workDrawer" aria-label="상세 작업 패널">
 <div class="drawerHead">
@@ -6128,6 +6296,8 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
       commandOpen: false,
       commandIndex: 0
     };
+
+    document.body.classList.add('consoleOperatorGuard');
 
     function esc(value) {
       return String(value ?? '')
@@ -6698,14 +6868,16 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
           + '</div>';
       } else if (kind === 'student') {
         const label = [data.student_id || selectedStudent.student_id, data.student_name || selectedStudent.student_name].filter(Boolean).join(' · ') || '선택 학생';
-        if (title) title.textContent = '학생 작업';
-        if (desc) desc.textContent = '출결·클리닉·단어·리포트를 학생 기준으로 연결합니다.';
+        if (title) title.textContent = '학생 상세';
+        if (desc) desc.textContent = '메뉴 이동 없이 학생 기준으로 출결·단어·클리닉·메시지를 이어서 처리합니다.';
         html += `<div class="drawerKv"><div class="k">학생</div><div class="v">${esc(label)}</div><div class="k">학교/학년</div><div class="v">${esc([data.school || selectedStudent.school, data.grade || selectedStudent.grade].filter(Boolean).join(' · ') || '-')}</div></div>`;
+        html += '<div class="drawerTabs" aria-label="학생 상세 탭"><span class="drawerTab on" role="button" tabindex="0">기본 정보</span><span class="drawerTab" role="button" tabindex="0" data-drawer-action="studentLogs">출결 기록</span><span class="drawerTab" role="button" tabindex="0" data-drawer-action="studentWord">단어/클리닉</span><span class="drawerTab" role="button" tabindex="0" data-drawer-action="studentReport">메시지/리포트</span></div>';
+        html += '<div class="drawerMiniCard"><strong>출결 번호</strong><p>학생 번호가 없으면 학부모 번호 fallback을 사용합니다. 번호 수정은 학생DB 추가/수정 영역에서 처리합니다.</p></div>';
         html += '<div class="drawerActionList">'
-          + drawerActionHtml('studentLogs', '출결 보기', '선택 학생의 출결 로그로 이동합니다.')
-          + drawerActionHtml('studentClinic', '클리닉 만들기', '선택 학생에게 개별/추가 클리닉을 만듭니다.')
-          + drawerActionHtml('studentWord', '단어 결과 입력', '선택 학생의 단어시험 결과 입력칸을 채웁니다.')
-          + drawerActionHtml('studentReport', '학부모 리포트', '선택 학생의 리포트를 준비합니다.')
+          + drawerActionHtml('studentLogs', '출결 기록 열기', '선택 학생의 오늘 로그와 최근 출결을 확인합니다.')
+          + drawerActionHtml('studentClinic', '클리닉 만들기', '개별/추가 클리닉을 학생 기준으로 바로 생성합니다.')
+          + drawerActionHtml('studentWord', '단어 결과 입력', '단어시험 결과 입력칸으로 이동하고 학생을 자동 채웁니다.')
+          + drawerActionHtml('studentReport', '메시지/리포트 준비', '학부모 안내문과 리포트를 학생 기준으로 이어갑니다.')
           + '</div>';
       } else {
         if (title) title.textContent = '오늘 작업 패널';
@@ -8220,11 +8392,12 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
             data-school="${esc(item.school || '')}"
             data-grade="${esc(item.grade || '')}"
             data-status="${esc(status)}">
+            <span class="studentResultCheck" aria-hidden="true">✓</span>
             <span>
               <span class="studentResultTitle">${esc(item.student_name || '이름 없음')}</span>
-              <span class="studentResultMeta">${esc(sid)} · ${esc(meta)}</span>
+              <span class="studentResultMeta">${esc(meta)}</span>
             </span>
-            <span class="studentResultAction"><span class="statusBadge ${esc(statusCls)}">${esc(status || '재원')}</span><strong>선택</strong></span>
+            <span class="studentResultAction"><span class="statusBadge ${esc(statusCls)}">${esc(status || '재원')}</span><span class="studentKebabDots" aria-hidden="true">⋯</span></span>
           </button>
         `;
       }).join('');

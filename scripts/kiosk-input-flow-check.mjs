@@ -11,6 +11,8 @@ const required = [
   ['focus watchdog keeps segment focus', 'activeIsKioskTarget'],
   ['phone tail segmented submit', 'Kiosk.submitPhoneSegmentsOnEnter()'],
   ['staff quick phone clock path', "App.rpc('staff.clock'"],
+  ['staff fast clock buttons', 'btnStaffClockInFast'],
+  ['staff hotword global guard', 'bindGlobalStaffHotkeys'],
   ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
 ];
 
@@ -18,7 +20,8 @@ const forbidden = [
   ['touch keypad container removed', 'id="touchPad"'],
   ['touch keypad digit handlers removed', 'data-touch-digit'],
   ['large single physical input removed', 'kioskPhysicalInputWrap'],
-  ['visible staff quick opener removed', 'id="btnOpenStaffQuick"']
+  ['visible staff quick opener removed', 'id="btnOpenStaffQuick"'],
+  ['invalid scanner pattern removed', 'pattern="[0-9A-Za-z.:-]*"']
 ];
 
 let failed = 0;
