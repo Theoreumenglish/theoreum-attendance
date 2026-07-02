@@ -4,8 +4,8 @@
 // captures screenshots, console/page/network errors, and creates a copy-ready report.
 // Secrets are read from env/.env.qa.local but are never written to reports.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 let chromium = null;
@@ -153,68 +153,161 @@ function createScreenshotBundle() {
 }
 
 
+
+function isExcludedSourcePath(relPath, fileName = '') {
+  const rel = String(relPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
+  const parts = rel.split('/').filter(Boolean);
+  const excludedDirs = new Set(['node_modules', 'dist', '_logs', '.git', '.vercel']);
+  if (parts.some((part) => excludedDirs.has(part))) return 'excluded_dir';
+  if (parts.some((part) => /^_patch_backup/i.test(part))) return 'patch_backup';
+  if (parts.some((part) => /^(release|releases)$/i.test(part))) return 'release_dir';
+  if (/^\.env/i.test(fileName || basename(rel))) return 'env_file';
+  if (/\.(zip|7z|rar|log|tmp|bak)$/i.test(fileName || rel)) return 'generated_or_archive';
+  if (/PRODUCTION_DEEP_QA_/i.test(rel)) return 'qa_generated';
+  return '';
+}
+
+function copySourceTreeForQa(projectRoot, stage) {
+  const manifest = {
+    root: projectRoot,
+    runId,
+    generatedAt: new Date().toISOString(),
+    includedFiles: 0,
+    includedBytes: 0,
+    skippedFiles: 0,
+    skippedDirs: 0,
+    skippedLargeFiles: 0,
+    skippedSamples: [],
+    maxFileBytes: Number(process.env.QA_SOURCE_MAX_FILE_BYTES || 5 * 1024 * 1024)
+  };
+
+  function rememberSkip(rel, reason) {
+    manifest.skippedFiles += 1;
+    if (manifest.skippedSamples.length < 80) manifest.skippedSamples.push({ path: rel, reason });
+  }
+
+  function walk(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      const rel = relative(projectRoot, full).replace(/\\/g, '/');
+      if (!rel || rel.startsWith('..')) continue;
+
+      const excluded = isExcludedSourcePath(rel, entry.name);
+      if (entry.isDirectory()) {
+        if (excluded) {
+          manifest.skippedDirs += 1;
+          if (manifest.skippedSamples.length < 80) manifest.skippedSamples.push({ path: rel + '/', reason: excluded });
+          continue;
+        }
+        walk(full);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        rememberSkip(rel, 'not_regular_file');
+        continue;
+      }
+
+      if (excluded) {
+        rememberSkip(rel, excluded);
+        continue;
+      }
+
+      const st = statSync(full);
+      if (st.size > manifest.maxFileBytes) {
+        manifest.skippedLargeFiles += 1;
+        rememberSkip(rel, `larger_than_${manifest.maxFileBytes}`);
+        continue;
+      }
+
+      const target = join(stage, rel);
+      mkdirSync(dirname(target), { recursive: true });
+      copyFileSync(full, target);
+      manifest.includedFiles += 1;
+      manifest.includedBytes += st.size;
+    }
+  }
+
+  walk(projectRoot);
+
+  const readme = [
+    'TheOreum Deep QA source snapshot',
+    `Run ID: ${runId}`,
+    `Generated: ${manifest.generatedAt}`,
+    '',
+    'This snapshot is intentionally sanitized.',
+    'Excluded by design: .env*, node_modules, dist, _logs, .git, .vercel, patch backups, release folders, zip/log/tmp/bak files, and large generated files.',
+    '',
+    `Included files: ${manifest.includedFiles}`,
+    `Included bytes: ${manifest.includedBytes}`,
+    `Skipped files: ${manifest.skippedFiles}`,
+    `Skipped directories: ${manifest.skippedDirs}`,
+    '',
+    'Purpose: let ChatGPT review the exact local code shape that produced this QA result without exposing local secrets or bulky generated folders.'
+  ].join('\n');
+
+  writeFileSync(join(stage, 'SOURCE_SNAPSHOT_README.txt'), readme, 'utf8');
+  writeFileSync(join(stage, 'SOURCE_SNAPSHOT_MANIFEST.json'), JSON.stringify(manifest, null, 2), 'utf8');
+
+  return manifest;
+}
+
+function compressStagedDirectory(stage, dest, latest) {
+  if (process.platform === 'win32') {
+    const ps = [
+      '$ErrorActionPreference = "Stop"',
+      `$stage = ${JSON.stringify(stage)}`,
+      `$dest = ${JSON.stringify(dest)}`,
+      `$latest = ${JSON.stringify(latest)}`,
+      'if (Test-Path $dest) { Remove-Item $dest -Force }',
+      'if (Test-Path $latest) { Remove-Item $latest -Force }',
+      'Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $dest -Force',
+      'Copy-Item -Path $dest -Destination $latest -Force'
+    ].join('; ');
+    const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { encoding: 'utf8' });
+    if (out.status === 0 && existsSync(dest)) return { ok: true, method: 'powershell_Compress-Archive' };
+    return { ok: false, reason: (out.stderr || out.stdout || 'Compress-Archive failed').slice(0, 800) };
+  }
+
+  try { if (existsSync(dest)) rmSync(dest, { force: true }); } catch {}
+  try { if (existsSync(latest)) rmSync(latest, { force: true }); } catch {}
+  const out = spawnSync('zip', ['-qr', dest, '.'], { cwd: stage, encoding: 'utf8' });
+  if (out.status === 0 && existsSync(dest)) {
+    spawnSync('cp', ['-f', dest, latest]);
+    return { ok: true, method: 'zip' };
+  }
+  return { ok: false, reason: (out.stderr || out.stdout || 'zip command failed').slice(0, 800) };
+}
+
 function createSourceSnapshot() {
+  const stage = resolve(logDir, `deep-qa-source-${runId}`);
   try {
     const projectRoot = process.cwd();
-    if (process.platform === 'win32') {
-      const stage = resolve(logDir, `deep-qa-source-${runId}`);
-      const ps = [
-        '$ErrorActionPreference = "Stop"',
-        `$root = ${JSON.stringify(projectRoot)}`,
-        `$stage = ${JSON.stringify(stage)}`,
-        `$dest = ${JSON.stringify(runSourcePath)}`,
-        `$latest = ${JSON.stringify(latestSourcePath)}`,
-        'if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }',
-        'New-Item -ItemType Directory -Path $stage -Force | Out-Null',
-        '$files = Get-ChildItem -Path $root -Recurse -File | Where-Object {',
-        '  $rel = $_.FullName.Substring($root.Length).TrimStart("\\","/")',
-        '  $relNorm = $rel -replace "\\\\","/"',
-        '  if ($relNorm -match "(^|/)(node_modules|dist|_logs|\\.git|\\.vercel)(/|$)") { return $false }',
-        '  if ($relNorm -match "(^|/)_patch_backup") { return $false }',
-        '  if ($_.Name -match "^\\.env") { return $false }',
-        '  if ($_.Extension -in @(".zip",".log",".tmp",".bak")) { return $false }',
-        '  if ($relNorm -match "(^|/)(release|releases)(/|$)") { return $false }',
-        '  return $true',
-        '}',
-        'foreach ($f in $files) {',
-        '  $rel = $f.FullName.Substring($root.Length).TrimStart("\\","/")',
-        '  $target = Join-Path $stage $rel',
-        '  $parent = Split-Path $target -Parent',
-        '  if (!(Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }',
-        '  Copy-Item -Path $f.FullName -Destination $target -Force',
-        '}',
-        '$manifest = @()',
-        '$manifest += "TheOreum Deep QA source snapshot"',
-        '$manifest += "Run ID: ' + runId + '"',
-        '$manifest += "Generated: $(Get-Date -Format o)"',
-        '$manifest += ""',
-        '$manifest += "Excluded by design: .env*, node_modules, dist, _logs, .git, .vercel, patch backups, zip/log/tmp/bak files."',
-        '$manifest += "Purpose: let ChatGPT review the exact local code shape that produced this QA result without exposing local secrets."',
-        'Set-Content -Path (Join-Path $stage "SOURCE_SNAPSHOT_README.txt") -Value ($manifest -join "`r`n") -Encoding UTF8',
-        'if (Test-Path $dest) { Remove-Item $dest -Force }',
-        'if (Test-Path $latest) { Remove-Item $latest -Force }',
-        'Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $dest -Force',
-        'Copy-Item -Path $dest -Destination $latest -Force'
-      ].join('; ');
-      const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { encoding: 'utf8' });
-      if (out.status === 0 && existsSync(runSourcePath)) return { ok: true, path: runSourcePath, latestPath: latestSourcePath, method: 'powershell_source_snapshot' };
-      return { ok: false, reason: (out.stderr || out.stdout || 'source snapshot failed').slice(0, 800) };
+    if (existsSync(stage)) rmSync(stage, { recursive: true, force: true });
+    mkdirSync(stage, { recursive: true });
+
+    const manifest = copySourceTreeForQa(projectRoot, stage);
+    if (manifest.includedFiles <= 0) {
+      return { ok: false, reason: 'source snapshot included zero files after exclusions' };
     }
 
-    try { if (existsSync(runSourcePath)) spawnSync('rm', ['-f', runSourcePath]); } catch {}
-    try { if (existsSync(latestSourcePath)) spawnSync('rm', ['-f', latestSourcePath]); } catch {}
-    const out = spawnSync('zip', [
-      '-qr', runSourcePath, '.',
-      '-x', 'node_modules/*', 'dist/*', '_logs/*', '.git/*', '.vercel/*',
-      '.env*', '*.zip', '*.log', '*.tmp', '*.bak', '_patch_backup*/*'
-    ], { cwd: projectRoot, encoding: 'utf8' });
-    if (out.status === 0 && existsSync(runSourcePath)) {
-      spawnSync('cp', ['-f', runSourcePath, latestSourcePath]);
-      return { ok: true, path: runSourcePath, latestPath: latestSourcePath, method: 'zip_source_snapshot' };
-    }
-    return { ok: false, reason: (out.stderr || out.stdout || 'zip source command failed').slice(0, 800) };
+    const compressed = compressStagedDirectory(stage, runSourcePath, latestSourcePath);
+    if (!compressed.ok) return compressed;
+
+    return {
+      ok: true,
+      path: runSourcePath,
+      latestPath: latestSourcePath,
+      method: `sanitized_${compressed.method}`,
+      includedFiles: manifest.includedFiles,
+      includedBytes: manifest.includedBytes,
+      skippedFiles: manifest.skippedFiles,
+      skippedDirs: manifest.skippedDirs
+    };
   } catch (e) {
     return { ok: false, reason: e?.message || String(e) };
+  } finally {
+    try { if (existsSync(stage)) rmSync(stage, { recursive: true, force: true }); } catch {}
   }
 }
 
@@ -840,6 +933,9 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     `- Timestamped source zip: ${runSourcePath}`,
     `- Latest source alias: ${latestSourcePath}`,
     sourceResult ? `- Source snapshot status: ${sourceResult.ok ? 'OK' : 'WARN'}${sourceResult.reason ? ` — ${sourceResult.reason}` : ''}` : '- Source snapshot status: pending',
+    sourceResult?.ok && Number.isFinite(sourceResult.includedFiles) ? `- Source included files: ${sourceResult.includedFiles}` : '',
+    sourceResult?.ok && Number.isFinite(sourceResult.includedBytes) ? `- Source included bytes: ${sourceResult.includedBytes}` : '',
+    sourceResult?.ok && Number.isFinite(sourceResult.skippedDirs) ? `- Source skipped directories: ${sourceResult.skippedDirs}` : '',
     '',
     '## Full QA package',
     `- Timestamped package zip: ${runPackagePath}`,

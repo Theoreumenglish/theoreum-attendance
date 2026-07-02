@@ -311,6 +311,13 @@ checkText('scripts/smoke-test.mjs', 'SMOKE_SLOW_TIMEOUT_MS', 'smoke-test slow ti
 checkText('scripts/smoke-test.mjs', "rpc('admin.finalReadiness', { sessionToken }, { timeoutMs: slowTimeoutMs })", 'admin.finalReadiness slow timeout 적용');
 checkText('docs/SMOKE_TIMEOUT_FINALREADINESS_V1.md', 'SMOKE_SLOW_TIMEOUT_MS', 'finalReadiness smoke timeout 문서');
 
+checkText('scripts/production-deep-click-qa.mjs', 'function isExcludedSourcePath', 'deep QA source snapshot sanitizer');
+checkText('scripts/production-deep-click-qa.mjs', "excludedDirs = new Set(['node_modules', 'dist', '_logs', '.git', '.vercel'])", 'deep QA source snapshot excludes bulky/generated dirs');
+checkText('scripts/production-deep-click-qa.mjs', 'SOURCE_SNAPSHOT_MANIFEST.json', 'deep QA source snapshot manifest');
+checkText('scripts/production-deep-click-qa.mjs', 'Source included files', 'deep QA source snapshot report stats');
+checkText('docs/DEEP_QA_SOURCE_SNAPSHOT_SANITIZE_V1.md', 'deep-qa-source-snapshot-sanitize-v1', 'deep QA source snapshot sanitize 문서');
+
+
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
   process.exit(1);
