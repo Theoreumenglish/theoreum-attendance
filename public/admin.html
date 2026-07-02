@@ -3201,6 +3201,643 @@
   .cleanHero { padding: 18px; border-radius: 22px; }
 }
 
+
+
+/* =====================================================================
+   SaaS-grade operations UI v3
+   Goal: reduce cognitive load, hide raw system concerns, surface task-first workflows.
+   ===================================================================== */
+:root {
+  --ops-bg: #f6f8fb;
+  --ops-card: #ffffff;
+  --ops-ink: #111827;
+  --ops-muted: #667085;
+  --ops-faint: #98a2b3;
+  --ops-line: #e5e7eb;
+  --ops-line-strong: #d0d5dd;
+  --ops-blue: #2563eb;
+  --ops-blue-soft: #eff6ff;
+  --ops-green: #059669;
+  --ops-green-soft: #ecfdf3;
+  --ops-orange: #ea580c;
+  --ops-orange-soft: #fff7ed;
+  --ops-red: #dc2626;
+  --ops-red-soft: #fef2f2;
+  --ops-purple: #7c3aed;
+  --ops-purple-soft: #f5f3ff;
+  --ops-shadow-card: 0 12px 28px rgba(15, 23, 42, 0.055);
+  --ops-shadow-float: 0 24px 64px rgba(15, 23, 42, 0.12);
+  --ops-radius-xl: 28px;
+  --ops-radius-lg: 22px;
+  --ops-radius-md: 16px;
+}
+
+body.opsFlowV3 {
+  background: var(--ops-bg);
+}
+
+body.opsFlowV3 .shell {
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: var(--ops-bg);
+}
+
+body.opsFlowV3 .side {
+  background: rgba(255,255,255,.92);
+  border-right: 1px solid var(--ops-line);
+  box-shadow: 6px 0 24px rgba(15, 23, 42, 0.03);
+}
+
+body.opsFlowV3 .sideBrand {
+  padding-bottom: 18px;
+}
+
+body.opsFlowV3 .brandMark {
+  border-radius: 14px;
+  background: #111827;
+  color: #fff;
+}
+
+body.opsFlowV3 .sideSectionLabel {
+  margin-top: 20px;
+  color: var(--ops-faint);
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+body.opsFlowV3 .navBtn {
+  min-height: 44px;
+  border-radius: 14px;
+  color: #475467;
+  font-weight: 850;
+}
+
+body.opsFlowV3 .navBtn::before {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border-radius: 10px;
+  background: #f2f4f7;
+  color: #667085;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+body.opsFlowV3 .navBtn.on {
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(17,24,39,.16);
+}
+
+body.opsFlowV3 .navBtn.on::before {
+  background: rgba(255,255,255,.14);
+  color: #fff;
+}
+
+body.opsFlowV3 .main {
+  padding: 30px 38px 54px;
+}
+
+body.opsFlowV3 .workspace {
+  max-width: 1440px;
+}
+
+body.opsFlowV3 .pageHeader {
+  border: 0;
+  padding: 0;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+body.opsFlowV3 .pageKicker {
+  color: var(--ops-faint);
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+body.opsFlowV3 .pageTitle {
+  font-size: clamp(28px, 3vw, 42px);
+  letter-spacing: -.055em;
+}
+
+body.opsFlowV3 .topTools {
+  gap: 8px;
+}
+
+body.opsFlowV3 .topTools .btn,
+body.opsFlowV3 .btn {
+  border-radius: 14px;
+  min-height: 40px;
+}
+
+body.opsFlowV3 .btnPri {
+  background: #111827;
+  border-color: #111827;
+}
+
+body.opsFlowV3 .card,
+body.opsFlowV3 .cardPad,
+body.opsFlowV3 .metricCard,
+body.opsFlowV3 .emptyPanel,
+body.opsFlowV3 .workDrawer {
+  border: 1px solid var(--ops-line);
+  border-radius: var(--ops-radius-lg);
+  background: #ffffff;
+  box-shadow: var(--ops-shadow-card);
+}
+
+body.opsFlowV3 .cardPad {
+  padding: 22px;
+}
+
+body.opsFlowV3 .sectionTitle {
+  color: var(--ops-ink);
+  font-size: 17px;
+  letter-spacing: -.035em;
+}
+
+body.opsFlowV3 .sectionDesc {
+  color: var(--ops-muted);
+  line-height: 1.58;
+}
+
+body.opsFlowV3 .operatorHome,
+body.opsFlowV3 .uxStartBoard,
+body.opsFlowV3 .quickDock,
+body.opsFlowV3 .opsContextBar,
+body.opsFlowV3 .recentRail,
+body.opsFlowV3 .smartBoard,
+body.opsFlowV3 .dailyWorkRail {
+  display: none !important;
+}
+
+.calmOpsShell {
+  display: none;
+  gap: 18px;
+  margin: 0 0 22px;
+}
+body.opsFlowV3[data-current-view="dashboard"] .calmOpsShell {
+  display: grid;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard {
+  display: none !important;
+}
+
+.calmHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.calmHeroMain,
+.calmTodayPanel,
+.calmModule,
+.calmMenuSheet,
+.studentFocusPanel,
+.staffFocusPanel {
+  border: 1px solid var(--ops-line);
+  border-radius: var(--ops-radius-xl);
+  background: var(--ops-card);
+  box-shadow: var(--ops-shadow-card);
+}
+
+.calmHeroMain {
+  padding: 28px;
+  background:
+    radial-gradient(circle at 96% 4%, rgba(37, 99, 235, .10), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.calmHeroLabel,
+.calmModuleLabel,
+.focusPanelLabel {
+  color: var(--ops-faint);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.calmHeroMain h2 {
+  margin: 8px 0 10px;
+  max-width: 760px;
+  color: var(--ops-ink);
+  font-size: clamp(30px, 4vw, 54px);
+  line-height: 1.02;
+  letter-spacing: -.07em;
+  font-weight: 960;
+}
+
+.calmHeroMain p {
+  margin: 0;
+  max-width: 720px;
+  color: var(--ops-muted);
+  font-size: 15px;
+  line-height: 1.65;
+  font-weight: 650;
+}
+
+.calmSearchBlock {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px;
+  gap: 10px;
+  margin-top: 24px;
+  max-width: 720px;
+}
+
+.calmSearchBlock input {
+  min-height: 58px;
+  border: 1px solid var(--ops-line-strong);
+  border-radius: 18px;
+  padding: 0 18px;
+  background: #ffffff;
+  color: var(--ops-ink);
+  font-size: 17px;
+  font-weight: 850;
+  outline: none;
+  box-shadow: 0 10px 22px rgba(15,23,42,.04);
+}
+
+.calmSearchBlock input:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 5px rgba(17,24,39,.07), 0 16px 32px rgba(15,23,42,.06);
+}
+
+.calmSearchBlock .calmSearchButton,
+.calmPrimaryAction {
+  min-height: 58px;
+  border: 0;
+  border-radius: 18px;
+  background: #111827;
+  color: #fff;
+  font-weight: 950;
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease;
+  box-shadow: 0 14px 28px rgba(17,24,39,.16);
+}
+
+.calmSearchBlock .calmSearchButton:active,
+.calmPrimaryAction:active,
+.calmTaskCard:active,
+.touchPadBtn:active {
+  transform: scale(.975);
+}
+
+.calmAutocomplete {
+  position: absolute;
+  left: 0;
+  right: 126px;
+  top: 68px;
+  z-index: 30;
+  overflow: hidden;
+  border: 1px solid var(--ops-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--ops-shadow-float);
+}
+
+.calmAutoItem {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid #f2f4f7;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.calmAutoItem:last-child { border-bottom: 0; }
+.calmAutoItem:hover { background: #f8fafc; }
+.calmAutoName { color: var(--ops-ink); font-size: 15px; font-weight: 950; }
+.calmAutoMeta { margin-top: 4px; color: var(--ops-muted); font-size: 12px; font-weight: 750; }
+.calmAutoAction { color: var(--ops-blue); font-size: 12px; font-weight: 950; }
+
+.calmTodayPanel {
+  padding: 22px;
+}
+
+.calmPanelHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.calmPanelTitle {
+  color: var(--ops-ink);
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -.035em;
+}
+
+.calmRefreshMini {
+  border: 1px solid var(--ops-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ops-muted);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.calmStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.calmStat {
+  min-height: 94px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--ops-line);
+  background: #f8fafc;
+}
+
+.calmStat.hot { background: var(--ops-red-soft); border-color: #fecaca; }
+.calmStat.warn { background: var(--ops-orange-soft); border-color: #fed7aa; }
+.calmStat.good { background: var(--ops-green-soft); border-color: #bbf7d0; }
+.calmStat.blue { background: var(--ops-blue-soft); border-color: #bfdbfe; }
+
+.calmStatValue {
+  color: var(--ops-ink);
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 970;
+  letter-spacing: -.05em;
+}
+
+.calmStatLabel {
+  margin-top: 8px;
+  color: var(--ops-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.calmStatNote {
+  margin-top: 4px;
+  color: var(--ops-faint);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.calmTaskGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calmTaskCard {
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--ops-line);
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: var(--ops-shadow-card);
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.calmTaskCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--ops-line-strong);
+  box-shadow: 0 18px 36px rgba(15,23,42,.08);
+}
+.calmTaskCard.primary { background: #111827; border-color: #111827; color: #fff; }
+.calmTaskCard.primary .calmTaskDesc, .calmTaskCard.primary .calmTaskMeta { color: rgba(255,255,255,.72); }
+.calmTaskCard.blue { background: var(--ops-blue-soft); border-color: #bfdbfe; }
+.calmTaskCard.good { background: var(--ops-green-soft); border-color: #bbf7d0; }
+.calmTaskCard.warn { background: var(--ops-orange-soft); border-color: #fed7aa; }
+.calmTaskIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 15px;
+  background: rgba(17,24,39,.06);
+  color: currentColor;
+  font-size: 18px;
+  font-weight: 950;
+}
+.calmTaskTitle { font-size: 16px; font-weight: 960; letter-spacing: -.035em; }
+.calmTaskDesc { margin-top: 5px; color: var(--ops-muted); font-size: 12px; font-weight: 750; line-height: 1.42; }
+.calmTaskMeta { color: var(--ops-faint); font-size: 11px; font-weight: 850; }
+
+.calmModule {
+  padding: 22px;
+}
+.calmModuleHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.calmModuleTitle { margin-top: 4px; color: var(--ops-ink); font-size: 20px; font-weight: 960; letter-spacing: -.04em; }
+.calmAutomationGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.calmAutomationItem {
+  min-height: 92px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--ops-line);
+  background: #f8fafc;
+}
+.calmAutomationItem strong { display:block; font-size: 13px; color: var(--ops-ink); }
+.calmAutomationItem span { display:block; margin-top: 6px; color: var(--ops-muted); font-size: 12px; line-height: 1.45; }
+
+.calmMenuSheet {
+  padding: 18px 20px;
+}
+.calmMenuSheet > summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 950;
+  color: var(--ops-muted);
+}
+.calmMenuGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.calmMenuGrid [data-calm-go] {
+  min-height: 48px;
+  border: 1px solid var(--ops-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ops-ink);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.studentFocusPanel,
+.staffFocusPanel {
+  display: none;
+  margin: 0 0 18px;
+  padding: 22px;
+}
+body.opsFlowV3[data-current-view="students"] .studentFocusPanel,
+body.opsFlowV3[data-current-view="staff"] .staffFocusPanel {
+  display: block;
+}
+.focusPanelTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+.focusPanelTitle { margin-top: 4px; color: var(--ops-ink); font-size: 24px; font-weight: 960; letter-spacing: -.05em; }
+.focusPanelDesc { margin-top: 5px; color: var(--ops-muted); font-size: 13px; font-weight: 700; line-height: 1.5; }
+.focusPanelActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.focusPanelSearch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px;
+  gap: 10px;
+  margin-top: 18px;
+}
+.focusPanelSearch .inp { min-height: 50px; border-radius: 16px; }
+.focusPanelSearch .btn { min-height: 50px; border-radius: 16px; }
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+.statusBadge.active, .statusBadge.재원 { background: var(--ops-green-soft); color: var(--ops-green); }
+.statusBadge.pause, .statusBadge.휴원 { background: var(--ops-orange-soft); color: var(--ops-orange); }
+.statusBadge.out, .statusBadge.퇴원 { background: #f2f4f7; color: #667085; }
+.statusBadge.bad, .statusBadge.absent { background: var(--ops-red-soft); color: var(--ops-red); }
+.statusBadge.late { background: var(--ops-orange-soft); color: var(--ops-orange); }
+.statusBadge.good, .statusBadge.present { background: var(--ops-green-soft); color: var(--ops-green); }
+
+body.opsFlowV3 .listItem.studentResultCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--ops-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15,23,42,.04);
+}
+.studentResultTitle { color: var(--ops-ink); font-size: 15px; font-weight: 950; }
+.studentResultMeta { margin-top: 4px; color: var(--ops-muted); font-size: 12px; font-weight: 750; }
+.studentResultAction { display: flex; align-items: center; gap: 8px; }
+
+body.opsFlowV3 .tableWrap {
+  border: 1px solid var(--ops-line);
+  border-radius: 18px;
+  background: #fff;
+  overflow: auto;
+}
+body.opsFlowV3 .table {
+  min-width: 780px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+body.opsFlowV3 .table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+body.opsFlowV3 .table td {
+  vertical-align: middle;
+  white-space: nowrap;
+}
+body.opsFlowV3 .table td.wrap,
+body.opsFlowV3 .table .wrap {
+  white-space: normal;
+}
+
+body.opsFlowV3 #clinic .btnRow,
+body.opsFlowV3 #words .btnRow,
+body.opsFlowV3 #classes .btnRow,
+body.opsFlowV3 #messages .btnRow,
+body.opsFlowV3 #reports .btnRow {
+  position: sticky;
+  top: 14px;
+  z-index: 8;
+  padding: 10px;
+  border: 1px solid rgba(229,231,235,.82);
+  border-radius: 18px;
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 28px rgba(15,23,42,.06);
+}
+
+body.opsFlowV3 #messages .cardPad,
+body.opsFlowV3 #reports .cardPad {
+  min-height: 260px;
+}
+body.opsFlowV3 #reportPreviewBox,
+body.opsFlowV3 #reportParentTextBox,
+body.opsFlowV3 #messagePreviewBox {
+  border-radius: 18px;
+  background: #f8fafc;
+}
+
+body.opsFlowV3[data-user-role="assistant"] #btnCentralSaveStaff,
+body.opsFlowV3[data-user-role="assistant"] #btnCentralToggleStaff,
+body.opsFlowV3[data-user-role="assistant"] #btnCentralResetStaffSecret,
+body.opsFlowV3[data-user-role="teacher"] #btnCentralSaveStaff,
+body.opsFlowV3[data-user-role="teacher"] #btnCentralToggleStaff,
+body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
+  display: none !important;
+}
+
+@media (max-width: 1180px) {
+  .calmHero { grid-template-columns: 1fr; }
+  .calmTaskGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .calmAutomationGrid, .calmMenuGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  body.opsFlowV3 .shell { grid-template-columns: 1fr; }
+  body.opsFlowV3 .side { position: static; height: auto; }
+  body.opsFlowV3 .main { padding: 20px 16px 42px; }
+  .calmTaskGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .focusPanelTop { grid-template-columns: 1fr; }
+  .focusPanelActions { justify-content: flex-start; }
+}
+@media (max-width: 620px) {
+  .calmHeroMain, .calmTodayPanel, .calmModule, .calmMenuSheet, .studentFocusPanel, .staffFocusPanel { border-radius: 22px; padding: 18px; }
+  .calmSearchBlock, .focusPanelSearch { grid-template-columns: 1fr; }
+  .calmAutocomplete { right: 0; top: 124px; }
+  .calmStatusGrid, .calmTaskGrid, .calmAutomationGrid, .calmMenuGrid { grid-template-columns: 1fr; }
+}
+
 </style>
 </head>
 <body>
@@ -3297,6 +3934,111 @@
 </div>
 </div>
 
+
+
+
+<div class="calmOpsShell" id="calmOpsShell" aria-label="쉬운 운영 홈">
+  <div class="calmHero">
+    <section class="calmHeroMain">
+      <div class="calmHeroLabel">THE OREUM OPERATIONS</div>
+      <h2>학생 이름을 먼저 찾고, 필요한 일만 처리하세요.</h2>
+      <p>처음 쓰는 직원도 메뉴를 외우지 않도록 홈을 검색 중심으로 바꿨습니다. 학생을 선택하면 출결, 번호 설정, 클리닉, 단어, 온라인강의 작업이 자동으로 이어집니다.</p>
+      <div class="calmSearchBlock" role="search">
+        <input id="calmStudentQuery" autocomplete="off" placeholder="학생 이름 · 학번 · 휴대폰 뒤 4자리" aria-label="학생 검색" />
+        <span class="calmSearchButton" id="btnCalmStudentSearch" role="button" tabindex="0">찾기</span>
+        <div class="calmAutocomplete hidden" id="calmStudentAutocomplete" aria-label="학생 자동완성"></div>
+      </div>
+    </section>
+    <aside class="calmTodayPanel">
+      <div class="calmPanelHead">
+        <div>
+          <div class="calmHeroLabel">TODAY</div>
+          <div class="calmPanelTitle">오늘 확인할 것</div>
+        </div>
+        <span class="calmRefreshMini" id="btnCalmRefresh" role="button" tabindex="0">새로고침</span>
+      </div>
+      <div class="calmStatusGrid">
+        <div class="calmStat hot"><div class="calmStatValue" id="calmAbsentCount">-</div><div class="calmStatLabel">미등원/연락 필요</div><div class="calmStatNote">오늘 업무판 기준</div></div>
+        <div class="calmStat warn"><div class="calmStatValue" id="calmMessageCount">-</div><div class="calmStatLabel">알림 실패</div><div class="calmStatNote">재처리 대상</div></div>
+        <div class="calmStat blue"><div class="calmStatValue" id="calmClinicCount">-</div><div class="calmStatLabel">클리닉 대기</div><div class="calmStatNote">오늘 처리</div></div>
+        <div class="calmStat good"><div class="calmStatValue" id="calmSystemState">OK</div><div class="calmStatLabel">시스템 상태</div><div class="calmStatNote" id="calmSystemNote">점검 준비</div></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="calmTaskGrid" aria-label="핵심 업무">
+    <div class="calmTaskCard primary" data-calm-action="absence" role="button" tabindex="0">
+      <span class="calmTaskIcon">1</span><span><span class="calmTaskTitle">미등원 확인</span><span class="calmTaskDesc">안 온 학생과 연락 실패만 먼저 봅니다.</span></span><span class="calmTaskMeta">오늘 가장 먼저</span>
+    </div>
+    <div class="calmTaskCard blue" data-calm-action="studentPhone" role="button" tabindex="0">
+      <span class="calmTaskIcon">2</span><span><span class="calmTaskTitle">학생 번호 설정</span><span class="calmTaskDesc">학생 번호가 없으면 학부모 번호로 자동 fallback.</span></span><span class="calmTaskMeta">학생 선택 후 처리</span>
+    </div>
+    <div class="calmTaskCard warn" data-calm-action="wordBulk" role="button" tabindex="0">
+      <span class="calmTaskIcon">3</span><span><span class="calmTaskTitle">단어 채점</span><span class="calmTaskDesc">회차 선택 후 맞은 개수만 일괄 입력합니다.</span></span><span class="calmTaskMeta">불통과 자동 후보</span>
+    </div>
+    <div class="calmTaskCard good" data-calm-action="clinic" role="button" tabindex="0">
+      <span class="calmTaskIcon">4</span><span><span class="calmTaskTitle">클리닉 처리</span><span class="calmTaskDesc">오늘 할 일과 미완료만 모아서 봅니다.</span></span><span class="calmTaskMeta">완료/미완료</span>
+    </div>
+    <div class="calmTaskCard" data-calm-action="staffPhone" role="button" tabindex="0">
+      <span class="calmTaskIcon">5</span><span><span class="calmTaskTitle">직원 번호 설정</span><span class="calmTaskDesc">기존 계정에 휴대폰만 붙이고 권한은 유지합니다.</span></span><span class="calmTaskMeta">휴대폰만 저장</span>
+    </div>
+  </section>
+
+  <section class="calmModule">
+    <div class="calmModuleHead">
+      <div><div class="calmModuleLabel">AUTOMATION</div><div class="calmModuleTitle">버튼을 줄이기 위해 자동으로 처리되는 것</div></div>
+      <span class="btn btnGhost" id="btnCalmOpenCommand" role="button" tabindex="0">전체 기능 검색</span>
+    </div>
+    <div class="calmAutomationGrid">
+      <div class="calmAutomationItem"><strong>학생 선택 자동 연결</strong><span>검색 결과를 누르면 학생360, 출결 정정, 클리닉, 단어 입력 대상이 함께 지정됩니다.</span></div>
+      <div class="calmAutomationItem"><strong>학부모 번호 출결</strong><span>학생 번호가 없을 때 학부모 번호를 출결 번호로 쓸 수 있고, 중복이면 막습니다.</span></div>
+      <div class="calmAutomationItem"><strong>단어 불통과 처리</strong><span>맞은 개수만 입력하면 통과 기준과 클리닉 후보 연결을 시스템이 계산합니다.</span></div>
+      <div class="calmAutomationItem"><strong>QA 패키지 자동 생성</strong><span>문제 발생 시 화면, DOM, 소스 스냅샷을 한 번에 묶어 검토합니다.</span></div>
+    </div>
+  </section>
+
+  <details class="calmMenuSheet">
+    <summary>전체 관리 메뉴 열기</summary>
+    <div class="calmMenuGrid">
+      <span role="button" tabindex="0" data-calm-go="students">학생 관리</span>
+      <span role="button" tabindex="0" data-calm-go="attendance">출결 확인</span>
+      <span role="button" tabindex="0" data-calm-go="clinic">클리닉</span>
+      <span role="button" tabindex="0" data-calm-go="words">단어시험</span>
+      <span role="button" tabindex="0" data-calm-go="messages">문자/알림</span>
+      <span role="button" tabindex="0" data-calm-go="classes">반 관리</span>
+      <span role="button" tabindex="0" data-calm-go="reports">리포트</span>
+      <span role="button" tabindex="0" data-calm-go="staff">직원 관리</span>
+      <span role="button" tabindex="0" data-calm-go="advanced">설정/점검</span>
+    </div>
+  </details>
+</div>
+
+<div class="studentFocusPanel" id="studentFocusPanel" aria-label="학생 관리 빠른 작업">
+  <div class="focusPanelTop">
+    <div><div class="focusPanelLabel">STUDENT WORKSPACE</div><div class="focusPanelTitle">학생을 찾으면 필요한 작업이 자동 연결됩니다.</div><div class="focusPanelDesc">이름 검색 → 학생 선택 → 출결번호/클리닉/단어/온라인강의가 한 학생 기준으로 이어집니다.</div></div>
+    <div class="focusPanelActions">
+      <span class="btn btnPri" id="btnStudentFocusPhone" role="button" tabindex="0">출결번호 설정</span>
+      <span class="btn btnGhost" id="btnStudentFocusLink" role="button" tabindex="0">학생 링크</span>
+      <span class="btn btnGhost" id="btnStudentFocusClinic" role="button" tabindex="0">클리닉</span>
+      <span class="btn btnGhost" id="btnStudentFocusWord" role="button" tabindex="0">단어</span>
+    </div>
+  </div>
+  <div class="focusPanelSearch">
+    <input class="inp" id="studentFocusQuery" autocomplete="off" placeholder="학생 이름 또는 학번" />
+    <span class="btn btnPri" id="btnStudentFocusSearch" role="button" tabindex="0">검색</span>
+  </div>
+</div>
+
+<div class="staffFocusPanel" id="staffFocusPanel" aria-label="직원 관리 빠른 작업">
+  <div class="focusPanelTop">
+    <div><div class="focusPanelLabel">STAFF WORKSPACE</div><div class="focusPanelTitle">기존 직원 계정은 휴대폰만 붙이면 됩니다.</div><div class="focusPanelDesc">직원 목록 조회 → 직원 선택 → 휴대폰 입력 → 휴대폰만 저장. 비밀번호, PIN, 권한은 건드리지 않습니다.</div></div>
+    <div class="focusPanelActions">
+      <span class="btn btnPri" id="btnStaffFocusLoad" role="button" tabindex="0">직원 목록 조회</span>
+      <span class="btn btnGhost" id="btnStaffFocusPhoneOnly" role="button" tabindex="0">휴대폰만 저장</span>
+      <span class="btn btnGhost" id="btnStaffFocusAudit" role="button" tabindex="0">휴대폰 점검</span>
+    </div>
+  </div>
+</div>
 
 <div class="operatorHome" id="operatorHome">
   <div class="cleanHero">
@@ -5745,6 +6487,8 @@
         el.classList.toggle('roleHidden', !isAdmin);
       });
       const roleText = $('#whoText');
+      const role = String(App.me?.role || App.me?.staff_role || 'assistant').toLowerCase();
+      document.body.dataset.userRole = role;
       if (roleText && App.me) roleText.title = isAdmin ? '관리자 작업 가능' : '현장 작업 중심 권한';
     }
 
@@ -5902,8 +6646,10 @@
 
       $$('.portalView').forEach(x => x.classList.toggle('active', x.id === viewId));
       App.currentView = viewId;
+      document.body.dataset.currentView = viewId;
       setActiveNav(viewId);
       updatePageHeader(view);
+      updateCalmOpsSummary();
 
       if (options.updateHash !== false) {
         const nextHash = '#' + viewId;
@@ -7102,25 +7848,39 @@
     }
 
 
+    function studentStatusClass(status) {
+      const s = String(status || '').trim();
+      if (/재원|active|enrolled/i.test(s)) return 'active';
+      if (/휴원|pause|hold/i.test(s)) return 'pause';
+      if (/퇴원|inactive|out|disabled/i.test(s)) return 'out';
+      return 'active';
+    }
+
     function renderStudents(items) {
       const box = $('#studentResults');
+      if (!box) return;
       if (!items.length) {
-        box.innerHTML = '<div class="sectionDesc">검색 결과가 없습니다.</div>';
+        box.innerHTML = '<div class="emptyPanel"><h3>검색 결과가 없습니다.</h3><p>이름을 두 글자 이상 입력하거나 학번으로 다시 검색하세요.</p></div>';
         return;
       }
 
       box.innerHTML = items.map(item => {
         const sid = normalizeSid(item.student_id);
-        const label = `${sid} · ${item.student_name || ''} · ${item.school || ''} ${item.grade || ''} · ${item.status || ''}`;
+        const status = String(item.status || '재원');
+        const statusCls = studentStatusClass(status);
+        const meta = [item.school || '', item.grade || '', item.teacher || item.teacher_name || ''].filter(Boolean).join(' · ') || '상세 정보 없음';
         return `
-          <button class="listItem" type="button"
+          <button class="listItem studentResultCard" type="button"
             data-sid="${esc(sid)}"
             data-name="${esc(item.student_name || '')}"
             data-school="${esc(item.school || '')}"
             data-grade="${esc(item.grade || '')}"
-            data-status="${esc(item.status || '')}">
-            <span>${esc(label)}</span>
-            <strong>선택</strong>
+            data-status="${esc(status)}">
+            <span>
+              <span class="studentResultTitle">${esc(item.student_name || '이름 없음')}</span>
+              <span class="studentResultMeta">${esc(sid)} · ${esc(meta)}</span>
+            </span>
+            <span class="studentResultAction"><span class="statusBadge ${esc(statusCls)}">${esc(status || '재원')}</span><strong>선택</strong></span>
           </button>
         `;
       }).join('');
@@ -9930,7 +10690,182 @@
       showToast('네트워크가 불안정합니다.');
     });
 
+
+
+    function asCountText(value, fallback = '-') {
+      if (value == null || value === '') return fallback;
+      const n = Number(value);
+      if (Number.isFinite(n)) return String(n);
+      return String(value);
+    }
+
+    function updateCalmOpsSummary() {
+      const read = id => {
+        const el = document.getElementById(id);
+        return el ? String(el.textContent || '').trim() : '-';
+      };
+      const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      };
+      set('calmAbsentCount', asCountText(read('dailyAbsenceCount') || read('statFailedAbsent')));
+      set('calmMessageCount', asCountText(read('dailyMessageCount') || read('statFailedAttendance')));
+      set('calmClinicCount', asCountText(read('dailyClinicCount')));
+      set('calmSystemState', read('statSafe') && read('statSafe') !== '-' ? read('statSafe') : 'OK');
+      const note = document.getElementById('calmSystemNote');
+      if (note) note.textContent = read('statSafeNote') || '정상 대기';
+    }
+
+    function runCalmAction(action) {
+      if (action === 'absence') {
+        jumpTo('attendance');
+        const ymd = document.getElementById('todayAbsenceYmd');
+        if (ymd && !ymd.value) ymd.value = kstYmd(new Date());
+        loadTodayAbsenceBoard().catch(() => {});
+        return;
+      }
+      if (action === 'studentPhone') {
+        jumpTo('students');
+        const input = document.getElementById('studentFocusQuery') || document.getElementById('studentQuery');
+        if (input) setTimeout(() => input.focus(), 120);
+        showToast('학생을 선택한 뒤 학생번호 비우고 학부모번호로 출결 버튼을 사용할 수 있습니다.');
+        return;
+      }
+      if (action === 'wordBulk') {
+        jumpTo('words');
+        const ymd = document.getElementById('wordSessionYmd');
+        if (ymd && !ymd.value) ymd.value = kstYmd(new Date());
+        listWordSessions().catch(() => {});
+        return;
+      }
+      if (action === 'clinic') {
+        jumpTo('clinic');
+        loadTodayClinicTasks().catch(() => {});
+        return;
+      }
+      if (action === 'staffPhone') {
+        jumpTo('staff');
+        loadCentralStaff().catch(() => {});
+        const phone = document.getElementById('centralStaffPhone');
+        if (phone) setTimeout(() => phone.focus(), 220);
+        return;
+      }
+    }
+
+    function renderCalmAutocomplete(items) {
+      const box = document.getElementById('calmStudentAutocomplete');
+      if (!box) return;
+      if (!items || !items.length) {
+        box.innerHTML = '<div class="calmAutoItem"><span><span class="calmAutoName">검색 결과 없음</span><span class="calmAutoMeta">이름 두 글자 이상 또는 학번으로 검색하세요.</span></span></div>';
+        box.classList.remove('hidden');
+        return;
+      }
+      box.innerHTML = items.slice(0, 8).map(item => {
+        const sid = normalizeSid(item.student_id);
+        const meta = [sid, item.school || '', item.grade || '', item.status || '재원'].filter(Boolean).join(' · ');
+        return `<button class="calmAutoItem" type="button" data-calm-sid="${esc(sid)}" data-calm-name="${esc(item.student_name || '')}" data-calm-school="${esc(item.school || '')}" data-calm-grade="${esc(item.grade || '')}" data-calm-status="${esc(item.status || '')}"><span><span class="calmAutoName">${esc(item.student_name || '이름 없음')}</span><span class="calmAutoMeta">${esc(meta)}</span></span><span class="calmAutoAction">선택</span></button>`;
+      }).join('');
+      box.classList.remove('hidden');
+      box.querySelectorAll('[data-calm-sid]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectStudent({
+            student_id: btn.dataset.calmSid || '',
+            student_name: btn.dataset.calmName || '',
+            school: btn.dataset.calmSchool || '',
+            grade: btn.dataset.calmGrade || '',
+            status: btn.dataset.calmStatus || ''
+          });
+          box.classList.add('hidden');
+          const query = document.getElementById('calmStudentQuery');
+          if (query) query.value = btn.dataset.calmName || btn.dataset.calmSid || '';
+          jumpTo('students');
+        });
+      });
+    }
+
+    async function calmStudentSearch() {
+      const query = document.getElementById('calmStudentQuery');
+      const q = String(query?.value || '').trim();
+      const box = document.getElementById('calmStudentAutocomplete');
+      if (q.length < 2 && !/^\d{1,4}$/.test(q)) {
+        if (box) {
+          box.innerHTML = '<div class="calmAutoItem"><span><span class="calmAutoName">두 글자 이상 입력</span><span class="calmAutoMeta">예: QA학생, 0996</span></span></div>';
+          box.classList.remove('hidden');
+        }
+        return;
+      }
+      const r = await rpc('assistant.searchStudents', { q, limit: 8 });
+      if (!r.ok) {
+        if (box) {
+          box.innerHTML = '<div class="calmAutoItem"><span><span class="calmAutoName">검색 실패</span><span class="calmAutoMeta">' + esc(r.error?.message || '다시 시도하세요.') + '</span></span></div>';
+          box.classList.remove('hidden');
+        }
+        return;
+      }
+      renderCalmAutocomplete(r.data && Array.isArray(r.data.items) ? r.data.items : []);
+    }
+
+    function mirrorStudentFocusSearch() {
+      const focus = document.getElementById('studentFocusQuery');
+      const normal = document.getElementById('studentQuery');
+      if (focus && normal) normal.value = focus.value || '';
+      searchStudentsNow();
+    }
+
+    function initCalmOpsV3() {
+      document.body.classList.add('opsFlowV3');
+      document.body.dataset.currentView = App.currentView || getHashView() || 'dashboard';
+      updateCalmOpsSummary();
+
+      const q = document.getElementById('calmStudentQuery');
+      if (q) {
+        q.addEventListener('input', () => {
+          clearTimeout(initCalmOpsV3._searchTimer);
+          initCalmOpsV3._searchTimer = setTimeout(calmStudentSearch, 220);
+        });
+        q.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); calmStudentSearch(); }
+          if (e.key === 'Escape') document.getElementById('calmStudentAutocomplete')?.classList.add('hidden');
+        });
+      }
+      bindClick('btnCalmStudentSearch', calmStudentSearch);
+      bindClick('btnCalmRefresh', () => { loadOverview(); loadTodayAbsenceBoard({ silent: true }).catch(() => {}); updateCalmOpsSummary(); });
+      bindClick('btnCalmOpenCommand', () => openCommandPalette());
+      document.querySelectorAll('[data-calm-action]').forEach(btn => btn.addEventListener('click', () => runCalmAction(btn.dataset.calmAction || '')));
+      document.querySelectorAll('[data-calm-go]').forEach(btn => btn.addEventListener('click', () => jumpTo(btn.dataset.calmGo || 'dashboard')));
+      document.querySelectorAll('[role="button"][tabindex="0"]').forEach(el => {
+        if (el.dataset.keyBound === 'Y') return;
+        el.dataset.keyBound = 'Y';
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            el.click();
+          }
+        });
+      });
+
+      bindClick('btnStudentFocusSearch', mirrorStudentFocusSearch);
+      const sfq = document.getElementById('studentFocusQuery');
+      if (sfq) sfq.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); mirrorStudentFocusSearch(); } });
+      bindClick('btnStudentFocusPhone', () => { jumpTo('students'); document.getElementById('masterStudentPhone')?.focus(); });
+      bindClick('btnStudentFocusLink', () => { jumpTo('students'); createStudentTodayLink().catch(() => {}); });
+      bindClick('btnStudentFocusClinic', () => quickStudentClinicView());
+      bindClick('btnStudentFocusWord', () => quickStudentWordInput());
+      bindClick('btnStaffFocusLoad', () => loadCentralStaff());
+      bindClick('btnStaffFocusPhoneOnly', () => saveCentralStaffPhoneOnly());
+      bindClick('btnStaffFocusAudit', () => { jumpTo('advanced'); loadPhoneIdentityAudit().catch(() => {}); });
+
+      document.addEventListener('click', e => {
+        const ac = document.getElementById('calmStudentAutocomplete');
+        if (!ac) return;
+        if (!e.target.closest('#calmStudentAutocomplete') && !e.target.closest('#calmStudentQuery') && !e.target.closest('#btnCalmStudentSearch')) {
+          ac.classList.add('hidden');
+        }
+      });
+    }
+
     bindEvents();
+    initCalmOpsV3();
     setUiMode(App.uiMode, { silent: true });
     checkMe();
   </script>

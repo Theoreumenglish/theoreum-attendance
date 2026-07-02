@@ -62,7 +62,8 @@ const requiredFiles = [
   'scripts/production-deep-click-qa.mjs',
   'scripts/run-production-deep-click-qa.ps1',
   'docs/PRODUCTION_DEEP_CLICK_QA_V1.md',
-  'docs/UI_UX_CLEAN_OPERATOR_MODE_V2.md'
+  'docs/UI_UX_CLEAN_OPERATOR_MODE_V2.md',
+  'docs/UI_UX_SAAS_OPERATION_REWRITE_V3.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -324,16 +325,28 @@ checkText('scripts/production-deep-click-qa.mjs', 'SOURCE_SNAPSHOT_MANIFEST.json
 checkText('scripts/production-deep-click-qa.mjs', 'Source included files', 'deep QA source snapshot report stats');
 checkText('docs/DEEP_QA_SOURCE_SNAPSHOT_SANITIZE_V1.md', 'deep-qa-source-snapshot-sanitize-v1', 'deep QA source snapshot sanitize 문서');
 
+checkText('public/admin.html', 'opsFlowV3', 'SaaS형 공통 디자인 시스템');
+checkText('public/admin.html', 'calmOpsShell', '검색 중심 운영 홈 shell');
+checkText('public/admin.html', 'calmStudentAutocomplete', '학생 자동완성 드롭다운');
+checkText('public/admin.html', 'studentResultCard', '학생 검색 결과 카드 UI');
+checkText('public/admin.html', 'statusBadge', '학생 상태 뱃지 UI');
+checkText('public/admin.html', 'studentFocusPanel', '학생 집중 업무 패널');
+checkText('public/admin.html', 'staffFocusPanel', '직원 휴대폰 업무 패널');
+checkText('public/admin.html', "dataset.userRole", '역할 기반 UI 상태값');
+checkText('index.html', 'kioskModernV3', '키오스크 중앙 정렬 모던 UI');
+checkText('index.html', 'touchPad', '키오스크 터치 번호패드');
+checkText('student-today.html', 'studentMobileV3', '학생/학부모 모바일 우선 UI');
+checkText('docs/UI_UX_SAAS_OPERATION_REWRITE_V3.md', 'search-first', 'SaaS 운영 UI/UX 전면 개편 문서');
+
+
+checkText('api/rpc.js', "op === 'admin.central.staff.phoneOnly'", '기존 직원 계정 휴대폰만 저장 API');
+checkText('public/admin.html', 'btnCentralSaveStaffPhoneOnly', '기존 직원 계정 휴대폰만 저장 UI');
+checkText('api/kiosk-mark.js', 'parent_phone_fallback', '학생 번호 없음 시 학부모 번호 출결 fallback');
+checkText('docs/PARENT_PHONE_ATTENDANCE_FALLBACK_V1.md', 'parent_phone_fallback', '학부모 번호 출결 fallback 문서');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);
   process.exit(1);
 }
 
-
 console.log('\nOperational checklist passed.');
-
-checkText('api/rpc.js', "op === 'admin.central.staff.phoneOnly'", '기존 직원 계정 휴대폰만 저장 API');
-checkText('public/admin.html', 'btnCentralSaveStaffPhoneOnly', '기존 직원 계정 휴대폰만 저장 UI');
-checkText('api/kiosk-mark.js', 'parent_phone_fallback', '학생 번호 없음 시 학부모 번호 출결 fallback');
-checkText('docs/PARENT_PHONE_ATTENDANCE_FALLBACK_V1.md', 'parent_phone_fallback', '학부모 번호 출결 fallback 문서');

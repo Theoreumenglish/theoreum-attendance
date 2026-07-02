@@ -33,9 +33,32 @@
     @keyframes pulse{0%{background-position:0% 0}100%{background-position:180% 0}}
     a{color:var(--pri)}
     @media(max-width:640px){.summary{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.value{font-size:24px}.wrap{padding:14px 12px 36px}.hero{border-radius:20px}.heroTop{display:block}.refreshBtn{margin-top:12px;width:100%}}
+
+
+    /* Student public mobile-first v3 */
+    body.studentMobileV3{background:#f6f8fb}
+    body.studentMobileV3 .wrap{max-width:680px;padding:14px 12px 42px}
+    body.studentMobileV3 .hero{border-radius:28px;padding:22px;background:linear-gradient(135deg,#111827,#1d4ed8);box-shadow:0 24px 54px rgba(37,99,235,.22)}
+    body.studentMobileV3 h1{font-size:clamp(25px,7vw,34px);line-height:1.12;letter-spacing:-.055em}
+    body.studentMobileV3 .hero p{font-size:14px;line-height:1.65}
+    body.studentMobileV3 .summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+    body.studentMobileV3 .summaryBox{min-height:94px;border-radius:20px;padding:14px;background:rgba(255,255,255,.13)}
+    body.studentMobileV3 .summaryNum{font-size:clamp(26px,8vw,38px);line-height:1;font-weight:1000}
+    body.studentMobileV3 .summaryLabel{margin-top:8px;font-size:12px;font-weight:900}
+    body.studentMobileV3 .card{border-radius:24px;padding:18px;margin-top:14px;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+    body.studentMobileV3 .cardHead{align-items:flex-start}
+    body.studentMobileV3 .label{font-size:15px;letter-spacing:-.02em}
+    body.studentMobileV3 .value{font-size:clamp(30px,9vw,42px);line-height:1.08}
+    body.studentMobileV3 .item{padding:15px 0}
+    body.studentMobileV3 .title{font-size:16px;line-height:1.35}
+    body.studentMobileV3 .desc{font-size:14px;line-height:1.62}
+    body.studentMobileV3 .cta{width:100%;min-height:46px;border-radius:16px;margin-top:12px}
+    body.studentMobileV3 .refreshBtn{min-height:42px;border-radius:14px}
+    @media(max-width:420px){body.studentMobileV3 .heroTop{display:block}body.studentMobileV3 .refreshBtn{width:100%;margin-top:14px}.summary{grid-template-columns:1fr 1fr!important}}
+
   </style>
 </head>
-<body data-qa-state="boot">
+<body class="studentMobileV3" data-qa-state="boot">
   <main class="wrap" id="studentTodayRoot" data-qa-state="boot">
     <section class="hero">
       <div class="heroTop">
