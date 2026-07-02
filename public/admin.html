@@ -2845,6 +2845,11 @@
     }
     .wordBulkHiddenByFilter { display: none; }
 
+
+.studentSearchBar{display:grid; grid-template-columns:minmax(0,1fr) 132px; gap:10px; align-items:center;}
+.studentSearchBar .btn{height:44px; justify-content:center;}
+@media (max-width:720px){.studentSearchBar{grid-template-columns:1fr;}.studentSearchBar .btn{width:100%;}}
+
 </style>
 </head>
 <body>
@@ -3279,9 +3284,11 @@
 <div class="card cardPad">
 <div class="sectionTitle">학생 검색</div>
 <div class="sectionDesc">이름 또는 학번으로 검색합니다. 선택한 학생은 출결 수동 정정과 Student 360 Profile에 자동 반영됩니다.</div>
-<div style="margin-top:16px;">
+<div class="studentSearchBar" style="margin-top:16px;">
 <input autocomplete="off" class="inp" id="studentQuery" placeholder="학생 이름 또는 학번"/>
+<button class="btn btnPri" id="btnStudentSearchNow" type="button">학생 찾기</button>
 </div>
+<div class="fieldHint">두 글자 이상 또는 학번을 입력한 뒤 Enter/학생 찾기로 바로 검색합니다.</div>
 <div class="tag tagGood hidden" id="selectedStudent" style="margin-top:14px;"></div>
 <div class="list" id="studentResults" style="margin-top:16px;">
 <div class="smallText">검색어를 입력하세요.</div>
@@ -9080,6 +9087,7 @@
       bindClick('btnPhoneIdentityAudit', loadPhoneIdentityAudit);
       bindClick('btnCopyPhoneIdentityIssues', copyPhoneIdentityIssues);
       bindClick('btnQuickStudentSearch', quickStudentSearch);
+      bindClick('btnStudentSearchNow', searchStudentsNow);
       bindClick('btnPulseCheck', runTodayPulse);
       bindClick('btnCommandPulse', runTodayPulse);
       bindClick('btnQuickFailedAbsent', openFailedAbsentQueue);
@@ -9117,7 +9125,15 @@
       });
 
       const studentQuery = $('#studentQuery');
-      if (studentQuery) studentQuery.addEventListener('input', scheduleStudentSearch);
+      if (studentQuery) {
+        studentQuery.addEventListener('input', scheduleStudentSearch);
+        studentQuery.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            searchStudentsNow();
+          }
+        });
+      }
 
       const todayAbsenceYmdInput = $('#todayAbsenceYmd');
       if (todayAbsenceYmdInput) {

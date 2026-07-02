@@ -256,14 +256,39 @@ async function waitQuiet(ms = 400) {
   await page.waitForTimeout(ms);
 }
 
+async function bringIntoView(locator) {
+  try {
+    if (await locator.count()) {
+      await locator.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'center' }));
+      await page.waitForTimeout(120);
+    }
+  } catch {}
+}
+
 async function clickIfExists(selector, label, timeout = 3500) {
   const loc = page.locator(selector).first();
   try {
+    await bringIntoView(loc);
     await loc.waitFor({ state: 'visible', timeout });
     await loc.click();
     ok(label || `click ${selector}`);
     return true;
   } catch {
+    try {
+      const clicked = await page.evaluate(sel => {
+        const el = document.querySelector(sel);
+        if (!el) return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        el.scrollIntoView({ block: 'center', inline: 'center' });
+        el.click();
+        return true;
+      }, selector);
+      if (clicked) {
+        ok(label || `click ${selector}`, 'clicked after scroll');
+        return true;
+      }
+    } catch {}
     warn(label || `click ${selector}`, `not visible: ${selector}`);
     return false;
   }
@@ -272,6 +297,7 @@ async function clickIfExists(selector, label, timeout = 3500) {
 async function fillIfExists(selector, value, label, timeout = 3500) {
   const loc = page.locator(selector).first();
   try {
+    await bringIntoView(loc);
     await loc.waitFor({ state: 'visible', timeout });
     await loc.fill(String(value || ''));
     ok(label || `fill ${selector}`);
@@ -544,7 +570,8 @@ async function run() {
   await step('student search and link area UI', async () => {
     await clickNav('students');
     await fillIfExists('#studentQuery', qaStudentQuery, 'student query', 5000);
-    await clickIfExists('#btnMasterStudentSearch', 'student search button', 5000);
+    const clickedTopSearch = await clickIfExists('#btnStudentSearchNow', 'student search button', 5000);
+    if (!clickedTopSearch) await page.keyboard.press('Enter').catch(() => {});
     await waitQuiet(2500);
     const body = await page.locator('body').innerText({ timeout: 3000 });
     if (!body.includes('학생 오늘 링크') || !body.includes('온라인강의 배정')) {

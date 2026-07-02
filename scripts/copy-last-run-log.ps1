@@ -11,6 +11,7 @@ $SqlGatePath = Join-Path $LogDir "LAST_SQL_GATE_TO_SEND.txt"
 $SqlApplyPath = Join-Path $LogDir "LAST_SQL_TO_APPLY.txt"
 $SmokePath = Join-Path $LogDir "LAST_SMOKE_TO_SEND.txt"
 $DeepQaPath = Join-Path $LogDir "PRODUCTION_DEEP_QA_TO_SEND.txt"
+$DeepQaBundlePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_BUNDLE.zip"
 $LastRunPath = Join-Path $LogDir "LAST_RUN.log"
 $SuccessPath = Join-Path $LogDir "LAST_SUCCESS_SUMMARY.txt"
 
@@ -51,6 +52,10 @@ try {
   Set-Clipboard -Value $Text
   Write-Host "Copied to clipboard:" -ForegroundColor Green
   Write-Host $Target -ForegroundColor Yellow
+  if ($Target -eq $DeepQaPath -and (Test-Path $DeepQaBundlePath)) {
+    Write-Host "Deep QA screenshot bundle to attach if needed:" -ForegroundColor Green
+    Write-Host $DeepQaBundlePath -ForegroundColor Yellow
+  }
 } catch {
   Write-Host "Could not copy to clipboard. Open this file manually:" -ForegroundColor Yellow
   Write-Host $Target -ForegroundColor Yellow

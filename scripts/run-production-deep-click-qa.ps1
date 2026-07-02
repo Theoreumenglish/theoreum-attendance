@@ -66,6 +66,22 @@ if (Test-Path $LastDirPath) {
   $LastDir = (Get-Content $LastDirPath -Raw).Trim()
   if ($LastDir -and (Test-Path $LastDir)) {
     try {
+      $CopyPathForBundle = Join-Path $LogDir "PRODUCTION_DEEP_QA_TO_SEND.txt"
+      $ReportPathForBundle = Join-Path $LogDir "PRODUCTION_DEEP_QA_REPORT.md"
+      $RawPathForBundle = Join-Path $LogDir "PRODUCTION_DEEP_QA_RAW.json"
+      if (Test-Path $CopyPathForBundle) { Copy-Item $CopyPathForBundle -Destination (Join-Path $LastDir "PRODUCTION_DEEP_QA_TO_SEND.txt") -Force }
+      if (Test-Path $ReportPathForBundle) { Copy-Item $ReportPathForBundle -Destination (Join-Path $LastDir "PRODUCTION_DEEP_QA_REPORT.md") -Force }
+      if (Test-Path $RawPathForBundle) { Copy-Item $RawPathForBundle -Destination (Join-Path $LastDir "PRODUCTION_DEEP_QA_RAW.json") -Force }
+      $IndexPath = Join-Path $LastDir "README_SCREENSHOTS.txt"
+      $IndexText = @(
+        "TheOreum Production Deep QA screenshot bundle",
+        "Generated: $(Get-Date -Format o)",
+        "Base URL: $($env:QA_BASE_URL)",
+        "",
+        "Open PRODUCTION_DEEP_QA_TO_SEND.txt first.",
+        "PNG files are the captured screens. *_dom.json files are DOM audits for debugging."
+      ) -join "`r`n"
+      Set-Content -Path $IndexPath -Value $IndexText -Encoding UTF8
       Compress-Archive -Path (Join-Path $LastDir "*") -DestinationPath $BundlePath -Force
       Write-Host "Deep QA screenshot bundle:" -ForegroundColor Green
       Write-Host $BundlePath -ForegroundColor Yellow

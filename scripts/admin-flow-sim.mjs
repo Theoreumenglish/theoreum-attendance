@@ -21,7 +21,7 @@ function requireFunction(label, name, snippets = []) {
 }
 
 requireIds('로그인', ['loginId', 'loginPw', 'btnLogin']);
-requireIds('학생 검색', ['quickStudentQuery', 'btnQuickStudentSearch', 'studentQuery', 'studentResults']);
+requireIds('학생 검색', ['quickStudentQuery', 'btnQuickStudentSearch', 'studentQuery', 'btnStudentSearchNow', 'studentResults']);
 requireFunction('학생 검색', 'quickStudentSearch', ['jumpTo(\'students\')', 'searchStudentsNow']);
 
 requireIds('선택 학생 출결 흐름', ['btnQuickStudentLogs', 'btnStudentLogsOneClick', 'logYmd', 'logSidFilter', 'btnLoadLogs']);

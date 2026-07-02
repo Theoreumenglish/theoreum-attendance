@@ -59,7 +59,7 @@ else {
 
 const thresholds = {
   dashboard: 4,
-  students: 5,
+  students: 6,
   attendance: 3,
   clinic: 5,
   words: 6,
@@ -94,8 +94,8 @@ if (!html.includes('학부모 전달 문구')) fail('리포트에 학부모 전�
 else ok('리포트 문구가 학부모 전달용으로 정리됐습니다.');
 
 const totalButtons = count(/<button\b/g, markupHtml);
-if (totalButtons > 96) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
-else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다. 학생 오늘 링크 버튼 추가로 허용 상한을 96개로 조정했습니다.`);
+if (totalButtons > 97) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
+else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다. 학생 검색 명시 버튼 추가로 허용 상한을 97개로 조정했습니다.`);
 
 if (failed > 0) {
   console.error('');

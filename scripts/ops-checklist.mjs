@@ -287,6 +287,11 @@ checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_TO_SEND.txt', 'co
 checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'production-deep-click-qa-v1', 'production deep click QA 문서');
 checkText('docs/PHONE_ATTENDANCE_STABILIZATION_V1.md', 'phone-attendance-stabilization-v1', '전화번호 출석화 안정화 문서');
 
+checkText('public/admin.html', 'btnStudentSearchNow', '학생 검색 상단 명시 버튼');
+checkText('scripts/production-deep-click-qa.mjs', '#btnStudentSearchNow', 'deep QA 학생 검색 상단 버튼 사용');
+checkText('scripts/run-production-deep-click-qa.ps1', 'README_SCREENSHOTS.txt', 'deep QA 스크린샷 번들 안내 파일');
+checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_BUNDLE.zip', 'copy-last-log deep QA bundle 경로 안내');
+checkText('docs/DEEP_QA_BUNDLE_AND_STUDENT_SEARCH_V1.md', 'deep-qa-bundle-and-student-search-v1', 'deep QA bundle/student search 문서');
 checkText('docs/PHONE_ATTENDANCE_FINAL_LOCK_V1.md', 'phone-attendance-final-lock-v1', '전화번호 출석화 최종 잠금 문서');
 checkText('docs/supabase-staff-phone-v1.sql', 'enable row level security', '직원 휴대폰 directory RLS 활성화 SQL');
 checkText('public/admin.html', 'data-qa-state="idle"', '휴대폰 출결 준비도 QA 상태 속성');

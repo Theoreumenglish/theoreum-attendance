@@ -76,3 +76,10 @@ package.json에는 저장하지 않으므로 운영 의존성은 늘어나지 �
 ## v2 note: automatic screenshot bundle
 
 Deep QA now writes `_logs/PRODUCTION_DEEP_QA_BUNDLE.zip` automatically. The operator no longer has to manually compress the screenshot folder.
+
+
+## v1.1 bundle upgrade
+
+`run-production-deep-click-qa.ps1` now copies the copy-ready report, raw JSON, and a screenshot README into the screenshot directory before creating `PRODUCTION_DEEP_QA_BUNDLE.zip`. This keeps screenshots and logs together so the user does not need to manually compress the folder.
+
+Student search QA uses the visible top student search button (`btnStudentSearchNow`) rather than the lower centralDB maintenance search button.
