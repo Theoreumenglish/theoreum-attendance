@@ -12,7 +12,11 @@ $SqlApplyPath = Join-Path $LogDir "LAST_SQL_TO_APPLY.txt"
 $SmokePath = Join-Path $LogDir "LAST_SMOKE_TO_SEND.txt"
 $DeepQaPath = Join-Path $LogDir "PRODUCTION_DEEP_QA_TO_SEND.txt"
 $DeepQaBundlePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_BUNDLE.zip"
+$DeepQaPackagePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_PACKAGE.zip"
+$DeepQaSourcePath = Join-Path $LogDir "PRODUCTION_DEEP_QA_SOURCE.zip"
 $DeepQaTimestampedBundle = Get-ChildItem -Path $LogDir -Filter "PRODUCTION_DEEP_QA_BUNDLE_*.zip" -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$DeepQaTimestampedPackage = Get-ChildItem -Path $LogDir -Filter "PRODUCTION_DEEP_QA_PACKAGE_*.zip" -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$DeepQaTimestampedSource = Get-ChildItem -Path $LogDir -Filter "PRODUCTION_DEEP_QA_SOURCE_*.zip" -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 $LastRunPath = Join-Path $LogDir "LAST_RUN.log"
 $SuccessPath = Join-Path $LogDir "LAST_SUCCESS_SUMMARY.txt"
 
@@ -54,12 +58,28 @@ try {
   Write-Host "Copied to clipboard:" -ForegroundColor Green
   Write-Host $Target -ForegroundColor Yellow
   if ($Target -eq $DeepQaPath) {
+    if ($DeepQaTimestampedPackage) {
+      Write-Host "Deep QA full package to attach first when code + screenshots are needed:" -ForegroundColor Green
+      Write-Host $DeepQaTimestampedPackage.FullName -ForegroundColor Yellow
+    } elseif (Test-Path $DeepQaPackagePath) {
+      Write-Host "Deep QA full package to attach first when code + screenshots are needed:" -ForegroundColor Green
+      Write-Host $DeepQaPackagePath -ForegroundColor Yellow
+    }
+
     if ($DeepQaTimestampedBundle) {
-      Write-Host "Deep QA timestamped screenshot bundle to attach if needed:" -ForegroundColor Green
+      Write-Host "Deep QA timestamped screenshot bundle:" -ForegroundColor Green
       Write-Host $DeepQaTimestampedBundle.FullName -ForegroundColor Yellow
     } elseif (Test-Path $DeepQaBundlePath) {
-      Write-Host "Deep QA screenshot bundle to attach if needed:" -ForegroundColor Green
+      Write-Host "Deep QA screenshot bundle:" -ForegroundColor Green
       Write-Host $DeepQaBundlePath -ForegroundColor Yellow
+    }
+
+    if ($DeepQaTimestampedSource) {
+      Write-Host "Deep QA timestamped source snapshot:" -ForegroundColor Green
+      Write-Host $DeepQaTimestampedSource.FullName -ForegroundColor Yellow
+    } elseif (Test-Path $DeepQaSourcePath) {
+      Write-Host "Deep QA source snapshot:" -ForegroundColor Green
+      Write-Host $DeepQaSourcePath -ForegroundColor Yellow
     }
   }
 } catch {

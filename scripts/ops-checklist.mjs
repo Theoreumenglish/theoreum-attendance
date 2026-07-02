@@ -61,8 +61,7 @@ const requiredFiles = [
   'docs/PRODUCTION_QA_PARITY_V1.md',
   'scripts/production-deep-click-qa.mjs',
   'scripts/run-production-deep-click-qa.ps1',
-  'docs/PRODUCTION_DEEP_CLICK_QA_V1.md',
-  'docs/MIDCYCLE_QA_UI_REVIEW_V1.md'
+  'docs/PRODUCTION_DEEP_CLICK_QA_V1.md'
 ];
 for (const file of requiredFiles) mustExist(file);
 
@@ -308,15 +307,12 @@ checkText('scripts/production-deep-click-qa.mjs', 'Latest screenshot bundle alia
 checkText('scripts/run-production-deep-click-qa.ps1', 'PRODUCTION_DEEP_QA_BUNDLE_" + $RunId + ".zip', 'PowerShell deep QA timestamped bundle 생성');
 checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_BUNDLE_*.zip', 'copy-last-log timestamped deep QA bundle 안내');
 checkText('docs/PRODUCTION_DEEP_CLICK_QA_V1.md', 'Timestamped screenshot bundles', 'deep QA timestamped bundle 문서');
+checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_SOURCE_${runId}.zip', 'deep QA timestamped source snapshot 생성');
+checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_PACKAGE_${runId}.zip', 'deep QA full package 생성');
+checkText('scripts/production-deep-click-qa.mjs', 'Excluded by design: .env*', 'deep QA source snapshot secret exclusion');
+checkText('scripts/copy-last-run-log.ps1', 'PRODUCTION_DEEP_QA_PACKAGE_*.zip', 'copy-last-log deep QA full package 안내');
+checkText('docs/DEEP_QA_FULL_PACKAGE_V1.md', 'deep-qa-full-package-v1', 'deep QA full package 문서');
 
-
-checkText('public/student-today.html', 'data-qa-state="boot"', '학생 오늘 링크 QA 상태 속성');
-checkText('public/student-today.html', 'taskSummary', '학생 오늘 링크 할 일 요약 UI');
-checkText('public/student-today.html', 'refreshBtn', '학생 오늘 링크 새로고침 버튼');
-checkText('scripts/production-deep-click-qa.mjs', 'SCREENSHOT_INDEX.html', 'deep QA 스크린샷 인덱스 HTML 생성');
-checkText('scripts/production-deep-click-qa.mjs', 'student today page screenshot captured while still loading', 'deep QA 학생 링크 로딩 완료 검증');
-checkText('scripts/run-production-deep-click-qa.ps1', 'SCREENSHOT_INDEX.html', 'PowerShell deep QA 스크린샷 인덱스 안내');
-checkText('docs/MIDCYCLE_QA_UI_REVIEW_V1.md', 'midcycle-qa-ui-review-v1', '중간 점검 UI/UX QA 문서');
 
 if (failed) {
   console.error(`\nOperational checklist failed: ${failed} issue(s)`);

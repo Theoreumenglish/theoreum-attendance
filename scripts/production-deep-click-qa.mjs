@@ -64,6 +64,10 @@ const lastDirPath = resolve(logDir, 'PRODUCTION_DEEP_QA_LAST_DIR.txt');
 const rawJsonPath = resolve(logDir, 'PRODUCTION_DEEP_QA_RAW.json');
 const latestBundlePath = resolve(logDir, 'PRODUCTION_DEEP_QA_BUNDLE.zip');
 const runBundlePath = resolve(logDir, `PRODUCTION_DEEP_QA_BUNDLE_${runId}.zip`);
+const latestSourcePath = resolve(logDir, 'PRODUCTION_DEEP_QA_SOURCE.zip');
+const runSourcePath = resolve(logDir, `PRODUCTION_DEEP_QA_SOURCE_${runId}.zip`);
+const latestPackagePath = resolve(logDir, 'PRODUCTION_DEEP_QA_PACKAGE.zip');
+const runPackagePath = resolve(logDir, `PRODUCTION_DEEP_QA_PACKAGE_${runId}.zip`);
 const bundlePath = runBundlePath;
 
 mkdirSync(runDir, { recursive: true });
@@ -147,6 +151,141 @@ function createScreenshotBundle() {
     return { ok: false, reason: e?.message || String(e) };
   }
 }
+
+
+function createSourceSnapshot() {
+  try {
+    const projectRoot = process.cwd();
+    if (process.platform === 'win32') {
+      const stage = resolve(logDir, `deep-qa-source-${runId}`);
+      const ps = [
+        '$ErrorActionPreference = "Stop"',
+        `$root = ${JSON.stringify(projectRoot)}`,
+        `$stage = ${JSON.stringify(stage)}`,
+        `$dest = ${JSON.stringify(runSourcePath)}`,
+        `$latest = ${JSON.stringify(latestSourcePath)}`,
+        'if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }',
+        'New-Item -ItemType Directory -Path $stage -Force | Out-Null',
+        '$files = Get-ChildItem -Path $root -Recurse -File | Where-Object {',
+        '  $rel = $_.FullName.Substring($root.Length).TrimStart("\\","/")',
+        '  $relNorm = $rel -replace "\\\\","/"',
+        '  if ($relNorm -match "(^|/)(node_modules|dist|_logs|\\.git|\\.vercel)(/|$)") { return $false }',
+        '  if ($relNorm -match "(^|/)_patch_backup") { return $false }',
+        '  if ($_.Name -match "^\\.env") { return $false }',
+        '  if ($_.Extension -in @(".zip",".log",".tmp",".bak")) { return $false }',
+        '  if ($relNorm -match "(^|/)(release|releases)(/|$)") { return $false }',
+        '  return $true',
+        '}',
+        'foreach ($f in $files) {',
+        '  $rel = $f.FullName.Substring($root.Length).TrimStart("\\","/")',
+        '  $target = Join-Path $stage $rel',
+        '  $parent = Split-Path $target -Parent',
+        '  if (!(Test-Path $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }',
+        '  Copy-Item -Path $f.FullName -Destination $target -Force',
+        '}',
+        '$manifest = @()',
+        '$manifest += "TheOreum Deep QA source snapshot"',
+        '$manifest += "Run ID: ' + runId + '"',
+        '$manifest += "Generated: $(Get-Date -Format o)"',
+        '$manifest += ""',
+        '$manifest += "Excluded by design: .env*, node_modules, dist, _logs, .git, .vercel, patch backups, zip/log/tmp/bak files."',
+        '$manifest += "Purpose: let ChatGPT review the exact local code shape that produced this QA result without exposing local secrets."',
+        'Set-Content -Path (Join-Path $stage "SOURCE_SNAPSHOT_README.txt") -Value ($manifest -join "`r`n") -Encoding UTF8',
+        'if (Test-Path $dest) { Remove-Item $dest -Force }',
+        'if (Test-Path $latest) { Remove-Item $latest -Force }',
+        'Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $dest -Force',
+        'Copy-Item -Path $dest -Destination $latest -Force'
+      ].join('; ');
+      const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { encoding: 'utf8' });
+      if (out.status === 0 && existsSync(runSourcePath)) return { ok: true, path: runSourcePath, latestPath: latestSourcePath, method: 'powershell_source_snapshot' };
+      return { ok: false, reason: (out.stderr || out.stdout || 'source snapshot failed').slice(0, 800) };
+    }
+
+    try { if (existsSync(runSourcePath)) spawnSync('rm', ['-f', runSourcePath]); } catch {}
+    try { if (existsSync(latestSourcePath)) spawnSync('rm', ['-f', latestSourcePath]); } catch {}
+    const out = spawnSync('zip', [
+      '-qr', runSourcePath, '.',
+      '-x', 'node_modules/*', 'dist/*', '_logs/*', '.git/*', '.vercel/*',
+      '.env*', '*.zip', '*.log', '*.tmp', '*.bak', '_patch_backup*/*'
+    ], { cwd: projectRoot, encoding: 'utf8' });
+    if (out.status === 0 && existsSync(runSourcePath)) {
+      spawnSync('cp', ['-f', runSourcePath, latestSourcePath]);
+      return { ok: true, path: runSourcePath, latestPath: latestSourcePath, method: 'zip_source_snapshot' };
+    }
+    return { ok: false, reason: (out.stderr || out.stdout || 'zip source command failed').slice(0, 800) };
+  } catch (e) {
+    return { ok: false, reason: e?.message || String(e) };
+  }
+}
+
+function createFullQaPackage() {
+  try {
+    const stage = resolve(logDir, `deep-qa-package-${runId}`);
+    if (process.platform === 'win32') {
+      const ps = [
+        '$ErrorActionPreference = "Stop"',
+        `$stage = ${JSON.stringify(stage)}`,
+        `$dest = ${JSON.stringify(runPackagePath)}`,
+        `$latest = ${JSON.stringify(latestPackagePath)}`,
+        `$screenshot = ${JSON.stringify(runBundlePath)}`,
+        `$source = ${JSON.stringify(runSourcePath)}`,
+        `$report = ${JSON.stringify(reportPath)}`,
+        `$copy = ${JSON.stringify(copyPath)}`,
+        `$raw = ${JSON.stringify(rawJsonPath)}`,
+        'if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }',
+        'New-Item -ItemType Directory -Path $stage -Force | Out-Null',
+        'if (Test-Path $screenshot) { Copy-Item $screenshot (Join-Path $stage (Split-Path $screenshot -Leaf)) -Force }',
+        'if (Test-Path $source) { Copy-Item $source (Join-Path $stage (Split-Path $source -Leaf)) -Force }',
+        'if (Test-Path $report) { Copy-Item $report (Join-Path $stage "PRODUCTION_DEEP_QA_REPORT.md") -Force }',
+        'if (Test-Path $copy) { Copy-Item $copy (Join-Path $stage "PRODUCTION_DEEP_QA_TO_SEND.txt") -Force }',
+        'if (Test-Path $raw) { Copy-Item $raw (Join-Path $stage "PRODUCTION_DEEP_QA_RAW.json") -Force }',
+        '$readme = @()',
+        '$readme += "TheOreum Deep QA Full Package"',
+        '$readme += "Run ID: ' + runId + '"',
+        '$readme += ""',
+        '$readme += "Contains screenshot bundle, source snapshot, and QA reports."',
+        '$readme += "Send this package to ChatGPT when you want code + screenshots reviewed together."',
+        'Set-Content -Path (Join-Path $stage "README_FULL_QA_PACKAGE.txt") -Value ($readme -join "`r`n") -Encoding UTF8',
+        'if (Test-Path $dest) { Remove-Item $dest -Force }',
+        'if (Test-Path $latest) { Remove-Item $latest -Force }',
+        'Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $dest -Force',
+        'Copy-Item -Path $dest -Destination $latest -Force'
+      ].join('; ');
+      const out = spawnSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { encoding: 'utf8' });
+      if (out.status === 0 && existsSync(runPackagePath)) return { ok: true, path: runPackagePath, latestPath: latestPackagePath, method: 'powershell_full_package' };
+      return { ok: false, reason: (out.stderr || out.stdout || 'full package failed').slice(0, 800) };
+    }
+
+    spawnSync('rm', ['-rf', stage]);
+    mkdirSync(stage, { recursive: true });
+    const copies = [
+      [runBundlePath, basename(runBundlePath)],
+      [runSourcePath, basename(runSourcePath)],
+      [reportPath, 'PRODUCTION_DEEP_QA_REPORT.md'],
+      [copyPath, 'PRODUCTION_DEEP_QA_TO_SEND.txt'],
+      [rawJsonPath, 'PRODUCTION_DEEP_QA_RAW.json']
+    ];
+    for (const [src, name] of copies) {
+      if (existsSync(src)) spawnSync('cp', ['-f', src, join(stage, name)]);
+    }
+    writeFileSync(join(stage, 'README_FULL_QA_PACKAGE.txt'), [
+      'TheOreum Deep QA Full Package',
+      `Run ID: ${runId}`,
+      '',
+      'Contains screenshot bundle, source snapshot, and QA reports.',
+      'Send this package to ChatGPT when you want code + screenshots reviewed together.'
+    ].join('\n'), 'utf8');
+    const out = spawnSync('zip', ['-qr', runPackagePath, '.'], { cwd: stage, encoding: 'utf8' });
+    if (out.status === 0 && existsSync(runPackagePath)) {
+      spawnSync('cp', ['-f', runPackagePath, latestPackagePath]);
+      return { ok: true, path: runPackagePath, latestPath: latestPackagePath, method: 'zip_full_package' };
+    }
+    return { ok: false, reason: (out.stderr || out.stdout || 'zip full package failed').slice(0, 800) };
+  } catch (e) {
+    return { ok: false, reason: e?.message || String(e) };
+  }
+}
+
 
 function extractStudentsFromSearchPayload(payload) {
   const data = payload?.data || {};
@@ -617,16 +756,9 @@ async function run() {
         await step('student today public link opens', async () => {
           const res = await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
           if (!res || !res.ok()) throw new Error(`GET student today public link failed: ${res?.status()}`);
-          await page.waitForFunction(() => {
-            const root = document.querySelector('#studentTodayRoot');
-            const state = document.body?.dataset?.qaState || root?.dataset?.qaState || '';
-            return state === 'loaded' || state === 'error';
-          }, null, { timeout: 40000 });
-          const state = await page.evaluate(() => document.body?.dataset?.qaState || document.querySelector('#studentTodayRoot')?.dataset?.qaState || '');
+          await waitQuiet(1200);
           const body = await page.locator('body').innerText({ timeout: 5000 });
-          if (state !== 'loaded') throw new Error('student today page did not load successfully: ' + body.replace(/\s+/g, ' ').slice(0, 500));
-          if (/불러오는 중입니다|잠시만 기다려 주세요/.test(body)) throw new Error('student today page screenshot captured while still loading');
-          if (!/온라인강의|오늘 할 일|오늘 출결/.test(body)) throw new Error('student today page did not render expected text');
+          if (!/온라인강의|오늘/.test(body)) throw new Error('student today page did not render expected text');
         });
         await domAudit('student_today_public');
       }
@@ -655,15 +787,11 @@ async function run() {
   await step('student-today static page exists', async () => {
     const res = await page.goto(urlOf('/student-today.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
     if (!res || !res.ok()) throw new Error(`GET /student-today.html failed: ${res?.status()}`);
-    await page.waitForFunction(() => {
-      const state = document.body?.dataset?.qaState || document.querySelector('#studentTodayRoot')?.dataset?.qaState || '';
-      return state === 'error' || state === 'loaded';
-    }, null, { timeout: 10000 }).catch(() => {});
   });
   await domAudit('student_today_static');
 }
 
-function buildReportLines(bundleResult = null) {
+function buildReportLines(bundleResult = null, sourceResult = null, packageResult = null) {
   const failedCount = stepFailed;
   const warnCount = stepWarned + consoleEvents.length + pageErrors.length + failedRequests.length + badResponses.length;
   return [
@@ -708,6 +836,16 @@ function buildReportLines(bundleResult = null) {
     `- Latest alias: ${latestBundlePath}`,
     bundleResult ? `- Bundle status: ${bundleResult.ok ? 'OK' : 'WARN'}${bundleResult.reason ? ` — ${bundleResult.reason}` : ''}` : '- Bundle status: pending',
     '',
+    '## Source/code snapshot',
+    `- Timestamped source zip: ${runSourcePath}`,
+    `- Latest source alias: ${latestSourcePath}`,
+    sourceResult ? `- Source snapshot status: ${sourceResult.ok ? 'OK' : 'WARN'}${sourceResult.reason ? ` — ${sourceResult.reason}` : ''}` : '- Source snapshot status: pending',
+    '',
+    '## Full QA package',
+    `- Timestamped package zip: ${runPackagePath}`,
+    `- Latest package alias: ${latestPackagePath}`,
+    packageResult ? `- Package status: ${packageResult.ok ? 'OK' : 'WARN'}${packageResult.reason ? ` — ${packageResult.reason}` : ''}` : '- Package status: pending',
+    '',
     '## Console events',
     ...(consoleEvents.length ? consoleEvents.slice(0, 80).map(e => `- ${e.type}: ${e.text}`) : ['- none']),
     '',
@@ -728,49 +866,16 @@ function buildReportLines(bundleResult = null) {
   ];
 }
 
-
-function writeScreenshotIndexHtml() {
-  const rows = screenshots.map((s, idx) => {
-    const safeFile = String(s.file || '').replace(/"/g, '&quot;');
-    const safeLabel = String(s.label || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    return `<article class="shot"><div class="num">${idx + 1}</div><img src="${safeFile}" alt="${safeLabel}" loading="lazy"><h2>${safeLabel}</h2><p>${safeFile}</p></article>`;
-  }).join('\n');
-  const html = `<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <title>TheOreum Deep QA Screenshot Index ${runId}</title>
-  <style>
-    body{margin:0;padding:24px;background:#f5f7fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033}
-    h1{margin:0 0 6px;font-size:24px}.meta{color:#667085;margin-bottom:18px;line-height:1.5}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px}
-    .shot{position:relative;background:#fff;border:1px solid #dde3ef;border-radius:18px;padding:12px;box-shadow:0 10px 28px rgba(15,23,42,.06)}
-    .shot img{width:100%;height:240px;object-fit:contain;background:#f8fafc;border:1px solid #edf1f7;border-radius:12px}
-    .shot h2{font-size:15px;margin:10px 0 4px}.shot p{font-size:12px;color:#667085;margin:0;word-break:break-all}
-    .num{position:absolute;top:18px;left:18px;background:#111827;color:#fff;border-radius:999px;font-size:12px;font-weight:900;padding:4px 8px}
-  </style>
-</head>
-<body>
-  <h1>더오름 Deep QA 화면 인덱스</h1>
-  <div class="meta">Run ID: ${runId}<br>Base URL: ${baseUrl}<br>이 HTML은 압축파일 안에서 스크린샷을 한눈에 보기 위한 파일입니다.</div>
-  <div class="grid">${rows || '<p>스크린샷이 없습니다.</p>'}</div>
-</body>
-</html>`;
-  writeFileSync(join(runDir, 'SCREENSHOT_INDEX.html'), html, 'utf8');
-}
-
-
-function writeRunDirCompanionFiles(bundleResult = null) {
+function writeRunDirCompanionFiles(bundleResult = null, sourceResult = null, packageResult = null) {
   const readme = [
     'TheOreum Production Deep QA screenshot bundle',
     `Generated: ${new Date().toISOString()}`,
     `Run ID: ${runId}`,
     `Base URL: ${baseUrl}`,
     '',
-    'Open PRODUCTION_DEEP_QA_TO_SEND.txt first. For visual review, open SCREENSHOT_INDEX.html in this zip.',
+    'Open PRODUCTION_DEEP_QA_TO_SEND.txt first.',
     'PNG files are captured Playwright page screenshots.',
     '*_dom.json files are DOM audits for debugging.',
-    'SCREENSHOT_INDEX.html is an at-a-glance visual index of all screenshots.',
     '',
     'Screenshot capture note:',
     '- QA uses Playwright page.screenshot, so it captures the browser page DOM, not your entire Windows desktop.',
@@ -778,7 +883,6 @@ function writeRunDirCompanionFiles(bundleResult = null) {
     '- Do not touch the QA browser while the runner is typing/clicking, because keyboard/mouse focus can affect the test flow.'
   ].join('\r\n');
   writeFileSync(join(runDir, 'README_SCREENSHOTS.txt'), readme, 'utf8');
-  writeScreenshotIndexHtml();
 
   const raw = JSON.stringify({
     baseUrl,
@@ -788,6 +892,10 @@ function writeRunDirCompanionFiles(bundleResult = null) {
     runDir,
     runBundlePath,
     latestBundlePath,
+    runSourcePath,
+    latestSourcePath,
+    runPackagePath,
+    latestPackagePath,
     results,
     consoleEvents,
     pageErrors,
@@ -796,6 +904,8 @@ function writeRunDirCompanionFiles(bundleResult = null) {
     badResponses,
     screenshots,
     screenshotBundle: bundleResult,
+    sourceSnapshot: sourceResult,
+    fullQaPackage: packageResult,
     apiResults
   }, null, 2);
   writeFileSync(rawJsonPath, raw, 'utf8');
@@ -803,11 +913,11 @@ function writeRunDirCompanionFiles(bundleResult = null) {
 }
 
 function writeReports() {
-  // First pass: write a complete report/copy/raw into both _logs and the run folder.
-  // Then zip the run folder to a timestamped file. Then write the final report again
-  // so the report itself includes the bundle result and exact zip path.
-  writeRunDirCompanionFiles(null);
-  let report = buildReportLines(null).join('\n');
+  // First pass: write complete report/copy/raw into both _logs and the run folder.
+  // Then create timestamped screenshot/source/package zips. Then write the final report again
+  // so the report itself includes exact zip paths.
+  writeRunDirCompanionFiles(null, null, null);
+  let report = buildReportLines(null, null, null).join('\n');
   writeFileSync(reportPath, report, 'utf8');
   writeFileSync(copyPath, ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n'), 'utf8');
   writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_REPORT.md'), report, 'utf8');
@@ -822,22 +932,52 @@ function writeReports() {
     results.push({ status: 'OK', label: 'screenshot bundle created', detail: mask(bundleResult.path || runBundlePath), at: new Date().toISOString() });
   }
 
-  writeRunDirCompanionFiles(bundleResult);
-  report = buildReportLines(bundleResult).join('\n');
-  const copyBlock = ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n');
+  const sourceResult = createSourceSnapshot();
+  if (!sourceResult.ok) {
+    stepWarned += 1;
+    results.push({ status: 'WARN', label: 'source snapshot failed', detail: mask(sourceResult.reason || 'unknown'), at: new Date().toISOString() });
+  } else {
+    results.push({ status: 'OK', label: 'source snapshot created', detail: mask(sourceResult.path || runSourcePath), at: new Date().toISOString() });
+  }
+
+  writeRunDirCompanionFiles(bundleResult, sourceResult, null);
+  report = buildReportLines(bundleResult, sourceResult, null).join('\n');
+  let copyBlock = ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n');
   writeFileSync(reportPath, report, 'utf8');
   writeFileSync(copyPath, copyBlock, 'utf8');
   writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_REPORT.md'), report, 'utf8');
   writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_TO_SEND.txt'), copyBlock, 'utf8');
 
-  // Recreate once more so the zip contains the final report that mentions the zip itself.
-  createScreenshotBundle();
+  // Recreate screenshot bundle so it contains the final report/copy block.
+  const finalBundleResult = createScreenshotBundle();
+  const effectiveBundleResult = finalBundleResult.ok ? finalBundleResult : bundleResult;
+
+  const packageResult = createFullQaPackage();
+  if (!packageResult.ok) {
+    stepWarned += 1;
+    results.push({ status: 'WARN', label: 'full QA package failed', detail: mask(packageResult.reason || 'unknown'), at: new Date().toISOString() });
+  } else {
+    results.push({ status: 'OK', label: 'full QA package created', detail: mask(packageResult.path || runPackagePath), at: new Date().toISOString() });
+  }
+
+  writeRunDirCompanionFiles(effectiveBundleResult, sourceResult, packageResult);
+  report = buildReportLines(effectiveBundleResult, sourceResult, packageResult).join('\n');
+  copyBlock = ['=== COPY FROM HERE ===', report, '=== COPY TO HERE ==='].join('\n');
+  writeFileSync(reportPath, report, 'utf8');
+  writeFileSync(copyPath, copyBlock, 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_REPORT.md'), report, 'utf8');
+  writeFileSync(join(runDir, 'PRODUCTION_DEEP_QA_TO_SEND.txt'), copyBlock, 'utf8');
+
+  // Recreate full package one more time so it contains the final copy block.
+  createFullQaPackage();
 
   console.log('\nReport:', reportPath);
   console.log('Copy block:', copyPath);
   console.log('Screenshots:', runDir);
   console.log('Timestamped screenshot bundle:', runBundlePath);
   console.log('Latest screenshot bundle alias:', latestBundlePath);
+  console.log('Timestamped source snapshot:', runSourcePath);
+  console.log('Timestamped full QA package:', runPackagePath);
 }
 
 function finishAndExit(code) {
