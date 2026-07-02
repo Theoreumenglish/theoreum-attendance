@@ -2,14 +2,14 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('index.html', 'utf8');
 const required = [
-  ['physical keyboard input class', 'kioskPhysicalInput'],
-  ['single raw kiosk input exists', 'id="kInput"'],
-  ['kiosk input autofocus', 'autofocus'],
+  ['visible phone middle segment exists', 'id="kPhoneMid"'],
+  ['visible phone last segment exists', 'id="kPhoneLast"'],
+  ['010 segmented phone row exists', 'phoneSegmentRow'],
+  ['hidden raw scanner input exists', 'id="kInput"'],
+  ['kiosk segment autofocus', 'autofocus'],
   ['focus loss guard', "input.addEventListener('blur'"],
-  ['focus watchdog prefers raw input', 'activeIsKioskInput'],
-  ['phone tail raw input submit', 'Kiosk.shouldSubmitPhoneTail8(v)'],
-  ['enter submits physical input', 'Kiosk.submitPhoneSegmentsOnEnter()'],
-  ['staff clock visible opener', 'btnOpenStaffQuick'],
+  ['focus watchdog keeps segment focus', 'activeIsKioskTarget'],
+  ['phone tail segmented submit', 'Kiosk.submitPhoneSegmentsOnEnter()'],
   ['staff quick phone clock path', "App.rpc('staff.clock'"],
   ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
 ];
@@ -17,8 +17,8 @@ const required = [
 const forbidden = [
   ['touch keypad container removed', 'id="touchPad"'],
   ['touch keypad digit handlers removed', 'data-touch-digit'],
-  ['visible phone mid input removed', 'id="kPhoneMid"'],
-  ['visible phone last input removed', 'id="kPhoneLast"']
+  ['large single physical input removed', 'kioskPhysicalInputWrap'],
+  ['visible staff quick opener removed', 'id="btnOpenStaffQuick"']
 ];
 
 let failed = 0;
@@ -48,4 +48,4 @@ if (/studentSearchTimer:\s*null,[\s\S]*studentSearchTimer:\s*null,/.test(html)) 
 }
 
 if (failed) process.exit(1);
-console.log('Kiosk physical keyboard flow static check passed.');
+console.log('Kiosk 010 segmented physical-keyboard flow static check passed.');

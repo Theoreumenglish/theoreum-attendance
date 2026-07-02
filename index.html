@@ -1501,55 +1501,6 @@
   width: min(100%, 680px);
   border-radius: 30px;
 }
-.kioskPhysicalInputWrap {
-  width: min(100%, 560px);
-  margin: 24px auto 0;
-}
-.kioskPhysicalInput {
-  width: 100%;
-  height: 96px;
-  border: 3px solid #c7d2fe;
-  border-radius: 30px;
-  background: #ffffff;
-  color: #111827;
-  font-size: clamp(34px, 5vw, 54px);
-  font-weight: 950;
-  letter-spacing: 0.18em;
-  text-align: center;
-  outline: none;
-  box-shadow: 0 18px 45px rgba(79,70,229,.14);
-  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
-}
-.kioskPhysicalInput:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 8px rgba(79,70,229,.13), 0 22px 52px rgba(79,70,229,.16);
-  transform: translateY(-1px);
-}
-.kioskPhysicalHint {
-  margin-top: 12px;
-  color: #64748b;
-  font-size: 16px;
-  font-weight: 800;
-  text-align: center;
-  line-height: 1.5;
-}
-.kioskStaffOpenBtn {
-  width: min(100%, 560px);
-  margin: 16px auto 0;
-  min-height: 60px;
-  border: 0;
-  border-radius: 22px;
-  background: #111827;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 950;
-  cursor: pointer;
-  box-shadow: 0 16px 34px rgba(15,23,42,.18);
-  transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
-}
-.kioskStaffOpenBtn:hover { background: #0f172a; }
-.kioskStaffOpenBtn:active { transform: scale(.985); box-shadow: 0 10px 22px rgba(15,23,42,.14); }
-.kioskStaffOpenBtn.is-open { background: #4f46e5; }
 @media (min-width: 1500px) {
   .kioskModernV3 .viewport { width: min(860px, 100%); }
 }
@@ -1685,12 +1636,45 @@
 			</div>
 
 			<div class="input-wrapper">
-				<div class="kioskPhysicalInputWrap" aria-label="휴대폰 번호 뒤 8자리 또는 QR 스캔 입력">
-					<input class="kioskPhysicalInput" id="kInput" autocomplete="off" inputmode="numeric" maxlength="64" pattern="[0-9A-Za-z.:-]*" aria-label="휴대폰 번호 뒤 8자리 또는 QR 스캔" placeholder="뒤 8자리 입력" autofocus>
-					<div class="kioskPhysicalHint" id="kInputHint">물리 키보드/스캐너 전용 · 입력 후 Enter</div>
+				<div class="phoneSegmentRow" id="kPhoneSegmentRow" aria-label="휴대폰 번호 뒤 8자리 입력">
+					<span class="phoneStatic">010-</span>
+					<input
+						class="phoneSegmentInput"
+						id="kPhoneMid"
+						type="text"
+						inputmode="numeric"
+						maxlength="4"
+						pattern="[0-9]*"
+						autocomplete="off"
+						aria-label="휴대폰 가운데 4자리"
+						placeholder="0000"
+						autofocus
+					>
+					<span class="phoneStatic">-</span>
+					<input
+						class="phoneSegmentInput"
+						id="kPhoneLast"
+						type="text"
+						inputmode="numeric"
+						maxlength="4"
+						pattern="[0-9]*"
+						autocomplete="off"
+						aria-label="휴대폰 마지막 4자리"
+						placeholder="0000"
+					>
 				</div>
 
-				<button id="btnOpenStaffQuick" class="kioskStaffOpenBtn" type="button">직원 출퇴근 열기</button>
+				<input
+					class="phoneRawInput"
+					id="kInput"
+					type="text"
+					autocomplete="off"
+					inputmode="text"
+					maxlength="128"
+					pattern="[0-9A-Za-z.:-]*"
+					aria-label="QR/스캐너 보조 입력"
+					tabindex="-1"
+				>
 
 				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
 					<div class="kStaffQuickHead">
@@ -1705,7 +1689,7 @@
 
 					<div class="kStaffQuickHint">
 						직원 휴대폰 번호 뒤 8자리를 입력하고 Enter를 누르면 바로 처리됩니다.<br>
-						직원 QR은 보조수단으로 계속 사용할 수 있습니다.
+						직원 출퇴근창은 5F/7F 배지를 2초간 길게 누르거나, 키보드로 staff 입력 후 Enter로 열 수 있습니다.
 					</div>
 					<div id="staffQuickStep" class="kStaffQuickHint" style="margin-top:8px;font-weight:900;color:var(--pri);">
 						직원 번호 뒤 8자리 입력
@@ -2852,8 +2836,10 @@
 				if (Kiosk.focusTimer) clearInterval(Kiosk.focusTimer);
 				Kiosk.focusTimer = setInterval(() => {
 					const input = $('#kInput');
-					const activeIsKioskInput = document.activeElement === input;
-					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && !activeIsKioskInput) {
+					const mid = Kiosk.getPhoneMidInput();
+					const last = Kiosk.getPhoneLastInput();
+					const activeIsKioskTarget = document.activeElement === input || document.activeElement === mid || document.activeElement === last;
+					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && !activeIsKioskTarget) {
 						Kiosk.focusPhoneSegment();
 					}
 				}, 700);

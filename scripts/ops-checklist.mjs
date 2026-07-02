@@ -97,7 +97,7 @@ const checklist = [
   ['학생별 단어 누적 기록 SQL', existsSync('docs/supabase-student-word-records-v1.sql') && read('docs/supabase-student-word-records-v1.sql').includes('create table if not exists public.word_records')],
   ['학생 휴대폰 번호 출결 서버 정책', kiosk.includes("inputMode = sidFromIdInput ? 'STUDENT_ID_LEGACY' : 'PHONE_LAST8'") && kiosk.includes('findStudentByPhoneTail8')],
   ['학생 휴대폰 번호 010- 분할 입력 UI', rootIndex.includes('kPhoneMid') && rootIndex.includes('kPhoneLast') && rootIndex.includes('phoneSegmentRow')],
-  ['물리 키보드 번호 입력 하드닝', rootIndex.includes('kioskPhysicalInput') && rootIndex.includes('routePhysicalKeyToRawScanner') && rootIndex.includes('activeIsKioskInput')],
+  ['물리 키보드 번호 입력 하드닝', rootIndex.includes('kPhoneMid') && rootIndex.includes('kPhoneLast') && rootIndex.includes('routePhysicalKeyToRawScanner') && rootIndex.includes('activeIsKioskTarget')],
   ['휴대폰 번호 분할 입력 문서', existsSync('docs/PHONE_SEGMENT_INPUT_V1.md')],
   ['개발 표면 확인 루틴 문서', existsSync('docs/DEVELOPER_SURFACE_ROUTINE_V1.md')],
   ['화면 숫자 키패드 제거', !rootIndex.includes('id="studentKeypad"') && !rootIndex.includes('data-keypad-digit') && !rootIndex.includes('appendStudentDigit')],
@@ -272,8 +272,9 @@ checkText('scripts/production-qa-runner.mjs', 'TheOreum production QA runner', '
 checkText('docs/PRODUCTION_QA_RUNNER_V1.md', 'production-qa-runner-v1', 'production QA runner 문서');
 
 checkText('docs/KIOSK_VISUAL_QA_V1.md', 'kiosk-visual-qa-v1', '키오스크 시각/입력 QA 문서');
-checkText('index.html', 'kioskPhysicalInput', '키오스크 물리 키보드 단일 입력창');
-checkText('scripts/kiosk-input-flow-check.mjs', 'Kiosk physical keyboard flow static check passed', '키오스크 입력 flow 정적 검사');
+checkText('index.html', 'id="kPhoneMid"', '키오스크 010 가운데 4자리 입력창');
+checkText('index.html', 'id="kPhoneLast"', '키오스크 010 마지막 4자리 입력창');
+checkText('scripts/kiosk-input-flow-check.mjs', 'Kiosk 010 segmented physical-keyboard flow static check passed', '키오스크 입력 flow 정적 검사');
 
 
 checkText('api/rpc.js', 'QA_FEATURE_MATRIX', 'production QA feature matrix');
