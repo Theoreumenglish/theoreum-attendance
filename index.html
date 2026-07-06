@@ -3578,6 +3578,7 @@
 
 			setLoading(loading) {
 				Kiosk.isSubmitting = loading;
+				try { window.__THEOREUM_KIOSK_SUBMITTING__ = !!loading; } catch (_) {}
 				const btn = document.getElementById('btn' + Kiosk.action);
 				if (btn) btn.classList.toggle('loading', loading);
 

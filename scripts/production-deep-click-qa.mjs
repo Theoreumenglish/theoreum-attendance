@@ -160,7 +160,9 @@ function isExcludedSourcePath(relPath, fileName = '') {
   const excludedDirs = new Set(['node_modules', 'dist', '_logs', '.git', '.vercel']);
   if (parts.some((part) => excludedDirs.has(part))) return 'excluded_dir';
   if (parts.some((part) => /^_patch_backup/i.test(part))) return 'patch_backup';
-  if (parts.some((part) => /^(release|releases)$/i.test(part))) return 'release_dir';
+  if (parts.some((part) => /^_(?:backups?|patch_tmp|patches?|releases?)$/i.test(part))) return 'generated_work_dir';
+  if (parts.some((part) => /^(?:patch_files|patch_tmp)$/i.test(part))) return 'generated_work_dir';
+  if (parts.some((part) => /^(?:release|releases)$/i.test(part))) return 'release_dir';
   if (/^\.env/i.test(fileName || basename(rel))) return 'env_file';
   if (/\.(zip|7z|rar|log|tmp|bak)$/i.test(fileName || rel)) return 'generated_or_archive';
   if (/PRODUCTION_DEEP_QA_/i.test(rel)) return 'qa_generated';
@@ -568,6 +570,7 @@ async function domAudit(label) {
       if (el.id === 'fullModal' && !el.classList.contains('show')) return false;
       if (el.id === 'workDrawer' && !el.classList.contains('on')) return false;
       if (el.closest && el.closest('#workDrawer:not(.on), #fullModal:not(.show), [hidden], .hidden')) return false;
+      if (el.closest && el.closest('details:not([open])') && !el.closest('summary')) return false;
       return true;
     };
     const overflowRelevant = el => {
@@ -581,20 +584,28 @@ async function domAudit(label) {
     const ids = [...document.querySelectorAll('[id]')].map(el => el.id).filter(Boolean);
     const dupIds = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].slice(0, 30);
     const sectionId = el => el.closest?.('section.portalView')?.id || '';
-    const buttons = [...document.querySelectorAll('button,[role="button"]')].filter(visible).slice(0, 80).map(el => ({
+    const allVisibleButtons = [...document.querySelectorAll('button,[role="button"]')].filter(visible);
+    const allVisibleInputs = [...document.querySelectorAll('input,select,textarea')].filter(visible);
+    const isDataRowButton = el => !!(el.closest && (el.closest('.opsDataTable') || el.classList.contains('opsKebabBtn') || el.hasAttribute('data-ops-menu-toggle')));
+    const isDataRowInput = el => !!(el.closest && (el.closest('.opsDataTable') || el.classList.contains('opsCheck') || el.hasAttribute('data-ops-select') || el.hasAttribute('data-ops-select-all')));
+    const buttons = allVisibleButtons.slice(0, 120).map(el => ({
       text: (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80),
       id: el.id || '',
       sectionId: sectionId(el),
-      disabled: !!el.disabled
+      disabled: !!el.disabled,
+      qaIgnored: isDataRowButton(el)
     }));
-    const inputs = [...document.querySelectorAll('input,select,textarea')].filter(visible).slice(0, 80).map(el => ({
+    const inputs = allVisibleInputs.slice(0, 120).map(el => ({
       id: el.id || '',
       placeholder: el.getAttribute('placeholder') || '',
       type: el.getAttribute('type') || el.tagName.toLowerCase(),
       sectionId: sectionId(el),
       valueLen: String(el.value || '').length,
-      disabled: !!el.disabled
+      disabled: !!el.disabled,
+      qaIgnored: isDataRowInput(el)
     }));
+    const countedButtons = buttons.filter(x => !x.qaIgnored);
+    const countedInputs = inputs.filter(x => !x.qaIgnored);
     const scopedCards = [...document.querySelectorAll('[data-section-scope]')].filter(visible).slice(0, 30).map(el => ({
       scope: el.getAttribute('data-section-scope') || '',
       sectionId: sectionId(el),
@@ -613,6 +624,10 @@ async function domAudit(label) {
       bodyText: (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 1000),
       buttons,
       inputs,
+      countedButtonCount: countedButtons.length,
+      countedInputCount: countedInputs.length,
+      ignoredDataRowButtonCount: buttons.length - countedButtons.length,
+      ignoredDataRowInputCount: inputs.length - countedInputs.length,
       scopedCards,
       dupIds,
       overflow,
@@ -622,7 +637,7 @@ async function domAudit(label) {
   writeFileSync(join(runDir, `${pathSafe(label)}_dom.json`), JSON.stringify(audit, null, 2), 'utf8');
   if (audit.dupIds?.length) warn(`${label} duplicate ids`, audit.dupIds.join(', '));
   if (audit.overflow?.length) warn(`${label} horizontal overflow`, JSON.stringify(audit.overflow.slice(0, 5)));
-  ok(`${label} DOM audit`, `${audit.buttons.length} buttons, ${audit.inputs.length} inputs`);
+  ok(`${label} DOM audit`, `${audit.buttons.length} buttons (${audit.countedButtonCount ?? audit.buttons.length} counted), ${audit.inputs.length} inputs (${audit.countedInputCount ?? audit.inputs.length} counted)`);
 
   const visibleInputIds = new Set((audit.inputs || []).map(x => x.id).filter(Boolean));
   const staffOnlyInputs = ['staffManualStaffId', 'staffManualYmd', 'staffManualTime', 'staffManualNote', 'centralStaffId', 'centralStaffPhone'];
@@ -649,11 +664,13 @@ async function domAudit(label) {
     students_search: 28,
     staff_management: 34
   };
-  if (Object.prototype.hasOwnProperty.call(inputLimits, label) && audit.inputs.length > inputLimits[label]) {
-    throw new Error(`${label} visible input count too high: ${audit.inputs.length} > ${inputLimits[label]}`);
+  const countedInputCount = audit.countedInputCount ?? audit.inputs.length;
+  const countedButtonCount = audit.countedButtonCount ?? audit.buttons.length;
+  if (Object.prototype.hasOwnProperty.call(inputLimits, label) && countedInputCount > inputLimits[label]) {
+    throw new Error(`${label} visible input count too high: ${countedInputCount} > ${inputLimits[label]} (ignored data-row inputs: ${audit.ignoredDataRowInputCount || 0})`);
   }
-  if (Object.prototype.hasOwnProperty.call(buttonLimits, label) && audit.buttons.length > buttonLimits[label]) {
-    throw new Error(`${label} visible button count too high: ${audit.buttons.length} > ${buttonLimits[label]}`);
+  if (Object.prototype.hasOwnProperty.call(buttonLimits, label) && countedButtonCount > buttonLimits[label]) {
+    throw new Error(`${label} visible button count too high: ${countedButtonCount} > ${buttonLimits[label]} (ignored data-row buttons: ${audit.ignoredDataRowButtonCount || 0})`);
   }
   return audit;
 }
@@ -775,6 +792,25 @@ async function run() {
     await mid.click();
     await page.keyboard.type(qaStudentTail8, { delay: 15 });
     await waitQuiet(900);
+
+    await page.waitForFunction(() => {
+      const visible = el => {
+        if (!el) return false;
+        const s = window.getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        return !!s && s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0;
+      };
+      const busy = !!window.__THEOREUM_KIOSK_SUBMITTING__ || !!document.querySelector('.actBtn.loading,[aria-busy="true"]') || [...document.querySelectorAll('.modalSpinner, .spinner')].some(visible);
+      if (busy) return false;
+      const modal = document.querySelector('#fullModal');
+      const modalShown = modal && modal.classList.contains('show');
+      const modalText = modalShown ? String(modal.innerText || '') : '';
+      const msgText = String(document.querySelector('#kMsg')?.innerText || '');
+      const dbgText = String(document.querySelector('#kDbg')?.innerText || '');
+      return /완료|처리|등록|찾지|문의|중복|입력|실패|오류|이미|새로고침/.test([modalText, msgText, dbgText].join(' '));
+    }, { timeout: 12000 }).catch(() => {
+      throw new Error('kiosk phone submission did not reach a visible result state within 12s');
+    });
 
     const midVal = await mid.inputValue().catch(() => '');
     const lastVal = await last.inputValue().catch(() => '');

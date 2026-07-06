@@ -263,3 +263,17 @@ Student phone is part of CentralDB (`student_phone`) and must be treated as an e
 ## Production deep click QA
 
 `docs/PRODUCTION_DEEP_CLICK_QA_V1.md` 기준으로 네 PC에서 실제 production/preview를 브라우저로 자동 클릭하여 오류/스크린샷을 수집한다. ChatGPT에는 `_logs/PRODUCTION_DEEP_QA_TO_SEND.txt`를 보내면 된다.
+
+
+## 2026-07-06 Current Operating Lock
+
+이 섹션은 최신 작업 수칙이다. 과거 `STUDENT_ID_*`, `STAFF_PIN_*`, 결제/수납 확장 문서와 충돌하면 이 기준을 우선한다.
+
+- 출결 기본 입력은 학생/직원 모두 휴대폰 번호 기반이다.
+- 키오스크는 항상 `010-____-____` 구조를 보여주고, 사용자는 뒤 8자리만 입력한다.
+- QR은 보조/백업 경로이며, 학생번호/PIN/2차 직원 확인은 현재 우선순위가 아니다.
+- 더오름은 결제 처리를 더클래스로 하고 있으므로, 운영 OS는 당분간 카드결제/자동이체/PG/청구서 발행을 만들지 않는다.
+- 결제 관련 기능이 필요해도 학습 운영과 분리된 가벼운 상태 참고/연동 메모 수준으로 둔다.
+- 패치 안내는 `npm run dev:apply-patch -- -PatchZip ... -CommitMessage ...` 형식의 짧은 한 번에 딸깍 명령을 기본으로 한다.
+- QA는 `Failed 0`만 보지 말고, 화면 캡처 수, 섹션 누수, input/button 과다, 전화번호 연속 입력, 키오스크 제출 완료 상태까지 확인한다.
+- production deep QA source snapshot에는 `_backups`, `_patch_tmp`, `_release`, `_releases`, `patch_files` 같은 작업/백업 산출물을 포함하지 않는다.

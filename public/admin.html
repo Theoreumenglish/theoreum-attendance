@@ -4413,6 +4413,11 @@ body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="studentPho
 body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="staffPhone"] {
   display: none !important;
 }
+
+/* staff-noise-v11: the staff focus panel is a guide; duplicated action buttons stay inside the staff cards. */
+body.adminConsoleV7[data-current-view="staff"] #staffFocusPanel .focusPanelActions {
+  display: none !important;
+}
 @media (max-width: 980px) {
   body.adminConsoleV7 #students > .grid2:first-child,
   body.adminConsoleV7 .centralStaffBasicGrid,
@@ -10743,7 +10748,9 @@ body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="staffPhone
         return;
       }
 
-      rows.innerHTML = issues.slice(0, 120).map(item => {
+      const visibleIssues = issues.slice(0, 40);
+      const hiddenCount = Math.max(0, issues.length - visibleIssues.length);
+      rows.innerHTML = visibleIssues.map(item => {
         const target = [item.name, item.id].filter(Boolean).join(' / ') || '-';
         const entity = item.entity === 'student' ? '학생' : (item.entity === 'staff' ? '직원' : '시스템');
         const status = item.severity === 'blocker' ? '수정 필요' : '확인 권장';
@@ -10756,7 +10763,9 @@ body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="staffPhone
             <td><span class="statusPill ${item.severity === 'blocker' ? 'bad' : 'warn'}">${esc(status)}</span></td>
           </tr>
         `;
-      }).join('');
+      }).join('') + (hiddenCount
+        ? `<tr><td colspan="5" style="color:var(--muted);">화면에는 상위 40건만 표시합니다. 나머지 ${esc(hiddenCount)}건은 “수정 필요 목록 복사”로 확인하세요.</td></tr>`
+        : '');
     }
 
     async function loadPhoneIdentityAudit() {
