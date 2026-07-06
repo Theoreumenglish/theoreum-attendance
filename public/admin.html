@@ -4404,6 +4404,15 @@ body.adminConsoleV7[data-current-view="students"] [data-section-scope="staff"],
 body.adminConsoleV7[data-current-view="advanced"] [data-section-scope="staff"] {
   display: none !important;
 }
+
+/* dashboard-focus-v10: dashboard must stay a daily work board, not a setup/developer surface. */
+body.adminConsoleV7[data-current-view="dashboard"] .calmSearchBlock,
+body.adminConsoleV7[data-current-view="dashboard"] .calmModule,
+body.adminConsoleV7[data-current-view="dashboard"] .calmMenuSheet,
+body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="studentPhone"],
+body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="staffPhone"] {
+  display: none !important;
+}
 @media (max-width: 980px) {
   body.adminConsoleV7 #students > .grid2:first-child,
   body.adminConsoleV7 .centralStaffBasicGrid,

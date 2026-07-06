@@ -542,6 +542,20 @@
         text-align: center;
       }
 
+      .staffClockLaneTitle {
+        grid-column: 1 / -1;
+        color: #334155;
+        font-size: 13px;
+        font-weight: 950;
+        letter-spacing: -0.02em;
+        text-align: center;
+      }
+
+      body.kStaffQuickMode .staffClockLane {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
       @media (max-width: 720px) {
         .staffClockLane { grid-template-columns: 1fr; }
         .staffClockLaneBtn { min-height: 62px; font-size: 21px; }
@@ -1751,10 +1765,11 @@
 
 			</div>
 
-      <div class="staffClockLane" aria-label="직원 출퇴근 빠른 실행">
+      <div class="staffClockLane" aria-label="직원 전용 출퇴근 빠른 실행">
+        <div class="staffClockLaneTitle">직원 전용 출퇴근</div>
         <button class="staffClockLaneBtn in" id="btnStaffClockInFast" type="button">직원 출근</button>
         <button class="staffClockLaneBtn out" id="btnStaffClockOutFast" type="button">직원 퇴근</button>
-        <div class="staffClockLaneHint">직원은 이 버튼을 누른 뒤 휴대폰 번호 뒤 8자리만 입력합니다.</div>
+        <div class="staffClockLaneHint">학생 출결 버튼과 분리된 직원 전용 버튼입니다. 누른 뒤 뒤 8자리만 입력합니다.</div>
       </div>
 
 			<div class="msg" id="kMsg"></div>
@@ -3477,6 +3492,7 @@
       openStaffQuick() {
         Kiosk.staffQuickOpen = true;
         Kiosk.resetStaffQuickState();
+        document.body.classList.add('kStaffQuickMode');
 
         const box = $('#kStaffQuick');
         const openBtn = $('#btnOpenStaffQuick');
@@ -3511,6 +3527,7 @@
       closeStaffQuick() {
         Kiosk.staffQuickOpen = false;
         Kiosk.resetStaffQuickState();
+        document.body.classList.remove('kStaffQuickMode');
 
         const box = $('#kStaffQuick');
         const openBtn = $('#btnOpenStaffQuick');

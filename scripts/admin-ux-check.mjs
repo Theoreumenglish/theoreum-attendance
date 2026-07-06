@@ -113,6 +113,9 @@ else ok('QR Center가 출결 화면 안으로 정리됐습니다.');
 if (!html.includes('학부모 전달 문구')) fail('리포트에 학부모 전달 문구 영역이 없습니다.');
 else ok('리포트 문구가 학부모 전달용으로 정리됐습니다.');
 
+if (!html.includes('dashboard-focus-v10')) fail('대시보드 검색/자동화/전체메뉴 숨김 안전장치가 없습니다.');
+else ok('대시보드 검색/자동화/전체메뉴 숨김 안전장치가 있습니다.');
+
 const totalButtons = count(/<button\b/g, markupHtml);
 if (totalButtons > 99) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
 else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다. 직원 휴대폰만 저장/학부모 fallback 버튼 추가로 허용 상한을 99개로 조정했습니다.`);

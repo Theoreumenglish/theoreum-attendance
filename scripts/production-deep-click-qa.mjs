@@ -658,6 +658,17 @@ async function domAudit(label) {
   return audit;
 }
 
+
+async function checkedDomAudit(label) {
+  try {
+    return await domAudit(label);
+  } catch (e) {
+    fail('DOM audit ' + label, e?.message || String(e));
+    await shot('FAILED_DOM_' + label, true);
+    return null;
+  }
+}
+
 async function apiRpc(op, args = {}) {
   const started = Date.now();
   let body = null;
@@ -737,7 +748,7 @@ async function run() {
     if (!res || !res.ok()) throw new Error(`GET / failed: ${res?.status()}`);
     await waitQuiet(800);
   });
-  await domAudit('root');
+  await checkedDomAudit('root');
 
   await step('kiosk phone input', async () => {
     await clickIfExists('#btnCHECK_IN', 'kiosk check-in button', 2000);
@@ -784,7 +795,7 @@ async function run() {
       throw new Error(`phone input lost digits: mid=${midVal}, last=${lastVal}, raw=${rawDigits}`);
     }
   });
-  await domAudit('kiosk_after_phone');
+  await checkedDomAudit('kiosk_after_phone');
 
   await step('kiosk staff hotword', async () => {
     await page.goto(urlOf('/'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
@@ -794,8 +805,18 @@ async function run() {
     const visible = await page.locator('#kStaffQuick').evaluate(el => !el.hasAttribute('aria-hidden') || el.getAttribute('aria-hidden') === 'false').catch(() => false);
     const body = await page.locator('body').innerText({ timeout: 2000 }).catch(() => '');
     if (!visible && !/직원 출근|직원 모드/.test(body)) throw new Error('staff hotword did not open staff quick mode');
+    const activeId = await page.evaluate(() => document.activeElement?.id || '');
+    if (!['kPhoneMid', 'kPhoneLast'].includes(activeId)) throw new Error(`staff hotword did not focus phone segments: active=${activeId}`);
+    const staffLaneStillVisible = await page.evaluate(() => {
+      const lane = document.querySelector('.staffClockLane');
+      if (!lane) return false;
+      const s = getComputedStyle(lane);
+      const r = lane.getBoundingClientRect();
+      return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0 && s.pointerEvents !== 'none';
+    }).catch(() => false);
+    if (staffLaneStillVisible) throw new Error('staff quick mode opened but permanent staff lane is still active/visible behind overlay');
   });
-  await domAudit('kiosk_staff_hotword');
+  await checkedDomAudit('kiosk_staff_hotword');
 
   await apiRpc('auth.login', { staff_id: staffId, password });
   const loginBody = apiResults.at(-1)?.ok ? null : null;
@@ -826,7 +847,7 @@ async function run() {
     if (/실패|오류|invalid|denied/i.test(loginMsg)) throw new Error('admin login message: ' + loginMsg);
     await waitQuiet(1200);
   });
-  await domAudit('admin_after_login');
+  await checkedDomAudit('admin_after_login');
 
   await step('admin core api parity', async () => {
     await apiRpc('meta.supportedOps');
@@ -865,7 +886,7 @@ async function run() {
       throw new Error('phone identity UI did not update: ' + text.replace(/\s+/g, ' ').slice(0, 300));
     });
   });
-  await domAudit('advanced_phone_identity');
+  await checkedDomAudit('advanced_phone_identity');
 
   await step('staff management UI', async () => {
     await clickNav('staff');
@@ -885,7 +906,7 @@ async function run() {
     if (value !== '01055556666') throw new Error(`centralStaffPhone lost digits while typing: ${value}`);
     if (activeId !== 'centralStaffPhone') throw new Error(`centralStaffPhone lost focus while typing: active=${activeId}`);
   });
-  await domAudit('staff_management');
+  await checkedDomAudit('staff_management');
 
   await step('student search and link area UI', async () => {
     await clickNav('students');
@@ -898,7 +919,7 @@ async function run() {
       throw new Error('student link or lecture area is not visible');
     }
   });
-  await domAudit('students_search');
+  await checkedDomAudit('students_search');
 
   let studentIdForWrite = qaStudentId;
   const searchJson = await fetch(urlOf('/api/rpc'), {
@@ -931,7 +952,7 @@ async function run() {
           const body = await page.locator('body').innerText({ timeout: 5000 });
           if (!/온라인강의|오늘/.test(body)) throw new Error('student today page did not render expected text');
         });
-        await domAudit('student_today_public');
+        await checkedDomAudit('student_today_public');
       }
     } else {
       warn('write UI/API checks skipped', 'Run npm run prod:qa:deep:write for link creation and hidden lecture write test.');
@@ -959,7 +980,7 @@ async function run() {
     const res = await page.goto(urlOf('/student-today.html'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
     if (!res || !res.ok()) throw new Error(`GET /student-today.html failed: ${res?.status()}`);
   });
-  await domAudit('student_today_static');
+  await checkedDomAudit('student_today_static');
 }
 
 function buildReportLines(bundleResult = null, sourceResult = null, packageResult = null) {
