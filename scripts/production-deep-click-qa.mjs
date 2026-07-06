@@ -157,7 +157,23 @@ function createScreenshotBundle() {
 function isExcludedSourcePath(relPath, fileName = '') {
   const rel = String(relPath || '').replace(/\\/g, '/').replace(/^\/+/, '');
   const parts = rel.split('/').filter(Boolean);
-  const excludedDirs = new Set(['node_modules', 'dist', '_logs', '.git', '.vercel']);
+  const excludedDirs = new Set([
+    'node_modules',
+    'dist',
+    '_logs',
+    '.git',
+    '.vercel',
+    '_backups',
+    '_patch_tmp',
+    '_release',
+    '_releases',
+    'patch-files',
+    'patch_tmp',
+    'patch_v9',
+    'patch_v10',
+    'patch_v11',
+    'patch_v11_fixed'
+  ]);
   if (parts.some((part) => excludedDirs.has(part))) return 'excluded_dir';
   if (parts.some((part) => /^_patch_backup/i.test(part))) return 'patch_backup';
   if (parts.some((part) => /^_(?:backups?|patch_tmp|patches?|releases?)$/i.test(part))) return 'generated_work_dir';
@@ -922,6 +938,23 @@ async function run() {
       throw new Error('phone identity UI did not update: ' + text.replace(/\s+/g, ' ').slice(0, 300));
     });
   });
+  await step('phone identity issue table stays scrollable', async () => {
+    const info = await page.evaluate(() => {
+      const wrap = document.querySelector('.phoneIdentityTableWrap');
+      if (!wrap) return { ok: false, reason: 'phoneIdentityTableWrap missing' };
+      const style = getComputedStyle(wrap);
+      const rect = wrap.getBoundingClientRect();
+      const rows = document.querySelectorAll('#phoneIdentityRows tr').length;
+      const maxHeight = style.maxHeight || '';
+      return {
+        ok: /px/.test(maxHeight) && rect.height <= 620,
+        rectHeight: Math.round(rect.height),
+        maxHeight,
+        rows
+      };
+    });
+    if (!info.ok) throw new Error(`phone identity issue table is not scroll-contained: ${JSON.stringify(info)}`);
+  }, { screenshot: false });
   await checkedDomAudit('advanced_phone_identity');
 
   await step('staff management UI', async () => {
@@ -984,8 +1017,17 @@ async function run() {
         await step('student today public link opens', async () => {
           const res = await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
           if (!res || !res.ok()) throw new Error(`GET student today public link failed: ${res?.status()}`);
-          await waitQuiet(1200);
+          await page.waitForFunction(() => {
+            const state = document.body?.dataset?.qaState || '';
+            const rootState = document.querySelector('#studentTodayRoot')?.dataset?.qaState || '';
+            return ['loaded', 'error'].includes(state) || ['loaded', 'error'].includes(rootState);
+          }, null, { timeout: 18000 }).catch(() => {
+            throw new Error('student today public link stayed in loading state for more than 18s');
+          });
+          const state = await page.evaluate(() => document.body?.dataset?.qaState || document.querySelector('#studentTodayRoot')?.dataset?.qaState || '');
           const body = await page.locator('body').innerText({ timeout: 5000 });
+          if (state !== 'loaded') throw new Error(`student today page finished with state=${state}: ${body.replace(/\s+/g, ' ').slice(0, 300)}`);
+          if (/불러오는 중입니다|잠시만 기다려 주세요/.test(body)) throw new Error('student today page still shows loading copy after loaded state');
           if (!/온라인강의|오늘/.test(body)) throw new Error('student today page did not render expected text');
         });
         await checkedDomAudit('student_today_public');

@@ -4418,6 +4418,19 @@ body.adminConsoleV7[data-current-view="dashboard"] [data-calm-action="staffPhone
 body.adminConsoleV7[data-current-view="staff"] #staffFocusPanel .focusPanelActions {
   display: none !important;
 }
+
+/* phone-identity-scroll-v12: keep settings/diagnostics readable even when many phone issues exist. */
+body.adminConsoleV7 .phoneIdentityTableWrap {
+  max-height: 520px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+body.adminConsoleV7 .phoneIdentityTableWrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
 @media (max-width: 980px) {
   body.adminConsoleV7 #students > .grid2:first-child,
   body.adminConsoleV7 .centralStaffBasicGrid,
@@ -6452,7 +6465,7 @@ body.adminConsoleV7[data-current-view="staff"] #staffFocusPanel .focusPanelActio
 <h3>점검 전입니다.</h3>
 <p>전화번호 출결을 사용하기 전에 재원생/직원 번호 누락과 중복을 먼저 확인하세요.</p>
 </div>
-<div class="tableWrap" style="margin-top:16px;">
+<div class="tableWrap phoneIdentityTableWrap" style="margin-top:16px;">
 <table class="table">
 <thead><tr><th>구분</th><th>대상</th><th>번호</th><th>문제</th><th>상태</th></tr></thead>
 <tbody id="phoneIdentityRows"><tr><td colspan="5" style="color:var(--muted);">휴대폰 출결 점검을 실행하세요.</td></tr></tbody>

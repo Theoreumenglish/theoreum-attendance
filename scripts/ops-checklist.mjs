@@ -321,7 +321,13 @@ checkText('scripts/smoke-test.mjs', "rpc('admin.finalReadiness', { sessionToken 
 checkText('docs/SMOKE_TIMEOUT_FINALREADINESS_V1.md', 'SMOKE_SLOW_TIMEOUT_MS', 'finalReadiness smoke timeout 문서');
 
 checkText('scripts/production-deep-click-qa.mjs', 'function isExcludedSourcePath', 'deep QA source snapshot sanitizer');
-checkText('scripts/production-deep-click-qa.mjs', "excludedDirs = new Set(['node_modules', 'dist', '_logs', '.git', '.vercel'])", 'deep QA source snapshot excludes bulky/generated dirs');
+checkText('scripts/production-deep-click-qa.mjs', 'excludedDirs = new Set', 'deep QA source snapshot excludes bulky/generated dirs');
+checkText('scripts/production-deep-click-qa.mjs', "'node_modules'", 'deep QA source snapshot excludes node_modules');
+checkText('scripts/production-deep-click-qa.mjs', "'_logs'", 'deep QA source snapshot excludes logs');
+checkText('scripts/production-deep-click-qa.mjs', "'_backups'", 'deep QA source snapshot excludes backups');
+checkText('scripts/production-deep-click-qa.mjs', "'_patch_tmp'", 'deep QA source snapshot excludes patch temp');
+checkText('scripts/production-deep-click-qa.mjs', "'_releases'", 'deep QA source snapshot excludes releases');
+checkText('scripts/production-deep-click-qa.mjs', "'patch-files'", 'deep QA source snapshot excludes patch-files');
 checkText('scripts/production-deep-click-qa.mjs', 'SOURCE_SNAPSHOT_MANIFEST.json', 'deep QA source snapshot manifest');
 checkText('scripts/production-deep-click-qa.mjs', 'Source included files', 'deep QA source snapshot report stats');
 checkText('docs/DEEP_QA_SOURCE_SNAPSHOT_SANITIZE_V1.md', 'deep-qa-source-snapshot-sanitize-v1', 'deep QA source snapshot sanitize 문서');
