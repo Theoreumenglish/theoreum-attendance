@@ -736,6 +736,28 @@
       animation: viewIn 0.16s ease-out;
     }
 
+/* ops-visual-height-classes-v13: keep class operations usable without a 4,000px admin page. */
+#classes .opsClassListScroll {
+  max-height: min(620px, 58vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+#classes .opsClassListScroll .table {
+  min-width: 760px;
+}
+#classes .opsClassListScroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f8fafc;
+}
+@media (max-width: 980px) {
+  #classes .opsClassListScroll {
+    max-height: 520px;
+  }
+}
+
+
     @keyframes viewIn {
       from {
         opacity: 0;
@@ -5295,7 +5317,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <button class="btn btnGhost" id="btnNewMasterClass" style="width:100%;" type="button">새 클래스</button>
 </div>
 </div>
-<div class="tableWrap" style="margin-top:18px;">
+<div class="tableWrap opsClassListScroll" style="margin-top:18px;">
 <table class="table">
 <thead>
 <tr>

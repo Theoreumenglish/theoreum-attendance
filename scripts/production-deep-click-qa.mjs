@@ -120,6 +120,38 @@ function pathSafe(label) {
   return String(label || 'screen').replace(/[^a-z0-9가-힣_-]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'screen';
 }
 
+function pngDimensions(filePath) {
+  try {
+    const buf = readFileSync(filePath);
+    if (!buf || buf.length < 24) return null;
+    const isPng =
+      buf[0] === 0x89 &&
+      buf[1] === 0x50 &&
+      buf[2] === 0x4e &&
+      buf[3] === 0x47 &&
+      buf[4] === 0x0d &&
+      buf[5] === 0x0a &&
+      buf[6] === 0x1a &&
+      buf[7] === 0x0a;
+    if (!isPng) return null;
+    return {
+      width: buf.readUInt32BE(16),
+      height: buf.readUInt32BE(20)
+    };
+  } catch {
+    return null;
+  }
+}
+
+const visualHeightLimits = new Map([
+  ['nav_classes', 3000],
+  ['phone identity audit UI', 2400],
+  ['staff management UI', 2800],
+  ['student search and link area UI', 1600],
+  ['student today public link opens', 1600]
+]);
+
+
 function createScreenshotBundle() {
   try {
     if (!existsSync(runDir)) return { ok: false, reason: 'run_dir_missing' };
@@ -489,11 +521,19 @@ async function ensureQaStaffPhoneForWrite() {
 
 async function shot(label, fullPage = true) {
   if (!page) return '';
-  const file = `${String(screenshots.length + 1).padStart(2, '0')}_${pathSafe(label)}.png`;
+  const safeLabel = pathSafe(label);
+  const file = `${String(screenshots.length + 1).padStart(2, '0')}_${safeLabel}.png`;
   const full = join(runDir, file);
   try {
     await page.screenshot({ path: full, fullPage });
-    screenshots.push({ label, file, path: full });
+    const dim = pngDimensions(full);
+    screenshots.push({ label, file, path: full, width: dim?.width || 0, height: dim?.height || 0 });
+    const limit = visualHeightLimits.get(label) || visualHeightLimits.get(safeLabel);
+    if (limit && dim && dim.height > limit) {
+      fail('visual height ' + label, `${dim.height}px > ${limit}px; screen is too tall for operator/QA review`);
+    } else if (limit && dim) {
+      ok('visual height ' + label, `${dim.height}px <= ${limit}px`);
+    }
     return full;
   } catch (e) {
     warn('screenshot failed', `${label}: ${e?.message || e}`);
@@ -572,6 +612,22 @@ async function clickNav(go) {
   const selector = `.navBtn[data-go="${go}"]`;
   if (await clickIfExists(selector, `nav ${go}`, 3000)) {
     await waitQuiet(700);
+    if (go === 'classes') {
+      const scrollGuard = await page.evaluate(() => {
+        const wrap = document.querySelector('#classes .opsClassListScroll');
+        if (!wrap) return { exists: false };
+        return {
+          exists: true,
+          clientHeight: Math.round(wrap.clientHeight || 0),
+          scrollHeight: Math.round(wrap.scrollHeight || 0)
+        };
+      }).catch(() => ({ exists: false }));
+      if (!scrollGuard.exists) {
+        fail('classes list scroll guard', 'missing #classes .opsClassListScroll');
+      } else {
+        ok('classes list scroll guard', `${scrollGuard.clientHeight}px viewport / ${scrollGuard.scrollHeight}px content`);
+      }
+    }
     await shot('nav_' + go, true);
   }
 }
