@@ -28,23 +28,64 @@ function Copy-TextSafe {
   try { Set-Clipboard -Value $Text } catch { }
 }
 
-if (-not $PatchZip) {
-  $Downloads = Join-Path $env:USERPROFILE "Downloads"
-  $LatestPatch = Get-ChildItem -Path $Downloads -Filter "*-patch.zip" -File -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
-  if ($LatestPatch) {
-    $PatchZip = $LatestPatch.FullName
-    Write-Host "Using latest patch zip from Downloads:" -ForegroundColor Yellow
-    Write-Host $PatchZip -ForegroundColor Yellow
-  } else {
-    throw "PatchZip was not provided and no *-patch.zip file was found in Downloads."
+function Resolve-PatchZip {
+  param([string]$RequestedPatchZip)
+
+  $SearchDirs = New-Object System.Collections.Generic.List[string]
+  $SearchDirs.Add($ProjectDir)
+  if ($env:USERPROFILE) {
+    $SearchDirs.Add((Join-Path $env:USERPROFILE "Downloads"))
+    $SearchDirs.Add((Join-Path $env:USERPROFILE "Desktop"))
   }
+
+  if ($RequestedPatchZip -and (Test-Path $RequestedPatchZip)) {
+    return (Resolve-Path $RequestedPatchZip).Path
+  }
+
+  if ($RequestedPatchZip) {
+    $Leaf = [System.IO.Path]::GetFileName($RequestedPatchZip)
+    $Stem = [System.IO.Path]::GetFileNameWithoutExtension($RequestedPatchZip)
+
+    foreach ($Dir in $SearchDirs) {
+      if (-not (Test-Path $Dir)) { continue }
+
+      if ($Leaf) {
+        $Exact = Join-Path $Dir $Leaf
+        if (Test-Path $Exact) { return (Resolve-Path $Exact).Path }
+      }
+
+      if ($Stem) {
+        $Wildcard = $Stem
+        if (-not $Wildcard.EndsWith("*")) { $Wildcard = $Wildcard + "*" }
+        $Match = Get-ChildItem -Path $Dir -Filter ($Wildcard + ".zip") -File -ErrorAction SilentlyContinue |
+          Sort-Object LastWriteTime -Descending |
+          Select-Object -First 1
+        if ($Match) { return $Match.FullName }
+      }
+    }
+
+    $Hint = "Requested patch zip was not found: $RequestedPatchZip`n" +
+      "Checked repo root, Downloads, and Desktop for exact/wildcard matches.`n" +
+      "Tip: put the patch ZIP in Downloads, then rerun the same command."
+    throw $Hint
+  }
+
+  foreach ($Dir in $SearchDirs) {
+    if (-not (Test-Path $Dir)) { continue }
+    $LatestPatch = Get-ChildItem -Path $Dir -Filter "*-patch*.zip" -File -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+    if ($LatestPatch) {
+      Write-Host "Using latest patch zip:" -ForegroundColor Yellow
+      Write-Host $LatestPatch.FullName -ForegroundColor Yellow
+      return $LatestPatch.FullName
+    }
+  }
+
+  throw "PatchZip was not provided and no *-patch*.zip file was found in repo root, Downloads, or Desktop."
 }
 
-if (!(Test-Path $PatchZip)) {
-  throw "Patch zip not found: $PatchZip"
-}
+$PatchZip = Resolve-PatchZip $PatchZip
 
 $PatchName = [System.IO.Path]::GetFileNameWithoutExtension($PatchZip)
 $PatchTemp = Join-Path $env:TEMP ($PatchName + "_" + $RunId)

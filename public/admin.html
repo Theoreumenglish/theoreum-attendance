@@ -8881,7 +8881,18 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         return;
       }
 
-      renderStudents(r.data && Array.isArray(r.data.items) ? r.data.items : []);
+      const items = r.data && Array.isArray(r.data.items) ? r.data.items : [];
+      renderStudents(items);
+
+      if (items.length === 1) {
+        const only = items[0] || {};
+        const nextSid = normalizeSid(only.student_id || '');
+        const currentSid = normalizeSid(App.selectedStudent && App.selectedStudent.student_id ? App.selectedStudent.student_id : '');
+        if (nextSid && nextSid !== currentSid) {
+          selectStudent(only);
+          showToast('검색 결과 1명을 자동 선택했습니다.');
+        }
+      }
     }
 
     function scheduleStudentSearch() {
@@ -10679,6 +10690,50 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       showToast('온라인강의 목록을 조회했습니다.');
     }
 
+    async function copyTextWithFallback(text) {
+      const value = String(text || '');
+      if (!value) return false;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(value);
+          return true;
+        } catch (_) {}
+      }
+
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = value;
+        ta.setAttribute('readonly', 'readonly');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand && document.execCommand('copy');
+        ta.remove();
+        return !!ok;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function buildStudentTodayShareMessage(studentName, url, expiresAt) {
+      const name = String(studentName || '').trim();
+      const lines = [
+        '[더오름영어] 오늘 학습 확인 링크 안내',
+        '',
+        (name ? name + ' 학생의 ' : '') + '오늘 출결·클리닉·단어 기록과 온라인강의 안내를 확인하실 수 있습니다.',
+        url
+      ];
+
+      const expires = shortTs(expiresAt || '');
+      if (expires) lines.push('', '링크 만료: ' + expires);
+      return lines.join('\n');
+    }
+
     async function saveLectureAssignment() {
       const student = App.selectedStudent || {};
       const sid = normalizeSid(student.student_id || '');
@@ -10713,7 +10768,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         if (box) box.innerHTML = '<h3>학생 오늘 링크</h3><p>학생 검색에서 학생을 먼저 선택하세요.</p>';
         return;
       }
+
       if (box) box.innerHTML = '<h3>학생 오늘 링크</h3><p>링크를 생성하는 중입니다...</p>';
+
       const r = await rpc('admin.studentTodayLink.create', { student_id: sid, origin: window.location.origin, expires_days: 7 }, { timeoutMs: 25000 });
       if (!r.ok) {
         const msg = r.error && r.error.message ? r.error.message : '학생 링크 생성 실패';
@@ -10721,28 +10778,47 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         if (box) box.innerHTML = `<h3>학생 오늘 링크</h3><p>${esc(msg)}</p>`;
         return;
       }
+
       const url = r.data && r.data.public_url ? r.data.public_url : '';
-      if (url && navigator.clipboard && navigator.clipboard.writeText) {
-        try { await navigator.clipboard.writeText(url); } catch (_) {}
-      }
+      const studentName = r.data && r.data.student_name ? r.data.student_name : (student.student_name || '');
+      const expiresAt = r.data && r.data.expires_at ? r.data.expires_at : '';
+      const parentMessage = buildStudentTodayShareMessage(studentName, url, expiresAt);
+      const copied = await copyTextWithFallback(url);
+
       if (box) {
         box.innerHTML = `
           <h3>학생 오늘 링크 생성 완료</h3>
-          <p>${esc(r.data.student_name || student.student_name || '')} · 만료: ${esc(shortTs(r.data.expires_at || ''))}</p>
-          <div class="copyBox" style="margin-top:10px;word-break:break-all;">${esc(url)}</div>
+          <p>${esc(studentName || '')} · 만료: ${esc(shortTs(expiresAt || ''))} · ${copied ? '링크 자동복사 완료' : '수동복사 필요'}</p>
+          <div class="copyBox" id="studentTodayUrlText" style="margin-top:10px;word-break:break-all;">${esc(url)}</div>
           <div class="btnRow" style="margin-top:10px;">
-            <button class="btn btnGhost" type="button" id="btnCopyStudentTodayLink">링크 다시 복사</button>
+            <button class="btn btnGhost" type="button" id="btnCopyStudentTodayLink">링크 복사</button>
+            <button class="btn btnGhost" type="button" id="btnOpenStudentTodayLink">새 탭 열기</button>
+            <button class="btn btnPri" type="button" id="btnCopyStudentTodayMessage">학부모 문구 복사</button>
           </div>
+          <div class="copyBox" id="studentTodayParentMessage" style="margin-top:10px;white-space:pre-wrap;word-break:break-word;">${esc(parentMessage)}</div>
+          <p style="margin-top:10px;">복사가 안 되면 위 링크 또는 문구를 직접 드래그해서 복사하세요.</p>
         `;
+
         const copyBtn = $('#btnCopyStudentTodayLink');
         if (copyBtn) copyBtn.addEventListener('click', async () => {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(url);
-            showToast('학생 링크를 복사했습니다.');
-          }
+          const ok = await copyTextWithFallback(url);
+          showToast(ok ? '학생 링크를 복사했습니다.' : '자동 복사 실패. 링크를 직접 드래그해서 복사하세요.');
+        });
+
+        const openBtn = $('#btnOpenStudentTodayLink');
+        if (openBtn) openBtn.addEventListener('click', () => {
+          if (!url) return;
+          window.open(url, '_blank', 'noopener,noreferrer');
+        });
+
+        const msgBtn = $('#btnCopyStudentTodayMessage');
+        if (msgBtn) msgBtn.addEventListener('click', async () => {
+          const ok = await copyTextWithFallback(parentMessage);
+          showToast(ok ? '학부모 안내 문구를 복사했습니다.' : '자동 복사 실패. 문구를 직접 드래그해서 복사하세요.');
         });
       }
-      showToast('학생 오늘 링크를 생성하고 복사했습니다.');
+
+      showToast(copied ? '학생 오늘 링크를 생성하고 복사했습니다.' : '학생 오늘 링크를 생성했습니다. 복사 버튼을 눌러주세요.');
     }
 
     function phoneIdentityStatusClass(status) {

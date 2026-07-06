@@ -54,6 +54,8 @@ const qaStudentId = String(process.env.QA_STUDENT_ID || '').trim();
 const qaStaffTail8 = String(process.env.QA_STAFF_TAIL8 || '').replace(/[^0-9]/g, '').slice(-8);
 const qaStudentTail8 = String(process.env.QA_STUDENT_TAIL8 || '11112222').replace(/[^0-9]/g, '').slice(-8);
 const timeoutMs = Number(process.env.QA_TIMEOUT_MS || 20000) || 20000;
+const slowApiMs = Number(process.env.QA_SLOW_API_MS || 5000) || 5000;
+const verySlowApiMs = Number(process.env.QA_VERY_SLOW_API_MS || 10000) || 10000;
 const runId = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
 const logDir = resolve(process.cwd(), '_logs');
 const deepRoot = resolve(logDir, 'deep-qa');
@@ -776,7 +778,10 @@ async function apiRpc(op, args = {}) {
   }
   const item = { op, httpStatus: status, ms: Date.now() - started, ok: !!body?.ok, error: body?.error || null };
   apiResults.push(item);
-  if (item.ok) ok(`api ${op}`, `http=${status}, ${item.ms}ms`);
+  const speedNote = item.ok && item.ms >= verySlowApiMs
+    ? `, SLOW_CRITICAL>${verySlowApiMs}ms`
+    : (item.ok && item.ms >= slowApiMs ? `, slow>${slowApiMs}ms` : '');
+  if (item.ok) ok(`api ${op}`, `http=${status}, ${item.ms}ms${speedNote}`);
   else fail(`api ${op}`, `http=${status}, ${item.ms}ms, code=${body?.error?.code || ''}, msg=${body?.error?.message || ''}`);
   return body;
 }
@@ -1044,6 +1049,36 @@ async function run() {
       throw new Error('student link or lecture area is not visible');
     }
   });
+  if (writeMode) {
+    await step('student link admin copy controls', async () => {
+      const firstStudent = page.locator('#studentResults [data-student-open]').first();
+      if (await firstStudent.count() === 0) throw new Error('student search returned no clickable student rows');
+      await firstStudent.click();
+      await waitQuiet(1200);
+
+      await page.evaluate(async () => {
+        if (typeof window.createStudentTodayLink === 'function') {
+          await window.createStudentTodayLink();
+        } else {
+          const btn = document.querySelector('#btnStudentTodayLinkOneClick');
+          if (!btn) throw new Error('student today link button not found');
+          btn.click();
+        }
+      }).catch(async () => {
+        const btn = page.locator('#btnStudentTodayLinkOneClick');
+        await btn.click({ timeout: 5000 });
+      });
+
+      await page.locator('#btnCopyStudentTodayLink').waitFor({ state: 'visible', timeout: 15000 });
+      await page.locator('#btnCopyStudentTodayMessage').waitFor({ state: 'visible', timeout: 15000 });
+      await page.locator('#btnOpenStudentTodayLink').waitFor({ state: 'visible', timeout: 15000 });
+
+      const boxText = await page.locator('#studentTodayLinkBox').innerText({ timeout: 5000 });
+      if (!/https?:\/\//.test(boxText)) throw new Error('student today link URL was not rendered in admin copy box');
+      if (!/학부모|오늘 학습 확인 링크/.test(boxText)) throw new Error('parent share message was not rendered');
+    });
+  }
+
   await checkedDomAudit('students_search');
 
   let studentIdForWrite = qaStudentId;
@@ -1191,7 +1226,15 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     ...(badResponses.length ? badResponses.slice(0, 100).map(e => `- HTTP ${e.status} ${e.url}`) : ['- none']),
     '',
     '## API results',
-    ...(apiResults.length ? apiResults.map(e => `- ${e.ok ? 'OK' : 'FAIL'} ${e.op} — http=${e.httpStatus}, ${e.ms}ms${e.error ? `, code=${e.error.code || ''}, msg=${mask(e.error.message || '')}` : ''}`) : ['- none'])
+    ...(apiResults.length ? apiResults.map(e => `- ${e.ok ? 'OK' : 'FAIL'} ${e.op} — http=${e.httpStatus}, ${e.ms}ms${e.error ? `, code=${e.error.code || ''}, msg=${mask(e.error.message || '')}` : ''}`) : ['- none']),
+    '',
+    '## Practical performance notes',
+    ...(apiResults.filter(e => e.ok && e.ms >= slowApiMs).length
+      ? apiResults
+          .filter(e => e.ok && e.ms >= slowApiMs)
+          .sort((a, b) => b.ms - a.ms)
+          .map(e => `- ${e.ms >= verySlowApiMs ? 'CRITICAL ' : ''}${e.op}: ${e.ms}ms`)
+      : ['- none'])
   ];
 }
 
