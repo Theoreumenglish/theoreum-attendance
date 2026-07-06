@@ -3914,8 +3914,15 @@
           return;
         }
 
+        if (e.defaultPrevented) return;
+
         const input = $('#kInput');
         if (!input) return;
+
+        const mid = Kiosk.getPhoneMidInput();
+        const last = Kiosk.getPhoneLastInput();
+        const activeIsPhoneSegment = document.activeElement === mid || document.activeElement === last;
+        if (activeIsPhoneSegment) return;
 
         const isPlainChar =
           e.key.length === 1 &&
@@ -3926,6 +3933,14 @@
         if (isPlainChar) {
           const modal = $('#fullModal');
           if (modal) modal.classList.remove('show');
+
+          if (/^[0-9]$/.test(e.key) && document.activeElement !== input) {
+            e.preventDefault();
+            Kiosk.routePhysicalKeyToPhoneSegments(e.key);
+            Kiosk.focusPhoneSegment(0);
+            return;
+          }
+
           if (document.activeElement !== input) {
             e.preventDefault();
             safeFocus(input);

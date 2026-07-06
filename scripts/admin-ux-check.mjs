@@ -85,6 +85,8 @@ for (const staffId of staffOnlyIds) {
 }
 if (!html.includes('data-section-scope="staff"')) fail('직원 전용 카드에 data-section-scope="staff" 안전장치가 없습니다.');
 else ok('직원 전용 카드에 data-section-scope="staff" 안전장치를 부여했습니다.');
+if (!html.includes('function repairStaffSectionScope')) fail('직원 카드 DOM 누수 복구용 repairStaffSectionScope()가 없습니다.');
+else ok('직원 카드 DOM 누수 복구용 repairStaffSectionScope()가 있습니다.');
 if (staff.indexOf('id="staffManualStaffId"') < 0 || staff.indexOf('id="staffManualStaffId"') > staff.lastIndexOf('</section>')) {
   fail('직원 수기 입력 카드가 staff section 밖으로 새는 구조입니다.');
 }

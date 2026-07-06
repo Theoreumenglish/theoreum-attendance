@@ -7216,6 +7216,34 @@ body.adminConsoleV7[data-current-view="advanced"] [data-section-scope="staff"] {
       return document.getElementById('dashboard');
     }
 
+    const STAFF_SCOPED_INPUT_IDS = [
+      'staffManualStaffId', 'staffManualYmd', 'staffManualTime', 'staffManualAction', 'staffManualTraceId', 'staffManualNote',
+      'centralStaffId', 'centralStaffName', 'centralStaffPhone', 'centralStaffRole', 'centralStaffStatus', 'centralStaffRevoked',
+      'centralStaffPassword', 'centralStaffPin'
+    ];
+
+    function repairStaffSectionScope() {
+      const staffSection = document.getElementById('staff');
+      if (!staffSection) return;
+
+      const cards = new Set();
+      STAFF_SCOPED_INPUT_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const card = el.closest('.card');
+        if (!card) return;
+        cards.add(card);
+      });
+
+      cards.forEach(card => {
+        card.setAttribute('data-section-scope', 'staff');
+        const section = card.closest('section.portalView');
+        if (!section || section.id !== 'staff') {
+          staffSection.appendChild(card);
+        }
+      });
+    }
+
     function setActiveNav(id) {
       const navId = VIEW_NAV_ALIAS[id] || id;
       $$('.navBtn').forEach(x => x.classList.toggle('on', x.dataset.go === navId));
@@ -7231,12 +7259,14 @@ body.adminConsoleV7[data-current-view="advanced"] [data-section-scope="staff"] {
     }
 
     function showPortalView(id, options = {}) {
+      repairStaffSectionScope();
       const view = getPortalView(id);
       const viewId = view && view.id ? view.id : 'dashboard';
 
       $$('.portalView').forEach(x => x.classList.toggle('active', x.id === viewId));
       App.currentView = viewId;
       document.body.dataset.currentView = viewId;
+      repairStaffSectionScope();
       setActiveNav(viewId);
       updatePageHeader(view);
       updateCalmOpsSummary();
@@ -7393,6 +7423,7 @@ body.adminConsoleV7[data-current-view="advanced"] [data-section-scope="staff"] {
       if (loggedIn) applyRoleUi();
 
       if (loggedIn) {
+        repairStaffSectionScope();
         showPortalView(getHashView(), { replace: true, scroll: false });
       }
     }

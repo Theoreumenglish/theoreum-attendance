@@ -745,13 +745,39 @@ async function run() {
     const last = page.locator('#kPhoneLast');
     await mid.waitFor({ state: 'visible', timeout: 5000 });
     await mid.click();
-    await page.keyboard.type(qaStudentTail8, { delay: 15 });
+
+    const focusProbe = qaStudentTail8.slice(0, 7).padEnd(7, '1');
+    await page.keyboard.type(focusProbe, { delay: 15 });
     await waitQuiet(250);
+    const probeMid = await mid.inputValue().catch(() => '');
+    const probeLast = await last.inputValue().catch(() => '');
+    const probeActive = await page.evaluate(() => document.activeElement && document.activeElement.id).catch(() => '');
+    if ((probeMid + probeLast).replace(/\D/g, '') !== focusProbe) {
+      throw new Error(`phone segment typing lost digits before submit: mid=${probeMid}, last=${probeLast}`);
+    }
+    if (probeActive !== 'kPhoneLast') {
+      throw new Error(`phone segment focus did not move to last box: active=${probeActive}`);
+    }
+
+    await mid.fill('');
+    await last.fill('');
+    await mid.click();
+    await page.keyboard.type(qaStudentTail8, { delay: 15 });
+    await waitQuiet(900);
+
     const midVal = await mid.inputValue().catch(() => '');
     const lastVal = await last.inputValue().catch(() => '');
     const visibleDigits = (midVal + lastVal).replace(/\D/g, '');
     const rawDigits = await page.locator('#kInput').inputValue().catch(() => '');
-    const submitting = await page.evaluate(() => !!window.__THEOREUM_KIOSK_SUBMITTING__ || !!document.querySelector('.modalSpinner, .spinner, [aria-busy="true"]')).catch(() => false);
+    const submitting = await page.evaluate(() => {
+      const visible = el => {
+        const s = window.getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        return !!s && s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0;
+      };
+      const visibleSpinner = [...document.querySelectorAll('.modalSpinner, .spinner')].some(visible);
+      return !!window.__THEOREUM_KIOSK_SUBMITTING__ || !!document.querySelector('.actBtn.loading,[aria-busy="true"]') || visibleSpinner;
+    }).catch(() => false);
     const modalText = await page.locator('#fullModal').innerText({ timeout: 800 }).catch(() => '');
 
     if (visibleDigits.length < 8 && normalizeTail8(rawDigits).length < 8 && !submitting && !/처리|완료|등록|찾지 못|문의|중복|입력/.test(modalText)) {
