@@ -344,6 +344,14 @@ checkText('index.html', 'btnStaffClockOutFast', '키오스크 직원 퇴근 빠�
 checkText('index.html', 'bindGlobalStaffHotkeys', '키오스크 직원 hotword focus guard');
 checkText('public/admin.html', 'consoleOperatorGuard', '관리자 콘솔 노이즈 가드');
 
+checkText('public/admin.html', 'adminConsoleV7', '관리자 콘솔 v7 작업자 모드');
+checkText('public/admin.html', 'studentResultRow', '학생 검색 compact master list');
+checkText('public/admin.html', 'data-student-open', '학생 우측 상세 drawer open trigger');
+checkText('public/admin.html', 'staffAdvancedDetails', '직원 고급 설정 점진적 공개');
+checkText('public/admin.html', 'data-staff-inline-phone', '직원 휴대폰 더블클릭 편집');
+checkText('public/admin.html', 'operatorSkeleton', '관리자 콘솔 skeleton loading UI');
+checkText('docs/ADMIN_CONSOLE_WORKSPACE_V7.md', 'admin-console-workspace-v7', '관리자 콘솔 작업자 모드 v7 문서');
+
 
 checkText('api/rpc.js', "op === 'admin.central.staff.phoneOnly'", '기존 직원 계정 휴대폰만 저장 API');
 checkText('public/admin.html', 'btnCentralSaveStaffPhoneOnly', '기존 직원 계정 휴대폰만 저장 UI');

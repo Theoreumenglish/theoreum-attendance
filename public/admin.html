@@ -4182,6 +4182,221 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
   .calmStatusGrid, .calmTaskGrid, .calmAutomationGrid, .calmMenuGrid { grid-template-columns: 1fr; }
 }
 
+
+
+/* Admin console clean workflow v7: keep kiosk stable, make admin screens operator-first. */
+body.adminConsoleV7 .btn.isPending,
+body.adminConsoleV7 span.btn.isPending {
+  opacity: .72;
+  cursor: wait !important;
+  pointer-events: none;
+}
+body.adminConsoleV7 .btn.isPending::before,
+body.adminConsoleV7 span.btn.isPending::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 7px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  vertical-align: -2px;
+  animation: spin .7s linear infinite;
+}
+body.adminConsoleV7 .operatorSkeleton {
+  display: grid;
+  gap: 10px;
+  padding: 10px 0;
+}
+body.adminConsoleV7 .operatorSkeleton span {
+  display: block;
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef2f7, #f8fafc, #eef2f7);
+  background-size: 220% 100%;
+  animation: shimmer 1.15s ease-in-out infinite;
+}
+body.adminConsoleV7 .operatorSkeleton span:nth-child(2) { width: 86%; }
+body.adminConsoleV7 .operatorSkeleton span:nth-child(3) { width: 72%; }
+@keyframes shimmer { 0% { background-position: 0 0; } 100% { background-position: -220% 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+body.adminConsoleV7 #students > .grid2:first-child {
+  display: grid;
+  grid-template-columns: minmax(360px, .9fr) minmax(420px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+body.adminConsoleV7 #students > .grid3,
+body.adminConsoleV7 #students > .grid2:not(:first-child),
+body.adminConsoleV7 #students > .card.cardPad {
+  display: none !important;
+}
+body.adminConsoleV7 #studentOneClickBar,
+body.adminConsoleV7 #students details.subtleActions {
+  display: none !important;
+}
+body.adminConsoleV7 #studentLectureBox .grid2,
+body.adminConsoleV7 #studentLectureBox .btnRow,
+body.adminConsoleV7 #studentLectureBox .tableWrap,
+body.adminConsoleV7 #studentLectureBox > div:not(.studentConsoleMiniHead):not(.fieldLabel) {
+  display: none !important;
+}
+body.adminConsoleV7 #studentTodayLinkBox,
+body.adminConsoleV7 #studentLectureBox {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15,23,42,.06);
+}
+body.adminConsoleV7 #studentTodayLinkBox h3,
+body.adminConsoleV7 #studentLectureBox h3 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.04em;
+}
+body.adminConsoleV7 #studentTodayLinkBox p,
+body.adminConsoleV7 #studentLectureBox p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.55;
+}
+body.adminConsoleV7 .studentResultRow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15,23,42,.04);
+}
+body.adminConsoleV7 .studentResultRow + .studentResultRow { margin-top: 10px; }
+body.adminConsoleV7 .studentOpenBtn {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+  min-width: 0;
+  cursor: pointer;
+}
+body.adminConsoleV7 .studentOpenBtn:focus-visible {
+  outline: 3px solid rgba(79,70,229,.22);
+  border-radius: 12px;
+}
+body.adminConsoleV7 .studentResultTitle {
+  display: block;
+  font-size: 16px;
+  font-weight: 950;
+  color: #0f172a;
+  letter-spacing: -0.04em;
+}
+body.adminConsoleV7 .studentResultMeta {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.adminConsoleV7 .studentResultRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body.adminConsoleV7 #studentDetailBody.operatorSelected {
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #eff6ff, #ffffff);
+}
+body.adminConsoleV7 .drawerBodyTabs {
+  display: grid;
+  gap: 12px;
+}
+body.adminConsoleV7 .drawerStatGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+body.adminConsoleV7 .drawerStatCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 14px;
+  background: #ffffff;
+}
+body.adminConsoleV7 .drawerStatCard .k {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+body.adminConsoleV7 .drawerStatCard .v {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+body.adminConsoleV7 .centralStaffBasicGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+body.adminConsoleV7 .staffAdvancedDetails {
+  margin-top: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 0;
+}
+body.adminConsoleV7 .staffAdvancedDetails summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 16px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 950;
+}
+body.adminConsoleV7 .staffAdvancedDetails summary::-webkit-details-marker { display: none; }
+body.adminConsoleV7 .staffAdvancedGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+body.adminConsoleV7 .staffInlineEditable {
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+}
+body.adminConsoleV7 .staffInlineEditable:hover {
+  border-bottom-color: #94a3b8;
+  color: #2563eb;
+}
+body.adminConsoleV7 .inlineEditInput {
+  width: 150px;
+  min-height: 34px;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-weight: 850;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+}
+@media (max-width: 980px) {
+  body.adminConsoleV7 #students > .grid2:first-child,
+  body.adminConsoleV7 .centralStaffBasicGrid,
+  body.adminConsoleV7 .staffAdvancedGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -6090,16 +6305,21 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
 <button class="btn btnGhost" id="btnCentralSaveStaffPhoneOnly" type="button">휴대폰만 저장</button>
 <button class="btn btnGhost" id="btnCentralNewStaff" type="button">새 직원 입력</button>
 </div>
-<div class="formGrid cols3" style="margin-top:16px;">
+<div class="centralStaffBasicGrid">
 <div><div class="fieldLabel">직원 ID</div><input class="inp" id="centralStaffId" placeholder="staff_id"/></div>
 <div><div class="fieldLabel">이름</div><input class="inp" id="centralStaffName" placeholder="직원 이름"/></div>
 <div><div class="fieldLabel">휴대폰</div><input class="inp" id="centralStaffPhone" inputmode="numeric" placeholder="01055556666 또는 55556666"/><div class="smallText">기존 계정은 직원 선택 → 휴대폰 입력 → 휴대폰만 저장을 누르세요.</div></div>
 <div><div class="fieldLabel">권한</div><select class="select" id="centralStaffRole"><option value="assistant">조교</option><option value="teacher">강사</option><option value="admin">관리자</option><option value="owner">오너</option></select></div>
+</div>
+<details class="staffAdvancedDetails">
+<summary>고급 인증·상태 설정 열기</summary>
+<div class="staffAdvancedGrid">
 <div><div class="fieldLabel">상태</div><select class="select" id="centralStaffStatus"><option value="active">활성</option><option value="disabled">차단</option><option value="inactive">휴면</option></select></div>
 <div><div class="fieldLabel">revoked</div><select class="select" id="centralStaffRevoked"><option value="N">N</option><option value="Y">Y</option></select></div>
 <div><div class="fieldLabel">새 비밀번호</div><input class="inp" id="centralStaffPassword" type="password" placeholder="8자 이상"/></div>
 <div><div class="fieldLabel">새 PIN</div><input class="inp" id="centralStaffPin" inputmode="numeric" placeholder="4~8자리"/></div>
 </div>
+</details>
 <div class="tableWrap" style="margin-top:16px;">
 <div class="opsDataToolbar">
 <div class="left"><strong>직원 목록</strong><span class="opsDataHint">행을 선택하거나 ⋯ 메뉴에서 필요한 작업만 실행합니다.</span></div>
@@ -6298,6 +6518,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
     };
 
     document.body.classList.add('consoleOperatorGuard');
+    document.body.classList.add('adminConsoleV7');
 
     function esc(value) {
       return String(value ?? '')
@@ -6872,13 +7093,15 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
         if (desc) desc.textContent = '메뉴 이동 없이 학생 기준으로 출결·단어·클리닉·메시지를 이어서 처리합니다.';
         html += `<div class="drawerKv"><div class="k">학생</div><div class="v">${esc(label)}</div><div class="k">학교/학년</div><div class="v">${esc([data.school || selectedStudent.school, data.grade || selectedStudent.grade].filter(Boolean).join(' · ') || '-')}</div></div>`;
         html += '<div class="drawerTabs" aria-label="학생 상세 탭"><span class="drawerTab on" role="button" tabindex="0">기본 정보</span><span class="drawerTab" role="button" tabindex="0" data-drawer-action="studentLogs">출결 기록</span><span class="drawerTab" role="button" tabindex="0" data-drawer-action="studentWord">단어/클리닉</span><span class="drawerTab" role="button" tabindex="0" data-drawer-action="studentReport">메시지/리포트</span></div>';
-        html += '<div class="drawerMiniCard"><strong>출결 번호</strong><p>학생 번호가 없으면 학부모 번호 fallback을 사용합니다. 번호 수정은 학생DB 추가/수정 영역에서 처리합니다.</p></div>';
+        html += '<div class="drawerBodyTabs"><div class="drawerStatGrid"><div class="drawerStatCard"><div class="k">출결번호</div><div class="v">학생/학부모</div></div><div class="drawerStatCard"><div class="k">오늘 링크</div><div class="v">모바일 공유</div></div></div>';
+        html += '<div class="drawerMiniCard"><strong>운영 원칙</strong><p>목록은 읽기 전용입니다. 필요한 수정은 학생을 선택한 뒤 이 패널에서 작업으로 이동합니다. 더블클릭 편집은 허용된 칸에서만 열립니다.</p></div>';
         html += '<div class="drawerActionList">'
-          + drawerActionHtml('studentLogs', '출결 기록 열기', '선택 학생의 오늘 로그와 최근 출결을 확인합니다.')
-          + drawerActionHtml('studentClinic', '클리닉 만들기', '개별/추가 클리닉을 학생 기준으로 바로 생성합니다.')
-          + drawerActionHtml('studentWord', '단어 결과 입력', '단어시험 결과 입력칸으로 이동하고 학생을 자동 채웁니다.')
-          + drawerActionHtml('studentReport', '메시지/리포트 준비', '학부모 안내문과 리포트를 학생 기준으로 이어갑니다.')
-          + '</div>';
+          + drawerActionHtml('studentLogs', '출결 기록', '선택 학생의 오늘 로그와 최근 출결을 확인합니다.')
+          + drawerActionHtml('studentClinic', '클리닉', '개별/추가 클리닉을 학생 기준으로 바로 생성합니다.')
+          + drawerActionHtml('studentWord', '단어/클리닉 성적', '단어시험 결과 입력칸으로 이동하고 학생을 자동 채웁니다.')
+          + drawerActionHtml('studentReport', '메시지/리포트', '학부모 안내문과 리포트를 학생 기준으로 이어갑니다.')
+          + drawerActionHtml('studentTodayLink', '학생 오늘 링크 생성', '학생/학부모 모바일 링크를 생성하고 복사합니다.')
+          + '</div></div>';
       } else {
         if (title) title.textContent = '오늘 작업 패널';
         if (desc) desc.textContent = '현재 선택된 클래스와 학생으로 바로 이어갈 수 있는 작업입니다.';
@@ -6942,6 +7165,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
       }
       if (act === 'studentClinic') { quickStudentClinicView(); openWorkDrawer('student', App.selectedStudent || {}); return; }
       if (act === 'studentReport') { if (!selectedStudentOrToast()) return; jumpTo('reports'); defaultReportPeriod(); openWorkDrawer('student', App.selectedStudent || {}); return; }
+      if (act === 'studentTodayLink') { if (!selectedStudentOrToast()) return; createStudentTodayLink(); return; }
       if (act === 'studentWord') { quickStudentWordInput(); return; }
       if (act === 'studentLogs') { quickStudentLogs(); return; }
       if (act === 'absenceExcuse') {
@@ -7842,7 +8066,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
         const countEl = document.getElementById('opsFloatingCount');
         const labelEl = document.getElementById('opsFloatingScope');
         if (countEl) countEl.textContent = String(count);
-        if (labelEl) labelEl.textContent = scope === 'centralStaff' ? '직원' : '항목';
+        if (labelEl) labelEl.textContent = scope === 'centralStaff' ? '명 직원' : (scope === 'students' ? '명 학생' : '개 항목');
         if (bar) {
           bar.classList.toggle('show', count > 0);
           bar.setAttribute('data-scope', scope);
@@ -7900,7 +8124,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
         const bar = document.createElement('div');
         bar.id = 'opsFloatingBar';
         bar.className = 'opsFloatingBar';
-        bar.innerHTML = '<span><b class="count" id="opsFloatingCount">0</b><span id="opsFloatingScope">항목</span> 선택됨</span><button type="button" id="opsFloatingPrimary">선택 항목 보기</button><button type="button" class="ghost" id="opsFloatingClear">선택 해제</button>';
+        bar.innerHTML = '<span><b class="count" id="opsFloatingCount">0</b><span id="opsFloatingScope">명</span> 선택됨</span><button type="button" id="opsFloatingPrimary">일괄 출석/하원</button><button type="button" id="opsFloatingMessage">일괄 알림톡</button><button type="button" class="ghost" id="opsFloatingClear" aria-label="선택 해제">×</button>';
         document.body.appendChild(bar);
         document.getElementById('opsFloatingClear')?.addEventListener('click', () => {
           const scope = bar.getAttribute('data-scope') || '';
@@ -7909,7 +8133,12 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
         document.getElementById('opsFloatingPrimary')?.addEventListener('click', () => {
           const scope = bar.getAttribute('data-scope') || '';
           const ids = [...OpsTable.selected].filter(x => x.startsWith(scope + ':')).map(x => x.split(':').slice(1).join(':')).filter(Boolean);
-          showToast(ids.length ? ids.join(', ') : '선택된 항목이 없습니다.');
+          showToast(ids.length ? ids.length + '명/건의 일괄 출석·하원 처리는 다음 자동화 패치에서 실제 저장과 연결합니다.' : '선택된 항목이 없습니다.');
+        });
+        document.getElementById('opsFloatingMessage')?.addEventListener('click', () => {
+          const scope = bar.getAttribute('data-scope') || '';
+          const ids = [...OpsTable.selected].filter(x => x.startsWith(scope + ':')).map(x => x.split(':').slice(1).join(':')).filter(Boolean);
+          showToast(ids.length ? ids.length + '명/건의 일괄 알림톡 발송은 메시지 화면의 큐 처리와 연결됩니다.' : '선택된 항목이 없습니다.');
         });
       }
     };
@@ -7961,7 +8190,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
             <td>${OpsTable.checkbox('centralStaff', staffId)}</td>
             <td title="${esc(staffId)}"><strong>${esc(OpsTable.truncate(staffId, 10, 4))}</strong></td>
             <td>${esc(item.name || '')}</td>
-            <td>${esc(phone || '-')}</td>
+            <td><span class="staffInlineEditable" data-staff-inline-phone data-staff-key="${esc(staffId)}" data-phone="${esc(phone || '')}" title="더블클릭하면 휴대폰만 바로 수정됩니다">${esc(phone || '-')}</span></td>
             <td>${OpsTable.badge(item.role || '-')}</td>
             <td>${OpsTable.badge(statusText)}</td>
             <td>${item.has_password ? 'PW' : '-'} / ${item.has_pin ? 'PIN' : '-'}</td>
@@ -7987,7 +8216,58 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
           resetCentralStaffSecret();
         }
       });
+      bindCentralStaffInlinePhone();
       showToast('직원 목록을 조회했습니다.');
+    }
+
+    function bindCentralStaffInlinePhone() {
+      $$('[data-staff-inline-phone]').forEach(cell => {
+        cell.addEventListener('dblclick', () => {
+          if (cell.dataset.editing === '1') return;
+          const staffId = cell.getAttribute('data-staff-key') || '';
+          const current = cell.getAttribute('data-phone') || '';
+          const item = (App.centralStaffItems && App.centralStaffItems.get(staffId)) || {};
+          cell.dataset.editing = '1';
+          cell.innerHTML = '<input class="inlineEditInput" inputmode="numeric" aria-label="직원 휴대폰 더블클릭 편집" value="' + esc(current === '-' ? '' : current) + '">';
+          const input = cell.querySelector('input');
+          const finish = async (save) => {
+            const next = (input?.value || '').trim();
+            cell.dataset.editing = '0';
+            cell.innerHTML = esc(next || '-');
+            cell.setAttribute('data-phone', next || '');
+            if (!save || !next || next === current) return;
+            const pending = safeOptimisticStart('직원 휴대폰 저장 중', staffId + ' 번호를 저장합니다.');
+            const r = await rpc('admin.central.staff.phoneOnly', {
+              staff: {
+                staff_id: staffId,
+                name: String(item.name || staffId || '').trim(),
+                role: String(item.role || 'assistant').trim(),
+                status: String(item.status || 'active').trim(),
+                revoked: String(item.revoked || 'N').trim().toUpperCase() === 'Y' ? 'Y' : 'N',
+                staff_phone: next,
+                phone: next
+              }
+            }, { timeoutMs: 70000 });
+            if (!r.ok) {
+              safeOptimisticFail(pending, '직원 휴대폰 저장 실패', r.error?.message || '저장 결과를 확인하세요.');
+              showToast(r.error?.message || '직원 휴대폰 저장 실패');
+              await loadCentralStaff();
+              return;
+            }
+            safeOptimisticDone(pending, '직원 휴대폰 저장 완료', '비밀번호/PIN은 변경하지 않았습니다.');
+            clearRpcCache();
+            showToast('직원 휴대폰을 저장했습니다.');
+            await loadCentralStaff();
+          };
+          input?.focus();
+          input?.select();
+          input?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+            if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+          });
+          input?.addEventListener('blur', () => finish(true), { once: true });
+        });
+      });
     }
 
     function centralStaffFormPayload(includeSecret = true) {
@@ -8180,7 +8460,10 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
 
     function renderStudentDetail(student) {
       const sid = normalizeSid(student.student_id);
-      $('#studentDetailBody').innerHTML = `
+      const body = $('#studentDetailBody');
+      if (!body) return;
+      body.classList.add('operatorSelected');
+      body.innerHTML = `
         <div class="timeItem">
           <div class="timeTitle">${esc(sid)} · ${esc(student.student_name || '')}</div>
           <div class="timeDesc">
@@ -8189,7 +8472,13 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
             오늘 출결, QR 예외, 최근 로그를 불러오는 중입니다.
           </div>
         </div>
+        <div class="btnRow" style="margin-top:14px;">
+          <button class="btn btnPri" type="button" data-selected-student-action="drawer">우측 상세 패널</button>
+          <button class="btn btnGhost" type="button" data-selected-student-action="link">학생 오늘 링크</button>
+        </div>
       `;
+      $$('[data-selected-student-action="drawer"]').forEach(btn => btn.addEventListener('click', () => openWorkDrawer('student', App.selectedStudent || student)));
+      $$('[data-selected-student-action="link"]').forEach(btn => btn.addEventListener('click', () => createStudentTodayLink()));
     }
 
     function todayStateText(state) {
@@ -8212,17 +8501,31 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
       const wordResults = Array.isArray(profile.word_test_results) ? profile.word_test_results : [];
       const warnings = Array.isArray(profile.warnings) ? profile.warnings : [];
 
-      $('#studentDetailBody').innerHTML = `
-        <div class="timeItem">
-          <div class="timeTitle">${esc(sid)} · ${esc(student.student_name || '')}</div>
-          <div class="timeDesc">
-            학교/학년: ${esc(student.school || '-')} ${esc(student.grade || '')}<br>
-            상태: ${esc(student.status || '-')} · 담당: ${esc(student.teacher || '-')}<br>
-            조회일: ${esc(profile.yyyymmdd || '')} · 상태 소스: ${esc(profile.today_state_source || '-')}
+      const detailBody = $('#studentDetailBody');
+      if (detailBody) {
+        detailBody.classList.add('operatorSelected');
+        detailBody.innerHTML = `
+          <div class="timeItem">
+            <div class="timeTitle">${esc(sid)} · ${esc(student.student_name || '')}</div>
+            <div class="timeDesc">
+              학교/학년: ${esc(student.school || '-')} ${esc(student.grade || '')}<br>
+              상태: ${esc(student.status || '-')} · 담당: ${esc(student.teacher || '-')}<br>
+              조회일: ${esc(profile.yyyymmdd || '')} · 상태 소스: ${esc(profile.today_state_source || '-')}
+            </div>
           </div>
-        </div>
-        ${warnings.length ? `<div class="tag tagWarn" style="margin-top:12px;">부분 조회 경고 ${warnings.length}건</div>` : ''}
-      `;
+          <div class="drawerStatGrid">
+            <div class="drawerStatCard"><div class="k">오늘 상태</div><div class="v">${esc(stateText.label)}</div></div>
+            <div class="drawerStatCard"><div class="k">소속 반</div><div class="v">${esc(String(classes.length))}</div></div>
+          </div>
+          <div class="btnRow" style="margin-top:14px;">
+            <button class="btn btnPri" type="button" data-selected-student-action="drawer">우측 상세 패널</button>
+            <button class="btn btnGhost" type="button" data-selected-student-action="link">학생 오늘 링크</button>
+          </div>
+          ${warnings.length ? `<div class="tag tagWarn" style="margin-top:12px;">부분 조회 경고 ${warnings.length}건</div>` : ''}
+        `;
+        $$('[data-selected-student-action="drawer"]').forEach(btn => btn.addEventListener('click', () => openWorkDrawer('student', App.selectedStudent || student)));
+        $$('[data-selected-student-action="link"]').forEach(btn => btn.addEventListener('click', () => createStudentTodayLink()));
+      }
 
       $('#studentTodayStatus').textContent = stateText.label;
       $('#studentTodayNote').textContent = stateText.note;
@@ -8375,49 +8678,70 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
     function renderStudents(items) {
       const box = $('#studentResults');
       if (!box) return;
+      OpsTable.resetSelection('students');
       if (!items.length) {
         box.innerHTML = '<div class="emptyPanel"><h3>검색 결과가 없습니다.</h3><p>이름을 두 글자 이상 입력하거나 학번으로 다시 검색하세요.</p></div>';
         return;
       }
 
+      App.studentSearchItems = new Map(items.map(item => [normalizeSid(item.student_id), item]));
       box.innerHTML = items.map(item => {
         const sid = normalizeSid(item.student_id);
         const status = String(item.status || '재원');
         const statusCls = studentStatusClass(status);
         const meta = [item.school || '', item.grade || '', item.teacher || item.teacher_name || ''].filter(Boolean).join(' · ') || '상세 정보 없음';
+        const actions = [
+          { id: 'open', label: '상세 패널 열기' },
+          { id: 'phone', label: '출결번호 설정' },
+          { id: 'link', label: '학생 오늘 링크' },
+          { id: 'clinic', label: '클리닉 연결' },
+          { id: 'report', label: '메시지/리포트' }
+        ];
         return `
-          <button class="listItem studentResultCard" type="button"
-            data-sid="${esc(sid)}"
-            data-name="${esc(item.student_name || '')}"
-            data-school="${esc(item.school || '')}"
-            data-grade="${esc(item.grade || '')}"
-            data-status="${esc(status)}">
-            <span class="studentResultCheck" aria-hidden="true">✓</span>
-            <span>
+          <div class="studentResultRow" data-ops-row-scope="students" data-ops-row-key="${esc(sid)}">
+            <div>${OpsTable.checkbox('students', sid)}</div>
+            <button class="studentOpenBtn" type="button"
+              data-student-open="${esc(sid)}"
+              data-sid="${esc(sid)}"
+              data-name="${esc(item.student_name || '')}"
+              data-school="${esc(item.school || '')}"
+              data-grade="${esc(item.grade || '')}"
+              data-status="${esc(status)}">
               <span class="studentResultTitle">${esc(item.student_name || '이름 없음')}</span>
               <span class="studentResultMeta">${esc(meta)}</span>
-            </span>
-            <span class="studentResultAction"><span class="statusBadge ${esc(statusCls)}">${esc(status || '재원')}</span><span class="studentKebabDots" aria-hidden="true">⋯</span></span>
-          </button>
+            </button>
+            <span class="studentResultRight"><span class="statusBadge ${esc(statusCls)}">${esc(status || '재원')}</span>${OpsTable.kebab('students', sid, actions)}</span>
+          </div>
         `;
       }).join('');
 
-      $$('#studentResults .listItem').forEach(btn => {
-        btn.addEventListener('click', () => {
-          selectStudent({
-            student_id: btn.dataset.sid || '',
-            student_name: btn.dataset.name || '',
-            school: btn.dataset.school || '',
-            grade: btn.dataset.grade || '',
-            status: btn.dataset.status || ''
-          });
+      const openById = sid => {
+        const item = (App.studentSearchItems && App.studentSearchItems.get(sid)) || {};
+        selectStudent({
+          student_id: sid || item.student_id || '',
+          student_name: item.student_name || '',
+          school: item.school || '',
+          grade: item.grade || '',
+          status: item.status || '재원'
         });
+      };
+      $$('#studentResults [data-student-open]').forEach(btn => {
+        btn.addEventListener('click', () => openById(btn.dataset.studentOpen || ''));
+      });
+      OpsTable.bind('students', {
+        open: id => openById(id),
+        phone: id => { openById(id); showToast('우측 패널에서 출결번호 탭을 확인하세요.'); },
+        link: id => { openById(id); createStudentTodayLink(); },
+        clinic: id => { openById(id); quickStudentClinicView(); },
+        report: id => { openById(id); jumpTo('reports'); defaultReportPeriod(); }
       });
     }
 
     async function searchStudentsNow() {
       const q = ($('#studentQuery').value || '').trim();
       const seq = ++App.searchSeq;
+      const resultBox = $('#studentResults');
+      if (resultBox) resultBox.innerHTML = '<div class="operatorSkeleton" aria-label="학생 검색 중"><span></span><span></span><span></span></div>';
 
       if (q.length < 2 && !/^\d{1,4}$/.test(q)) {
         $('#studentResults').innerHTML = '<div class="sectionDesc">두 글자 이상 또는 학번을 입력하세요.</div>';
@@ -8810,7 +9134,7 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
             <td>${esc(name || '-')}</td>
             <td>${esc(minutes)}</td>
             <td>${esc(fmtMinutes(minutes))}</td>
-            <td><button class="btn btnGhost" type="button" data-staff-id="${esc(staffId)}" data-staff-name="${esc(name || staffId)}">일별</button></td>
+            <td><button class="btn btnGhost" type="button" data-staff-key="${esc(staffId)}" data-staff-name="${esc(name || staffId)}">일별</button></td>
           </tr>
         `;
       }).join('');
@@ -10840,9 +11164,39 @@ body.opsFlowV3[data-user-role="teacher"] #btnCentralResetStaffSecret {
       if (task === 'student') { openCommandPalette('학생'); return; }
     }
 
+    function setButtonBusy(el, on) {
+      if (!el) return;
+      if (on) {
+        el.dataset.pending = '1';
+        el.classList.add('isPending');
+        el.setAttribute('aria-busy', 'true');
+        if ('disabled' in el) el.disabled = true;
+      } else {
+        delete el.dataset.pending;
+        el.classList.remove('isPending');
+        el.removeAttribute('aria-busy');
+        if ('disabled' in el) el.disabled = false;
+      }
+    }
+
     function bindClick(id, handler) {
       const el = document.getElementById(id);
-      if (el) el.addEventListener('click', handler);
+      if (!el) return;
+      el.addEventListener('click', async (event) => {
+        if (el.dataset.pending === '1') return;
+        try {
+          const result = handler(event);
+          if (result && typeof result.then === 'function') {
+            setButtonBusy(el, true);
+            await result;
+          }
+        } catch (err) {
+          console.error(err);
+          showToast(err && err.message ? err.message : '작업 중 오류가 발생했습니다.');
+        } finally {
+          setButtonBusy(el, false);
+        }
+      });
     }
 
     function bindEvents() {
