@@ -580,17 +580,25 @@ async function domAudit(label) {
     };
     const ids = [...document.querySelectorAll('[id]')].map(el => el.id).filter(Boolean);
     const dupIds = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))].slice(0, 30);
+    const sectionId = el => el.closest?.('section.portalView')?.id || '';
     const buttons = [...document.querySelectorAll('button,[role="button"]')].filter(visible).slice(0, 80).map(el => ({
       text: (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80),
       id: el.id || '',
+      sectionId: sectionId(el),
       disabled: !!el.disabled
     }));
     const inputs = [...document.querySelectorAll('input,select,textarea')].filter(visible).slice(0, 80).map(el => ({
       id: el.id || '',
       placeholder: el.getAttribute('placeholder') || '',
       type: el.getAttribute('type') || el.tagName.toLowerCase(),
+      sectionId: sectionId(el),
       valueLen: String(el.value || '').length,
       disabled: !!el.disabled
+    }));
+    const scopedCards = [...document.querySelectorAll('[data-section-scope]')].filter(visible).slice(0, 30).map(el => ({
+      scope: el.getAttribute('data-section-scope') || '',
+      sectionId: sectionId(el),
+      text: (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120)
     }));
     const overflow = [...document.querySelectorAll('body *')].filter(overflowRelevant).slice(0, 20).map(el => ({
       tag: el.tagName,
@@ -605,6 +613,7 @@ async function domAudit(label) {
       bodyText: (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 1000),
       buttons,
       inputs,
+      scopedCards,
       dupIds,
       overflow,
       viewport: { w: window.innerWidth, h: window.innerHeight }
@@ -614,6 +623,38 @@ async function domAudit(label) {
   if (audit.dupIds?.length) warn(`${label} duplicate ids`, audit.dupIds.join(', '));
   if (audit.overflow?.length) warn(`${label} horizontal overflow`, JSON.stringify(audit.overflow.slice(0, 5)));
   ok(`${label} DOM audit`, `${audit.buttons.length} buttons, ${audit.inputs.length} inputs`);
+
+  const visibleInputIds = new Set((audit.inputs || []).map(x => x.id).filter(Boolean));
+  const staffOnlyInputs = ['staffManualStaffId', 'staffManualYmd', 'staffManualTime', 'staffManualNote', 'centralStaffId', 'centralStaffPhone'];
+  if (!/^staff_management$/.test(label)) {
+    const leaked = staffOnlyInputs.filter(id => visibleInputIds.has(id));
+    if (leaked.length) throw new Error(`${label} staff-only inputs leaked outside staff view: ${leaked.join(', ')}`);
+  }
+  if (label === 'staff_management') {
+    const required = ['staffManualStaffId', 'centralStaffId', 'centralStaffPhone'];
+    const missing = required.filter(id => !visibleInputIds.has(id));
+    if (missing.length) throw new Error(`staff view missing required staff inputs: ${missing.join(', ')}`);
+    const wrongSection = (audit.inputs || []).filter(x => required.includes(x.id) && x.sectionId !== 'staff');
+    if (wrongSection.length) throw new Error(`staff inputs are not inside #staff: ${wrongSection.map(x => `${x.id}:${x.sectionId || 'none'}`).join(', ')}`);
+  }
+  const inputLimits = {
+    admin_after_login: 20,
+    advanced_phone_identity: 18,
+    students_search: 18,
+    staff_management: 30
+  };
+  const buttonLimits = {
+    admin_after_login: 24,
+    advanced_phone_identity: 30,
+    students_search: 28,
+    staff_management: 34
+  };
+  if (Object.prototype.hasOwnProperty.call(inputLimits, label) && audit.inputs.length > inputLimits[label]) {
+    throw new Error(`${label} visible input count too high: ${audit.inputs.length} > ${inputLimits[label]}`);
+  }
+  if (Object.prototype.hasOwnProperty.call(buttonLimits, label) && audit.buttons.length > buttonLimits[label]) {
+    throw new Error(`${label} visible button count too high: ${audit.buttons.length} > ${buttonLimits[label]}`);
+  }
   return audit;
 }
 
@@ -806,6 +847,17 @@ async function run() {
     await waitQuiet(1800);
     const phoneInputVisible = await page.locator('#centralStaffPhone').isVisible().catch(() => false);
     if (!phoneInputVisible) throw new Error('centralStaffPhone input is not visible');
+  });
+  await step('staff phone continuous typing', async () => {
+    const phone = page.locator('#centralStaffPhone');
+    await phone.click({ clickCount: 3 });
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => {});
+    await page.keyboard.press('Backspace').catch(() => {});
+    await phone.type('01055556666', { delay: 25 });
+    const value = await phone.inputValue();
+    const activeId = await page.evaluate(() => document.activeElement?.id || '');
+    if (value !== '01055556666') throw new Error(`centralStaffPhone lost digits while typing: ${value}`);
+    if (activeId !== 'centralStaffPhone') throw new Error(`centralStaffPhone lost focus while typing: active=${activeId}`);
   });
   await domAudit('staff_management');
 

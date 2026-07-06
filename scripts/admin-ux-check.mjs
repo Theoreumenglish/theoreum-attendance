@@ -77,6 +77,24 @@ const students = sectionById('students');
 if (/단어 재시험|독해 오답|숙제 미완료|출결 상담|보강 필요/.test(students)) fail('학생 화면에 클리닉 프리셋 버튼이 남아 있습니다.');
 else ok('학생 화면에서 클리닉 프리셋 버튼을 제거했습니다.');
 
+const staff = sectionById('staff');
+const staffOnlyIds = ['staffManualStaffId', 'centralStaffId', 'centralStaffPhone'];
+for (const staffId of staffOnlyIds) {
+  if (!staff.includes(`id="${staffId}"`)) fail(`${staffId}가 직원 화면 #staff 내부에 없습니다.`);
+  else ok(`${staffId}가 직원 화면 #staff 내부에 있습니다.`);
+}
+if (!html.includes('data-section-scope="staff"')) fail('직원 전용 카드에 data-section-scope="staff" 안전장치가 없습니다.');
+else ok('직원 전용 카드에 data-section-scope="staff" 안전장치를 부여했습니다.');
+if (staff.indexOf('id="staffManualStaffId"') < 0 || staff.indexOf('id="staffManualStaffId"') > staff.lastIndexOf('</section>')) {
+  fail('직원 수기 입력 카드가 staff section 밖으로 새는 구조입니다.');
+}
+['dashboard', 'students', 'advanced'].forEach(sectionId => {
+  const area = sectionById(sectionId);
+  const leaked = staffOnlyIds.filter(staffId => area.includes(`id="${staffId}"`));
+  if (leaked.length) fail(`${sectionId} 화면에 직원 전용 입력칸이 섞였습니다: ${leaked.join(', ')}`);
+  else ok(`${sectionId} 화면에는 직원 전용 입력칸이 없습니다.`);
+});
+
 const clinic = sectionById('clinic');
 if (/data-quick-clinic|data-clinic-filter/.test(clinic)) fail('클리닉 화면에 프리셋/필터 버튼이 과도하게 남아 있습니다.');
 else ok('클리닉 화면은 생성/조회 중심으로 단순화됐습니다.');

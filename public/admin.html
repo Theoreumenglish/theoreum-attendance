@@ -4389,6 +4389,21 @@ body.adminConsoleV7 .inlineEditInput {
   outline: none;
   box-shadow: 0 0 0 3px rgba(79,70,229,.12);
 }
+
+body.adminConsoleV7 [data-section-scope="staff"] {
+  display: none !important;
+}
+body.adminConsoleV7[data-current-view="staff"] #staff [data-section-scope="staff"] {
+  display: block !important;
+}
+body.adminConsoleV7[data-current-view="staff"] main.main > [data-section-scope="staff"] {
+  display: none !important;
+}
+body.adminConsoleV7[data-current-view="dashboard"] [data-section-scope="staff"],
+body.adminConsoleV7[data-current-view="students"] [data-section-scope="staff"],
+body.adminConsoleV7[data-current-view="advanced"] [data-section-scope="staff"] {
+  display: none !important;
+}
 @media (max-width: 980px) {
   body.adminConsoleV7 #students > .grid2:first-child,
   body.adminConsoleV7 .centralStaffBasicGrid,
@@ -6260,9 +6275,8 @@ body.adminConsoleV7 .inlineEditInput {
 </div>
 </div>
 </div>
-</div>
 
-<div class="card cardPad" style="margin-top:18px;">
+<div class="card cardPad" data-section-scope="staff" style="margin-top:18px;">
 <div class="cardHead">
 <div>
 <div class="sectionTitle">직원 출퇴근 수기 추가/수정</div>
@@ -6291,7 +6305,7 @@ body.adminConsoleV7 .inlineEditInput {
 </div>
 </div>
 
-<div class="card cardPad" style="margin-top:18px;">
+<div class="card cardPad" data-section-scope="staff" style="margin-top:18px;">
 <div class="cardHead">
 <div>
 <div class="sectionTitle">중앙DB 직원 계정 관리</div>
@@ -6308,7 +6322,7 @@ body.adminConsoleV7 .inlineEditInput {
 <div class="centralStaffBasicGrid">
 <div><div class="fieldLabel">직원 ID</div><input class="inp" id="centralStaffId" placeholder="staff_id"/></div>
 <div><div class="fieldLabel">이름</div><input class="inp" id="centralStaffName" placeholder="직원 이름"/></div>
-<div><div class="fieldLabel">휴대폰</div><input class="inp" id="centralStaffPhone" inputmode="numeric" placeholder="01055556666 또는 55556666"/><div class="smallText">기존 계정은 직원 선택 → 휴대폰 입력 → 휴대폰만 저장을 누르세요.</div></div>
+<div><div class="fieldLabel">휴대폰</div><input autocomplete="off" class="inp" id="centralStaffPhone" inputmode="numeric" maxlength="13" placeholder="01055556666 또는 55556666"/><div class="smallText">기존 계정은 직원 선택 → 휴대폰 입력 → 휴대폰만 저장을 누르세요.</div></div>
 <div><div class="fieldLabel">권한</div><select class="select" id="centralStaffRole"><option value="assistant">조교</option><option value="teacher">강사</option><option value="admin">관리자</option><option value="owner">오너</option></select></div>
 </div>
 <details class="staffAdvancedDetails">
@@ -8168,6 +8182,29 @@ body.adminConsoleV7 .inlineEditInput {
       document.getElementById('centralStaffId')?.focus();
     }
 
+    function centralStaffPhoneFocusSnapshot() {
+      const active = document.activeElement;
+      if (!active || active.id !== 'centralStaffPhone') return null;
+      return {
+        id: 'centralStaffPhone',
+        value: active.value,
+        selectionStart: active.selectionStart,
+        selectionEnd: active.selectionEnd
+      };
+    }
+
+    function restoreCentralStaffPhoneFocus(snapshot) {
+      const phone = document.getElementById('centralStaffPhone');
+      if (!phone || !snapshot || snapshot.id !== 'centralStaffPhone') return;
+      if (typeof snapshot.value === 'string' && phone.value !== snapshot.value) phone.value = snapshot.value;
+      const start = Number.isFinite(snapshot.selectionStart) ? snapshot.selectionStart : phone.value.length;
+      const end = Number.isFinite(snapshot.selectionEnd) ? snapshot.selectionEnd : start;
+      setTimeout(() => {
+        phone.focus({ preventScroll: true });
+        try { phone.setSelectionRange(start, end); } catch (_) {}
+      }, 80);
+    }
+
     async function loadCentralStaff() {
       const r = await rpc('admin.central.staff.list', {}, { timeoutMs: 40000, cacheTtlMs: 10000 });
       const box = $('#centralStaffRows');
@@ -8293,28 +8330,32 @@ body.adminConsoleV7 .inlineEditInput {
     }
 
     async function saveCentralStaffPhoneOnly() {
+      const focusSnapshot = centralStaffPhoneFocusSnapshot();
       const staff = centralStaffFormPayload(false);
       if (!staff.staff_id) { showToast('직원을 먼저 선택하거나 직원 ID를 입력하세요.'); return; }
       if (!staff.staff_phone) { showToast('휴대폰 번호를 입력하세요.'); return; }
       const r = await rpc('admin.central.staff.phoneOnly', { staff }, { timeoutMs: 70000 });
-      if (!r.ok) { showToast(r.error?.message || '직원 휴대폰 저장 실패'); showResult('직원 휴대폰 저장 실패', r); return; }
+      if (!r.ok) { showToast(r.error?.message || '직원 휴대폰 저장 실패'); showResult('직원 휴대폰 저장 실패', r); restoreCentralStaffPhoneFocus(focusSnapshot); return; }
       clearRpcCache();
       showToast('비밀번호/PIN은 유지하고 휴대폰 번호만 저장했습니다.');
       App.staffCatalogLoadedOnce = false;
       await loadStaffCatalog({ force: true });
       await loadCentralStaff();
+      restoreCentralStaffPhoneFocus(focusSnapshot);
     }
 
     async function saveCentralStaff() {
+      const focusSnapshot = centralStaffPhoneFocusSnapshot();
       const staff = centralStaffFormPayload(true);
       if (!staff.staff_id) { showToast('직원 ID를 입력하세요.'); return; }
       const r = await rpc('admin.central.staff.upsert', { staff }, { timeoutMs: 70000 });
-      if (!r.ok) { showToast(r.error?.message || '직원 저장 실패'); showResult('직원 저장 실패', r); return; }
+      if (!r.ok) { showToast(r.error?.message || '직원 저장 실패'); showResult('직원 저장 실패', r); restoreCentralStaffPhoneFocus(focusSnapshot); return; }
       clearRpcCache();
       showToast('직원을 저장했습니다.');
       App.staffCatalogLoadedOnce = false;
       await loadStaffCatalog({ force: true });
       await loadCentralStaff();
+      restoreCentralStaffPhoneFocus(focusSnapshot);
     }
 
     async function toggleCentralStaff() {
@@ -10948,14 +10989,15 @@ body.adminConsoleV7 .inlineEditInput {
     }
 
 
-    function focusSoon(selector) {
+    function focusSoon(selector, options = {}) {
+      const delay = Number.isFinite(options.delayMs) ? options.delayMs : 160;
       setTimeout(() => {
         const el = typeof selector === 'string' ? document.querySelector(selector) : selector;
         if (el && typeof el.focus === 'function') {
-          el.focus();
-          if (typeof el.select === 'function') el.select();
+          el.focus({ preventScroll: !!options.preventScroll });
+          if (options.select !== false && typeof el.select === 'function') el.select();
         }
-      }, 160);
+      }, delay);
     }
 
     function runUxTask(task) {
@@ -10977,7 +11019,7 @@ body.adminConsoleV7 .inlineEditInput {
         jumpTo('staff');
         writeActionLog('쉬운 업무 시작', '직원 전화번호 출퇴근 설정');
         loadCentralStaff().catch(() => {});
-        focusSoon('#centralStaffPhone');
+        focusSoon('#centralStaffPhone', { select: false });
         showToast('직원을 선택하고 휴대폰만 저장을 누르세요.');
         return;
       }
@@ -11059,7 +11101,7 @@ body.adminConsoleV7 .inlineEditInput {
         jumpTo('staff');
         writeActionLog('간편 업무', '직원 전화번호 출퇴근 설정');
         loadCentralStaff().catch(() => {});
-        focusSoon('#centralStaffPhone');
+        focusSoon('#centralStaffPhone', { select: false });
         showToast('직원을 선택한 뒤 휴대폰만 저장을 누르세요.');
         return;
       }
