@@ -614,6 +614,24 @@ async function clickNav(go) {
   const selector = `.navBtn[data-go="${go}"]`;
   if (await clickIfExists(selector, `nav ${go}`, 3000)) {
     await waitQuiet(700);
+    if (go === 'dashboard') {
+      const todayGuard = await page.evaluate(() => {
+        const board = document.querySelector('[data-today-priority-board]');
+        const list = document.querySelector('#todayMissionList');
+        const absenceRows = document.querySelector('#todayAbsenceRows');
+        return {
+          board: !!board,
+          missions: list ? list.querySelectorAll('[data-today-action]').length : 0,
+          absenceRows: absenceRows ? absenceRows.querySelectorAll('tr').length : 0,
+          headline: document.querySelector('#todayUrgentHeadline')?.innerText || ''
+        };
+      }).catch(() => ({ board: false, missions: 0, absenceRows: 0, headline: '' }));
+      if (!todayGuard.board) fail('today priority board', 'missing [data-today-priority-board]');
+      else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
+      else ok('today priority board', `${todayGuard.missions} mission items · ${todayGuard.headline || 'headline ready'}`);
+      if (todayGuard.absenceRows < 1) fail('today absence board rows', 'missing #todayAbsenceRows content');
+      else ok('today absence board rows', `${todayGuard.absenceRows} row groups rendered`);
+    }
     if (go === 'classes') {
       const scrollGuard = await page.evaluate(() => {
         const wrap = document.querySelector('#classes .opsClassListScroll');
@@ -660,7 +678,7 @@ async function domAudit(label) {
     const sectionId = el => el.closest?.('section.portalView')?.id || '';
     const allVisibleButtons = [...document.querySelectorAll('button,[role="button"]')].filter(visible);
     const allVisibleInputs = [...document.querySelectorAll('input,select,textarea')].filter(visible);
-    const isDataRowButton = el => !!(el.closest && (el.closest('.opsDataTable') || el.classList.contains('opsKebabBtn') || el.hasAttribute('data-ops-menu-toggle')));
+    const isDataRowButton = el => !!(el.closest && (el.closest('.opsDataTable') || el.classList.contains('opsKebabBtn') || el.hasAttribute('data-ops-menu-toggle') || el.hasAttribute('data-qa-passive') || el.closest('[data-qa-passive]')));
     const isDataRowInput = el => !!(el.closest && (el.closest('.opsDataTable') || el.classList.contains('opsCheck') || el.hasAttribute('data-ops-select') || el.hasAttribute('data-ops-select-all')));
     const buttons = allVisibleButtons.slice(0, 120).map(el => ({
       text: (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80),
@@ -1051,9 +1069,13 @@ async function run() {
   });
   if (writeMode) {
     await step('student link admin copy controls', async () => {
+      await page.evaluate(() => {
+        document.querySelector('#drawerOverlay')?.classList.remove('on');
+        document.querySelector('#workDrawer')?.classList.remove('on');
+      }).catch(() => {});
       const firstStudent = page.locator('#studentResults [data-student-open]').first();
       if (await firstStudent.count() === 0) throw new Error('student search returned no clickable student rows');
-      await firstStudent.click();
+      await firstStudent.click({ timeout: 8000 });
       await waitQuiet(1200);
 
       await page.evaluate(async () => {

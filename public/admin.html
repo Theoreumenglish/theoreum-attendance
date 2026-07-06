@@ -2857,6 +2857,135 @@
     .dailyWorkCard.isHot .v { color: #b91c1c; }
     .dailyWorkCard.isGood { border-color: #bbf7d0; background: #fbfffd; }
     .dailyWorkCard.isGood .v { color: #047857; }
+    .todayMissionPanel {
+      border-color: rgba(239, 68, 68, 0.18);
+      background: linear-gradient(180deg, #fff, #fffafa);
+    }
+    .todayUrgentBanner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      margin-top: 14px;
+      padding: 16px 18px;
+      border: 1px solid rgba(239, 68, 68, 0.22);
+      border-radius: 20px;
+      background: #fff7f7;
+    }
+    .todayUrgentBanner.isClear {
+      border-color: rgba(16, 185, 129, 0.20);
+      background: #f7fffb;
+    }
+    .todayUrgentBanner .headline {
+      font-size: 18px;
+      font-weight: 950;
+      color: #111827;
+      letter-spacing: -0.04em;
+    }
+    .todayUrgentBanner .sub {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+    .todayUrgentBadge {
+      min-width: 82px;
+      border-radius: 18px;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 1000;
+      color: #b91c1c;
+      background: #fee2e2;
+    }
+    .todayUrgentBanner.isClear .todayUrgentBadge {
+      color: #047857;
+      background: #dcfce7;
+    }
+    .todayMissionList {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .todayMissionItem {
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      padding: 14px 14px;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+    }
+    .todayMissionItem:hover {
+      transform: translateY(-1px);
+      border-color: #cbd5e1;
+      background: #fbfdff;
+    }
+    .todayMissionRank {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      font-size: 13px;
+      font-weight: 950;
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .todayMissionItem.urgent .todayMissionRank { background: #fee2e2; color: #b91c1c; }
+    .todayMissionItem.must .todayMissionRank { background: #ffedd5; color: #c2410c; }
+    .todayMissionItem.watch .todayMissionRank { background: #e0f2fe; color: #0369a1; }
+    .todayMissionTitle {
+      font-size: 15px;
+      font-weight: 950;
+      color: #111827;
+      letter-spacing: -0.03em;
+    }
+    .todayMissionDesc {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.4;
+    }
+    .todayMissionGo {
+      color: var(--pri);
+      font-size: 12px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+    .liveAbsenceCard.isUrgent {
+      border-color: rgba(239, 68, 68, 0.25);
+      box-shadow: 0 18px 45px rgba(239, 68, 68, 0.08);
+    }
+    tr.absenceRiskHigh {
+      background: #fff7f7;
+    }
+    tr.absenceRiskMedium {
+      background: #fffbeb;
+    }
+    .lateBadge.high,
+    .lateBadge.critical {
+      color: #b91c1c;
+      background: #fee2e2;
+    }
+    .lateBadge.medium {
+      color: #92400e;
+      background: #fef3c7;
+    }
+    .todayLateSortHint {
+      display: inline-flex;
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+    }
     .recentRail {
       display: grid;
       grid-template-columns: 1fr 1fr auto;
@@ -4832,27 +4961,32 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="message"><div><div class="k">문자 실패</div><div class="v" id="dailyMessageCount">-</div></div><div class="s">추가 확인</div></div>
 <div class="dailyWorkCard isGood" role="button" tabindex="0" data-daily-task="student"><div><div class="k">학생</div><div class="v" id="dailyStudentState">검색</div></div><div class="s">/ 또는 Ctrl+K</div></div>
 </div>
-<div class="card cardPad todayConsole">
+<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true">
 <div class="cardHead">
 <div>
-<div class="sectionTitle">오늘 할 일</div>
-<div class="sectionDesc">자주 쓰는 버튼만 남겼습니다. 점검 → 실패 처리 → 클리닉 후보 → 단어시험 순서로 보면 됩니다.</div>
+<div class="sectionTitle">오늘 운영 우선순위</div>
+<div class="sectionDesc">급한 일 → 꼭 해야 할 일 → 확인할 일 순서로 정리합니다. 수업 시작 후 안 온 학생을 맨 위에서 바로 확인합니다.</div>
 </div>
-<button class="btn btnPri" id="btnCommandPulse" type="button">전체 점검</button>
+<button class="btn btnPri" id="btnCommandPulse" type="button">오늘 전체 점검</button>
 </div>
-<div class="simpleCommandRow">
-<button class="commandButton" id="btnCommandAbsent" type="button">
-<span class="commandTitle">미등원 실패</span>
-<span class="commandDesc">실패 문자만 바로 확인</span>
+<div class="todayUrgentBanner isClear" id="todayUrgentBanner" data-qa-today-urgent>
+<div>
+<div class="headline" id="todayUrgentHeadline">오늘 급한 일 확인 전</div>
+<div class="sub" id="todayUrgentSub">전체 점검 또는 실시간 미등원 새로고침을 누르면 우선순위가 갱신됩니다.</div>
+</div>
+<div class="todayUrgentBadge" id="todayUrgentCount">-</div>
+</div>
+<div class="todayMissionList" id="todayMissionList" data-qa-today-mission-list>
+<button class="todayMissionItem watch" type="button" data-today-action="pulse">
+<span class="todayMissionRank">1</span>
+<span><span class="todayMissionTitle">오늘 전체 점검</span><span class="todayMissionDesc">미등원·실패 알림·클리닉·단어시험을 한 번에 훑습니다.</span></span>
+<span class="todayMissionGo">실행</span>
 </button>
-<button class="commandButton" id="btnCommandClinic" type="button">
-<span class="commandTitle">클리닉 후보</span>
-<span class="commandDesc">처리 대기 학생만 보기</span>
-</button>
-<button class="commandButton" id="btnCommandWord" type="button">
-<span class="commandTitle">오늘 단어시험</span>
-<span class="commandDesc">회차 조회 후 맞은 개수 입력</span>
-</button>
+</div>
+<div class="hidden" aria-hidden="true" data-qa-passive="true">
+<span id="btnCommandAbsent">미등원 실패</span>
+<span id="btnCommandClinic">클리닉 후보</span>
+<span id="btnCommandWord">오늘 단어시험</span>
 </div>
 <div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
 <div class="sectionDesc" id="overviewText" style="margin-top:12px;">아직 불러오지 않았습니다.</div>
@@ -4861,7 +4995,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="card cardPad liveAbsenceCard">
 <div class="cardHead compactHead">
 <div>
-<div class="sectionTitle">실시간 미등원</div>
+<div class="sectionTitle">실시간 미등원 <span class="todayLateSortHint">지각 분 높은 순</span></div>
 </div>
 <div class="btnRow tight">
 <input class="inp compactInput" id="todayAbsenceYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
@@ -6703,23 +6837,157 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       }
     }
 
+    function getTodayAbsenceItems() {
+      const board = App.lastAbsenceBoard || {};
+      const items = Array.isArray(board.items) ? board.items : [];
+      return items.slice().sort((a, b) => Number(b.late_min || 0) - Number(a.late_min || 0));
+    }
+
+    function todayAbsenceCounts() {
+      const board = App.lastAbsenceBoard || {};
+      const items = getTodayAbsenceItems();
+      const counts = board.counts || {};
+      return {
+        missing: counts.missing != null ? Number(counts.missing || 0) : Number(board.missing_count != null ? board.missing_count : items.length || 0),
+        present: counts.present != null ? Number(counts.present || 0) : Number(board.present_count || 0),
+        classes: counts.classes != null ? Number(counts.classes || 0) : Number(board.class_count || 0),
+        excused: Number(board.excused_count || 0),
+        highLate: items.filter(x => Number(x.late_min || 0) >= 10).length,
+        criticalLate: items.filter(x => Number(x.late_min || 0) >= 20).length
+      };
+    }
+
+    function buildTodayMissionItems() {
+      const overview = App.lastOverview || {};
+      const queue = overview.queue || {};
+      const counts = todayAbsenceCounts();
+      const failedAbsent = Number(queue.failed_absent || 0);
+      const failedAttendance = Number(queue.failed_attendance || 0);
+      const failedTotal = failedAbsent + failedAttendance;
+      const clinicToday = overview.clinic && overview.clinic.open_today != null ? Number(overview.clinic.open_today || 0) : null;
+      const wordToday = overview.word && overview.word.today_sessions != null ? Number(overview.word.today_sessions || 0) : null;
+      const missions = [];
+
+      if (counts.missing > 0) {
+        missions.push({
+          tone: 'urgent',
+          action: 'absence',
+          title: `수업 시작 후 미등원 ${counts.missing}명`,
+          desc: counts.criticalLate > 0
+            ? `20분 이상 지각 ${counts.criticalLate}명 · 연락/예외 처리 우선`
+            : `지각 분 높은 순으로 확인 · 수업반 ${counts.classes || '-'}개`
+        });
+      }
+
+      if (failedTotal > 0) {
+        missions.push({
+          tone: 'urgent',
+          action: 'failedMessages',
+          title: `실패 알림 ${failedTotal}건`,
+          desc: `미등원 ${failedAbsent}건 · 등하원 ${failedAttendance}건 · 재처리/수동 연락 확인`
+        });
+      }
+
+      if (clinicToday != null) {
+        missions.push({
+          tone: clinicToday > 0 ? 'must' : 'watch',
+          action: 'clinic',
+          title: clinicToday > 0 ? `오늘 클리닉 ${clinicToday}건` : '오늘 클리닉 확인',
+          desc: clinicToday > 0 ? '미완료/후속 조치가 필요한 학생부터 처리' : '필요한 클리닉 후보가 있는지 확인'
+        });
+      } else {
+        missions.push({
+          tone: 'must',
+          action: 'clinic',
+          title: '오늘 클리닉 확인',
+          desc: '조교가 놓치면 안 되는 보완/재시험/추가 클리닉 확인'
+        });
+      }
+
+      if (wordToday != null) {
+        missions.push({
+          tone: wordToday > 0 ? 'must' : 'watch',
+          action: 'word',
+          title: wordToday > 0 ? `오늘 단어시험 ${wordToday}회` : '오늘 단어시험 확인',
+          desc: wordToday > 0 ? '채점 입력 후 불통과 학생 클리닉 후보 연결' : '오늘 회차를 만들거나 입력 누락 여부 확인'
+        });
+      } else {
+        missions.push({
+          tone: 'must',
+          action: 'word',
+          title: '오늘 단어시험 확인',
+          desc: '회차 조회 후 맞은 개수 입력 · 불통과 자동 클리닉 연결'
+        });
+      }
+
+      if (!missions.length) {
+        missions.push({
+          tone: 'watch',
+          action: 'pulse',
+          title: '오늘 전체 점검',
+          desc: '운영 요약, 미등원, 실패 알림, 클리닉, 단어시험을 한 번에 확인'
+        });
+      }
+
+      return missions.slice(0, 4);
+    }
+
+    function renderTodayMissionBoard() {
+      const counts = todayAbsenceCounts();
+      const urgent = $('#todayUrgentBanner');
+      const headline = $('#todayUrgentHeadline');
+      const sub = $('#todayUrgentSub');
+      const urgentCount = $('#todayUrgentCount');
+      const list = $('#todayMissionList');
+
+      if (urgent) urgent.classList.toggle('isClear', !(counts.missing > 0));
+      if (urgentCount) urgentCount.textContent = counts.missing > 0 ? String(counts.missing) : '0';
+      if (headline) {
+        headline.textContent = counts.missing > 0
+          ? `지금 안 온 학생 ${counts.missing}명`
+          : '현재 수업 시작 후 미등원 없음';
+      }
+      if (sub) {
+        sub.textContent = counts.missing > 0
+          ? `지각 10분 이상 ${counts.highLate}명 · 20분 이상 ${counts.criticalLate}명 · 먼저 연락/예외 처리하세요.`
+          : '미등원 보드는 자동 갱신 중입니다. 급한 일은 실패 알림과 클리닉 후보를 확인하세요.';
+      }
+
+      if (!list) return;
+      const missions = buildTodayMissionItems();
+      list.innerHTML = missions.map((item, idx) => `
+        <button class="todayMissionItem ${esc(item.tone)}" type="button" data-today-action="${esc(item.action)}">
+          <span class="todayMissionRank">${idx + 1}</span>
+          <span>
+            <span class="todayMissionTitle">${esc(item.title)}</span>
+            <span class="todayMissionDesc">${esc(item.desc)}</span>
+          </span>
+          <span class="todayMissionGo">열기</span>
+        </button>
+      `).join('');
+
+      $$('#todayMissionList [data-today-action]').forEach(btn => {
+        btn.addEventListener('click', () => runTodayMission(btn.dataset.todayAction || 'pulse'));
+      });
+    }
+
     function updateDailyWorkRail() {
       const overview = App.lastOverview || {};
       const queue = overview.queue || {};
-      const board = App.lastAbsenceBoard || {};
-      const missing = board.counts && board.counts.missing != null ? board.counts.missing : board.missing_count;
-      const present = board.counts && board.counts.present != null ? board.counts.present : board.present_count;
-      const classes = board.counts && board.counts.classes != null ? board.counts.classes : board.class_count;
+      const counts = todayAbsenceCounts();
       const setText = (id, value) => { const el = $(id); if (el) el.textContent = value == null || value === '' ? '-' : String(value); };
-      setText('#dailyAbsenceCount', missing == null ? '-' : missing);
-      setText('#dailyAbsenceNote', classes != null ? `수업반 ${classes} · 등원 ${present ?? '-'}` : '실시간 확인');
+      setText('#dailyAbsenceCount', Number.isFinite(counts.missing) ? counts.missing : '-');
+      setText('#dailyAbsenceNote', counts.classes != null ? `수업반 ${counts.classes || '-'} · 등원 ${counts.present || 0}` : '실시간 확인');
       setText('#dailyClinicCount', overview.clinic && overview.clinic.open_today != null ? overview.clinic.open_today : '보기');
       setText('#dailyWordCount', overview.word && overview.word.today_sessions != null ? overview.word.today_sessions : '입력');
       const failed = Number(queue.failed_absent || 0) + Number(queue.failed_attendance || 0);
       setText('#dailyMessageCount', Number.isFinite(failed) ? failed : '-');
       setText('#dailyStudentState', App.selectedStudent && App.selectedStudent.student_id ? '선택됨' : '검색');
       const absenceCard = document.querySelector('[data-daily-task="absence"]');
-      if (absenceCard) absenceCard.classList.toggle('isHot', Number(missing || 0) > 0);
+      if (absenceCard) absenceCard.classList.toggle('isHot', Number(counts.missing || 0) > 0);
+      const liveAbsenceCard = document.querySelector('.liveAbsenceCard');
+      if (liveAbsenceCard) liveAbsenceCard.classList.toggle('isUrgent', Number(counts.missing || 0) > 0);
+      renderTodayMissionBoard();
     }
 
     function syncSelectedStudentUi() {
@@ -8762,7 +9030,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       renderStudentProfile(r.data || {});
     }
 
-    function selectStudent(student) {
+    function selectStudent(student, options = {}) {
       App.selectedStudent = {
         student_id: normalizeSid(student.student_id),
         student_name: String(student.student_name || ''),
@@ -8783,7 +9051,11 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const wordSid = $('#wordResultStudentId');
       if (wordSid) wordSid.value = App.selectedStudent.student_id;
       renderStudentDetail(App.selectedStudent);
-      openWorkDrawer('student', App.selectedStudent);
+      if (options.openDrawer === false) {
+        closeWorkDrawer();
+      } else {
+        openWorkDrawer('student', App.selectedStudent);
+      }
       loadStudentProfile();
     }
 
@@ -8889,8 +9161,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         const nextSid = normalizeSid(only.student_id || '');
         const currentSid = normalizeSid(App.selectedStudent && App.selectedStudent.student_id ? App.selectedStudent.student_id : '');
         if (nextSid && nextSid !== currentSid) {
-          selectStudent(only);
-          showToast('검색 결과 1명을 자동 선택했습니다.');
+          selectStudent(only, { openDrawer: false });
+          showToast('검색 결과 1명을 자동 선택했습니다. 필요하면 결과 행을 눌러 우측 패널을 여세요.');
         }
       }
     }
@@ -10791,9 +11063,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           <p>${esc(studentName || '')} · 만료: ${esc(shortTs(expiresAt || ''))} · ${copied ? '링크 자동복사 완료' : '수동복사 필요'}</p>
           <div class="copyBox" id="studentTodayUrlText" style="margin-top:10px;word-break:break-all;">${esc(url)}</div>
           <div class="btnRow" style="margin-top:10px;">
-            <button class="btn btnGhost" type="button" id="btnCopyStudentTodayLink">링크 복사</button>
-            <button class="btn btnGhost" type="button" id="btnOpenStudentTodayLink">새 탭 열기</button>
-            <button class="btn btnPri" type="button" id="btnCopyStudentTodayMessage">학부모 문구 복사</button>
+            <button class="btn btnGhost" type="button" id="btnCopyStudentTodayLink" data-qa-passive="true">링크 복사</button>
+            <button class="btn btnGhost" type="button" id="btnOpenStudentTodayLink" data-qa-passive="true">새 탭 열기</button>
+            <button class="btn btnPri" type="button" id="btnCopyStudentTodayMessage" data-qa-passive="true">학부모 문구 복사</button>
           </div>
           <div class="copyBox" id="studentTodayParentMessage" style="margin-top:10px;white-space:pre-wrap;word-break:break-word;">${esc(parentMessage)}</div>
           <p style="margin-top:10px;">복사가 안 되면 위 링크 또는 문구를 직접 드래그해서 복사하세요.</p>
@@ -11014,7 +11286,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
     }
 
     function renderTodayAbsenceBoard(data = {}) {
-      const items = Array.isArray(data.items) ? data.items : [];
+      const rawItems = Array.isArray(data.items) ? data.items : [];
+      const items = rawItems.slice().sort((a, b) => Number(b.late_min || 0) - Number(a.late_min || 0));
       const missingEl = $('#todayAbsenceMissing');
       const presentEl = $('#todayAbsencePresent');
       const excusedEl = $('#todayAbsenceExcused');
@@ -11027,7 +11300,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const checked = shortTs(data.checked_at || '');
       const meta = $('#todayAbsenceMeta');
       if (meta) {
-        meta.textContent = `갱신 ${checked} · 수업 ${data.active_schedule_count ?? 0} · 명단 ${data.roster_count ?? 0}${data.no_phone_count ? ` · 연락처 없음 ${data.no_phone_count}` : ''}`;
+        const critical = items.filter(x => Number(x.late_min || 0) >= 20).length;
+        meta.textContent = `갱신 ${checked} · 수업 ${data.active_schedule_count ?? 0} · 명단 ${data.roster_count ?? 0}${critical ? ` · 20분 이상 ${critical}명` : ''}${data.no_phone_count ? ` · 연락처 없음 ${data.no_phone_count}` : ''}`;
       }
 
       const rows = $('#todayAbsenceRows');
@@ -11038,7 +11312,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       }
 
       rows.innerHTML = items.slice(0, 120).map(item => {
-        const risk = item.risk || (Number(item.late_min || 0) >= 20 ? 'high' : Number(item.late_min || 0) >= 5 ? 'medium' : 'low');
+        const lateMin = Math.max(0, Number(item.late_min || 0));
+        const risk = item.risk || (lateMin >= 20 ? 'high' : lateMin >= 5 ? 'medium' : 'low');
+        const rowCls = risk === 'high' ? 'absenceRiskHigh' : (risk === 'medium' ? 'absenceRiskMedium' : '');
         const phone = item.parent_phone || item.student_phone || '';
         const contact = [
           item.parent_phone ? `학부모 ${phoneText(item.parent_phone)}` : '',
@@ -11046,9 +11322,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         ].filter(Boolean).join('<br/>') || '<span class="mutedInline">번호 없음</span>';
         const stage = esc(item.contact_status || '미발송');
         const studentLine = `${esc(item.student_id || '')} · ${esc(item.student_name || '')}<div class="mutedInline">${esc([item.school, item.grade].filter(Boolean).join(' · '))}</div>`;
-        return `<tr>
+        return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}">
           <td><b>${esc(item.class_name || item.class_id || '-')}</b><div class="mutedInline">${esc(item.start || '')}${item.teacher ? ' · ' + esc(item.teacher) : ''}</div></td>
-          <td><span class="lateBadge ${esc(risk)}">${Math.max(0, Number(item.late_min || 0))}분</span></td>
+          <td><span class="lateBadge ${esc(risk)}">${lateMin}분</span></td>
           <td>${studentLine}</td>
           <td>${contact}</td>
           <td><span class="statusPill ${item.sent_stages?.length ? 'warn' : ''}">${stage}</span></td>
@@ -11275,7 +11551,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
     }
 
     async function runTodayPulse() {
-      writeActionLog('오늘 전체 점검 시작', '운영 요약 → 미등원 실패 → 클리닉 후보 → 오늘 단어시험');
+      writeActionLog('오늘 전체 점검 시작', '미등원 → 운영 요약 → 실패 알림 → 클리닉 → 단어시험');
+      await loadTodayAbsenceBoard({ force: true });
       await loadOverview();
       $('#notifyQueueStatus').value = 'FAILED';
       $('#notifyQueueAction').value = 'ABSENT';
@@ -11287,8 +11564,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       if ($('#wordStartYmd')) $('#wordStartYmd').value = '';
       if ($('#wordEndYmd')) $('#wordEndYmd').value = '';
       await listWordSessions();
-      writeActionLog('오늘 전체 점검 완료', '필요한 화면: 문자·알림 / 클리닉 / 단어시험에서 이어서 처리');
-      showToast('오늘 전체 점검을 완료했습니다.');
+      updateDailyWorkRail();
+      writeActionLog('오늘 전체 점검 완료', '대시보드 우선순위에서 급한 일부터 처리하세요.');
+      showToast('오늘 전체 점검을 완료했습니다. 우선순위 목록을 확인하세요.');
     }
 
     const COMMANDS = [
@@ -11356,6 +11634,33 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const items = filteredCommands($('#commandInput')?.value || '');
       const cmd = items[App.commandIndex || 0];
       if (cmd) runCommandById(cmd.id);
+    }
+
+    async function runTodayMission(action) {
+      const act = String(action || 'pulse');
+      if (act === 'absence') {
+        jumpTo('dashboard');
+        writeActionLog('오늘 우선순위', '수업 시작 후 미등원 확인');
+        await loadTodayAbsenceBoard({ force: true });
+        showToast('지금 안 온 학생을 최신 상태로 확인했습니다.');
+        return;
+      }
+      if (act === 'failedMessages') {
+        writeActionLog('오늘 우선순위', '실패 알림 확인');
+        await openFailedAbsentQueue();
+        return;
+      }
+      if (act === 'clinic') {
+        writeActionLog('오늘 우선순위', '오늘 클리닉 확인');
+        await loadTodayClinicTasks();
+        return;
+      }
+      if (act === 'word') {
+        writeActionLog('오늘 우선순위', '오늘 단어시험 확인');
+        await openTodayWordSessions();
+        return;
+      }
+      await runTodayPulse();
     }
 
     function runDailyTask(task) {
