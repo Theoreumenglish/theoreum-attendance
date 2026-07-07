@@ -6890,6 +6890,18 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     if (id) classMap.set(id, cls);
   }
 
+  const staffNameMap = await readStaffNameMap(
+    supabase,
+    [
+      ...scheduledRows.map(row => row?.teacher),
+      ...classes.map(row => row?.teacher)
+    ].filter(Boolean)
+  );
+  const staffDisplayName = value => {
+    const staffId = String(value || '').trim();
+    return staffNameMap[staffId.toLowerCase()] || staffId;
+  };
+
   const studentMap = new Map();
   for (const student of students || []) {
     const sid = normalizeStudentId(student.student_id);
@@ -6991,10 +7003,12 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     const classId = schedule.class_id;
     const cls = classMap.get(classId) || {};
     const roster = relationsByClass.get(classId) || [];
+    const teacherId = String(schedule.teacher || cls.teacher || '').trim();
     const group = {
       class_id: classId,
       class_name: schedule.class_name || cls.name || classId,
-      teacher: String(schedule.teacher || cls.teacher || '').trim(),
+      teacher: teacherId,
+      teacher_name: staffDisplayName(teacherId),
       start: String(schedule.start || '').trim(),
       end: String(schedule.end || '').trim(),
       start_iso: schedule.start_iso,
@@ -7062,6 +7076,7 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
         class_id: classId,
         class_name: group.class_name,
         teacher: group.teacher,
+        teacher_name: group.teacher_name,
         start: group.start,
         end: group.end,
         late_min: schedule.late_min,

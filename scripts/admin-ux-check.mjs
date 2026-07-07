@@ -81,16 +81,22 @@ else ok('오늘 화면에 출석 안 한 학생 목록이 있습니다.');
 if (!html.includes('today-auto-ops-v18')) fail('오늘 화면이 정적 소개 셸 대신 자동 업무판을 보이도록 잠금 처리되지 않았습니다.');
 else ok('오늘 화면 자동 업무판 표시 잠금이 있습니다.');
 
-if (!todayBoard.includes('data-today-staff-todo-v19="true"') || !todayBoard.includes('data-today-clean-v20="true"')) fail('오늘 화면이 설명을 줄인 v20 실무형 보드가 아닙니다.');
-else ok('오늘 화면은 v20 실무형 보드입니다.');
-if (!todayBoard.includes('data-today-worker-summary="true"')) fail('오늘 화면에 지금 처리/오늘 마감/확인 필요 요약 카운터가 없습니다.');
+if (!todayBoard.includes('data-today-staff-todo-v19="true"') || !todayBoard.includes('data-today-clean-v20="true"') || !todayBoard.includes('data-today-labels-v21="true"')) fail('오늘 화면이 설명을 줄인 v21 실무형 보드가 아닙니다.');
+else ok('오늘 화면은 v21 실무형 보드입니다.');
+if (!todayBoard.includes('data-today-worker-summary="true"')) fail('오늘 화면에 긴급/마감/확인필요 요약 카운터가 없습니다.');
 else ok('오늘 화면에 직원 업무 요약 카운터가 있습니다.');
-if (!html.includes('today-clean-task-board-v20')) fail('오늘 할 일 탭을 깔끔하게 줄이는 v20 CSS 잠금이 없습니다.');
-else ok('오늘 할 일 탭 v20 정리 CSS가 있습니다.');
+if (!html.includes('today-clean-task-board-v20') || !html.includes('today-clean-task-board-v21')) fail('오늘 할 일 탭을 깔끔하게 줄이는 v21 CSS 잠금이 없습니다.');
+else ok('오늘 할 일 탭 v21 정리 CSS가 있습니다.');
 if (/다음 행동:|처리 기준|숫자가 뜬 항목부터|조교·강사가 오늘 놓치면/.test(todayBoard)) fail('오늘 화면에 설명 문구가 과하게 남아 있습니다.');
 else ok('오늘 화면 설명 문구를 제거했습니다.');
 if (!html.includes('data-abs-clinic')) fail('출석 안 한 학생 행에서 바로 클리닉으로 이동하는 액션이 없습니다.');
 else ok('출석 안 한 학생 행에 클리닉 바로 처리 액션이 있습니다.');
+if (!html.includes('data-abs-copy-student') || !html.includes('data-abs-copy-parent')) fail('미등원 행의 번호 복사가 학생/학부모로 분리되어 있지 않습니다.');
+else ok('미등원 행의 번호 복사가 학생/학부모로 분리되어 있습니다.');
+if (!/학생 정보|클리닉 추가|지각 연락|출결 입력/.test(html)) fail('미등원 행 작업 버튼명이 명확하지 않습니다.');
+else ok('미등원 행 작업 버튼명을 명확하게 바꿨습니다.');
+if (todayBoard.includes('<span>예외</span>')) fail('오늘 미등원 통계에 예외라는 오래된 표현이 남아 있습니다.');
+else ok('오늘 미등원 통계에서 예외 표현을 제거했습니다.');
 
 if (/body\.opsFlowV3\[data-current-view="dashboard"\]\s+#dashboard\s*\{\s*display:\s*none\s*!important;\s*\}/.test(html)) fail('오늘 화면 #dashboard가 CSS로 숨겨져 있습니다.');
 else ok('오늘 화면 #dashboard는 숨김 처리되어 있지 않습니다.');
