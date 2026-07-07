@@ -3699,6 +3699,174 @@ body.opsFlowV3 .smartBoard {
   gap: 18px;
   margin: 0 0 22px;
 }
+
+/* today-staff-todo-v19: staff/teacher daily board = only real action items, not explanations. */
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-staff-todo-v19="true"] {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+}
+.todayStaffBoardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.todayStaffBoardTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.todayStaffBoardTitle .sectionTitle { margin: 0; }
+.todayLiveChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+.todayLiveChip::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,.12);
+}
+.todayStaffHint {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+.todayOpsSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.todayOpsSummary > div {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.todayOpsSummary b {
+  font-size: 24px;
+  font-weight: 1000;
+  letter-spacing: -0.05em;
+  color: #111827;
+}
+.todayOpsSummary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.todayOpsSummary .urgent b { color: #b91c1c; }
+.todayOpsSummary .must b { color: #c2410c; }
+.todayOpsSummary .follow b { color: #0369a1; }
+.todayMissionItem {
+  position: relative;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.todayMissionBody {
+  min-width: 0;
+}
+.todayMissionTopline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.todayTaskChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 950;
+  border: 1px solid #e5e7eb;
+  color: #475569;
+  background: #f8fafc;
+}
+.todayMissionItem.urgent .todayTaskChip { border-color: #fecaca; color: #b91c1c; background: #fff1f2; }
+.todayMissionItem.must .todayTaskChip { border-color: #fed7aa; color: #c2410c; background: #fff7ed; }
+.todayMissionItem.watch .todayTaskChip { border-color: #bae6fd; color: #0369a1; background: #f0f9ff; }
+.todayMissionItem.clear .todayTaskChip { border-color: #bbf7d0; color: #047857; background: #f0fdf4; }
+.todayMissionMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+.todayMissionMeta span {
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.todayMissionNext {
+  margin-top: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+.todayMissionGo {
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #fff;
+}
+.todayAbsenceGuide {
+  margin-top: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.todayAbsenceGuide b { color: #111827; }
+.absenceStudentName {
+  font-size: 13px;
+  font-weight: 950;
+  color: #111827;
+}
+.absenceClassName {
+  font-size: 13px;
+  font-weight: 950;
+  color: #111827;
+}
+.absenceQuickActions .miniAction { font-weight: 850; }
+.absenceQuickActions .miniAction.primary { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 950; }
+@media (max-width: 760px) {
+  .todayStaffBoardHeader { display: block; }
+  .todayOpsSummary { grid-template-columns: 1fr; }
+  .todayAbsenceGuide { display: block; }
+}
+
 /* today-auto-ops-v18: dashboard must show real auto-generated work, not the static calm intro shell. */
 body.opsFlowV3[data-current-view="dashboard"] .calmOpsShell {
   display: none !important;
@@ -4975,25 +5143,30 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="message"><div><div class="k">문자 실패</div><div class="v" id="dailyMessageCount">-</div></div><div class="s">추가 확인</div></div>
 <div class="dailyWorkCard isGood" role="button" tabindex="0" data-daily-task="student"><div><div class="k">학생</div><div class="v" id="dailyStudentState">검색</div></div><div class="s">/ 또는 Ctrl+K</div></div>
 </div>
-<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true">
-<div class="cardHead">
+<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true">
+<div class="todayStaffBoardHeader">
 <div>
-<div class="sectionTitle">오늘 할 일 자동 운영판</div>
-<div class="sectionDesc">미등원, 문자 전송 실패, 클리닉 추가/처리 필요, 단어 입력 누락을 조건에 따라 자동으로 띄웁니다. 숫자가 있는 항목부터 처리하세요.</div>
+<div class="todayStaffBoardTitle"><div class="sectionTitle">오늘 직원 업무판</div><span class="todayLiveChip">자동 To-do</span></div>
+<div class="todayStaffHint">조교·강사가 오늘 놓치면 안 되는 업무만 자동으로 띄웁니다. 숫자가 뜬 항목부터 처리하세요.</div>
 </div>
-<button class="btn btnPri" id="btnCommandPulse" type="button">오늘 업무 새로고침</button>
+<button class="btn btnPri" id="btnCommandPulse" type="button">업무 새로고침</button>
 </div>
 <div class="todayUrgentBanner isClear" id="todayUrgentBanner" data-qa-today-urgent>
 <div>
 <div class="headline" id="todayUrgentHeadline">오늘 자동 업무 불러오는 중</div>
-<div class="sub" id="todayUrgentSub">잠시 후 미등원, 문자 실패, 클리닉, 단어 상태로 To-do가 생성됩니다.</div>
+<div class="sub" id="todayUrgentSub">미등원, 문자 실패, 클리닉, 단어 누락을 기준으로 직원 To-do를 생성합니다.</div>
 </div>
 <div class="todayUrgentBadge" id="todayUrgentCount">-</div>
+</div>
+<div class="todayOpsSummary" data-today-worker-summary="true">
+<div class="urgent"><b id="todayNowTaskCount">0</b><span>지금 처리</span></div>
+<div class="must"><b id="todayMustTaskCount">0</b><span>오늘 마감</span></div>
+<div class="follow"><b id="todayFollowTaskCount">0</b><span>확인 필요</span></div>
 </div>
 <div class="todayMissionList" id="todayMissionList" data-qa-today-mission-list>
 <button class="todayMissionItem watch" type="button" data-today-action="pulse">
 <span class="todayMissionRank">1</span>
-<span><span class="todayMissionTitle">자동 업무 불러오기</span><span class="todayMissionDesc">실시간 미등원·문자 실패·클리닉·단어 상태를 불러와 To-do를 만듭니다.</span></span>
+<span class="todayMissionBody"><span class="todayMissionTopline"><span class="todayTaskChip">확인</span><span class="todayMissionTitle">업무 불러오는 중</span></span><span class="todayMissionDesc">실시간 미등원·문자 실패·클리닉·단어 상태를 확인합니다.</span><span class="todayMissionNext">다음 행동: 숫자가 생긴 항목부터 처리</span></span>
 <span class="todayMissionGo">새로고침</span>
 </button>
 </div>
@@ -5024,16 +5197,17 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div><b id="todayAbsenceClasses">-</b><span>수업반</span></div>
 </div>
 <div class="liveAbsenceMeta" id="todayAbsenceMeta">조회 전</div>
+<div class="todayAbsenceGuide" data-today-absence-guide="true"><span><b>처리 기준</b> · 20분 이상은 먼저 연락, 연락 받으면 지각연락, 결석 확정/특이사항은 직접입력</span><span>강사·조교 공용</span></div>
 <div class="tableWrap liveAbsenceTable">
 <table class="table">
 <thead>
 <tr>
 <th>수업</th>
-<th>지각</th>
+<th>경과</th>
 <th>학생</th>
-<th>연락</th>
-<th>문자</th>
-<th>처리</th>
+<th>연락처</th>
+<th>현재 상태</th>
+<th>바로 처리</th>
 </tr>
 </thead>
 <tbody id="todayAbsenceRows">
@@ -5968,7 +6142,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <th>제목</th>
 <th>진행</th>
 <th>샘플 학생</th>
-<th>처리</th>
+<th>바로 처리</th>
 </tr>
 </thead>
 <tbody id="clinicBoardRows">
@@ -5995,7 +6169,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <th>우선</th>
 <th>날짜</th>
 <th>공개</th>
-<th>문자</th>
+<th>현재 상태</th>
 <th>변경</th>
 </tr>
 </thead>
@@ -6901,47 +7075,67 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       if (counts.missing > 0) {
         missions.push({
           tone: counts.criticalLate > 0 ? 'urgent' : 'must',
+          bucket: 'now',
+          chip: counts.criticalLate > 0 ? '긴급' : '지금',
+          owner: '데스크/조교',
           action: 'absence',
           title: `출석 안 한 학생 ${counts.missing}명`,
           desc: counts.criticalLate > 0
             ? `20분 이상 ${counts.criticalLate}명 · 학생탭/번호복사/지각연락부터 처리`
-            : `지각 분 높은 순 · 수업반 ${counts.classes || '-'}개 · 연락 처리 필요`
+            : `지각 분 높은 순 · 수업반 ${counts.classes || '-'}개 · 연락 처리 필요`,
+          next: '다음 행동: 번호 확인 → 연락 받음은 지각연락, 결석/특이사항은 직접입력'
         });
       }
 
       if (failedTotal > 0) {
         missions.push({
           tone: 'urgent',
+          bucket: 'now',
+          chip: '긴급',
+          owner: '데스크',
           action: 'failedMessages',
           title: `문자 전송 실패 ${failedTotal}건`,
-          desc: `미등원 ${failedAbsent}건 · 등하원 ${failedAttendance}건 · 재처리 또는 수동 연락`
+          desc: `미등원 ${failedAbsent}건 · 등하원 ${failedAttendance}건 · 재처리 또는 수동 연락`,
+          next: '다음 행동: 문자/알림 메뉴에서 실패 사유 확인 → 수동 연락 또는 재발송'
         });
       }
 
       if (clinicNeed > 0) {
         missions.push({
           tone: 'must',
+          bucket: 'must',
+          chip: '오늘',
+          owner: '강사/조교',
           action: 'clinic',
           title: `클리닉 추가/처리 필요 ${clinicNeed}건`,
-          desc: '미완료, 후보, 오늘 예정 클리닉을 먼저 처리'
+          desc: '미완료, 후보, 오늘 예정 클리닉을 먼저 처리',
+          next: '다음 행동: 클리닉 화면에서 완료/미완료 처리 또는 학생별 추가 생성'
         });
       }
 
       if (wordNeed > 0) {
         missions.push({
           tone: 'must',
+          bucket: 'must',
+          chip: '오늘',
+          owner: '조교',
           action: 'word',
           title: `단어 입력/재시험 확인 ${wordNeed}건`,
-          desc: '오늘 회차, 미입력, 불통과 학생을 확인하고 클리닉 후보로 연결'
+          desc: '오늘 회차, 미입력, 불통과 학생을 확인하고 클리닉 후보로 연결',
+          next: '다음 행동: 단어 회차 확인 → 미입력/불통과 학생 재시험 또는 클리닉 연결'
         });
       }
 
       if (!missions.length) {
         missions.push({
           tone: 'clear',
+          bucket: 'follow',
+          chip: '대기',
+          owner: '전체',
           action: 'pulse',
           title: '현재 즉시 처리 업무 없음',
-          desc: '미등원, 실패 문자, 클리닉, 단어 입력 누락이 생기면 자동으로 이곳에 올라옵니다.'
+          desc: '미등원, 실패 문자, 클리닉, 단어 입력 누락이 생기면 자동으로 이곳에 올라옵니다.',
+          next: '다음 행동: 수업 시작 시간 이후 자동 갱신 상태만 확인'
         });
       }
 
@@ -6971,12 +7165,22 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 
       if (!list) return;
       const missions = buildTodayMissionItems();
+      const realMissions = missions.filter(item => item.action !== 'pulse' || item.tone !== 'clear');
+      const nowCount = realMissions.filter(item => item.bucket === 'now' || item.tone === 'urgent').length;
+      const mustCount = realMissions.filter(item => item.bucket === 'must' || item.tone === 'must').length;
+      const followCount = realMissions.filter(item => item.bucket === 'follow' || item.tone === 'watch').length;
+      const setSummary = (id, value) => { const el = $(id); if (el) el.textContent = String(value); };
+      setSummary('#todayNowTaskCount', nowCount);
+      setSummary('#todayMustTaskCount', mustCount);
+      setSummary('#todayFollowTaskCount', followCount);
       list.innerHTML = missions.map((item, idx) => `
-        <button class="todayMissionItem ${esc(item.tone)}" type="button" data-today-action="${esc(item.action)}">
+        <button class="todayMissionItem ${esc(item.tone)}" type="button" data-today-action="${esc(item.action)}" data-today-bucket="${esc(item.bucket || '')}">
           <span class="todayMissionRank">${idx + 1}</span>
-          <span>
-            <span class="todayMissionTitle">${esc(item.title)}</span>
+          <span class="todayMissionBody">
+            <span class="todayMissionTopline"><span class="todayTaskChip">${esc(item.chip || '확인')}</span><span class="todayMissionTitle">${esc(item.title)}</span></span>
             <span class="todayMissionDesc">${esc(item.desc)}</span>
+            <span class="todayMissionMeta"><span>담당 ${esc(item.owner || '직원')}</span><span>${esc(item.bucket === 'now' ? '바로 처리' : item.bucket === 'must' ? '오늘 안에' : '확인')}</span></span>
+            <span class="todayMissionNext">${esc(item.next || '다음 행동: 열어서 처리')}</span>
           </span>
           <span class="todayMissionGo">열기</span>
         </button>
@@ -11356,9 +11560,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           item.student_phone ? `학생 ${phoneText(item.student_phone)}` : ''
         ].filter(Boolean).join('<br/>') || '<span class="mutedInline">번호 없음</span>';
         const stage = esc(item.contact_status || '미발송');
-        const studentLine = `${esc(item.student_id || '')} · ${esc(item.student_name || '')}<div class="mutedInline">${esc([item.school, item.grade].filter(Boolean).join(' · '))}</div>`;
+        const studentLine = `<div class="absenceStudentName">${esc(item.student_name || '이름 없음')}</div><div class="mutedInline">${esc(item.student_id || '')}${[item.school, item.grade].filter(Boolean).length ? ' · ' + esc([item.school, item.grade].filter(Boolean).join(' · ')) : ''}</div>`;
         return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}">
-          <td><b>${esc(item.class_name || item.class_id || '-')}</b><div class="mutedInline">${esc(item.start || '')}${item.teacher ? ' · ' + esc(item.teacher) : ''}</div></td>
+          <td><div class="absenceClassName">${esc(item.class_name || item.class_id || '-')}</div><div class="mutedInline">${esc(item.start || '')}${item.teacher ? ' · ' + esc(item.teacher) : ''}</div></td>
           <td><span class="lateBadge ${esc(risk)}">${lateMin}분</span></td>
           <td>${studentLine}</td>
           <td>${contact}</td>
@@ -11366,7 +11570,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           <td>
             <div class="absenceQuickActions">
               <button class="miniAction" data-abs-copy="${esc(phone)}" type="button">번호복사</button>
-              <button class="miniAction" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생탭</button>
+              <button class="miniAction primary" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생탭</button>
+              <button class="miniAction" data-abs-clinic="${esc(item.student_id || '')}" data-abs-clinic-name="${esc(item.student_name || '')}" type="button">클리닉</button>
               <button class="miniAction good" data-abs-quick-excuse-class="${esc(item.class_id || '')}" data-abs-quick-excuse-student="${esc(item.student_id || '')}" data-abs-quick-excuse-name="${esc(item.student_name || '')}" data-abs-quick-excuse-reason="지각 연락" type="button">지각연락</button>
               <button class="miniAction warn" data-abs-excuse-class="${esc(item.class_id || '')}" data-abs-excuse-student="${esc(item.student_id || '')}" type="button">직접입력</button>
             </div>
@@ -12098,6 +12303,17 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
             jumpTo('students');
             loadStudentProfile().catch(() => {});
           }
+          return;
+        }
+        const clinicEl = e.target.closest('[data-abs-clinic]');
+        if (clinicEl) {
+          const sid = normalizeSid(clinicEl.dataset.absClinic || '');
+          if (sid) {
+            App.selectedStudent = { student_id: sid, student_name: clinicEl.dataset.absClinicName || '' };
+            pushRecentStudent(App.selectedStudent);
+            syncSelectedStudentUi();
+            quickStudentClinicView();
+          } else showToast('클리닉을 만들 학생 정보가 없습니다.');
           return;
         }
         const quickExcuseEl = e.target.closest('[data-abs-quick-excuse-class]');
