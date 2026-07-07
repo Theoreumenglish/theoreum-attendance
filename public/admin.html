@@ -4124,6 +4124,129 @@ body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceStatusLine {
   .todayAbsenceGuide { display: block; }
 }
 
+/* today-clean-task-board-v22: fewer labels, clearer actions, polished staff work board. */
+body.opsFlowV3 {
+  font-family: Pretendard, SUIT, "Noto Sans KR", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+body.opsFlowV3[data-current-view="dashboard"] #pageTitle {
+  font-size: 42px;
+  letter-spacing: -0.075em;
+  line-height: 1.02;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkRail [data-daily-task="student"] {
+  display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkRail {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkCard {
+  border-radius: 20px;
+  padding: 18px 18px;
+  min-height: 100px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkCard .k {
+  font-size: 14px;
+  font-weight: 900;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkCard .v {
+  font-size: 32px;
+  line-height: 1;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] {
+  padding: 22px;
+  border-radius: 28px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayStaffBoardHeader {
+  margin: -22px -22px 14px;
+  padding: 22px 22px 18px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .sectionTitle,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceCard .sectionTitle {
+  font-size: 23px;
+  letter-spacing: -0.055em;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayStaffHint {
+  display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayUrgentBanner {
+  display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayOpsSummary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayOpsSummary > div {
+  padding: 13px 16px;
+  border-radius: 999px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayMissionList {
+  margin-top: 14px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayMissionItem {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayMissionTitle {
+  font-size: 16px;
+  font-weight: 950;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayMissionGo {
+  min-width: 74px;
+  text-align: center;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceCard {
+  padding: 22px;
+  border-radius: 28px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .hiddenAutoRefresh {
+  display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceMeta {
+  font-size: 13px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceTable {
+  border-radius: 20px;
+  max-height: 450px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceTable td,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceTable th {
+  padding: 13px 14px;
+  font-size: 14px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceStudentName,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceClassName {
+  font-size: 14px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceContactLine {
+  font-size: 13px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceQuickActions {
+  gap: 7px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceQuickActions .miniAction {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 900;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absencePhoneMenu,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absencePhoneMenuList {
+  position: static;
+  display: contents;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+@media (max-width: 920px) {
+  body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkRail,
+  body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayMissionPanel[data-today-clean-v22="true"] .todayOpsSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* today-auto-ops-v18: dashboard must show real auto-generated work, not the static calm intro shell. */
 body.opsFlowV3[data-current-view="dashboard"] .calmOpsShell {
   display: none !important;
@@ -5087,7 +5210,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 </div>
 <div class="sideSectionLabel">핵심 업무</div>
 <nav aria-label="핵심 운영 메뉴" class="sideNav primaryNav">
-<button class="navBtn on" data-go="dashboard" type="button">오늘 할 일 <span>›</span></button>
+<button class="navBtn on" data-go="dashboard" type="button">오늘의 업무 <span>›</span></button>
 <button class="navBtn" data-go="students" type="button">학생 관리 <span>›</span></button>
 <button class="navBtn" data-go="attendance" type="button">출결 확인 <span>›</span></button>
 <button class="navBtn" data-go="clinic" type="button">클리닉 <span>›</span></button>
@@ -5359,7 +5482,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="smartActionTile" role="button" tabindex="0" data-smart-action="absenceExcuse"><div class="a">미등원 예외</div><div class="b">예외 관리</div></div>
 </div>
 </div>
-<section class="portalView active" data-view-desc="자동 생성된 오늘 업무를 처리합니다." data-view-title="오늘" id="dashboard">
+<section class="portalView active" data-view-desc="자동 생성된 오늘 업무를 처리합니다." data-view-title="오늘의 업무" id="dashboard">
 <div class="grid compactDashboard">
 <div class="grid4 slimMetrics">
 <div class="metricCard">
@@ -5398,13 +5521,12 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="clinic"><div><div class="k">클리닉</div><div class="v" id="dailyClinicCount">-</div></div><div class="s">오늘 할 일</div></div>
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="word"><div><div class="k">단어</div><div class="v" id="dailyWordCount">-</div></div><div class="s">오늘 회차</div></div>
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="message"><div><div class="k">문자 실패</div><div class="v" id="dailyMessageCount">-</div></div><div class="s">추가 확인</div></div>
-<div class="dailyWorkCard isGood" role="button" tabindex="0" data-daily-task="student"><div><div class="k">학생</div><div class="v" id="dailyStudentState">검색</div></div><div class="s">/ 또는 Ctrl+K</div></div>
 </div>
-<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true" data-today-clean-v20="true" data-today-labels-v21="true">
+<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true" data-today-clean-v20="true" data-today-labels-v21="true" data-today-clean-v22="true">
 <div class="todayStaffBoardHeader">
 <div>
-<div class="todayStaffBoardTitle"><div class="sectionTitle">오늘 할 일</div><span class="todayLiveChip">LIVE</span></div>
-<div class="todayStaffHint">필요한 업무만 표시</div>
+<div class="todayStaffBoardTitle"><div class="sectionTitle">오늘의 업무</div><span class="todayLiveChip">실시간</span></div>
+<div class="todayStaffHint">자동 집계</div>
 </div>
 <button class="btn btnPri" id="btnCommandPulse" type="button">새로고침</button>
 </div>
@@ -5424,7 +5546,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <button class="todayMissionItem watch" type="button" data-today-action="pulse">
 <span class="todayMissionRank">1</span>
 <span class="todayMissionBody"><span class="todayMissionTopline"><span class="todayTaskChip">확인필요</span><span class="todayMissionTitle">불러오는 중</span></span></span>
-<span class="todayMissionGo">열기</span>
+<span class="todayMissionGo">${esc(item.go || '열기')}</span>
 </button>
 </div>
 <div class="hidden" aria-hidden="true" data-qa-passive="true">
@@ -5439,16 +5561,16 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="card cardPad liveAbsenceCard">
 <div class="cardHead compactHead">
 <div>
-<div class="sectionTitle">미등원 <span class="todayLateSortHint">늦은 순</span></div>
+<div class="sectionTitle">미등원생</div>
 </div>
 <div class="btnRow tight">
 <input class="inp compactInput" id="todayAbsenceYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
 <span class="miniAction" id="btnTodayAbsenceBoard" role="button" tabindex="0">새로고침</span>
-<span class="miniAction" id="btnTodayAbsenceAuto" role="button" tabindex="0">자동 ON</span>
+<span class="miniAction hiddenAutoRefresh" id="btnTodayAbsenceAuto" role="button" tabindex="0" aria-hidden="true">자동 새로고침</span>
 </div>
 </div>
 <div class="liveAbsenceStats">
-<div><b id="todayAbsenceMissing">-</b><span>미등원</span></div>
+<div><b id="todayAbsenceMissing">-</b><span>미등원생</span></div>
 <div><b id="todayAbsencePresent">-</b><span>등원</span></div>
 <div><b id="todayAbsenceExcused">-</b><span>처리됨</span></div>
 <div><b id="todayAbsenceClasses">-</b><span>수업반</span></div>
@@ -7335,11 +7457,12 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           chip: counts.criticalLate > 0 ? '긴급' : '지금',
           owner: '데스크/조교',
           action: 'absence',
-          title: `미등원 ${counts.missing}명`,
+          title: '미등원생',
           desc: counts.criticalLate > 0
             ? `20분+ ${counts.criticalLate}명`
             : `수업반 ${counts.classes || '-'}개`,
-          next: '번호 · 학생 · 지각 · 입력'
+          next: '학생/학부모 번호 · 학생 정보 · 출결 처리',
+          go: `${counts.missing}명 보기`
         });
       }
 
@@ -7410,8 +7533,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       if (urgentCount) urgentCount.textContent = counts.missing > 0 ? String(counts.missing) : '0';
       if (headline) {
         headline.textContent = counts.missing > 0
-          ? `미등원 ${counts.missing}명`
-          : '미등원 0명';
+          ? `미등원생 ${counts.missing}명`
+          : '미등원생 0명';
       }
       if (sub) {
         sub.textContent = counts.missing > 0
@@ -7435,7 +7558,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           <span class="todayMissionBody">
             <span class="todayMissionTopline"><span class="todayTaskChip">${esc(item.chip || '확인필요')}</span><span class="todayMissionTitle">${esc(item.title)}</span></span>
           </span>
-          <span class="todayMissionGo">열기</span>
+          <span class="todayMissionGo">${esc(item.go || '열기')}</span>
         </button>
       `).join('');
 
@@ -7473,7 +7596,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       setText('#dailyWordCount', wordCount);
       const failed = Number(queue.failed_absent || 0) + Number(queue.failed_attendance || 0);
       setText('#dailyMessageCount', Number.isFinite(failed) ? failed : '-');
-      setText('#dailyStudentState', App.selectedStudent && App.selectedStudent.student_id ? '선택됨' : '검색');
+      setText('#dailyStudentState', '검색');
       const absenceCard = document.querySelector('[data-daily-task="absence"]');
       if (absenceCard) absenceCard.classList.toggle('isHot', Number(counts.missing || 0) > 0);
       const liveAbsenceCard = document.querySelector('.liveAbsenceCard');
@@ -11818,13 +11941,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         const teacherLabel = item.teacher_name || item.teacher || '';
         const studentLine = `<div class="absenceStudentName">${esc(item.student_name || '이름 없음')}</div><div class="mutedInline">${esc(item.student_id || '')}${[item.school, item.grade].filter(Boolean).length ? ' · ' + esc([item.school, item.grade].filter(Boolean).join(' · ')) : ''}</div>`;
         const phoneMenu = `
-          <details class="absencePhoneMenu">
-            <summary class="miniAction">번호 복사</summary>
-            <div class="absencePhoneMenuList">
-              <button type="button" data-abs-copy-student="${esc(studentPhone)}">학생 번호 복사</button>
-              <button type="button" data-abs-copy-parent="${esc(parentPhone)}">학부모 번호 복사</button>
-            </div>
-          </details>`;
+          <button class="miniAction" type="button" data-abs-copy-student="${esc(studentPhone)}">학생 번호 복사</button>
+          <button class="miniAction" type="button" data-abs-copy-parent="${esc(parentPhone)}">학부모 번호 복사</button>`;
         return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}">
           <td><div class="absenceClassName">${esc(item.class_name || item.class_id || '-')}</div><div class="mutedInline">${esc(item.start || '')}${teacherLabel ? ' · ' + esc(teacherLabel) : ''}</div></td>
           <td>${studentLine}</td>
@@ -11835,8 +11953,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
               ${phoneMenu}
               <button class="miniAction primary" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생 정보</button>
               <button class="miniAction" data-abs-clinic="${esc(item.student_id || '')}" data-abs-clinic-name="${esc(item.student_name || '')}" type="button">클리닉 추가</button>
-              <button class="miniAction good" data-abs-quick-excuse-class="${esc(item.class_id || '')}" data-abs-quick-excuse-student="${esc(item.student_id || '')}" data-abs-quick-excuse-name="${esc(item.student_name || '')}" data-abs-quick-excuse-reason="지각 연락" type="button">지각 연락</button>
-              <button class="miniAction warn" data-abs-excuse-class="${esc(item.class_id || '')}" data-abs-excuse-student="${esc(item.student_id || '')}" type="button">출결 입력</button>
+              <button class="miniAction warn" data-abs-manual-student="${esc(item.student_id || '')}" data-abs-manual-name="${esc(item.student_name || '')}" type="button">출결 처리</button>
             </div>
           </td>
         </tr>`;
@@ -11887,6 +12004,34 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       } else {
         stopTodayAbsenceAuto();
       }
+    }
+
+    function fillAttendanceManualFromLiveBoard(studentId, studentName) {
+      const sid = normalizeSid(studentId || '');
+      if (!sid) {
+        showToast('출결 처리할 학생 정보가 없습니다.');
+        return;
+      }
+      const ymd = String($('#todayAbsenceYmd')?.value || '').replace(/[^0-9]/g, '') || kstYmd();
+      const logYmd = $('#logYmd');
+      const logFilter = $('#logSidFilter');
+      const manualSid = $('#manualSid');
+      const manualAction = $('#manualAction');
+      const manualReason = $('#manualReason');
+      const manualTrace = $('#manualTraceId');
+      if (logYmd) logYmd.value = ymd;
+      if (logFilter) logFilter.value = sid;
+      if (manualSid) manualSid.value = sid;
+      if (manualAction) manualAction.value = 'CHECK_IN';
+      if (manualReason && !manualReason.value) manualReason.value = '오늘의 업무에서 수동 출결 처리';
+      if (manualTrace) manualTrace.value = '';
+      App.selectedStudent = { student_id: sid, student_name: studentName || '' };
+      pushRecentStudent(App.selectedStudent);
+      syncSelectedStudentUi();
+      jumpTo('attendance');
+      showToast('출결 수동 정정 화면에 학생을 넣었습니다. 로그 조회 후 원본 trace_id를 선택하세요.');
+      loadLogs().catch(() => {});
+      setTimeout(() => { if (manualSid) manualSid.focus(); }, 120);
     }
 
     function fillAbsenceExcuseFromLiveBoard(classId, studentId) {
@@ -12596,9 +12741,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           ).catch(err => showToast(err && err.message ? err.message : '바로 처리 실패'));
           return;
         }
-        const excuseEl = e.target.closest('[data-abs-excuse-class]');
-        if (excuseEl) {
-          fillAbsenceExcuseFromLiveBoard(excuseEl.dataset.absExcuseClass || '', excuseEl.dataset.absExcuseStudent || '');
+        const manualEl = e.target.closest('[data-abs-manual-student]');
+        if (manualEl) {
+          fillAttendanceManualFromLiveBoard(manualEl.dataset.absManualStudent || '', manualEl.dataset.absManualName || '');
           return;
         }
         const actionEl = e.target.closest('[data-drawer-action]');

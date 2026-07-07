@@ -637,6 +637,7 @@ async function clickNav(go) {
           v19: !!document.querySelector('[data-today-staff-todo-v19="true"]'),
           v20: !!document.querySelector('[data-today-clean-v20="true"]'),
           v21: !!document.querySelector('[data-today-labels-v21="true"]'),
+          v22: !!document.querySelector('[data-today-clean-v22="true"]'),
           workerSummary: !!document.querySelector('[data-today-worker-summary="true"]'),
           absenceGuideVisible: !!document.querySelector('[data-today-absence-guide="true"]') && isVisible(document.querySelector('[data-today-absence-guide="true"]')),
           compactTaskCopyVisible: /다음 행동:|처리 기준|숫자가 뜬 항목부터|조교·강사가 오늘 놓치면/.test(visibleText),
@@ -646,8 +647,11 @@ async function clickNav(go) {
           absenceRows: absenceRowsEl ? absenceRowsEl.querySelectorAll('tr').length : 0,
           actionableRows: rows.length,
           headline: document.querySelector('#todayUrgentHeadline')?.innerText || '',
-          quickExcuseButtons: document.querySelectorAll('[data-abs-quick-excuse-class]').length,
-          directInputButtons: document.querySelectorAll('[data-abs-excuse-class]').length,
+          quickExcuseButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-quick-excuse-class]').length,
+          directInputButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-excuse-class]').length,
+          manualInputButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-manual-student]').length,
+          autoRefreshVisible: !!document.querySelector('#btnTodayAbsenceAuto') && isVisible(document.querySelector('#btnTodayAbsenceAuto')),
+          studentTaskCardVisible: !!document.querySelector('[data-daily-task="student"]') && isVisible(document.querySelector('[data-daily-task="student"]')),
           studentPhoneCopyButtons: document.querySelectorAll('[data-abs-copy-student]').length,
           parentPhoneCopyButtons: document.querySelectorAll('[data-abs-copy-parent]').length,
           legacyCopyButtons: document.querySelectorAll('[data-abs-copy]').length,
@@ -662,11 +666,13 @@ async function clickNav(go) {
       if (!todayGuard.board) fail('today priority board', 'missing [data-today-priority-board]');
       else if (!todayGuard.dashboardVisible || !todayGuard.boardVisible) fail('today priority board', 'auto-generated today board exists but is not visible to staff');
       else if (todayGuard.calmVisible) fail('today priority board', 'static calm intro shell is still visible instead of the real work board');
-      else if (!todayGuard.v19 || !todayGuard.v20 || !todayGuard.v21) fail('today clean task board', 'missing v21 clean task board marker');
+      else if (!todayGuard.v19 || !todayGuard.v20 || !todayGuard.v21 || !todayGuard.v22) fail('today clean task board', 'missing v22 clean task board marker');
       else if (!todayGuard.workerSummary) fail('today clean task board', 'missing compact status counters');
       else if (todayGuard.bannedIntroVisible || todayGuard.compactTaskCopyVisible) fail('today clean task board', 'explanation copy is still visible on today tab');
       else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
       else if (todayGuard.missionMeta > 0 || todayGuard.missionNext > 0) fail('today clean task board', 'mission rows still include explanation/meta lines');
+      else if (todayGuard.autoRefreshVisible) fail('today clean task board', 'unclear 자동 ON/auto refresh toggle is visible');
+      else if (todayGuard.studentTaskCardVisible) fail('today clean task board', 'student selected/search card is still visible on today task board');
       else if (todayGuard.excusedLabelVisible) fail('today clean task board', 'old 예외 label is visible on phone-attendance today board');
       else ok('today priority board', `${todayGuard.missions} compact mission items · ${todayGuard.headline || 'headline ready'}`);
       if (todayGuard.absenceRows < 1) fail('today absence board rows', 'missing #todayAbsenceRows content');
@@ -677,9 +683,11 @@ async function clickNav(go) {
         else if (todayGuard.studentPhoneCopyButtons < todayGuard.actionableRows) fail('today absence phone copy actions', `${todayGuard.studentPhoneCopyButtons}/${todayGuard.actionableRows} student phone copy buttons rendered`);
         else if (todayGuard.parentPhoneCopyButtons < todayGuard.actionableRows) fail('today absence parent copy actions', `${todayGuard.parentPhoneCopyButtons}/${todayGuard.actionableRows} parent phone copy buttons rendered`);
         else if (todayGuard.legacyCopyButtons > 0) fail('today absence phone copy actions', 'legacy unclear 번호 button remains');
-        else if (!/번호 복사|학생 번호 복사|학부모 번호 복사|학생 정보|클리닉 추가|지각 연락|출결 입력/.test(todayGuard.actionText || '')) fail('today absence action labels', 'clear v21 labels are missing');
-        else if (todayGuard.quickExcuseButtons < todayGuard.actionableRows) fail('today absence quick actions', `${todayGuard.quickExcuseButtons}/${todayGuard.actionableRows} quick excuse buttons rendered`);
-        else if (todayGuard.directInputButtons < todayGuard.actionableRows) fail('today absence direct input actions', `${todayGuard.directInputButtons}/${todayGuard.actionableRows} direct input buttons rendered`);
+        else if (!/학생 번호 복사|학부모 번호 복사|학생 정보|클리닉 추가|출결 처리/.test(todayGuard.actionText || '')) fail('today absence action labels', 'clear v22 labels are missing');
+        else if (/지각 연락|출결 입력/.test(todayGuard.actionText || '')) fail('today absence action labels', 'old unclear v21 labels remain');
+        else if (todayGuard.quickExcuseButtons > 0) fail('today absence quick actions', 'old 지각 연락/quick excuse action remains on today board');
+        else if (todayGuard.directInputButtons > 0) fail('today absence direct input actions', 'old exception input action remains on today board');
+        else if (todayGuard.manualInputButtons < todayGuard.actionableRows) fail('today absence direct input actions', `${todayGuard.manualInputButtons}/${todayGuard.actionableRows} 출결 처리 buttons rendered`);
         else if (todayGuard.studentTabButtons < todayGuard.actionableRows) fail('today absence student tab actions', `${todayGuard.studentTabButtons}/${todayGuard.actionableRows} student tab buttons rendered`);
         else if (todayGuard.clinicButtons < todayGuard.actionableRows) fail('today absence clinic actions', `${todayGuard.clinicButtons}/${todayGuard.actionableRows} clinic buttons rendered`);
         else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions ready`);
