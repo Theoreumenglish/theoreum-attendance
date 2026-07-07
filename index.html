@@ -301,6 +301,32 @@
 			color: var(--pri);
 		}
 
+		/* kiosk-admin-surface-split-v24: public root is kiosk-only; admin console lives at /admin.html. */
+		body.kioskSurfaceSplitV24 .navRow {
+			display: none !important;
+		}
+		body.kioskSurfaceSplitV24 .kioskSurfaceBadge {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 10px 14px;
+			border-radius: 999px;
+			border: 1px solid rgba(14,165,233,.20);
+			background: rgba(240,249,255,.90);
+			color: #0369a1;
+			font-size: 14px;
+			font-weight: 900;
+			letter-spacing: -0.02em;
+		}
+		body.kioskSurfaceSplitV24 .kioskSurfaceBadge::before {
+			content: "";
+			width: 8px;
+			height: 8px;
+			border-radius: 999px;
+			background: #22c55e;
+			box-shadow: 0 0 0 4px rgba(34,197,94,.16);
+		}
+
 		.main {
 			height: calc(100vh - 84px);
 			padding: 40px 20px;
@@ -1581,7 +1607,7 @@
 
 </style>
 </head>
-<body class="kioskModernV3">
+<body class="kioskModernV3 kioskSurfaceSplitV24" data-surface="kiosk">
 	<div class="busy" id="busyBar"></div>
 
 	<div id="offlineLock">
@@ -1614,10 +1640,10 @@
 			/>
 			</div>
 
-			<div class="navRow">
-				<button class="tabBtn on" id="navKiosk" type="button">키오스크</button>
-				<button class="tabBtn" id="navStaff" type="button">직원</button>
-				<button class="tabBtn" id="navAdmin" type="button" onclick="location.href='/admin.html'">관리자 콘솔</button>
+			<div class="kioskSurfaceBadge" data-kiosk-surface-lock="true">출석 키오스크 전용</div>
+			<div class="navRow" aria-hidden="true">
+				<button class="tabBtn on" id="navKiosk" type="button" tabindex="-1">키오스크</button>
+				<button class="tabBtn" id="navStaff" type="button" tabindex="-1">직원</button>
 			</div>
 
 			<div class="sp row">
@@ -2269,7 +2295,7 @@
 		const App = {
 			sess: localStorage.getItem('ATT_SESS') || '',
 			pending: 0,
-			currentView: localStorage.getItem('ATT_LAST_VIEW') || 'kiosk',
+			currentView: 'kiosk',
 			meta: null,
 			_booted: false,
 
@@ -2409,8 +2435,9 @@
 				const logoutBtn = $('#btnLogout');
 				if (logoutBtn) logoutBtn.addEventListener('click', Auth.logout);
 
-				if (App.currentView === 'staff') await Router.goStaff();
-				else await Router.goKiosk();
+				// v24: the public root is always the kiosk surface. Admin console is /admin.html.
+				localStorage.removeItem('ATT_LAST_VIEW');
+				await Router.goKiosk();
 
 				App.refreshMeta().catch(() => {});
 			}
@@ -2662,8 +2689,10 @@
 				if (Router._bound) return;
 				Router._bound = true;
 
-				$('#navKiosk').addEventListener('click', Router.goKiosk);
-				$('#navStaff').addEventListener('click', Router.goStaff);
+				const navKiosk = $('#navKiosk');
+				const navStaff = $('#navStaff');
+				if (navKiosk) navKiosk.addEventListener('click', Router.goKiosk);
+				if (navStaff) navStaff.addEventListener('click', Router.goStaff);
 
 				let logoClicks = 0;
 				let logoTimer = null;
@@ -2683,8 +2712,10 @@
 			},
 
 			setNav(which) {
-				$('#navKiosk').classList.toggle('on', which === 'kiosk');
-				$('#navStaff').classList.toggle('on', which === 'staff');
+				const navKiosk = $('#navKiosk');
+				const navStaff = $('#navStaff');
+				if (navKiosk) navKiosk.classList.toggle('on', which === 'kiosk');
+				if (navStaff) navStaff.classList.toggle('on', which === 'staff');
 				resetInactivity();
 				resetIdle();
 			},

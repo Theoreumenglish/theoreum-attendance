@@ -5261,9 +5261,25 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
   }
 }
 
+/* kiosk-admin-surface-split-v24: admin console is a separate internal surface. */
+body.adminConsoleSurfaceV24 .adminSurfaceLink {
+  white-space: nowrap;
+}
+body.adminConsoleSurfaceV24 #pageTags .adminSurfaceLink::after,
+body.adminConsoleSurfaceV24 .sideFooter .adminSurfaceLink::after {
+  content: " ↗";
+  font-weight: 900;
+}
+body.adminConsoleSurfaceV24 #kPhoneMid,
+body.adminConsoleSurfaceV24 #kPhoneLast,
+body.adminConsoleSurfaceV24 .actGrid,
+body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
+  display: none !important;
+}
+
 </style>
 </head>
-<body>
+<body class="adminConsoleSurfaceV24" data-surface="admin-console">
 <div class="busyBar" id="busyBar"></div>
 <div class="loginWrap hidden" id="loginView">
 <div class="loginCard">
@@ -5272,7 +5288,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="brandMark">↑</div>
 <div>
 <div class="brandTitle">더오름</div>
-<div class="brandSub">직원 전용</div>
+<div class="brandSub">관리자 콘솔</div>
 </div>
 </div>
 <div class="loginHeadline">
@@ -5291,7 +5307,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
   <div class="brandMark">↑</div>
   <div><strong>더오름</strong><span>Operations</span></div>
 </div>
-<h2 class="loginFormTitle">직원 로그인</h2>
+<h2 class="loginFormTitle">관리자 콘솔 로그인</h2>
 <p class="loginFormDesc">직원 ID와 비밀번호를 입력해 주세요.</p>
 <div class="fieldStack">
 <div>
@@ -5314,7 +5330,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="brandMark">↑</div>
 <div class="sideBrandText">
 <strong>더오름</strong>
-<span>Staff Operations</span>
+<span>Admin Console</span>
 </div>
 </div>
 <div class="sideSectionLabel">핵심 업무</div>
@@ -5338,7 +5354,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="userName" id="whoText">로그인 전</div>
 <div class="userState"><span class="dot"></span><span id="netText">Online</span></div>
 </div>
-<button class="btn btnGhost" onclick="location.href='/'" type="button">키오스크 열기</button>
+<button class="btn btnGhost adminSurfaceLink" onclick="window.open('/', '_blank', 'noopener')" type="button">키오스크 새 창</button>
 <button class="btn btnGhost hidden" id="btnLogout" type="button">로그아웃</button>
 </div>
 </aside>
@@ -5352,7 +5368,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 </div>
 <div class="topTools" id="pageTags">
 <div class="quickProgress" id="uiSyncPill" title="최근 작업 상태"><span class="bar"><i></i></span><span id="uiSyncText">즉시 반응 준비</span></div>
-<button class="btn btnGhost" onclick="location.href='/'" type="button">키오스크</button>
+<button class="btn btnGhost adminSurfaceLink" onclick="window.open('/', '_blank', 'noopener')" type="button">키오스크 새 창</button>
 <button class="btn btnPri" id="btnRefreshOverview" type="button">상태 새로고침</button>
 </div>
 </div>
@@ -8442,7 +8458,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 
       if (loggedIn) {
         repairStaffSectionScope();
-        showPortalView(getHashView(), { replace: true, scroll: false });
+        showPortalView('dashboard', { replace: true, scroll: false });
       }
     }
 

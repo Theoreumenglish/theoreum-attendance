@@ -844,6 +844,45 @@ async function checkedDomAudit(label) {
   }
 }
 
+async function verifyKioskAdminSurfaceSplit(surface) {
+  const result = await page.evaluate(() => {
+    const isVisible = (el) => {
+      if (!el) return false;
+      const s = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0;
+    };
+    const visibleText = String(document.body.innerText || '').replace(/\s+/g, ' ');
+    const visibleIds = ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT', 'loginId', 'loginPw', 'btnLogin']
+      .filter(id => isVisible(document.getElementById(id)));
+    return {
+      surface: document.body.dataset.surface || '',
+      title: document.title || '',
+      visibleText,
+      visibleIds,
+      kioskLockVisible: isVisible(document.querySelector('[data-kiosk-surface-lock]'))
+    };
+  });
+
+  if (surface === 'kiosk') {
+    if (result.surface !== 'kiosk') throw new Error(`root surface marker is not kiosk: ${result.surface}`);
+    if (!result.kioskLockVisible) throw new Error('kiosk surface lock badge is not visible');
+    if (/관리자 콘솔|직원 로그인|중앙DB|설정\/점검|학생 관리/.test(result.visibleText)) {
+      throw new Error('admin/staff console wording is visible on kiosk root');
+    }
+    const required = ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT'];
+    const missing = required.filter(id => !result.visibleIds.includes(id));
+    if (missing.length) throw new Error('kiosk controls missing after surface split: ' + missing.join(', '));
+  }
+
+  if (surface === 'admin') {
+    if (result.surface !== 'admin-console') throw new Error(`admin surface marker is not admin-console: ${result.surface}`);
+    const leaked = result.visibleIds.filter(id => ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT'].includes(id));
+    if (leaked.length) throw new Error('kiosk input controls leaked into admin console: ' + leaked.join(', '));
+    if (!/오늘의 업무/.test(result.visibleText)) throw new Error('admin console did not land on today work dashboard');
+  }
+}
+
 async function apiRpc(op, args = {}) {
   const started = Date.now();
   let body = null;
@@ -927,6 +966,9 @@ async function run() {
     await waitQuiet(800);
   });
   await checkedDomAudit('root');
+  await step('kiosk/admin surface split: kiosk root', async () => {
+    await verifyKioskAdminSurfaceSplit('kiosk');
+  }, { screenshot: false });
 
   await step('kiosk phone input', async () => {
     await clickIfExists('#btnCHECK_IN', 'kiosk check-in button', 2000);
@@ -1045,6 +1087,9 @@ async function run() {
     await waitQuiet(1200);
   });
   await checkedDomAudit('admin_after_login');
+  await step('kiosk/admin surface split: admin console', async () => {
+    await verifyKioskAdminSurfaceSplit('admin');
+  }, { screenshot: false });
 
   await step('admin core api parity', async () => {
     await apiRpc('meta.supportedOps');
@@ -1264,6 +1309,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '## What this checked',
     '- Real browser page load',
     '- Kiosk phone input and staff hotword',
+    '- Kiosk/admin surface split guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

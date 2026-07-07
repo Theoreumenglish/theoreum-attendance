@@ -168,6 +168,16 @@ const totalButtons = count(/<button\b/g, markupHtml);
 if (totalButtons > 99) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
 else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다. 직원 휴대폰만 저장/학부모 fallback 버튼 추가로 허용 상한을 99개로 조정했습니다.`);
 
+
+// kiosk-admin-surface-split-v24: public kiosk and internal admin console must stay separated.
+const kioskHtml = readFileSync('index.html', 'utf8');
+if (!kioskHtml.includes('data-surface="kiosk"') || !kioskHtml.includes('data-kiosk-surface-lock="true"')) fail('index.html에 키오스크 전용 surface 잠금 마커가 없습니다.');
+else ok('키오스크 전용 surface 잠금 마커가 있습니다.');
+if (/id="navAdmin"|관리자 콘솔<\/button>|location\.href=['"]\/admin\.html/.test(kioskHtml)) fail('키오스크 루트에 관리자 콘솔 진입 버튼이 남아 있습니다.');
+else ok('키오스크 루트에서 관리자 콘솔 진입 버튼을 제거했습니다.');
+if (!html.includes('data-surface="admin-console"') || !html.includes('키오스크 새 창')) fail('관리자 콘솔 surface 마커 또는 키오스크 새 창 링크가 없습니다.');
+else ok('관리자 콘솔 surface 마커와 키오스크 새 창 링크가 있습니다.');
+
 if (failed > 0) {
   console.error('');
   console.error(`Admin UX check failed: ${failed} issue(s)`);

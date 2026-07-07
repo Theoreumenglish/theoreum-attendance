@@ -50,5 +50,20 @@ if (/studentSearchTimer:\s*null,[\s\S]*studentSearchTimer:\s*null,/.test(html)) 
   console.log('OK duplicate StaffUI search timer removed');
 }
 
+
+// v24: root must be kiosk-only; admin console is not visibly launched from the tablet surface.
+if (!html.includes('data-surface="kiosk"') || !html.includes('data-kiosk-surface-lock="true"')) {
+  console.error('FAIL kiosk-only root surface markers missing');
+  failed += 1;
+} else {
+  console.log('OK kiosk-only root surface markers');
+}
+if (/id="navAdmin"|관리자 콘솔<\/button>|location\.href=['"]\/admin\.html/.test(html)) {
+  console.error('FAIL visible admin console launcher remains on kiosk root');
+  failed += 1;
+} else {
+  console.log('OK no visible admin console launcher on kiosk root');
+}
+
 if (failed) process.exit(1);
 console.log('Kiosk 010 segmented physical-keyboard flow static check passed.');
