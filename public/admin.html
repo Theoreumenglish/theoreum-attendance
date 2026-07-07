@@ -6982,8 +6982,10 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const setText = (id, value) => { const el = $(id); if (el) el.textContent = value == null || value === '' ? '-' : String(value); };
       setText('#dailyAbsenceCount', Number.isFinite(counts.missing) ? counts.missing : '-');
       setText('#dailyAbsenceNote', counts.classes != null ? `수업반 ${counts.classes || '-'} · 등원 ${counts.present || 0}` : '실시간 확인');
-      setText('#dailyClinicCount', overview.clinic && overview.clinic.open_today != null ? overview.clinic.open_today : '보기');
-      setText('#dailyWordCount', overview.word && overview.word.today_sessions != null ? overview.word.today_sessions : '입력');
+      const clinicCount = overview.clinic && overview.clinic.open_today != null ? countLike(overview.clinic.open_today, 0) : 0;
+      const wordCount = overview.word && overview.word.today_sessions != null ? countLike(overview.word.today_sessions, 0) : 0;
+      setText('#dailyClinicCount', clinicCount);
+      setText('#dailyWordCount', wordCount);
       const failed = Number(queue.failed_absent || 0) + Number(queue.failed_attendance || 0);
       setText('#dailyMessageCount', Number.isFinite(failed) ? failed : '-');
       setText('#dailyStudentState', App.selectedStudent && App.selectedStudent.student_id ? '선택됨' : '검색');
@@ -7878,7 +7880,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       $('#statFailedAbsent').textContent = String(queue.failed_absent ?? 0);
       $('#statFailedAttendance').textContent = String(queue.failed_attendance ?? 0);
       $('#statSafe').textContent = String(safe.enabled || safe.value || 'N').toUpperCase() === 'Y' ? 'ON' : 'OFF';
-      $('#statSafeNote').textContent = '층 ' + (d.kiosk_floor || '-') + ' · PENDING ' + (queue.pending_all ?? 0);
+      const pendingAll = countLike(queue.pending_all, countLike(queue.pending, 0));
+      $('#statSafeNote').textContent = '층 ' + (d.kiosk_floor || '-') + ' · PENDING ' + pendingAll;
       renderCronHealth(d);
       $('#overviewText').textContent = '마지막 확인: ' + (d.checked_at || new Date().toISOString());
       updateDailyWorkRail();
@@ -12126,11 +12129,40 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 
 
 
+    function countLike(value, fallback = 0) {
+      if (value == null || value === '') return fallback;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed || trimmed === '[object Object]') return fallback;
+        const n = Number(trimmed);
+        return Number.isFinite(n) ? n : fallback;
+      }
+      if (Array.isArray(value)) return value.length;
+      if (typeof value === 'object') {
+        for (const key of ['total', 'count', 'value', 'pending_all', 'pending']) {
+          if (Object.prototype.hasOwnProperty.call(value, key)) {
+            const n = countLike(value[key], NaN);
+            if (Number.isFinite(n)) return n;
+          }
+        }
+        const sum = Object.values(value).reduce((acc, item) => {
+          const n = countLike(item, 0);
+          return acc + (Number.isFinite(n) ? n : 0);
+        }, 0);
+        return Number.isFinite(sum) ? sum : fallback;
+      }
+      return fallback;
+    }
+
     function asCountText(value, fallback = '-') {
       if (value == null || value === '') return fallback;
-      const n = Number(value);
+      if (typeof value === 'object') return String(countLike(value, fallback));
+      const raw = String(value).trim();
+      if (!raw || raw === '[object Object]') return fallback;
+      const n = Number(raw);
       if (Number.isFinite(n)) return String(n);
-      return String(value);
+      return raw;
     }
 
     function updateCalmOpsSummary() {
