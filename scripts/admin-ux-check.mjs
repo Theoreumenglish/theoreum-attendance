@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync('public/admin.html', 'utf8');
+const apiRpc = readFileSync('api/rpc.js', 'utf8');
 const markupHtml = html.replace(/<!--[\s\S]*?-->/g, '').split('<script>')[0];
 let failed = 0;
 function ok(message) { console.log('OK', message); }
@@ -81,18 +82,24 @@ else ok('오늘 화면에 출석 안 한 학생 목록이 있습니다.');
 if (!html.includes('today-auto-ops-v18')) fail('오늘 화면이 정적 소개 셸 대신 자동 업무판을 보이도록 잠금 처리되지 않았습니다.');
 else ok('오늘 화면 자동 업무판 표시 잠금이 있습니다.');
 
-if (!todayBoard.includes('data-today-staff-todo-v19="true"') || !todayBoard.includes('data-today-clean-v20="true"') || !todayBoard.includes('data-today-labels-v21="true"') || !todayBoard.includes('data-today-clean-v22="true"')) fail('오늘 화면이 설명을 줄인 v22 실무형 보드가 아닙니다.');
-else ok('오늘 화면은 v22 실무형 보드입니다.');
+if (!todayBoard.includes('data-today-staff-todo-v19="true"') || !todayBoard.includes('data-today-clean-v20="true"') || !todayBoard.includes('data-today-labels-v21="true"') || !todayBoard.includes('data-today-clean-v22="true"') || !todayBoard.includes('data-today-clean-v23="true"')) fail('오늘 화면이 설명을 줄인 v23 실무형 보드가 아닙니다.');
+else ok('오늘 화면은 v23 실무형 보드입니다.');
 if (!todayBoard.includes('data-today-worker-summary="true"')) fail('오늘 화면에 긴급/마감/확인필요 요약 카운터가 없습니다.');
 else ok('오늘 화면에 직원 업무 요약 카운터가 있습니다.');
-if (!html.includes('today-clean-task-board-v20') || !html.includes('today-clean-task-board-v21') || !html.includes('today-clean-task-board-v22')) fail('오늘의 업무 탭을 깔끔하게 줄이는 v22 CSS 잠금이 없습니다.');
-else ok('오늘의 업무 탭 v22 정리 CSS가 있습니다.');
+if (!html.includes('today-clean-task-board-v20') || !html.includes('today-clean-task-board-v21') || !html.includes('today-clean-task-board-v22') || !html.includes('today-task-board-v23')) fail('오늘의 업무 탭을 깔끔하게 줄이는 v23 CSS 잠금이 없습니다.');
+else ok('오늘의 업무 탭 v23 정리 CSS가 있습니다.');
 if (/다음 행동:|처리 기준|숫자가 뜬 항목부터|조교·강사가 오늘 놓치면/.test(todayBoard)) fail('오늘 화면에 설명 문구가 과하게 남아 있습니다.');
 else ok('오늘 화면 설명 문구를 제거했습니다.');
 if (!html.includes('data-abs-clinic')) fail('출석 안 한 학생 행에서 바로 클리닉으로 이동하는 액션이 없습니다.');
 else ok('출석 안 한 학생 행에 클리닉 바로 처리 액션이 있습니다.');
 if (!html.includes('data-abs-copy-student') || !html.includes('data-abs-copy-parent')) fail('미등원 행의 번호 복사가 학생/학부모로 분리되어 있지 않습니다.');
 else ok('미등원 행의 번호 복사가 학생/학부모로 분리되어 있습니다.');
+if (todayBoard.includes('data-daily-task="word"')) fail('오늘의 업무에 애매한 단어 카드가 남아 있습니다.');
+else ok('오늘의 업무에서 애매한 단어 카드를 제거했습니다.');
+if (!todayBoard.includes('todayDateTools') || !todayBoard.includes('todayRefreshAction')) fail('오늘의 업무 날짜/업데이트 UI가 정리되어 있지 않습니다.');
+else ok('오늘의 업무 날짜/업데이트 UI를 정리했습니다.');
+if (!apiRpc.includes('OFFLINE_CLINIC') || !apiRpc.includes('offline_clinic_missing_count')) fail('오프라인 클리닉 미등원이 오늘의 업무 미등원 보드에 포함되지 않습니다.');
+else ok('오프라인 클리닉 미등원을 오늘의 업무에 포함합니다.');
 if (!/학생 번호 복사|학부모 번호 복사|학생 정보|클리닉 추가|출결 처리/.test(html)) fail('미등원 행 작업 버튼명이 명확하지 않습니다.');
 else ok('미등원 행 작업 버튼명을 명확하게 바꿨습니다.');
 if (/data-abs-quick-excuse-class|>지각 연락<|>출결 입력<|<summary class="miniAction">번호 복사<\/summary>/.test(todayBoard)) fail('오늘 미등원 행에 오래된 지각/입력/드롭다운 버튼이 남아 있습니다.');

@@ -6728,6 +6728,17 @@ function liveAbsenceKstDateTimeIso(yyyymmdd, hhmm) {
   return ms ? new Date(ms).toISOString() : '';
 }
 
+function liveAbsenceHhmmFromIso(raw) {
+  const ms = Date.parse(String(raw || '').trim());
+  if (!Number.isFinite(ms)) return '';
+  const kst = new Date(ms + 9 * 60 * 60 * 1000);
+  return `${String(kst.getUTCHours()).padStart(2, '0')}:${String(kst.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+function liveAbsenceClinicDueHhmm(row = {}) {
+  return normalizeHhmm(row.due_time || row.dueTime || row.clinic_time || row.clinicTime) || liveAbsenceHhmmFromIso(row.due_at || row.dueAt);
+}
+
 function liveAbsencePhone(raw) {
   return String(raw || '').replace(/[^0-9]/g, '').trim();
 }
@@ -6822,6 +6833,44 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
   const { data: scheduleData, error: scheduleErr } = await scheduleQuery;
   if (scheduleErr) return fail(500, 'DB_SELECT_FAILED', scheduleErr.message || 'class_schedule 조회 실패');
 
+  const dueDateText = `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+  let clinicTaskRows = [];
+  try {
+    let clinicQuery = supabase
+      .from('clinic_tasks')
+      .select('clinic_task_id, student_id, class_id, title, task_type, source_type, status, priority, due_date, due_time, due_at, clinic_mode, assigned_staff_id, updated_at, created_at')
+      .eq('due_date', dueDateText)
+      .eq('clinic_mode', 'OFFLINE')
+      .order('due_time', { ascending: true });
+    clinicQuery = clinicOpenStatusFilter(clinicQuery);
+    const { data: clinicData, error: clinicErr } = await clinicQuery;
+    if (!clinicErr && Array.isArray(clinicData)) clinicTaskRows = clinicData;
+  } catch {
+    clinicTaskRows = [];
+  }
+
+  const offlineClinicRows = clinicTaskRows
+    .map(row => {
+      const dueHhmm = liveAbsenceClinicDueHhmm(row);
+      const startMs = liveAbsenceKstStartMs(yyyymmdd, dueHhmm);
+      const lateMin = startMs ? Math.floor((nowMs - startMs) / 60000) : -99999;
+      return {
+        ...row,
+        clinic_task_id: String(row.clinic_task_id || '').trim(),
+        class_id: String(row.class_id || '').trim(),
+        student_id: normalizeStudentId(row.student_id),
+        title: String(row.title || '').trim(),
+        teacher: String(row.assigned_staff_id || '').trim(),
+        start: dueHhmm,
+        start_ms: startMs,
+        start_iso: liveAbsenceKstDateTimeIso(yyyymmdd, dueHhmm),
+        late_min: lateMin,
+        start_passed: startMs > 0 && nowMs >= startMs
+      };
+    })
+    .filter(row => row.clinic_task_id && row.student_id)
+    .filter(row => includeUpcoming || row.start_passed);
+
   const scheduledRows = (Array.isArray(scheduleData) ? scheduleData : [])
     .filter(row => isActiveLikeScheduleStatus(row.status))
     .map(row => {
@@ -6840,7 +6889,10 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     .filter(row => row.class_id)
     .filter(row => includeUpcoming || row.start_passed);
 
-  const classIds = Array.from(new Set(scheduledRows.map(row => row.class_id).filter(Boolean)));
+  const classIds = Array.from(new Set([
+    ...scheduledRows.map(row => row.class_id).filter(Boolean),
+    ...offlineClinicRows.map(row => row.class_id).filter(Boolean)
+  ]));
   const emptyOut = {
     yyyymmdd,
     checked_at: now.toISOString(),
@@ -6856,10 +6908,11 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     excused_count: 0,
     upcoming_count: 0,
     no_phone_count: 0,
+    offline_clinic_missing_count: 0,
     groups: [],
     items: []
   };
-  if (!classIds.length) {
+  if (!classIds.length && !offlineClinicRows.length) {
     fastCacheSet(cacheKey, emptyOut, 8, 60);
     return success(emptyOut);
   }
@@ -6872,7 +6925,10 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
       liveAbsenceSelectInChunks(supabase, 'class_students', 'class_id, student_id', 'class_id', classIds),
       liveAbsenceSelectInChunks(supabase, 'classes', 'class_id, name, teacher, alert_delay, status', 'class_id', classIds)
     ]);
-    const studentIds = Array.from(new Set(relations.map(row => normalizeStudentId(row.student_id)).filter(Boolean)));
+    const studentIds = Array.from(new Set([
+      ...relations.map(row => normalizeStudentId(row.student_id)).filter(Boolean),
+      ...offlineClinicRows.map(row => normalizeStudentId(row.student_id)).filter(Boolean)
+    ]));
     students = await liveAbsenceSelectInChunks(
       supabase,
       'students',
@@ -6894,7 +6950,8 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     supabase,
     [
       ...scheduledRows.map(row => row?.teacher),
-      ...classes.map(row => row?.teacher)
+      ...classes.map(row => row?.teacher),
+      ...offlineClinicRows.map(row => row?.teacher)
     ].filter(Boolean)
   );
   const staffDisplayName = value => {
@@ -7099,6 +7156,74 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     groupsByClass.set(classId, group);
   }
 
+  let offlineClinicMissingCount = 0;
+  for (const clinic of offlineClinicRows) {
+    const sid = normalizeStudentId(clinic.student_id);
+    const student = studentMap.get(sid);
+    if (!student) continue;
+    const isPresent = presentSet.has(sid);
+    if (!clinic.start_passed) {
+      upcomingCount++;
+      continue;
+    }
+    if (isPresent) {
+      presentCount++;
+      continue;
+    }
+
+    const parentPhone = liveAbsencePhone(student.parent_phone);
+    const studentPhone = liveAbsencePhone(student.student_phone);
+    if (!parentPhone && !studentPhone) noPhoneCount++;
+    const classRow = classMap.get(clinic.class_id) || {};
+    const teacherId = String(clinic.teacher || classRow.teacher || '').trim();
+    const taskTitle = clinic.title || classRow.name || '오프라인 클리닉';
+    const item = {
+      yyyymmdd,
+      source_type: 'OFFLINE_CLINIC',
+      clinic_task_id: clinic.clinic_task_id,
+      class_id: clinic.class_id || '',
+      class_name: taskTitle,
+      teacher: teacherId,
+      teacher_name: staffDisplayName(teacherId),
+      start: clinic.start,
+      end: '',
+      late_min: clinic.late_min,
+      student_id: sid,
+      student_name: String(student.student_name || '').trim(),
+      school: String(student.school || '').trim(),
+      grade: String(student.grade || '').trim(),
+      parent_phone: parentPhone,
+      student_phone: studentPhone,
+      sent_stages: [],
+      contact_status: '클리닉 미등원',
+      risk: clinic.late_min >= 20 ? 'high' : clinic.late_min >= 5 ? 'medium' : 'low'
+    };
+    const groupId = `clinic:${clinic.clinic_task_id}`;
+    groupsByClass.set(groupId, {
+      class_id: groupId,
+      class_name: taskTitle,
+      teacher: teacherId,
+      teacher_name: staffDisplayName(teacherId),
+      start: clinic.start,
+      end: '',
+      start_iso: clinic.start_iso,
+      late_min: clinic.late_min,
+      start_passed: clinic.start_passed,
+      roster_count: 1,
+      present_count: 0,
+      missing_count: 1,
+      excused_count: 0,
+      no_phone_count: (!parentPhone && !studentPhone) ? 1 : 0,
+      queue_done_count: 0,
+      source_type: 'OFFLINE_CLINIC',
+      students: [item]
+    });
+    rosterCount++;
+    missingCount++;
+    offlineClinicMissingCount++;
+    items.push(item);
+  }
+
   const groups = Array.from(groupsByClass.values())
     .filter(group => includeUpcoming || group.start_passed)
     .sort((a, b) => Number(b.missing_count || 0) - Number(a.missing_count || 0) || String(a.start || '').localeCompare(String(b.start || '')));
@@ -7108,7 +7233,7 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
   const out = {
     yyyymmdd,
     checked_at: now.toISOString(),
-    source: 'class_schedule + today_student_state',
+    source: 'class_schedule + clinic_tasks + today_student_state',
     realtime: true,
     refresh_sec: 10,
     schedule_count: (Array.isArray(scheduleData) ? scheduleData : []).length,
@@ -7120,6 +7245,7 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     excused_count: excusedCount,
     upcoming_count: upcomingCount,
     no_phone_count: noPhoneCount,
+    offline_clinic_missing_count: offlineClinicMissingCount,
     groups,
     items
   };

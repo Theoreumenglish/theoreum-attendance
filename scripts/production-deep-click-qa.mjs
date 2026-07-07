@@ -638,6 +638,7 @@ async function clickNav(go) {
           v20: !!document.querySelector('[data-today-clean-v20="true"]'),
           v21: !!document.querySelector('[data-today-labels-v21="true"]'),
           v22: !!document.querySelector('[data-today-clean-v22="true"]'),
+          v23: !!document.querySelector('[data-today-clean-v23="true"]'),
           workerSummary: !!document.querySelector('[data-today-worker-summary="true"]'),
           absenceGuideVisible: !!document.querySelector('[data-today-absence-guide="true"]') && isVisible(document.querySelector('[data-today-absence-guide="true"]')),
           compactTaskCopyVisible: /다음 행동:|처리 기준|숫자가 뜬 항목부터|조교·강사가 오늘 놓치면/.test(visibleText),
@@ -652,6 +653,8 @@ async function clickNav(go) {
           manualInputButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-manual-student]').length,
           autoRefreshVisible: !!document.querySelector('#btnTodayAbsenceAuto') && isVisible(document.querySelector('#btnTodayAbsenceAuto')),
           studentTaskCardVisible: !!document.querySelector('[data-daily-task="student"]') && isVisible(document.querySelector('[data-daily-task="student"]')),
+          wordTaskCardVisible: !!document.querySelector('[data-daily-task="word"]') && isVisible(document.querySelector('[data-daily-task="word"]')),
+          polishedDateControls: !!document.querySelector('.todayDateTools .todayDateInput') && !!document.querySelector('.todayDateTools .todayRefreshAction'),
           studentPhoneCopyButtons: document.querySelectorAll('[data-abs-copy-student]').length,
           parentPhoneCopyButtons: document.querySelectorAll('[data-abs-copy-parent]').length,
           legacyCopyButtons: document.querySelectorAll('[data-abs-copy]').length,
@@ -666,13 +669,15 @@ async function clickNav(go) {
       if (!todayGuard.board) fail('today priority board', 'missing [data-today-priority-board]');
       else if (!todayGuard.dashboardVisible || !todayGuard.boardVisible) fail('today priority board', 'auto-generated today board exists but is not visible to staff');
       else if (todayGuard.calmVisible) fail('today priority board', 'static calm intro shell is still visible instead of the real work board');
-      else if (!todayGuard.v19 || !todayGuard.v20 || !todayGuard.v21 || !todayGuard.v22) fail('today clean task board', 'missing v22 clean task board marker');
+      else if (!todayGuard.v19 || !todayGuard.v20 || !todayGuard.v21 || !todayGuard.v22 || !todayGuard.v23) fail('today clean task board', 'missing v23 clean task board marker');
       else if (!todayGuard.workerSummary) fail('today clean task board', 'missing compact status counters');
       else if (todayGuard.bannedIntroVisible || todayGuard.compactTaskCopyVisible) fail('today clean task board', 'explanation copy is still visible on today tab');
       else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
       else if (todayGuard.missionMeta > 0 || todayGuard.missionNext > 0) fail('today clean task board', 'mission rows still include explanation/meta lines');
       else if (todayGuard.autoRefreshVisible) fail('today clean task board', 'unclear 자동 ON/auto refresh toggle is visible');
       else if (todayGuard.studentTaskCardVisible) fail('today clean task board', 'student selected/search card is still visible on today task board');
+      else if (todayGuard.wordTaskCardVisible) fail('today clean task board', 'vague class-level word task card is still visible on today board');
+      else if (!todayGuard.polishedDateControls) fail('today clean task board', 'polished date/update controls are missing');
       else if (todayGuard.excusedLabelVisible) fail('today clean task board', 'old 예외 label is visible on phone-attendance today board');
       else ok('today priority board', `${todayGuard.missions} compact mission items · ${todayGuard.headline || 'headline ready'}`);
       if (todayGuard.absenceRows < 1) fail('today absence board rows', 'missing #todayAbsenceRows content');

@@ -4247,6 +4247,115 @@ body.opsFlowV3[data-current-view="dashboard"] #dashboard .absencePhoneMenuList {
   }
 }
 
+
+
+/* today-task-board-v23: remove vague word task, polish date/refresh, enlarge Korean labels. */
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkRail {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkCard[data-daily-task="word"] {
+  display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkCard .k,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceStats span,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceMeta,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .mutedInline,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceStatusLine {
+  color: #334155;
+  font-weight: 850;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceStats {
+  gap: 10px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceStats > div {
+  padding: 15px 18px;
+  border-radius: 16px;
+  background: #fff;
+  border-color: #dbe3ef;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceStats b {
+  font-size: 21px;
+  color: #0f172a;
+  font-weight: 950;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceStats span {
+  font-size: 14px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .btnRow.todayDateTools,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayDateTools {
+  gap: 8px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #f8fafc;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayDateLabel {
+  padding-left: 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayDateInput {
+  width: 122px;
+  height: 38px;
+  border: 0;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  font-size: 15px;
+  font-weight: 850;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayRefreshAction {
+  min-height: 38px;
+  padding: 9px 14px;
+  background: #111827;
+  border-color: #111827;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceSourceChip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceSourceChip.clinic {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceTable td,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .liveAbsenceTable th {
+  font-size: 15px;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceStudentName,
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceClassName {
+  font-size: 15.5px;
+  font-weight: 950;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .absenceQuickActions .miniAction {
+  font-size: 13px;
+  padding: 8px 11px;
+}
+
+@media (max-width: 920px) {
+  body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkRail {
+    grid-template-columns: 1fr;
+  }
+  body.opsFlowV3[data-current-view="dashboard"] #dashboard .todayDateTools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 /* today-auto-ops-v18: dashboard must show real auto-generated work, not the static calm intro shell. */
 body.opsFlowV3[data-current-view="dashboard"] .calmOpsShell {
   display: none !important;
@@ -5518,17 +5627,16 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 </div>
 <div class="dailyWorkRail" id="dailyWorkRail" aria-label="오늘 업무 레일">
 <div class="dailyWorkCard isHot" role="button" tabindex="0" data-daily-task="absence"><div><div class="k">미등원</div><div class="v" id="dailyAbsenceCount">-</div></div><div class="s" id="dailyAbsenceNote">실시간 확인</div></div>
-<div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="clinic"><div><div class="k">클리닉</div><div class="v" id="dailyClinicCount">-</div></div><div class="s">오늘 할 일</div></div>
-<div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="word"><div><div class="k">단어</div><div class="v" id="dailyWordCount">-</div></div><div class="s">오늘 회차</div></div>
+<div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="clinic"><div><div class="k">클리닉 미등원</div><div class="v" id="dailyClinicCount">-</div></div><div class="s">오프라인</div></div>
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="message"><div><div class="k">문자 실패</div><div class="v" id="dailyMessageCount">-</div></div><div class="s">추가 확인</div></div>
 </div>
-<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true" data-today-clean-v20="true" data-today-labels-v21="true" data-today-clean-v22="true">
+<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true" data-today-clean-v20="true" data-today-labels-v21="true" data-today-clean-v22="true" data-today-clean-v23="true">
 <div class="todayStaffBoardHeader">
 <div>
-<div class="todayStaffBoardTitle"><div class="sectionTitle">오늘의 업무</div><span class="todayLiveChip">실시간</span></div>
+<div class="todayStaffBoardTitle"><div class="sectionTitle">오늘의 업무</div></div>
 <div class="todayStaffHint">자동 집계</div>
 </div>
-<button class="btn btnPri" id="btnCommandPulse" type="button">새로고침</button>
+<button class="btn btnPri" id="btnCommandPulse" type="button">업무 업데이트</button>
 </div>
 <div class="todayUrgentBanner isClear" id="todayUrgentBanner" data-qa-today-urgent>
 <div>
@@ -5563,9 +5671,10 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div>
 <div class="sectionTitle">미등원생</div>
 </div>
-<div class="btnRow tight">
-<input class="inp compactInput" id="todayAbsenceYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
-<span class="miniAction" id="btnTodayAbsenceBoard" role="button" tabindex="0">새로고침</span>
+<div class="btnRow tight todayDateTools">
+<span class="todayDateLabel">업무일</span>
+<input class="inp compactInput todayDateInput" id="todayAbsenceYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
+<span class="miniAction todayRefreshAction" id="btnTodayAbsenceBoard" role="button" tabindex="0">업데이트</span>
 <span class="miniAction hiddenAutoRefresh" id="btnTodayAbsenceAuto" role="button" tabindex="0" aria-hidden="true">자동 새로고침</span>
 </div>
 </div>
@@ -5573,7 +5682,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div><b id="todayAbsenceMissing">-</b><span>미등원생</span></div>
 <div><b id="todayAbsencePresent">-</b><span>등원</span></div>
 <div><b id="todayAbsenceExcused">-</b><span>처리됨</span></div>
-<div><b id="todayAbsenceClasses">-</b><span>수업반</span></div>
+<div><b id="todayAbsenceClasses">-</b><span>수업/클리닉</span></div>
 </div>
 <div class="liveAbsenceMeta" id="todayAbsenceMeta">조회 전</div>
 <div class="todayAbsenceGuide" data-today-absence-guide="true"><span></span></div>
@@ -7418,6 +7527,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         present: counts.present != null ? Number(counts.present || 0) : Number(board.present_count || 0),
         classes: counts.classes != null ? Number(counts.classes || 0) : Number(board.class_count || 0),
         excused: Number(board.excused_count || 0),
+        clinicMissing: items.filter(x => String(x.source_type || '').toUpperCase() === 'OFFLINE_CLINIC').length,
+        classMissing: items.filter(x => String(x.source_type || '').toUpperCase() !== 'OFFLINE_CLINIC').length,
         highLate: items.filter(x => Number(x.late_min || 0) >= 10).length,
         criticalLate: items.filter(x => Number(x.late_min || 0) >= 20).length
       };
@@ -7427,7 +7538,6 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const overview = App.lastOverview || {};
       const queue = overview.queue || {};
       const clinic = overview.clinic || {};
-      const word = overview.word || {};
       const counts = todayAbsenceCounts();
       const failedAbsent = countLike(queue.failed_absent, 0);
       const failedAttendance = countLike(queue.failed_attendance, 0);
@@ -7441,16 +7551,9 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         countLike(clinic.need_create, 0),
         countLike(clinic.pending, 0)
       );
-      const wordNeed = Math.max(
-        countLike(word.today_sessions, 0),
-        countLike(word.pending_input, 0),
-        countLike(word.missing_input, 0),
-        countLike(word.retest_needed, 0),
-        countLike(word.failed_students, 0)
-      );
       const missions = [];
 
-      if (counts.missing > 0) {
+      if (counts.classMissing > 0) {
         missions.push({
           tone: counts.criticalLate > 0 ? 'urgent' : 'must',
           bucket: 'now',
@@ -7460,9 +7563,23 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           title: '미등원생',
           desc: counts.criticalLate > 0
             ? `20분+ ${counts.criticalLate}명`
-            : `수업반 ${counts.classes || '-'}개`,
+            : `대상 ${counts.classes || '-'}개`,
           next: '학생/학부모 번호 · 학생 정보 · 출결 처리',
-          go: `${counts.missing}명 보기`
+          go: `${counts.classMissing}명 보기`
+        });
+      }
+
+      if (counts.clinicMissing > 0) {
+        missions.push({
+          tone: 'must',
+          bucket: 'now',
+          chip: '클리닉',
+          owner: '데스크/조교',
+          action: 'absence',
+          title: '클리닉 미등원',
+          desc: '오프라인 클리닉',
+          next: '학생/학부모 번호 · 학생 정보 · 출결 처리',
+          go: `${counts.clinicMissing}명 보기`
         });
       }
 
@@ -7489,19 +7606,6 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           title: `클리닉 ${clinicNeed}건`,
           desc: '오늘 처리',
           next: '완료 · 미완료'
-        });
-      }
-
-      if (wordNeed > 0) {
-        missions.push({
-          tone: 'must',
-          bucket: 'must',
-          chip: '오늘',
-          owner: '조교',
-          action: 'word',
-          title: `단어 ${wordNeed}건`,
-          desc: '입력 · 재시험',
-          next: '입력 · 재시험'
         });
       }
 
@@ -7573,32 +7677,15 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const counts = todayAbsenceCounts();
       const setText = (id, value) => { const el = $(id); if (el) el.textContent = value == null || value === '' ? '-' : String(value); };
       setText('#dailyAbsenceCount', Number.isFinite(counts.missing) ? counts.missing : '-');
-      setText('#dailyAbsenceNote', counts.classes != null ? `수업반 ${counts.classes || '-'} · 등원 ${counts.present || 0}` : '실시간 확인');
-      const clinic = overview.clinic || {};
-      const word = overview.word || {};
-      const clinicCount = Math.max(
-        countLike(clinic.open_today, 0),
-        countLike(clinic.today, 0),
-        countLike(clinic.due_today, 0),
-        countLike(clinic.candidate, 0),
-        countLike(clinic.candidates, 0),
-        countLike(clinic.need_create, 0),
-        countLike(clinic.pending, 0)
-      );
-      const wordCount = Math.max(
-        countLike(word.today_sessions, 0),
-        countLike(word.pending_input, 0),
-        countLike(word.missing_input, 0),
-        countLike(word.retest_needed, 0),
-        countLike(word.failed_students, 0)
-      );
-      setText('#dailyClinicCount', clinicCount);
-      setText('#dailyWordCount', wordCount);
+      setText('#dailyAbsenceNote', counts.classes != null ? `대상 ${counts.classes || '-'} · 등원 ${counts.present || 0}` : '실시간 확인');
+      setText('#dailyClinicCount', Number.isFinite(counts.clinicMissing) ? counts.clinicMissing : 0);
       const failed = Number(queue.failed_absent || 0) + Number(queue.failed_attendance || 0);
       setText('#dailyMessageCount', Number.isFinite(failed) ? failed : '-');
       setText('#dailyStudentState', '검색');
       const absenceCard = document.querySelector('[data-daily-task="absence"]');
       if (absenceCard) absenceCard.classList.toggle('isHot', Number(counts.missing || 0) > 0);
+      const clinicCard = document.querySelector('[data-daily-task="clinic"]');
+      if (clinicCard) clinicCard.classList.toggle('isHot', Number(counts.clinicMissing || 0) > 0);
       const liveAbsenceCard = document.querySelector('.liveAbsenceCard');
       if (liveAbsenceCard) liveAbsenceCard.classList.toggle('isUrgent', Number(counts.missing || 0) > 0);
       renderTodayMissionBoard();
@@ -11938,13 +12025,15 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           studentPhone ? `학생 ${phoneText(studentPhone)}` : ''
         ].filter(Boolean).join('<br/>') || '<span class="mutedInline">번호 없음</span>';
         const stage = esc(item.contact_status || '미발송');
+        const isOfflineClinic = String(item.source_type || '').toUpperCase() === 'OFFLINE_CLINIC';
+        const sourceLabel = isOfflineClinic ? '오프라인 클리닉' : '수업';
         const teacherLabel = item.teacher_name || item.teacher || '';
         const studentLine = `<div class="absenceStudentName">${esc(item.student_name || '이름 없음')}</div><div class="mutedInline">${esc(item.student_id || '')}${[item.school, item.grade].filter(Boolean).length ? ' · ' + esc([item.school, item.grade].filter(Boolean).join(' · ')) : ''}</div>`;
         const phoneMenu = `
           <button class="miniAction" type="button" data-abs-copy-student="${esc(studentPhone)}">학생 번호 복사</button>
           <button class="miniAction" type="button" data-abs-copy-parent="${esc(parentPhone)}">학부모 번호 복사</button>`;
         return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}">
-          <td><div class="absenceClassName">${esc(item.class_name || item.class_id || '-')}</div><div class="mutedInline">${esc(item.start || '')}${teacherLabel ? ' · ' + esc(teacherLabel) : ''}</div></td>
+          <td><div class="absenceClassName">${esc(item.class_name || item.class_id || '-')}</div><div class="mutedInline">${esc(item.start || '')}${teacherLabel ? ' · ' + esc(teacherLabel) : ''}</div><span class="absenceSourceChip ${isOfflineClinic ? 'clinic' : ''}">${esc(sourceLabel)}</span></td>
           <td>${studentLine}</td>
           <td><span class="lateBadge ${esc(risk)}">${lateMin}분</span></td>
           <td><div class="absenceContactLine">${contact}</div><div class="absenceStatusLine">${stage}</div></td>
