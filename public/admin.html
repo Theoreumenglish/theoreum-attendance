@@ -2801,6 +2801,10 @@
       margin: 2px;
     }
     .miniAction:hover { background: var(--accent-soft); }
+    .miniAction.good { border-color: #bbf7d0; background: #ecfdf5; color: #166534; font-weight: 800; }
+    .miniAction.warn { border-color: #fde68a; background: #fffbeb; color: #92400e; font-weight: 800; }
+    .miniAction.danger { border-color: #fecaca; background: #fef2f2; color: #991b1b; font-weight: 800; }
+    .absenceQuickActions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
     .mutedInline { color: var(--muted); font-size: 12px; }
     @media (max-width: 760px) {
       .liveAbsenceStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -6671,7 +6675,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <h2 class="drawerTitle" id="drawerTitle">작업 패널</h2>
 <div class="drawerDesc" id="drawerDesc">행을 선택하면 필요한 작업만 모아서 보여줍니다.</div>
 </div>
-<div class="drawerClose" id="drawerClose" role="button" tabindex="0" aria-label="작업 패널 닫기">×</div>
+<div class="drawerClose" id="drawerClose" role="button" tabindex="0" aria-label="작업 패널 닫기" data-qa-passive="true">×</div>
 </div>
 <div class="drawerBody" id="drawerBody"></div>
 </aside>
@@ -7395,7 +7399,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
     }
 
     function drawerActionHtml(action, title, desc) {
-      return `<div class="drawerAction" role="button" tabindex="0" data-drawer-action="${esc(action)}"><strong>${esc(title)}</strong><span>${esc(desc)}</span></div>`;
+      return `<div class="drawerAction" role="button" tabindex="0" data-qa-passive="true" data-drawer-action="${esc(action)}"><strong>${esc(title)}</strong><span>${esc(desc)}</span></div>`;
     }
 
     function openWorkDrawer(kind = 'context', data = {}) {
@@ -11329,9 +11333,12 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           <td>${contact}</td>
           <td><span class="statusPill ${item.sent_stages?.length ? 'warn' : ''}">${stage}</span></td>
           <td>
-            <button class="miniAction" data-abs-copy="${esc(phone)}" type="button">복사</button>
-            <button class="miniAction" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생</button>
-            <button class="miniAction" data-abs-excuse-class="${esc(item.class_id || '')}" data-abs-excuse-student="${esc(item.student_id || '')}" type="button">예외</button>
+            <div class="absenceQuickActions">
+              <button class="miniAction" data-abs-copy="${esc(phone)}" type="button">번호복사</button>
+              <button class="miniAction" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생360</button>
+              <button class="miniAction good" data-abs-quick-excuse-class="${esc(item.class_id || '')}" data-abs-quick-excuse-student="${esc(item.student_id || '')}" data-abs-quick-excuse-name="${esc(item.student_name || '')}" data-abs-quick-excuse-reason="지각 연락" type="button">지각연락</button>
+              <button class="miniAction warn" data-abs-excuse-class="${esc(item.class_id || '')}" data-abs-excuse-student="${esc(item.student_id || '')}" type="button">직접입력</button>
+            </div>
           </td>
         </tr>`;
       }).join('');
@@ -11396,6 +11403,43 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       if (classId) applySelectedClass(classId, { fillMaster: false });
       jumpTo('attendance');
       showToast('미등원 예외 입력칸에 넣었습니다.');
+    }
+
+    async function quickAbsenceExcuseFromLiveBoard(classId, studentId, studentName, reason) {
+      const yyyymmdd = String($('#todayAbsenceYmd')?.value || '').replace(/[^0-9]/g, '') || kstYmd();
+      const class_id = String(classId || '').trim();
+      const student_id = normalizeSid(studentId || '');
+      const cleanReason = String(reason || '지각 연락').trim() || '지각 연락';
+      const label = [student_id, studentName].filter(Boolean).join(' · ') || student_id || '선택 학생';
+
+      if (!yyyymmdd || !class_id || !student_id) {
+        showToast('날짜, 반, 학생 정보가 부족해서 바로 처리할 수 없습니다.');
+        return;
+      }
+
+      const ok = confirm(`${label} 학생을 오늘 미등원 문자 제외로 바로 등록할까요?\n사유: ${cleanReason}`);
+      if (!ok) return;
+
+      const optimisticId = safeOptimisticStart('미등원 문자 제외 등록 중', `${label} · ${cleanReason}`);
+      const r = await rpc('assistant.addAbsenceExcuse', {
+        yyyymmdd,
+        class_id,
+        student_id,
+        reason: cleanReason,
+        until_min: 0
+      }, { timeoutMs: 50000, cacheTtlMs: 0 });
+
+      if (!r.ok) {
+        safeOptimisticFail(optimisticId, '미등원 문자 제외 등록 실패', r.error && r.error.message ? r.error.message : '저장 실패');
+        showToast(r.error && r.error.message ? r.error.message : '미등원 문자 제외 등록 실패');
+        return;
+      }
+
+      clearRpcCache('assistant.todayAbsenceBoard');
+      clearRpcCache('assistant.listAbsenceExcuses');
+      safeOptimisticDone(optimisticId, '미등원 문자 제외 등록 완료', `${label} · ${cleanReason}`);
+      showToast('오늘 미등원 문자 제외로 등록했습니다.');
+      await loadTodayAbsenceBoard({ force: true, silent: true });
     }
 
 
@@ -12023,6 +12067,16 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
             jumpTo('students');
             loadStudentProfile().catch(() => {});
           }
+          return;
+        }
+        const quickExcuseEl = e.target.closest('[data-abs-quick-excuse-class]');
+        if (quickExcuseEl) {
+          quickAbsenceExcuseFromLiveBoard(
+            quickExcuseEl.dataset.absQuickExcuseClass || '',
+            quickExcuseEl.dataset.absQuickExcuseStudent || '',
+            quickExcuseEl.dataset.absQuickExcuseName || '',
+            quickExcuseEl.dataset.absQuickExcuseReason || '지각 연락'
+          ).catch(err => showToast(err && err.message ? err.message : '바로 처리 실패'));
           return;
         }
         const excuseEl = e.target.closest('[data-abs-excuse-class]');

@@ -618,19 +618,30 @@ async function clickNav(go) {
       const todayGuard = await page.evaluate(() => {
         const board = document.querySelector('[data-today-priority-board]');
         const list = document.querySelector('#todayMissionList');
-        const absenceRows = document.querySelector('#todayAbsenceRows');
+        const absenceRowsEl = document.querySelector('#todayAbsenceRows');
+        const rows = absenceRowsEl ? Array.from(absenceRowsEl.querySelectorAll('tr[data-absence-late]')) : [];
         return {
           board: !!board,
           missions: list ? list.querySelectorAll('[data-today-action]').length : 0,
-          absenceRows: absenceRows ? absenceRows.querySelectorAll('tr').length : 0,
-          headline: document.querySelector('#todayUrgentHeadline')?.innerText || ''
+          absenceRows: absenceRowsEl ? absenceRowsEl.querySelectorAll('tr').length : 0,
+          actionableRows: rows.length,
+          headline: document.querySelector('#todayUrgentHeadline')?.innerText || '',
+          quickExcuseButtons: document.querySelectorAll('[data-abs-quick-excuse-class]').length,
+          directInputButtons: document.querySelectorAll('[data-abs-excuse-class]').length,
+          topLate: rows.slice(0, 8).map(row => Number(row.getAttribute('data-absence-late') || 0))
         };
-      }).catch(() => ({ board: false, missions: 0, absenceRows: 0, headline: '' }));
+      }).catch(() => ({ board: false, missions: 0, absenceRows: 0, actionableRows: 0, quickExcuseButtons: 0, directInputButtons: 0, topLate: [], headline: '' }));
       if (!todayGuard.board) fail('today priority board', 'missing [data-today-priority-board]');
       else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
       else ok('today priority board', `${todayGuard.missions} mission items · ${todayGuard.headline || 'headline ready'}`);
       if (todayGuard.absenceRows < 1) fail('today absence board rows', 'missing #todayAbsenceRows content');
-      else ok('today absence board rows', `${todayGuard.absenceRows} row groups rendered`);
+      else if (todayGuard.actionableRows > 0) {
+        const sorted = todayGuard.topLate.every((value, idx, arr) => idx === 0 || value <= arr[idx - 1]);
+        if (!sorted) fail('today absence board rows', `not sorted by late minutes desc: ${todayGuard.topLate.join(',')}`);
+        else if (todayGuard.quickExcuseButtons < todayGuard.actionableRows) fail('today absence quick actions', `${todayGuard.quickExcuseButtons}/${todayGuard.actionableRows} quick excuse buttons rendered`);
+        else if (todayGuard.directInputButtons < todayGuard.actionableRows) fail('today absence direct input actions', `${todayGuard.directInputButtons}/${todayGuard.actionableRows} direct input buttons rendered`);
+        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions ready`);
+      } else ok('today absence board rows', `${todayGuard.absenceRows} row groups rendered`);
     }
     if (go === 'classes') {
       const scrollGuard = await page.evaluate(() => {
@@ -1101,6 +1112,11 @@ async function run() {
     });
   }
 
+  await page.evaluate(() => {
+    document.querySelector('#drawerOverlay')?.classList.remove('on');
+    document.querySelector('#workDrawer')?.classList.remove('on');
+  }).catch(() => {});
+  await waitQuiet(250);
   await checkedDomAudit('students_search');
 
   let studentIdForWrite = qaStudentId;
