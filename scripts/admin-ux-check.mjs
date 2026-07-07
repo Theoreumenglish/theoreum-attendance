@@ -73,6 +73,18 @@ for (const [id, maxButtons] of Object.entries(thresholds)) {
   else ok(`${id} 화면 직접 노출 버튼 ${directButtons}개로 정리됐습니다.`);
 }
 
+const todayBoard = sectionById('dashboard');
+if (!todayBoard.includes('data-today-priority-board="true"')) fail('오늘 화면에 자동 업무 우선순위 보드가 없습니다.');
+else ok('오늘 화면에 자동 업무 우선순위 보드가 있습니다.');
+if (!todayBoard.includes('todayAbsenceRows')) fail('오늘 화면에 출석 안 한 학생 목록이 없습니다.');
+else ok('오늘 화면에 출석 안 한 학생 목록이 있습니다.');
+if (!html.includes('today-auto-ops-v18')) fail('오늘 화면이 정적 소개 셸 대신 자동 업무판을 보이도록 잠금 처리되지 않았습니다.');
+else ok('오늘 화면 자동 업무판 표시 잠금이 있습니다.');
+if (/body\.opsFlowV3\[data-current-view="dashboard"\]\s+#dashboard\s*\{\s*display:\s*none\s*!important;\s*\}/.test(html)) fail('오늘 화면 #dashboard가 CSS로 숨겨져 있습니다.');
+else ok('오늘 화면 #dashboard는 숨김 처리되어 있지 않습니다.');
+if (!/body\.opsFlowV3\[data-current-view="dashboard"\]\s+\.calmOpsShell\s*\{\s*display:\s*none\s*!important;/.test(html)) fail('정적 calmOpsShell이 오늘 화면에서 숨겨지지 않았습니다.');
+else ok('정적 calmOpsShell은 오늘 화면에서 숨겨집니다.');
+
 const students = sectionById('students');
 if (/단어 재시험|독해 오답|숙제 미완료|출결 상담|보강 필요/.test(students)) fail('학생 화면에 클리닉 프리셋 버튼이 남아 있습니다.');
 else ok('학생 화면에서 클리닉 프리셋 버튼을 제거했습니다.');

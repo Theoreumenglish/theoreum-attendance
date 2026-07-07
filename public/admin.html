@@ -2945,6 +2945,7 @@
     .todayMissionItem.urgent .todayMissionRank { background: #fee2e2; color: #b91c1c; }
     .todayMissionItem.must .todayMissionRank { background: #ffedd5; color: #c2410c; }
     .todayMissionItem.watch .todayMissionRank { background: #e0f2fe; color: #0369a1; }
+    .todayMissionItem.clear .todayMissionRank { background: #dcfce7; color: #047857; }
     .todayMissionTitle {
       font-size: 15px;
       font-weight: 950;
@@ -3689,8 +3690,7 @@ body.opsFlowV3 .uxStartBoard,
 body.opsFlowV3 .quickDock,
 body.opsFlowV3 .opsContextBar,
 body.opsFlowV3 .recentRail,
-body.opsFlowV3 .smartBoard,
-body.opsFlowV3 .dailyWorkRail {
+body.opsFlowV3 .smartBoard {
   display: none !important;
 }
 
@@ -3699,11 +3699,21 @@ body.opsFlowV3 .dailyWorkRail {
   gap: 18px;
   margin: 0 0 22px;
 }
+/* today-auto-ops-v18: dashboard must show real auto-generated work, not the static calm intro shell. */
 body.opsFlowV3[data-current-view="dashboard"] .calmOpsShell {
-  display: grid;
-}
-body.opsFlowV3[data-current-view="dashboard"] #dashboard {
   display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard.portalView.active {
+  display: block !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .dailyWorkRail {
+  display: grid !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .slimMetrics {
+  display: none !important;
+}
+body.opsFlowV3[data-current-view="dashboard"] #dashboard .compactDashboard {
+  gap: 18px;
 }
 
 .calmHero {
@@ -4924,7 +4934,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="smartActionTile" role="button" tabindex="0" data-smart-action="absenceExcuse"><div class="a">미등원 예외</div><div class="b">예외 관리</div></div>
 </div>
 </div>
-<section class="portalView active" data-view-desc="오늘 처리할 일만 봅니다." data-view-title="오늘" id="dashboard">
+<section class="portalView active" data-view-desc="자동 생성된 오늘 업무를 처리합니다." data-view-title="오늘" id="dashboard">
 <div class="grid compactDashboard">
 <div class="grid4 slimMetrics">
 <div class="metricCard">
@@ -4968,23 +4978,23 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true">
 <div class="cardHead">
 <div>
-<div class="sectionTitle">오늘 운영 우선순위</div>
-<div class="sectionDesc">급한 일 → 꼭 해야 할 일 → 확인할 일 순서로 정리합니다. 수업 시작 후 안 온 학생을 맨 위에서 바로 확인합니다.</div>
+<div class="sectionTitle">오늘 할 일 자동 운영판</div>
+<div class="sectionDesc">미등원, 문자 전송 실패, 클리닉 추가/처리 필요, 단어 입력 누락을 조건에 따라 자동으로 띄웁니다. 숫자가 있는 항목부터 처리하세요.</div>
 </div>
-<button class="btn btnPri" id="btnCommandPulse" type="button">오늘 전체 점검</button>
+<button class="btn btnPri" id="btnCommandPulse" type="button">오늘 업무 새로고침</button>
 </div>
 <div class="todayUrgentBanner isClear" id="todayUrgentBanner" data-qa-today-urgent>
 <div>
-<div class="headline" id="todayUrgentHeadline">오늘 급한 일 확인 전</div>
-<div class="sub" id="todayUrgentSub">전체 점검 또는 실시간 미등원 새로고침을 누르면 우선순위가 갱신됩니다.</div>
+<div class="headline" id="todayUrgentHeadline">오늘 자동 업무 불러오는 중</div>
+<div class="sub" id="todayUrgentSub">잠시 후 미등원, 문자 실패, 클리닉, 단어 상태로 To-do가 생성됩니다.</div>
 </div>
 <div class="todayUrgentBadge" id="todayUrgentCount">-</div>
 </div>
 <div class="todayMissionList" id="todayMissionList" data-qa-today-mission-list>
 <button class="todayMissionItem watch" type="button" data-today-action="pulse">
 <span class="todayMissionRank">1</span>
-<span><span class="todayMissionTitle">오늘 전체 점검</span><span class="todayMissionDesc">미등원·실패 알림·클리닉·단어시험을 한 번에 훑습니다.</span></span>
-<span class="todayMissionGo">실행</span>
+<span><span class="todayMissionTitle">자동 업무 불러오기</span><span class="todayMissionDesc">실시간 미등원·문자 실패·클리닉·단어 상태를 불러와 To-do를 만듭니다.</span></span>
+<span class="todayMissionGo">새로고침</span>
 </button>
 </div>
 <div class="hidden" aria-hidden="true" data-qa-passive="true">
@@ -4992,14 +5002,14 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
 <span id="btnCommandClinic">클리닉 후보</span>
 <span id="btnCommandWord">오늘 단어시험</span>
 </div>
-<div class="actionLog" id="quickActionLog">아직 실행한 업무가 없습니다.</div>
+<div class="actionLog" id="quickActionLog">오늘 자동 업무 대기 중입니다.</div>
 <div class="sectionDesc" id="overviewText" style="margin-top:12px;">아직 불러오지 않았습니다.</div>
 </div>
 
 <div class="card cardPad liveAbsenceCard">
 <div class="cardHead compactHead">
 <div>
-<div class="sectionTitle">실시간 미등원 <span class="todayLateSortHint">지각 분 높은 순</span></div>
+<div class="sectionTitle">출석 안 한 학생 <span class="todayLateSortHint">지각 분 높은 순</span></div>
 </div>
 <div class="btnRow tight">
 <input class="inp compactInput" id="todayAbsenceYmd" inputmode="numeric" placeholder="YYYYMMDD"/>
@@ -6864,22 +6874,38 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
     function buildTodayMissionItems() {
       const overview = App.lastOverview || {};
       const queue = overview.queue || {};
+      const clinic = overview.clinic || {};
+      const word = overview.word || {};
       const counts = todayAbsenceCounts();
-      const failedAbsent = Number(queue.failed_absent || 0);
-      const failedAttendance = Number(queue.failed_attendance || 0);
+      const failedAbsent = countLike(queue.failed_absent, 0);
+      const failedAttendance = countLike(queue.failed_attendance, 0);
       const failedTotal = failedAbsent + failedAttendance;
-      const clinicToday = overview.clinic && overview.clinic.open_today != null ? Number(overview.clinic.open_today || 0) : null;
-      const wordToday = overview.word && overview.word.today_sessions != null ? Number(overview.word.today_sessions || 0) : null;
+      const clinicNeed = Math.max(
+        countLike(clinic.open_today, 0),
+        countLike(clinic.today, 0),
+        countLike(clinic.due_today, 0),
+        countLike(clinic.candidate, 0),
+        countLike(clinic.candidates, 0),
+        countLike(clinic.need_create, 0),
+        countLike(clinic.pending, 0)
+      );
+      const wordNeed = Math.max(
+        countLike(word.today_sessions, 0),
+        countLike(word.pending_input, 0),
+        countLike(word.missing_input, 0),
+        countLike(word.retest_needed, 0),
+        countLike(word.failed_students, 0)
+      );
       const missions = [];
 
       if (counts.missing > 0) {
         missions.push({
-          tone: 'urgent',
+          tone: counts.criticalLate > 0 ? 'urgent' : 'must',
           action: 'absence',
-          title: `수업 시작 후 미등원 ${counts.missing}명`,
+          title: `출석 안 한 학생 ${counts.missing}명`,
           desc: counts.criticalLate > 0
-            ? `20분 이상 지각 ${counts.criticalLate}명 · 연락/예외 처리 우선`
-            : `지각 분 높은 순으로 확인 · 수업반 ${counts.classes || '-'}개`
+            ? `20분 이상 ${counts.criticalLate}명 · 학생탭/번호복사/지각연락부터 처리`
+            : `지각 분 높은 순 · 수업반 ${counts.classes || '-'}개 · 연락 처리 필요`
         });
       }
 
@@ -6887,53 +6913,39 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
         missions.push({
           tone: 'urgent',
           action: 'failedMessages',
-          title: `실패 알림 ${failedTotal}건`,
-          desc: `미등원 ${failedAbsent}건 · 등하원 ${failedAttendance}건 · 재처리/수동 연락 확인`
+          title: `문자 전송 실패 ${failedTotal}건`,
+          desc: `미등원 ${failedAbsent}건 · 등하원 ${failedAttendance}건 · 재처리 또는 수동 연락`
         });
       }
 
-      if (clinicToday != null) {
-        missions.push({
-          tone: clinicToday > 0 ? 'must' : 'watch',
-          action: 'clinic',
-          title: clinicToday > 0 ? `오늘 클리닉 ${clinicToday}건` : '오늘 클리닉 확인',
-          desc: clinicToday > 0 ? '미완료/후속 조치가 필요한 학생부터 처리' : '필요한 클리닉 후보가 있는지 확인'
-        });
-      } else {
+      if (clinicNeed > 0) {
         missions.push({
           tone: 'must',
           action: 'clinic',
-          title: '오늘 클리닉 확인',
-          desc: '조교가 놓치면 안 되는 보완/재시험/추가 클리닉 확인'
+          title: `클리닉 추가/처리 필요 ${clinicNeed}건`,
+          desc: '미완료, 후보, 오늘 예정 클리닉을 먼저 처리'
         });
       }
 
-      if (wordToday != null) {
-        missions.push({
-          tone: wordToday > 0 ? 'must' : 'watch',
-          action: 'word',
-          title: wordToday > 0 ? `오늘 단어시험 ${wordToday}회` : '오늘 단어시험 확인',
-          desc: wordToday > 0 ? '채점 입력 후 불통과 학생 클리닉 후보 연결' : '오늘 회차를 만들거나 입력 누락 여부 확인'
-        });
-      } else {
+      if (wordNeed > 0) {
         missions.push({
           tone: 'must',
           action: 'word',
-          title: '오늘 단어시험 확인',
-          desc: '회차 조회 후 맞은 개수 입력 · 불통과 자동 클리닉 연결'
+          title: `단어 입력/재시험 확인 ${wordNeed}건`,
+          desc: '오늘 회차, 미입력, 불통과 학생을 확인하고 클리닉 후보로 연결'
         });
       }
 
       if (!missions.length) {
         missions.push({
-          tone: 'watch',
+          tone: 'clear',
           action: 'pulse',
-          title: '오늘 전체 점검',
-          desc: '운영 요약, 미등원, 실패 알림, 클리닉, 단어시험을 한 번에 확인'
+          title: '현재 즉시 처리 업무 없음',
+          desc: '미등원, 실패 문자, 클리닉, 단어 입력 누락이 생기면 자동으로 이곳에 올라옵니다.'
         });
       }
 
-      return missions.slice(0, 4);
+      return missions.slice(0, 5);
     }
 
     function renderTodayMissionBoard() {
@@ -6953,8 +6965,8 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       }
       if (sub) {
         sub.textContent = counts.missing > 0
-          ? `지각 10분 이상 ${counts.highLate}명 · 20분 이상 ${counts.criticalLate}명 · 먼저 연락/예외 처리하세요.`
-          : '미등원 보드는 자동 갱신 중입니다. 급한 일은 실패 알림과 클리닉 후보를 확인하세요.';
+          ? `지각 10분 이상 ${counts.highLate}명 · 20분 이상 ${counts.criticalLate}명 · 학생탭/번호복사/지각연락부터 처리하세요.`
+          : '미등원은 없습니다. 문자 실패, 클리닉, 단어 입력 누락이 생기면 자동 To-do에 올라옵니다.';
       }
 
       if (!list) return;
@@ -6982,8 +6994,24 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
       const setText = (id, value) => { const el = $(id); if (el) el.textContent = value == null || value === '' ? '-' : String(value); };
       setText('#dailyAbsenceCount', Number.isFinite(counts.missing) ? counts.missing : '-');
       setText('#dailyAbsenceNote', counts.classes != null ? `수업반 ${counts.classes || '-'} · 등원 ${counts.present || 0}` : '실시간 확인');
-      const clinicCount = overview.clinic && overview.clinic.open_today != null ? countLike(overview.clinic.open_today, 0) : 0;
-      const wordCount = overview.word && overview.word.today_sessions != null ? countLike(overview.word.today_sessions, 0) : 0;
+      const clinic = overview.clinic || {};
+      const word = overview.word || {};
+      const clinicCount = Math.max(
+        countLike(clinic.open_today, 0),
+        countLike(clinic.today, 0),
+        countLike(clinic.due_today, 0),
+        countLike(clinic.candidate, 0),
+        countLike(clinic.candidates, 0),
+        countLike(clinic.need_create, 0),
+        countLike(clinic.pending, 0)
+      );
+      const wordCount = Math.max(
+        countLike(word.today_sessions, 0),
+        countLike(word.pending_input, 0),
+        countLike(word.missing_input, 0),
+        countLike(word.retest_needed, 0),
+        countLike(word.failed_students, 0)
+      );
       setText('#dailyClinicCount', clinicCount);
       setText('#dailyWordCount', wordCount);
       const failed = Number(queue.failed_absent || 0) + Number(queue.failed_attendance || 0);
@@ -11338,7 +11366,7 @@ body.adminConsoleV7 .phoneIdentityTableWrap thead th {
           <td>
             <div class="absenceQuickActions">
               <button class="miniAction" data-abs-copy="${esc(phone)}" type="button">번호복사</button>
-              <button class="miniAction" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생360</button>
+              <button class="miniAction" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생탭</button>
               <button class="miniAction good" data-abs-quick-excuse-class="${esc(item.class_id || '')}" data-abs-quick-excuse-student="${esc(item.student_id || '')}" data-abs-quick-excuse-name="${esc(item.student_name || '')}" data-abs-quick-excuse-reason="지각 연락" type="button">지각연락</button>
               <button class="miniAction warn" data-abs-excuse-class="${esc(item.class_id || '')}" data-abs-excuse-student="${esc(item.student_id || '')}" type="button">직접입력</button>
             </div>

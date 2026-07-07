@@ -616,12 +616,23 @@ async function clickNav(go) {
     await waitQuiet(700);
     if (go === 'dashboard') {
       const todayGuard = await page.evaluate(() => {
+        const isVisible = (el) => {
+          if (!el) return false;
+          const style = window.getComputedStyle(el);
+          const box = el.getBoundingClientRect();
+          return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 20 && box.height > 20;
+        };
         const board = document.querySelector('[data-today-priority-board]');
         const list = document.querySelector('#todayMissionList');
         const absenceRowsEl = document.querySelector('#todayAbsenceRows');
         const rows = absenceRowsEl ? Array.from(absenceRowsEl.querySelectorAll('tr[data-absence-late]')) : [];
+        const calm = document.querySelector('.calmOpsShell');
+        const dashboard = document.querySelector('#dashboard');
         return {
           board: !!board,
+          boardVisible: isVisible(board),
+          dashboardVisible: isVisible(dashboard),
+          calmVisible: isVisible(calm),
           missions: list ? list.querySelectorAll('[data-today-action]').length : 0,
           absenceRows: absenceRowsEl ? absenceRowsEl.querySelectorAll('tr').length : 0,
           actionableRows: rows.length,
@@ -630,10 +641,12 @@ async function clickNav(go) {
           directInputButtons: document.querySelectorAll('[data-abs-excuse-class]').length,
           topLate: rows.slice(0, 8).map(row => Number(row.getAttribute('data-absence-late') || 0))
         };
-      }).catch(() => ({ board: false, missions: 0, absenceRows: 0, actionableRows: 0, quickExcuseButtons: 0, directInputButtons: 0, topLate: [], headline: '' }));
+      }).catch(() => ({ board: false, boardVisible: false, dashboardVisible: false, calmVisible: true, missions: 0, absenceRows: 0, actionableRows: 0, quickExcuseButtons: 0, directInputButtons: 0, topLate: [], headline: '' }));
       if (!todayGuard.board) fail('today priority board', 'missing [data-today-priority-board]');
+      else if (!todayGuard.dashboardVisible || !todayGuard.boardVisible) fail('today priority board', 'auto-generated today board exists but is not visible to staff');
+      else if (todayGuard.calmVisible) fail('today priority board', 'static calm intro shell is still visible instead of the real work board');
       else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
-      else ok('today priority board', `${todayGuard.missions} mission items · ${todayGuard.headline || 'headline ready'}`);
+      else ok('today priority board', `${todayGuard.missions} visible mission items · ${todayGuard.headline || 'headline ready'}`);
       if (todayGuard.absenceRows < 1) fail('today absence board rows', 'missing #todayAbsenceRows content');
       else if (todayGuard.actionableRows > 0) {
         const sorted = todayGuard.topLate.every((value, idx, arr) => idx === 0 || value <= arr[idx - 1]);
