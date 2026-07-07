@@ -635,8 +635,10 @@ async function clickNav(go) {
           dashboardVisible: isVisible(dashboard),
           calmVisible: isVisible(calm),
           v19: !!document.querySelector('[data-today-staff-todo-v19="true"]'),
+          v20: !!document.querySelector('[data-today-clean-v20="true"]'),
           workerSummary: !!document.querySelector('[data-today-worker-summary="true"]'),
-          absenceGuide: !!document.querySelector('[data-today-absence-guide="true"]'),
+          absenceGuideVisible: !!document.querySelector('[data-today-absence-guide="true"]') && isVisible(document.querySelector('[data-today-absence-guide="true"]')),
+          compactTaskCopyVisible: /다음 행동:|처리 기준|숫자가 뜬 항목부터|조교·강사가 오늘 놓치면/.test(visibleText),
           missions: list ? list.querySelectorAll('[data-today-action]').length : 0,
           missionMeta: list ? list.querySelectorAll('.todayMissionMeta').length : 0,
           missionNext: list ? list.querySelectorAll('.todayMissionNext').length : 0,
@@ -654,17 +656,17 @@ async function clickNav(go) {
       if (!todayGuard.board) fail('today priority board', 'missing [data-today-priority-board]');
       else if (!todayGuard.dashboardVisible || !todayGuard.boardVisible) fail('today priority board', 'auto-generated today board exists but is not visible to staff');
       else if (todayGuard.calmVisible) fail('today priority board', 'static calm intro shell is still visible instead of the real work board');
-      else if (!todayGuard.v19) fail('today staff todo board', 'missing v19 staff todo marker');
-      else if (!todayGuard.workerSummary) fail('today staff todo board', 'missing worker summary counters');
-      else if (todayGuard.bannedIntroVisible) fail('today staff todo board', 'intro/explanation copy is still visible on today tab');
+      else if (!todayGuard.v19 || !todayGuard.v20) fail('today clean task board', 'missing v20 clean task board marker');
+      else if (!todayGuard.workerSummary) fail('today clean task board', 'missing compact status counters');
+      else if (todayGuard.bannedIntroVisible || todayGuard.compactTaskCopyVisible) fail('today clean task board', 'explanation copy is still visible on today tab');
       else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
-      else if (todayGuard.missionMeta < todayGuard.missions || todayGuard.missionNext < todayGuard.missions) fail('today staff todo board', 'mission rows must show owner and next action');
-      else ok('today priority board', `${todayGuard.missions} visible mission items · ${todayGuard.headline || 'headline ready'}`);
+      else if (todayGuard.missionMeta > 0 || todayGuard.missionNext > 0) fail('today clean task board', 'mission rows still include explanation/meta lines');
+      else ok('today priority board', `${todayGuard.missions} compact mission items · ${todayGuard.headline || 'headline ready'}`);
       if (todayGuard.absenceRows < 1) fail('today absence board rows', 'missing #todayAbsenceRows content');
       else if (todayGuard.actionableRows > 0) {
         const sorted = todayGuard.topLate.every((value, idx, arr) => idx === 0 || value <= arr[idx - 1]);
         if (!sorted) fail('today absence board rows', `not sorted by late minutes desc: ${todayGuard.topLate.join(',')}`);
-        else if (!todayGuard.absenceGuide) fail('today absence board rows', 'missing staff processing guide');
+        else if (todayGuard.absenceGuideVisible) fail('today clean task board', 'absence processing guide is still visible');
         else if (todayGuard.quickExcuseButtons < todayGuard.actionableRows) fail('today absence quick actions', `${todayGuard.quickExcuseButtons}/${todayGuard.actionableRows} quick excuse buttons rendered`);
         else if (todayGuard.directInputButtons < todayGuard.actionableRows) fail('today absence direct input actions', `${todayGuard.directInputButtons}/${todayGuard.actionableRows} direct input buttons rendered`);
         else if (todayGuard.studentTabButtons < todayGuard.actionableRows) fail('today absence student tab actions', `${todayGuard.studentTabButtons}/${todayGuard.actionableRows} student tab buttons rendered`);
