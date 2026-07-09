@@ -433,21 +433,18 @@
 			margin-bottom: 16px;
 		}
 
+      /* staff-quick-inline-v28: 13-inch kiosk friendly staff clock panel. */
       .kStaffQuick {
         display: none;
-        position: fixed;
-        left: 50%;
-        bottom: 18px;
-        width: min(560px, calc(100vw - 28px));
-        max-height: min(42vh, 260px);
-        overflow: auto;
-        transform: translateX(-50%);
-        padding: 18px;
-        border: 2px solid rgba(79, 70, 229, 0.22);
-        border-radius: 22px;
-        background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 18px 46px rgba(15, 23, 42, 0.18);
-        z-index: 9999;
+        position: static;
+        width: 100%;
+        margin: 12px 0 0;
+        padding: 12px;
+        border: 1px solid rgba(37, 99, 235, 0.18);
+        border-radius: 18px;
+        background: #f8fbff;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.78);
+        z-index: auto;
       }
 
       .kStaffQuick.show {
@@ -458,65 +455,72 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
+        gap: 10px;
+        margin-bottom: 8px;
       }
 
       .kStaffQuickTitle {
-        font-size: 16px;
-        font-weight: 900;
-        color: var(--pri);
-        letter-spacing: -0.2px;
+        font-size: 18px;
+        font-weight: 950;
+        color: #0f172a;
+        letter-spacing: -0.03em;
       }
 
       .kStaffQuickClose {
-        border: none;
-        background: transparent;
-        color: var(--sub);
-        font-size: 15px;
-        font-weight: 800;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        background: #ffffff;
+        color: #475569;
+        font-size: 14px;
+        font-weight: 900;
         cursor: pointer;
-        padding: 6px 8px;
-        border-radius: 10px;
+        padding: 7px 10px;
+        border-radius: 12px;
       }
 
       .kStaffQuickClose:hover {
-        background: rgba(15, 23, 42, 0.06);
-        color: var(--text);
+        background: #eef4ff;
+        color: #0f172a;
       }
 
       .kStaffQuickRow {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 10px;
+        gap: 8px;
+        margin-bottom: 8px;
       }
 
       .kStaffQuickBtn {
-        border: 2px solid var(--line);
+        border: 1px solid rgba(15, 23, 42, 0.12);
         background: #fff;
-        color: var(--sub);
-        border-radius: 16px;
-        padding: 14px 12px;
-        font-size: 18px;
-        font-weight: 900;
+        color: #475569;
+        border-radius: 14px;
+        padding: 11px 10px;
+        font-size: 17px;
+        font-weight: 950;
         cursor: pointer;
         transition: all .15s ease;
       }
 
       .kStaffQuickBtn.on {
-        border-color: var(--pri);
-        background: rgba(79, 70, 229, 0.10);
-        color: var(--pri);
-        box-shadow: 0 8px 16px rgba(79, 70, 229, 0.12);
+        border-color: rgba(37, 99, 235, 0.38);
+        background: #eaf2ff;
+        color: #1d4ed8;
+        box-shadow: none;
       }
 
       .kStaffQuickHint {
         font-size: 13px;
-        font-weight: 700;
-        color: var(--sub);
+        font-weight: 850;
+        color: #475569;
         text-align: center;
-        line-height: 1.45;
+        line-height: 1.35;
+      }
+
+      #staffQuickStep {
+        margin-top: 6px !important;
+        color: #1d4ed8 !important;
+        font-size: 15px !important;
+        font-weight: 950 !important;
       }
 
       /* ui-kiosk-staff-fast-button-v6: old 4-button kiosk + one clear staff lane. */
@@ -1960,7 +1964,7 @@
 					tabindex="-1"
 				>
 
-				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true">
+				<div id="kStaffQuick" class="kStaffQuick" aria-hidden="true" data-staff-quick-inline-v28="true">
 					<div class="kStaffQuickHead">
 						<div id="staffQuickLabel" class="kStaffQuickTitle">직원 출근</div>
 						<button id="btnStaffQuickClose" class="kStaffQuickClose" type="button">닫기</button>
@@ -1971,10 +1975,7 @@
 						<button id="btnStaffQuickOut" class="kStaffQuickBtn" type="button">직원 퇴근</button>
 					</div>
 
-					<div class="kStaffQuickHint">
-						직원 휴대폰 번호 뒤 8자리를 입력하고 Enter를 누르면 바로 처리됩니다.<br>
-						직원 출퇴근창은 5F/7F 배지를 2초간 길게 누르거나, 키보드로 staff 입력 후 Enter로 열 수 있습니다.
-					</div>
+					<div class="kStaffQuickHint">뒤 8자리 입력 후 Enter · 번호 입력칸은 계속 보이게 유지됩니다.</div>
 					<div id="staffQuickStep" class="kStaffQuickHint" style="margin-top:8px;font-weight:900;color:var(--pri);">
 						직원 번호 뒤 8자리 입력
 					</div>

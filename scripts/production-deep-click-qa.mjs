@@ -1127,6 +1127,21 @@ async function run() {
       return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0 && s.pointerEvents !== 'none';
     }).catch(() => false);
     if (staffLaneStillVisible) throw new Error('staff quick mode opened but permanent staff lane is still active/visible behind overlay');
+
+    const compactOk = await page.evaluate(() => {
+      const panel = document.querySelector('#kStaffQuick');
+      const row = document.querySelector('#kPhoneSegmentRow');
+      if (!panel || !row) return false;
+      const ps = getComputedStyle(panel);
+      const pr = panel.getBoundingClientRect();
+      const rr = row.getBoundingClientRect();
+      const overlapsPhone = !(pr.right <= rr.left || pr.left >= rr.right || pr.bottom <= rr.top || pr.top >= rr.bottom);
+      return panel.getAttribute('data-staff-quick-inline-v28') === 'true'
+        && ps.position !== 'fixed'
+        && !overlapsPhone
+        && pr.height <= 190;
+    }).catch(() => false);
+    if (!compactOk) throw new Error('staff quick panel is not compact/inline enough for 13-inch kiosk phone input');
   });
   await checkedDomAudit('kiosk_staff_hotword');
 

@@ -22,6 +22,9 @@ const required = [
   ['kiosk settings local PIN key', 'THEOREUM_KIOSK_SETTINGS_PIN'],
   ['kiosk settings floor 5F action', 'id="btnKioskSetFloor5"'],
   ['kiosk settings floor 7F action', 'id="btnKioskSetFloor7"'],
+  ['13-inch staff quick inline marker', 'staff-quick-inline-v28'],
+  ['staff quick inline dataset marker', 'data-staff-quick-inline-v28="true"'],
+  ['staff quick keeps phone segment visible copy', '번호 입력칸은 계속 보이게 유지됩니다'],
   ['staff fast clock buttons', 'btnStaffClockInFast'],
   ['staff hotword global guard', 'bindGlobalStaffHotkeys'],
   ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
@@ -31,6 +34,8 @@ const forbidden = [
   ['touch keypad container removed', 'id="touchPad"'],
   ['touch keypad digit handlers removed', 'data-touch-digit'],
   ['large single physical input removed', 'kioskPhysicalInputWrap'],
+  ['old fixed staff quick bottom overlay removed', 'bottom: 18px;\n        width: min(560px'],
+  ['old staff quick translate overlay removed', 'transform: translateX(-50%)'],
   ['visible staff quick opener removed', 'id="btnOpenStaffQuick"'],
   ['invalid scanner pattern removed', 'pattern="[0-9A-Za-z.:-]*"']
 ];
