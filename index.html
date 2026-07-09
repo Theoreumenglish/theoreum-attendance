@@ -1609,6 +1609,108 @@
   .kioskModernV3 .actBtn { min-height: 104px; }
 }
 
+
+/* v34: kiosk-fit viewport scaling. The public kiosk should expand or shrink to fit 13-inch laptops, tablets, and large monitors without extra helper text below the keypad. */
+:root { --kiosk-fit: 1; }
+body.kioskFitV34 .main {
+  height: calc(100svh - 74px);
+  min-height: calc(100svh - 74px);
+  overflow: hidden;
+  padding: max(8px, calc(18px * var(--kiosk-fit)));
+  align-items: center;
+}
+body.kioskFitV34 .viewport {
+  width: min(calc(100vw - 24px), calc(930px * var(--kiosk-fit)));
+  min-height: 0;
+}
+body.kioskFitV34 .heroCard {
+  width: 100%;
+  max-width: none;
+  max-height: calc(100svh - 96px);
+  padding: clamp(22px, calc(38px * var(--kiosk-fit)), 54px);
+  border-radius: clamp(24px, calc(34px * var(--kiosk-fit)), 42px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+body.kioskFitV34 .titleWrap {
+  margin-bottom: clamp(14px, calc(20px * var(--kiosk-fit)), 28px);
+}
+body.kioskFitV34 .floor-badge {
+  margin-bottom: clamp(8px, calc(12px * var(--kiosk-fit)), 16px);
+  padding: clamp(7px, calc(8px * var(--kiosk-fit)), 10px) clamp(18px, calc(24px * var(--kiosk-fit)), 32px);
+  font-size: clamp(14px, calc(15px * var(--kiosk-fit)), 18px);
+}
+body.kioskFitV34 .cardTitle {
+  font-size: clamp(34px, calc(49px * var(--kiosk-fit)), 66px);
+  line-height: .98;
+}
+body.kioskFitV34 .actGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(10px, calc(13px * var(--kiosk-fit)), 18px);
+  margin-bottom: clamp(16px, calc(22px * var(--kiosk-fit)), 30px);
+}
+body.kioskFitV34 .actBtn {
+  min-height: clamp(106px, calc(126px * var(--kiosk-fit)), 162px);
+  padding: clamp(18px, calc(22px * var(--kiosk-fit)), 32px) clamp(10px, calc(14px * var(--kiosk-fit)), 20px);
+  border-radius: clamp(22px, calc(26px * var(--kiosk-fit)), 32px);
+  font-size: clamp(22px, calc(25px * var(--kiosk-fit)), 32px);
+  gap: clamp(10px, calc(14px * var(--kiosk-fit)), 18px);
+}
+body.kioskFitV34 .actBtn svg {
+  width: clamp(44px, calc(54px * var(--kiosk-fit)), 72px);
+  height: clamp(44px, calc(54px * var(--kiosk-fit)), 72px);
+}
+body.kioskFitV34 .phoneSegmentRow {
+  width: min(100%, calc(700px * var(--kiosk-fit)));
+  min-height: clamp(86px, calc(96px * var(--kiosk-fit)), 122px);
+  padding: clamp(8px, calc(10px * var(--kiosk-fit)), 14px);
+  border-radius: clamp(26px, calc(30px * var(--kiosk-fit)), 38px);
+}
+body.kioskFitV34 .phoneStatic {
+  font-size: clamp(36px, calc(46px * var(--kiosk-fit)), 62px);
+}
+body.kioskFitV34 .phoneSegmentInput {
+  height: clamp(62px, calc(74px * var(--kiosk-fit)), 94px);
+  font-size: clamp(36px, calc(52px * var(--kiosk-fit)), 68px);
+  letter-spacing: clamp(7px, calc(10px * var(--kiosk-fit)), 14px);
+}
+body.kioskFitV34 .unifiedKioskHint {
+  display: none !important;
+}
+body.kioskFitV34 .msg {
+  min-height: 0;
+  margin-top: clamp(8px, calc(10px * var(--kiosk-fit)), 14px);
+}
+@media (max-width: 780px) {
+  body.kioskFitV34 .main {
+    height: calc(100svh - 72px);
+    padding: 10px;
+  }
+  body.kioskFitV34 .actGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  body.kioskFitV34 .heroCard {
+    max-height: calc(100svh - 88px);
+  }
+}
+@media (max-height: 640px) and (min-width: 781px) {
+  body.kioskFitV34 .heroCard {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+  body.kioskFitV34 .floor-badge {
+    margin-bottom: 6px;
+  }
+  body.kioskFitV34 .titleWrap {
+    margin-bottom: 12px;
+  }
+  body.kioskFitV34 .actBtn {
+    min-height: 92px;
+  }
+}
+
 /* v26: lightweight kiosk settings panel. Keep kiosk settings, remove admin runtime clutter from the public surface. */
 .kioskSettingsBtn {
   border: 1px solid rgba(148,163,184,.45);
@@ -1772,7 +1874,7 @@
 
 </style>
 </head>
-<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27 kioskSettingsPinFocusV29 kioskSpeedV31" data-surface="kiosk">
+<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27 kioskSettingsPinFocusV29 kioskSpeedV31 unifiedKioskV33 kioskFitV34" data-surface="kiosk">
 	<div class="busy" id="busyBar"></div>
 
 	<div id="offlineLock">
@@ -1982,11 +2084,6 @@
 				</div>
 
 			</div>
-
-      <div class="unifiedKioskHint" data-unified-kiosk-v33="true" aria-label="학생 직원 통합 전화번호 출결 안내">
-        <strong>학생·직원 통합 입력</strong>
-        <span>등원/출근, 하원/퇴근을 누른 뒤 010 제외 뒤 8자리만 입력합니다.</span>
-      </div>
 
 			<div class="msg" id="kMsg"></div>
 			<div class="mono" id="kDbg" style="display:none;"></div>
@@ -2427,6 +2524,39 @@
       function isInsideKioskSettings(target) {
         return !!target && typeof target.closest === 'function' && !!target.closest('#kioskSettingsPanel');
       }
+
+
+      const KioskFit = {
+        _bound: false,
+        update() {
+          try {
+            if (!(document.body && document.body.classList && document.body.classList.contains('kioskFitV34'))) return;
+            const topbar = document.querySelector('.topbar');
+            const topbarHeight = topbar ? Math.ceil(topbar.getBoundingClientRect().height || 74) : 74;
+            const vw = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 1024);
+            const vh = Math.max(420, (window.innerHeight || document.documentElement.clientHeight || 768) - topbarHeight);
+            const widthScale = (vw - 32) / 860;
+            const heightScale = (vh - 22) / 545;
+            const scale = Math.max(0.76, Math.min(1.20, widthScale, heightScale));
+            document.documentElement.style.setProperty('--kiosk-fit', scale.toFixed(3));
+            document.documentElement.setAttribute('data-kiosk-fit-v34', scale.toFixed(3));
+          } catch (_) {}
+        },
+        bind() {
+          if (KioskFit._bound) return;
+          KioskFit._bound = true;
+          let timer = null;
+          const schedule = () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => KioskFit.update(), 60);
+          };
+          window.addEventListener('resize', schedule, { passive: true });
+          window.addEventListener('orientationchange', schedule, { passive: true });
+          if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', schedule, { passive: true });
+          }
+        }
+      };
     function renderFatalBootError(title, message) {
 		const v = document.getElementById('viewPort');
 		if (!v) return;
@@ -2571,6 +2701,12 @@
 								floorSettingsEndpoint: '/api/kiosk-settings',
 								staffVisibleSeparateLane: false
 							};
+							window.__THEOREUM_KIOSK_FIT_V34__ = {
+								mode: 'viewport-fit-no-helper-text',
+								cssVar: '--kiosk-fit',
+								hintVisible: false,
+								adaptive: true
+							};
 						} catch (_) {}
 
 						const res = await fetch(endpoint, {
@@ -2688,6 +2824,7 @@
 
 				Router.bindTopbar();
 				KioskSettings.bind();
+				KioskFit.bind();
 
 				const logoutBtn = $('#btnLogout');
 				if (logoutBtn) logoutBtn.addEventListener('click', Auth.logout);
@@ -2995,6 +3132,7 @@
 
         UI.render('tpl-kiosk');
         Kiosk.init();
+        KioskFit.update();
       },
 
       async goStaff() {

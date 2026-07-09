@@ -504,7 +504,7 @@ async function ensureQaStaffPhoneForWrite() {
   }
 
   const phone = '010' + qaStaffTail8;
-  const upsert = await apiRpc('admin.central.staff.upsert', {
+  const upsert = await apiRpc('admin.central.staff.phoneOnly', {
     staff: {
       staff_id: staffId,
       name: String(candidate.name || candidate.staff_name || staffId || 'QA직원').trim(),
@@ -517,7 +517,7 @@ async function ensureQaStaffPhoneForWrite() {
   });
 
   if (upsert?.ok) ok('QA staff phone ensured', `${staffId} -> 010****${qaStaffTail8.slice(-4)}`);
-  else warn('QA staff phone ensure failed', upsert?.error?.message || 'admin.central.staff.upsert failed');
+  else warn('QA staff phone ensure failed', upsert?.error?.message || 'admin.central.staff.phoneOnly failed');
   return upsert;
 }
 
@@ -1191,6 +1191,9 @@ async function run() {
         marker: window.__THEOREUM_UNIFIED_KIOSK_V33__ || null,
         laneVisible: visible(document.querySelector('.staffClockLane')),
         hintVisible: visible(document.querySelector('[data-unified-kiosk-v33="true"]')),
+        fitMarker: window.__THEOREUM_KIOSK_FIT_V34__ || null,
+        fitScale: document.documentElement.getAttribute('data-kiosk-fit-v34') || '',
+        cardRect: (() => { const el = document.querySelector('.heroCard'); const r = el ? el.getBoundingClientRect() : null; return r ? { width: r.width, height: r.height } : null; })(),
         inText: document.querySelector('#btnCHECK_IN span')?.textContent || '',
         outText: document.querySelector('#btnCHECK_OUT span')?.textContent || '',
         activeId: document.activeElement?.id || ''
@@ -1201,7 +1204,17 @@ async function run() {
       throw new Error('unified kiosk marker missing: ' + JSON.stringify(info.marker));
     }
     if (info.laneVisible) throw new Error('separate staff lane is still visible on unified kiosk');
-    if (!info.hintVisible) throw new Error('unified kiosk hint is not visible');
+    if (info.hintVisible) throw new Error('bottom unified kiosk helper text is still visible');
+    if (!info.fitMarker || info.fitMarker.mode !== 'viewport-fit-no-helper-text') {
+      throw new Error('kiosk fit v34 marker missing: ' + JSON.stringify(info.fitMarker));
+    }
+    const scale = Number(info.fitScale || 0);
+    if (!Number.isFinite(scale) || scale < 0.7 || scale > 1.25) {
+      throw new Error('kiosk fit v34 scale invalid: ' + JSON.stringify(info));
+    }
+    if (!info.cardRect || info.cardRect.width < 520 || info.cardRect.height < 360) {
+      throw new Error('kiosk fit v34 card size too small: ' + JSON.stringify(info.cardRect));
+    }
     if (!/등원\/출근/.test(info.inText) || !/하원\/퇴근/.test(info.outText)) {
       throw new Error('unified action labels are missing: ' + JSON.stringify({ inText: info.inText, outText: info.outText }));
     }
@@ -1500,6 +1513,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '- Kiosk runtime/API split guard',
     '- Kiosk/staff hot path v32 guard',
     '- Unified student/staff kiosk v33 guard',
+    '- Kiosk viewport fit/no-bottom-helper v34 guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

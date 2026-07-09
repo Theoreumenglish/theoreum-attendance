@@ -38,7 +38,9 @@ const required = [
   ['kiosk speed v32 student hot path', 'student-exact-lookup-plus-parallel-state-notify'],
   ['kiosk speed v32 staff hot path', 'staff-phone-exact-index-first'],
   ['unified kiosk v33 runtime marker', '__THEOREUM_UNIFIED_KIOSK_V33__'],
-  ['unified kiosk v33 data marker', 'data-unified-kiosk-v33="true"'],
+  ['kiosk fit v34 body marker', 'kioskFitV34'],
+  ['kiosk fit v34 runtime marker', '__THEOREUM_KIOSK_FIT_V34__'],
+  ['kiosk fit v34 CSS variable', '--kiosk-fit'],
   ['unified kiosk action label in', '등원/출근'],
   ['unified kiosk action label out', '하원/퇴근'],
   ['kiosk settings dedicated endpoint', "case 'kiosk.setFloor':"],
@@ -118,11 +120,21 @@ if (/case 'kiosk\.unified':[\s\S]{0,180}return '\/api\/kiosk-unified'/.test(html
   failed += 1;
 }
 
-if (!/data-unified-kiosk-v33=["']true["']/.test(html) || !/__THEOREUM_UNIFIED_KIOSK_V33__/.test(html)) {
+if (!/__THEOREUM_UNIFIED_KIOSK_V33__/.test(html)) {
   console.error('FAIL unified kiosk v33 marker missing');
   failed += 1;
+} else if (/data-unified-kiosk-v33=["']true["']/.test(html)) {
+  console.error('FAIL bottom unified kiosk helper text still exists');
+  failed += 1;
 } else {
-  console.log('OK unified kiosk v33 markers');
+  console.log('OK unified kiosk v33 marker without bottom helper text');
+}
+
+if (!/kioskFitV34/.test(html) || !/__THEOREUM_KIOSK_FIT_V34__/.test(html) || !/data-kiosk-fit-v34/.test(html)) {
+  console.error('FAIL kiosk fit v34 marker missing');
+  failed += 1;
+} else {
+  console.log('OK kiosk fit v34 markers');
 }
 
 if (failed) process.exit(1);

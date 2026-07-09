@@ -213,12 +213,18 @@ else ok('staff-clock v32 직원 전화번호 exact-index marker가 있습니다.
 if (!staffClockApi.includes('readStaffExactRowsForPhoneClock')) fail('staff-clock v32 exact indexed lookup helper가 없습니다.');
 else ok('staff-clock v32 exact indexed lookup helper가 있습니다.');
 
-if (!kioskHtml.includes('__THEOREUM_UNIFIED_KIOSK_V33__') || !kioskHtml.includes('data-unified-kiosk-v33="true"')) fail('통합 키오스크 v33 마커가 없습니다.');
+if (!kioskHtml.includes('__THEOREUM_UNIFIED_KIOSK_V33__')) fail('통합 키오스크 v33 마커가 없습니다.');
 else ok('통합 키오스크 v33 마커가 있습니다.');
+if (kioskHtml.includes('data-unified-kiosk-v33="true"')) fail('키오스크 하단 통합 안내 문구가 아직 남아 있습니다.');
+else ok('키오스크 하단 통합 안내 문구가 제거되었습니다.');
+if (!kioskHtml.includes('kioskFitV34') || !kioskHtml.includes('__THEOREUM_KIOSK_FIT_V34__') || !kioskHtml.includes('data-kiosk-fit-v34')) fail('키오스크 화면 자동 맞춤 v34 마커가 없습니다.');
+else ok('키오스크 화면 자동 맞춤 v34 마커가 있습니다.');
 if (!kioskUnifiedApi.includes('handleKioskMark') || !kioskUnifiedApi.includes('handleStaffClock') || !kioskUnifiedApi.includes('unified_staff_fallback_v33')) fail('kiosk-unified v33 학생/직원 통합 endpoint가 없습니다.');
 else ok('kiosk-unified v33 학생/직원 통합 endpoint가 있습니다.');
 if (!kioskSettingsApi.includes('kiosk_settings_pin_no_admin_session_v33') || !kioskSettingsApi.includes('writeRuntimeConfig')) fail('kiosk-settings v33 PIN 기반 층 설정 endpoint가 없습니다.');
 else ok('kiosk-settings v33 PIN 기반 층 설정 endpoint가 있습니다.');
+if (!html.includes('centralStaffOnlyPhoneChanged') || !html.includes('admin.central.staff.phoneOnly')) fail('직원 휴대폰만 변경 시 phoneOnly 저장 경로가 없습니다.');
+else ok('직원 휴대폰만 변경 시 phoneOnly 저장 경로가 있습니다.');
 
 if (failed > 0) {
   console.error('');

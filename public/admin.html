@@ -9427,10 +9427,28 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       restoreCentralStaffPhoneFocus(focusSnapshot);
     }
 
+    function centralStaffOnlyPhoneChanged(staff) {
+      const id = String(staff?.staff_id || '').trim();
+      if (!id || staff.password || staff.pin) return false;
+      const current = (App.centralStaffItems && App.centralStaffItems.get(id)) || null;
+      if (!current) return false;
+      const norm = v => String(v || '').trim();
+      const currentPhone = norm(current.staff_phone || current.phone || current.mobile || '');
+      return norm(staff.staff_phone || staff.phone || '') !== currentPhone
+        && norm(staff.name) === norm(current.name)
+        && norm(staff.role || 'assistant') === norm(current.role || 'assistant')
+        && norm(staff.status || 'inactive') === norm(current.status || 'inactive')
+        && norm(staff.revoked || 'N').toUpperCase() === norm(current.revoked || 'N').toUpperCase();
+    }
+
     async function saveCentralStaff() {
       const focusSnapshot = centralStaffPhoneFocusSnapshot();
       const staff = centralStaffFormPayload(true);
       if (!staff.staff_id) { showToast('직원 ID를 입력하세요.'); return; }
+      if (centralStaffOnlyPhoneChanged(staff)) {
+        await saveCentralStaffPhoneOnly();
+        return;
+      }
       const r = await rpc('admin.central.staff.upsert', { staff }, { timeoutMs: 70000 });
       if (!r.ok) { showToast(r.error?.message || '직원 저장 실패'); showResult('직원 저장 실패', r); restoreCentralStaffPhoneFocus(focusSnapshot); return; }
       clearRpcCache();
