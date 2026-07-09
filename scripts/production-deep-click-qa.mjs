@@ -919,6 +919,38 @@ async function verifyKioskSettingsTabV26() {
     if (!/키오스크 설정/.test(result.text) || !/5F로 설정/.test(result.text) || !/7F로 설정/.test(result.text)) {
       throw new Error('kiosk settings panel labels are not clear enough: ' + result.text.slice(0, 300));
     }
+
+    await page.locator('#kPhoneMid').fill('').catch(() => {});
+    await page.locator('#kPhoneLast').fill('').catch(() => {});
+    const pin = page.locator('#kioskSettingsPin');
+    await pin.click({ timeout: 3000 });
+    await pin.fill('');
+    await page.keyboard.type('1234', { delay: 20 });
+    await waitQuiet(300);
+    const pinRouting = await page.evaluate(() => {
+      const pin = document.querySelector('#kioskSettingsPin');
+      const mid = document.querySelector('#kPhoneMid');
+      const last = document.querySelector('#kPhoneLast');
+      return {
+        activeId: document.activeElement && document.activeElement.id,
+        pinValue: String(pin && pin.value || ''),
+        midValue: String(mid && mid.value || ''),
+        lastValue: String(last && last.value || ''),
+        marker: document.body.classList.contains('kioskSettingsPinFocusV29')
+      };
+    });
+    if (!pinRouting.marker) {
+      throw new Error('kiosk settings PIN focus fix marker missing');
+    }
+    if (pinRouting.activeId !== 'kioskSettingsPin') {
+      throw new Error('kiosk settings PIN lost focus to kiosk input: active=' + pinRouting.activeId);
+    }
+    if (pinRouting.pinValue !== '1234') {
+      throw new Error('kiosk settings PIN typing did not stay in PIN field: pin=' + pinRouting.pinValue);
+    }
+    if ((pinRouting.midValue + pinRouting.lastValue).replace(/\D/g, '')) {
+      throw new Error('kiosk settings PIN digits leaked into phone input: mid=' + pinRouting.midValue + ', last=' + pinRouting.lastValue);
+    }
   } finally {
     await page.keyboard.press('Escape').catch(() => {});
     await page.locator('#btnKioskSettingsClose').click({ timeout: 1000 }).catch(() => {});

@@ -1772,7 +1772,7 @@
 
 </style>
 </head>
-<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27" data-surface="kiosk">
+<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27 kioskSettingsPinFocusV29" data-surface="kiosk">
 	<div class="busy" id="busyBar"></div>
 
 	<div id="offlineLock">
@@ -2419,6 +2419,15 @@
 
         if (delay > 0) setTimeout(run, delay);
         else run();
+      }
+
+      function isKioskSettingsOpen() {
+        const panel = document.querySelector('#kioskSettingsPanel');
+        return !!panel && panel.classList.contains('show') && panel.getAttribute('aria-hidden') !== 'true';
+      }
+
+      function isInsideKioskSettings(target) {
+        return !!target && typeof target.closest === 'function' && !!target.closest('#kioskSettingsPanel');
       }
     function renderFatalBootError(title, message) {
 		const v = document.getElementById('viewPort');
@@ -3115,6 +3124,7 @@
         });
 
         input.addEventListener('blur', () => {
+          if (isKioskSettingsOpen()) return;
           if (App.currentView === 'kiosk' && !Kiosk.isSubmitting) {
             Kiosk.focusPhoneSegment(30);
           }
@@ -3176,6 +3186,7 @@
 
 				if (Kiosk.focusTimer) clearInterval(Kiosk.focusTimer);
 				Kiosk.focusTimer = setInterval(() => {
+					if (isKioskSettingsOpen() || isInsideKioskSettings(document.activeElement)) return;
 					const input = $('#kInput');
 					const mid = Kiosk.getPhoneMidInput();
 					const last = Kiosk.getPhoneLastInput();
@@ -3418,6 +3429,7 @@
 
       focusPhoneSegment(delayMs = 0) {
         const run = () => {
+          if (isKioskSettingsOpen() || isInsideKioskSettings(document.activeElement)) return;
           const mid = Kiosk.getPhoneMidInput();
           const last = Kiosk.getPhoneLastInput();
           if (last && mid && String(mid.value || '').replace(/[^0-9]/g, '').length >= 4) {
@@ -3705,6 +3717,7 @@
 
         document.addEventListener('keydown', event => {
           if (App.currentView !== 'kiosk') return;
+          if (isKioskSettingsOpen() || isInsideKioskSettings(event && event.target)) return;
           if (Kiosk.isSubmitting || Kiosk.staffQuickOpen) return;
           if (!event || event.ctrlKey || event.metaKey || event.altKey) return;
 
@@ -6390,6 +6403,15 @@ const StaffUI = {
 				$('#btnKioskSetFloor5')?.addEventListener('click', () => KioskSettings.setFloor('5F'));
 				$('#btnKioskSetFloor7')?.addEventListener('click', () => KioskSettings.setFloor('7F'));
 
+				const pinEl = $('#kioskSettingsPin');
+				if (pinEl) {
+					['beforeinput', 'input', 'keydown', 'keypress', 'keyup', 'paste', 'compositionstart', 'compositionupdate', 'compositionend'].forEach(type => {
+						pinEl.addEventListener(type, event => {
+							event.stopPropagation();
+						}, true);
+					});
+				}
+
 				const panel = $('#kioskSettingsPanel');
 				if (panel) {
 					panel.addEventListener('click', (event) => {
@@ -6430,12 +6452,16 @@ const StaffUI = {
 				KioskSettings.setMsg('층 설정 전용입니다.');
 				const panel = $('#kioskSettingsPanel');
 				if (!panel) return;
+				Kiosk.clearPhoneSegmentInputs?.();
 				const pinEl = $('#kioskSettingsPin');
 				const savedPin = KioskSettings.readSavedPin();
 				if (pinEl && savedPin && !String(pinEl.value || '').trim()) pinEl.value = savedPin;
 				panel.classList.add('show');
 				panel.setAttribute('aria-hidden', 'false');
-				setTimeout(() => safeFocus(pinEl), 80);
+				setTimeout(() => {
+					safeFocus(pinEl);
+					if (pinEl && document.activeElement !== pinEl) safeFocus(pinEl);
+				}, 80);
 			},
 
 			close() {
