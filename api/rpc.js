@@ -81,6 +81,7 @@ const QA_FEATURE_MATRIX = Object.freeze({
     staff_phone_management: true,
     student_parent_phone_fallback: true,
     staff_phone_only_assignment: true,
+    staff_list_fast_v38: true,
     production_qa_runner: true,
     deployment_parity_check: true
   }
@@ -2332,6 +2333,9 @@ async function upsertStaffPhoneDirectory(staff = {}, actor = '') {
 }
 
 async function readStaffPhoneDirectoryMap() {
+  const cacheKey = 'staff.phone.directory.fast.v38|{}';
+  const cached = fastCacheGet(cacheKey);
+  if (cached && cached.map instanceof Map) return cached;
   const supabase = getSupabaseAdmin();
   try {
     const { data, error } = await supabase
@@ -2360,7 +2364,9 @@ async function readStaffPhoneDirectoryMap() {
       }))
       .filter(row => row.staff_id && row.staff_phone);
 
-    return { ok: true, missing: false, items, map: new Map(items.map(row => [row.staff_id, row])) };
+    const out = { ok: true, missing: false, items, map: new Map(items.map(row => [row.staff_id, row])), fast_v38: true };
+    fastCacheSet(cacheKey, out, fastCacheSec('staff_phone_directory', 120, 600), fastCacheStaleSec('staff_phone_directory', 1800, 3600));
+    return out;
   } catch (e) {
     return { ok: false, missing: false, map: new Map(), items: [], error: e };
   }
@@ -2467,9 +2473,9 @@ async function readCentralStaffListReplicaDirect() {
   const readFrom = async (table) => {
     const { data, error } = await supabase
       .from(table)
-      .select('*')
+      .select('staff_id, name, role, revoked, status, pw_hash, password_hash, pin_hash, staff_phone, phone, mobile, mobile_phone, last_login_at, created_at, updated_at')
       .order('staff_id', { ascending: true })
-      .limit(500);
+      .limit(200);
     if (error) return { ok: false, error, table, items: [] };
     const items = (Array.isArray(data) ? data : [])
       .map(row => {
@@ -2507,32 +2513,35 @@ async function adminCentralStaffListDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'admin');
   if (!auth.ok) return auth.out;
 
-  const directory = await readStaffPhoneDirectoryMap();
   const cacheKey = 'central.staff.list.replica|{}';
   if (!args.force && !args.refresh && String(args.source || '').toLowerCase() !== 'central') {
     const cached = fastCacheGet(cacheKey);
     if (cached) {
-      const merged = mergeStaffPhoneDirectoryItems(cached.staff || cached.items || [], directory);
-      return success({ ...cached, staff: merged, items: merged, count: merged.length, cache: { hit: true, source: 'memory_fresh' } });
+      return success({ ...cached, cache: { hit: true, source: 'memory_fresh' }, fast_v38: true });
     }
 
     const replica = await readCentralStaffListReplicaDirect();
     if (replica.ok && replica.items.length) {
-      const staffItems = mergeStaffPhoneDirectoryItems(replica.items, directory);
+      const needsDirectory = replica.items.some(item => !pickCentralStaffPhone(item));
+      const directory = needsDirectory ? await readStaffPhoneDirectoryMap() : { ok: true, missing: false, items: [], map: new Map(), fast_v38: true };
+      const staffItems = needsDirectory ? mergeStaffPhoneDirectoryItems(replica.items, directory) : replica.items;
       const out = {
         staff: staffItems,
         items: staffItems,
         count: staffItems.length,
-        source: 'supabase_replica',
+        source: 'supabase_replica_v38',
         replica_table: replica.table,
-        phone_directory: { ok: !!directory.ok, missing: !!directory.missing, count: directory.items?.length || 0 },
+        phone_directory: { ok: !!directory.ok, missing: !!directory.missing, count: directory.items?.length || 0, skipped: !needsDirectory },
         fast: true,
-        note: '중앙DB 직원 목록을 Supabase replica에서 우선 조회하고, staff_phone_directory로 휴대폰 번호를 보강했습니다. 강제 원본 확인은 force=true로 호출합니다.'
+        fast_v38: true,
+        note: 'v38: 직원 목록은 Supabase 직원 mirror의 필요한 컬럼만 우선 조회하고, 전화번호가 빠진 경우에만 staff_phone_directory를 보강합니다.'
       };
-      fastCacheSet(cacheKey, out, fastCacheSec('central_staff_list', 45, 300), fastCacheStaleSec('central_staff_list', 900, 3600));
+      fastCacheSet(cacheKey, out, fastCacheSec('central_staff_list', 180, 600), fastCacheStaleSec('central_staff_list', 1800, 3600));
       return success(out);
     }
   }
+
+  const directory = await readStaffPhoneDirectoryMap();
 
   const result = await proxyCentralBridgeManaged('bridge.staff.list', {}, sessionToken, 'admin', {
     timeoutMs: 35000,
@@ -2595,6 +2604,7 @@ async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
     };
     fastCacheDelPrefix('central.staff.list');
     fastCacheDelPrefix('central_staff_list');
+    fastCacheDelPrefix('staff.phone.directory.fast.v38');
   }
   return result;
 }
@@ -2631,6 +2641,7 @@ async function adminCentralStaffPhoneOnlyDirect(args = {}, sessionToken = '') {
   ]);
   fastCacheDelPrefix('central.staff.list');
   fastCacheDelPrefix('central_staff_list');
+    fastCacheDelPrefix('staff.phone.directory.fast.v38');
 
   return success({
     staff_id: staffId,

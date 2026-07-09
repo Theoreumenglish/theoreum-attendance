@@ -5471,6 +5471,137 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
   .todayUnifiedLanesV37 { grid-template-columns: 1fr; }
 }
 
+
+/* admin-dashboard-cleanup-staff-list-v38: compact dashboard controls + cleaner brand icon. */
+.todayWorkflowV38 {
+  gap: 9px;
+}
+.todayWorkflowV38 .todayWorkflowSummary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.todayWorkflowV38 .todayWorkflowSummaryCard {
+  min-height: 62px;
+  padding: 10px 12px;
+  border-radius: 15px;
+}
+.todayWorkflowV38 .todayWorkflowSummaryCard b {
+  font-size: 20px;
+}
+.todayFilterBarV38 {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+.todayFilterLabelV38 {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 950;
+}
+.todayFilterSelectV38 {
+  appearance: none;
+  min-width: 164px;
+  min-height: 34px;
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, #ffffff, #f8fafc),
+    #ffffff;
+  color: #111827;
+  padding: 6px 34px 6px 13px;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+}
+.todayFilterSelectWrapV38 {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.todayFilterSelectWrapV38::after {
+  content: "▾";
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-52%);
+  color: #64748b;
+  font-size: 11px;
+  pointer-events: none;
+}
+.todayUnifiedLanesV38 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.todayUnifiedLanesV38 .todayLaneCard {
+  cursor: default;
+  min-height: 58px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.todayUnifiedLanesV38 .todayLaneCard.active {
+  border-color: #dbe3ef;
+  box-shadow: none;
+}
+.todayUnifiedLanesV38 .todayLaneCard .laneDesc {
+  display: none;
+}
+body.adminConsoleSurfaceV24 .brandMark {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 16px;
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  color: transparent !important;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.88), rgba(255,255,255,0) 28%),
+    linear-gradient(135deg, #1e3a8a 0%, #2563eb 48%, #0ea5e9 100%);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, .24);
+}
+body.adminConsoleSurfaceV24 .brandMark::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-left: 4px solid #ffffff;
+  border-top: 4px solid #ffffff;
+  transform: rotate(45deg) translate(2px, 2px);
+  border-radius: 3px;
+}
+body.adminConsoleSurfaceV24 .brandMark::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 21px;
+  border-radius: 999px;
+  background: #ffffff;
+  left: 50%;
+  top: 17px;
+  transform: translateX(-50%);
+}
+body.adminConsoleSurfaceV24 .loginWrap {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(37, 99, 235, .14), transparent 34%),
+    radial-gradient(circle at 92% 12%, rgba(14, 165, 233, .12), transparent 30%),
+    linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
+}
+body.adminConsoleSurfaceV24 .loginCard {
+  border: 1px solid rgba(219, 227, 239, .92);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .11);
+}
+body.adminConsoleSurfaceV24 .loginForm .btnPrimary,
+body.adminConsoleSurfaceV24 #btnLogin {
+  background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+  border-color: transparent;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, .20);
+}
+@media (max-width: 900px) {
+  .todayWorkflowV38 .todayWorkflowSummary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .todayUnifiedLanesV38 { grid-template-columns: 1fr; }
+}
+
 </style>
 </head>
 <body class="adminConsoleSurfaceV24" data-surface="admin-console">
@@ -5894,25 +6025,29 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 <div><b id="todayAbsenceExcused">-</b><span>처리됨</span></div>
 <div><b id="todayAbsenceClasses">-</b><span>수업/클리닉</span></div>
 </div>
-<div class="todayWorkflowV37" data-today-workflow-v37="true">
+<div class="todayWorkflowV37 todayWorkflowV38" data-today-workflow-v37="true" data-today-workflow-v38="true">
   <div class="todayWorkflowSummary" data-today-completion-v37="true">
     <div class="todayWorkflowSummaryCard hot"><b id="todayOpenCount">-</b><span>남은 업무</span></div>
     <div class="todayWorkflowSummaryCard good"><b id="todayDoneCount">-</b><span>처리 완료</span></div>
     <div class="todayWorkflowSummaryCard"><b id="todayCompletionRate">-</b><span>완료율</span></div>
     <div class="todayWorkflowSummaryCard warn"><b id="todayCriticalCount">-</b><span>20분+ 긴급</span></div>
   </div>
-  <div class="todayFilterBar" data-today-filter-v37="true" aria-label="오늘의 업무 필터">
-    <button class="todayFilterChip active" type="button" data-today-filter="all">전체</button>
-    <button class="todayFilterChip" type="button" data-today-filter="open">미처리</button>
-    <button class="todayFilterChip" type="button" data-today-filter="done">처리됨</button>
-    <button class="todayFilterChip" type="button" data-today-filter="critical">20분+</button>
-    <button class="todayFilterChip" type="button" data-today-filter="clinic">클리닉</button>
-    <button class="todayFilterChip" type="button" data-today-filter="nophone">번호없음</button>
+  <div class="todayFilterBar todayFilterBarV38" data-today-filter-v37="true" data-today-filter-v38="true" aria-label="오늘의 업무 필터">
+    <label class="todayFilterLabelV38" for="todayTaskFilterSelect">필터</label>
+    <span class="todayFilterSelectWrapV38"><select class="todayFilterSelectV38" id="todayTaskFilterSelect" data-today-filter-select-v38="true" aria-label="오늘의 업무 필터 선택">
+      <option value="all">전체</option>
+      <option value="open">미처리</option>
+      <option value="done">처리됨</option>
+      <option value="critical">20분+</option>
+      <option value="clinic">클리닉</option>
+      <option value="message">문자 확인</option>
+      <option value="nophone">번호없음</option>
+    </select></span>
   </div>
-  <div class="todayUnifiedLanesV37" data-today-unified-lanes-v37="true" aria-label="업무 묶음">
-    <button class="todayLaneCard absence active" type="button" data-today-lane="all"><span><span class="laneTitle">미등원</span><span class="laneDesc">수업·클리닉 미등원 처리</span></span><b id="todayLaneAbsenceOpen">-</b></button>
-    <button class="todayLaneCard clinic" type="button" data-today-lane="clinic"><span><span class="laneTitle">클리닉</span><span class="laneDesc">오프라인 클리닉 미참석</span></span><b id="todayLaneClinicOpen">-</b></button>
-    <button class="todayLaneCard message" type="button" data-today-lane="message"><span><span class="laneTitle">문자 확인</span><span class="laneDesc">연락 실패·번호 없음 우선</span></span><b id="todayLaneMessageOpen">-</b></button>
+  <div class="todayUnifiedLanesV37 todayUnifiedLanesV38" data-today-unified-lanes-v37="true" data-today-unified-lanes-v38="true" aria-label="업무 묶음">
+    <div class="todayLaneCard absence active" data-today-lane-card-v38="all"><span><span class="laneTitle">미등원</span><span class="laneDesc">수업·클리닉 미등원 처리</span></span><b id="todayLaneAbsenceOpen">-</b></div>
+    <div class="todayLaneCard clinic" data-today-lane-card-v38="clinic"><span><span class="laneTitle">클리닉</span><span class="laneDesc">오프라인 클리닉 미참석</span></span><b id="todayLaneClinicOpen">-</b></div>
+    <div class="todayLaneCard message" data-today-lane-card-v38="message"><span><span class="laneTitle">문자 확인</span><span class="laneDesc">연락 실패·번호 없음 우선</span></span><b id="todayLaneMessageOpen">-</b></div>
   </div>
 </div>
 <div class="liveAbsenceMeta" id="todayAbsenceMeta">조회 전</div>
@@ -12367,6 +12502,25 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       return true;
     }
 
+    function todayTaskFilterCountsV38(allItems = [], data = {}) {
+      const done = allItems.filter(todayItemIsDone).length;
+      const total = allItems.length;
+      const open = Math.max(0, total - done);
+      const critical = allItems.filter(item => Number(item.late_min || 0) >= 20 && !todayItemIsDone(item)).length;
+      const clinic = allItems.filter(item => todayItemIsClinic(item) && !todayItemIsDone(item)).length;
+      const message = allItems.filter(item => todayItemNeedsMessageAttention(item) && !todayItemIsDone(item)).length;
+      const nophone = Number(data.no_phone_count || allItems.filter(x => !x.parent_phone && !x.student_phone).length);
+      return { all: total, open, done, critical, clinic, message, nophone };
+    }
+
+    function todayTaskFilterLabelV38(filter = 'all', counts = {}) {
+      const key = String(filter || 'all').toLowerCase();
+      const labels = { all: '전체', open: '미처리', done: '처리됨', critical: '20분+', clinic: '클리닉', message: '문자 확인', nophone: '번호없음' };
+      const label = labels[key] || labels.all;
+      const count = Object.prototype.hasOwnProperty.call(counts, key) ? counts[key] : counts.all;
+      return `${label} ${Number.isFinite(Number(count)) ? Number(count) : '-'}`;
+    }
+
     function updateTodayWorkflowV37(allItems = [], visibleItems = [], data = {}) {
       const total = allItems.length;
       const done = allItems.filter(todayItemIsDone).length;
@@ -12383,26 +12537,24 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       setText('#todayLaneAbsenceOpen', open);
       setText('#todayLaneClinicOpen', clinicOpen);
       setText('#todayLaneMessageOpen', messageOpen);
-      document.querySelectorAll('[data-today-filter]').forEach(btn => {
-        const v = String(btn.getAttribute('data-today-filter') || 'all').toLowerCase();
-        btn.classList.toggle('active', v === String(App.todayTaskFilter || 'all').toLowerCase());
-        if (v === 'all') btn.textContent = `전체 ${total}`;
-        if (v === 'open') btn.textContent = `미처리 ${open}`;
-        if (v === 'done') btn.textContent = `처리됨 ${done}`;
-        if (v === 'critical') btn.textContent = `20분+ ${critical}`;
-        if (v === 'clinic') btn.textContent = `클리닉 ${clinicOpen}`;
-        if (v === 'nophone') btn.textContent = `번호없음 ${Number(data.no_phone_count || allItems.filter(x => !x.parent_phone && !x.student_phone).length)}`;
-      });
-      document.querySelectorAll('[data-today-lane]').forEach(btn => {
-        const lane = String(btn.getAttribute('data-today-lane') || 'all').toLowerCase();
+      const filterCounts = todayTaskFilterCountsV38(allItems, data);
+      const filterSelect = $('#todayTaskFilterSelect');
+      if (filterSelect) {
+        filterSelect.value = String(App.todayTaskFilter || 'all').toLowerCase();
+        Array.from(filterSelect.options || []).forEach(option => {
+          option.textContent = todayTaskFilterLabelV38(option.value || 'all', filterCounts);
+        });
+      }
+      document.querySelectorAll('[data-today-lane-card-v38]').forEach(card => {
+        const lane = String(card.getAttribute('data-today-lane-card-v38') || 'all').toLowerCase();
         const active = (lane === 'all' && ['all', 'open', 'done', 'critical', 'nophone'].includes(String(App.todayTaskFilter || 'all').toLowerCase())) || lane === String(App.todayTaskFilter || '').toLowerCase();
-        btn.classList.toggle('active', active);
+        card.classList.toggle('active', active);
       });
       const meta = $('#todayAbsenceMeta');
       if (meta) {
         const checked = shortTs(data.checked_at || '');
-        const filterName = document.querySelector(`[data-today-filter="${esc(App.todayTaskFilter || 'all')}"]`)?.textContent || '전체';
-        meta.textContent = `${checked} · ${filterName} ${visibleItems.length}건 · 완료 ${done}/${total}${data.no_phone_count ? ` · 번호없음 ${data.no_phone_count}` : ''}`;
+        const filterName = todayTaskFilterLabelV38(App.todayTaskFilter || 'all', filterCounts);
+        meta.textContent = `${checked} · ${filterName} · 표시 ${visibleItems.length}건 · 완료 ${done}/${total}${data.no_phone_count ? ` · 번호없음 ${data.no_phone_count}` : ''}`;
       }
     }
 
@@ -13192,6 +13344,14 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       if (studentBox) studentBox.addEventListener('click', () => openWorkDrawer('student', App.selectedStudent || {}));
       const classPill = $('#opsClassPill');
       if (classPill) classPill.addEventListener('click', () => openWorkDrawer('class', findClassOption(App.selectedClassId) || { class_id: App.selectedClassId }));
+      document.addEventListener('change', e => {
+        const filterSelect = e.target.closest('#todayTaskFilterSelect');
+        if (filterSelect) {
+          setTodayTaskFilterV37(filterSelect.value || 'all');
+          return;
+        }
+      });
+
       document.addEventListener('click', e => {
         const recentClass = e.target.closest('[data-recent-class]');
         if (recentClass) {

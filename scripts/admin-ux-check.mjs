@@ -242,10 +242,19 @@ if (!html.includes('data-today-task-state-v36="compact-menu"') || !html.includes
 else ok('오늘의 업무 처리상태 v36 compact menu UI가 있습니다.');
 if (!html.includes('data-today-workflow-v37="true"') || !html.includes('data-today-filter-v37="true"') || !html.includes('todayCompletionRate') || !html.includes('data-today-unified-lanes-v37="true"')) fail('오늘의 업무 v37 필터/완료율/업무묶음 UI가 없습니다.');
 else ok('오늘의 업무 v37 필터/완료율/업무묶음 UI가 있습니다.');
+if (!html.includes('data-today-workflow-v38="true"') || !html.includes('data-today-filter-select-v38="true"') || !html.includes('data-today-lane-card-v38') || !html.includes('admin-dashboard-cleanup-staff-list-v38')) fail('오늘의 업무 v38 대시보드 압축/필터 select UI가 없습니다.');
+else ok('오늘의 업무 v38 대시보드 압축/필터 select UI가 있습니다.');
+
+const todayFilterButtonCount = (html.match(/<button\b(?=[^>]*\bdata-today-filter=)/g) || []).length;
+if (todayFilterButtonCount > 0) fail(`오늘의 업무 필터가 버튼 ${todayFilterButtonCount}개로 노출되어 있습니다. v38에서는 select 1개로 접어야 합니다.`);
+else ok('오늘의 업무 필터 버튼을 select 1개로 압축했습니다.');
+
 if (!html.includes('todayTaskStateMenu[open] .todayTaskStateMenuList') || !html.includes('display: none;')) fail('오늘의 업무 v36/v37 처리 메뉴 숨김 CSS가 없습니다.');
 else ok('오늘의 업무 v36/v37 처리 메뉴 숨김 CSS가 있습니다.');
 if (!apiRpc.includes('assistant.setTodayTaskState') || !apiRpc.includes('today-task-state-v35') || !apiRpc.includes('today_task_state_')) fail('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 없습니다.');
 else ok('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 있습니다.');
+if (!apiRpc.includes('supabase_replica_v38') || !apiRpc.includes('staff_list_fast_v38') || !apiRpc.includes('staff.phone.directory.fast.v38')) fail('직원 목록 v38 빠른 조회/캐시 경로가 없습니다.');
+else ok('직원 목록 v38 빠른 조회/캐시 경로가 있습니다.');
 
 if (failed > 0) {
   console.error('');
