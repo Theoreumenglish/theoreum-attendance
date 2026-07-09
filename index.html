@@ -2299,14 +2299,37 @@
 			meta: null,
 			_booted: false,
 
+			rpcEndpointFor(op) {
+				// v25 runtime split: kiosk-facing writes do not share the heavy admin RPC surface.
+				// Admin console remains on /api/rpc; the public kiosk uses narrow serverless endpoints.
+				switch (String(op || '').trim()) {
+					case 'kiosk.mark':
+						return '/api/kiosk-mark';
+					case 'staff.clock':
+						return '/api/staff-clock';
+					case 'staff.clock.qr':
+						return '/api/staff-clock-qr';
+					case 'kiosk.approvePin':
+						return '/api/kiosk-approve-pin';
+					default:
+						return '/api/rpc';
+				}
+			},
+
+			rpcTimeoutFor(op) {
+				const key = String(op || '').trim();
+				if (key === 'kiosk.mark' || key === 'staff.clock' || key === 'staff.clock.qr') return 20000;
+				return 15000;
+			},
+
 			rpc(op, args = {}, extra = {}) {
 				return new Promise(async (resolve) => {
 					App.pending++;
 					UI.busy(true);
 
+					const endpoint = App.rpcEndpointFor(op);
 					const controller = new AbortController();
-					const timeoutMs =
-						(op === 'kiosk.mark' || op === 'staff.clock.qr') ? 20000 : 15000;
+					const timeoutMs = App.rpcTimeoutFor(op);
 					const timer = setTimeout(() => controller.abort(), timeoutMs);
 
 					try {
@@ -2317,7 +2340,18 @@
 							...extra
 						};
 
-						const res = await fetch('/api/rpc', {
+						try {
+							window.__THEOREUM_RPC_CALLS__ = Array.isArray(window.__THEOREUM_RPC_CALLS__) ? window.__THEOREUM_RPC_CALLS__ : [];
+							window.__THEOREUM_RPC_CALLS__.push({ op, endpoint, at: Date.now() });
+							window.__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__ = {
+								kioskMark: '/api/kiosk-mark',
+								staffClock: '/api/staff-clock',
+								staffClockQr: '/api/staff-clock-qr',
+								adminRpc: '/api/rpc'
+							};
+						} catch (_) {}
+
+						const res = await fetch(endpoint, {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify(payload),

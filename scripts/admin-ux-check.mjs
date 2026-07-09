@@ -178,6 +178,9 @@ else ok('키오스크 루트에서 관리자 콘솔 진입 버튼을 제거했�
 if (!html.includes('data-surface="admin-console"') || !html.includes('키오스크 새 창')) fail('관리자 콘솔 surface 마커 또는 키오스크 새 창 링크가 없습니다.');
 else ok('관리자 콘솔 surface 마커와 키오스크 새 창 링크가 있습니다.');
 
+if (!kioskHtml.includes('__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__') || !kioskHtml.includes("return '/api/kiosk-mark'") || !kioskHtml.includes("return '/api/staff-clock'")) fail('키오스크 런타임/API 분리 마커 또는 전용 endpoint가 없습니다.');
+else ok('키오스크 런타임/API 분리 마커와 전용 endpoint가 있습니다.');
+
 if (failed > 0) {
   console.error('');
   console.error(`Admin UX check failed: ${failed} issue(s)`);

@@ -883,6 +883,23 @@ async function verifyKioskAdminSurfaceSplit(surface) {
   }
 }
 
+
+async function verifyKioskRuntimeSplitV25() {
+  const calls = await page.evaluate(() => Array.isArray(window.__THEOREUM_RPC_CALLS__) ? window.__THEOREUM_RPC_CALLS__.slice() : []);
+  const markers = await page.evaluate(() => window.__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__ || null).catch(() => null);
+  const kioskCalls = calls.filter(x => String(x?.op || '') === 'kiosk.mark');
+  if (!markers || markers.kioskMark !== '/api/kiosk-mark' || markers.adminRpc !== '/api/rpc') {
+    throw new Error('kiosk runtime split marker is missing or invalid');
+  }
+  if (!kioskCalls.length) {
+    throw new Error('kiosk.mark call was not captured during kiosk QA');
+  }
+  const bad = kioskCalls.filter(x => String(x?.endpoint || '') !== '/api/kiosk-mark');
+  if (bad.length) {
+    throw new Error('kiosk.mark still used admin RPC endpoint: ' + JSON.stringify(bad.slice(0, 3)));
+  }
+}
+
 async function apiRpc(op, args = {}) {
   const started = Date.now();
   let body = null;
@@ -1034,6 +1051,9 @@ async function run() {
       throw new Error(`phone input lost digits: mid=${midVal}, last=${lastVal}, raw=${rawDigits}`);
     }
   });
+  await step('kiosk runtime/API split: kiosk mark direct endpoint', async () => {
+    await verifyKioskRuntimeSplitV25();
+  }, { screenshot: false });
   await checkedDomAudit('kiosk_after_phone');
 
   await step('kiosk staff hotword', async () => {
@@ -1310,6 +1330,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '- Real browser page load',
     '- Kiosk phone input and staff hotword',
     '- Kiosk/admin surface split guard',
+    '- Kiosk runtime/API split guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

@@ -11,6 +11,11 @@ const required = [
   ['focus watchdog keeps segment focus', 'activeIsKioskTarget'],
   ['phone tail segmented submit', 'Kiosk.submitPhoneSegmentsOnEnter()'],
   ['staff quick phone clock path', "App.rpc('staff.clock'"],
+  ['kiosk mark direct endpoint', "case 'kiosk.mark':"],
+  ['kiosk mark endpoint path', "return '/api/kiosk-mark'"],
+  ['staff clock direct endpoint path', "return '/api/staff-clock'"],
+  ['staff QR direct endpoint path', "return '/api/staff-clock-qr'"],
+  ['kiosk runtime split QA marker', '__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__'],
   ['staff fast clock buttons', 'btnStaffClockInFast'],
   ['staff hotword global guard', 'bindGlobalStaffHotkeys'],
   ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
@@ -63,6 +68,14 @@ if (/id="navAdmin"|관리자 콘솔<\/button>|location\.href=['"]\/admin\.html/.
   failed += 1;
 } else {
   console.log('OK no visible admin console launcher on kiosk root');
+}
+
+// v25: kiosk runtime writes should use dedicated API files rather than the heavy admin RPC bundle.
+if (/case 'kiosk\.mark':[\s\S]{0,160}return '\/api\/kiosk-mark'/.test(html) && /fetch\(endpoint,/.test(html)) {
+  console.log('OK kiosk mark uses dedicated endpoint');
+} else {
+  console.error('FAIL kiosk mark dedicated endpoint guard missing');
+  failed += 1;
 }
 
 if (failed) process.exit(1);
