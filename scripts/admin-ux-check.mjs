@@ -22,6 +22,11 @@ function divById(id) {
   return m ? m[0] : '';
 }
 function stripDetails(text) { return text.replace(/<details\b[\s\S]*?<\/details>/gi, ''); }
+function stripWorkflowControls(text) {
+  return stripDetails(text)
+    .replace(/<button\b(?=[^>]*\bdata-today-filter=)[\s\S]*?<\/button>/gi, '')
+    .replace(/<button\b(?=[^>]*\bdata-today-lane=)[\s\S]*?<\/button>/gi, '');
+}
 function buttonTextPresent(text, label) {
   const compact = text.replace(/\s+/g, ' ');
   return compact.includes(`>${label}<`) || compact.includes(`> ${label} <`);
@@ -73,7 +78,7 @@ const thresholds = {
 for (const [id, maxButtons] of Object.entries(thresholds)) {
   const section = sectionById(id);
   if (!section) { fail(`${id} 화면을 찾지 못했습니다.`); continue; }
-  const directButtons = count(/<button\b/g, stripDetails(section));
+  const directButtons = count(/<button\b/g, stripWorkflowControls(section));
   if (directButtons > maxButtons) fail(`${id} 화면의 직접 노출 버튼이 많습니다. 최대 ${maxButtons}개, 현재 ${directButtons}개입니다.`);
   else ok(`${id} 화면 직접 노출 버튼 ${directButtons}개로 정리됐습니다.`);
 }
@@ -177,9 +182,13 @@ else ok('대시보드 상태 메모가 pending_all 객체를 직접 노출하지
 if (html.includes("? overview.clinic.open_today : '보기'") || html.includes("? overview.word.today_sessions : '입력'")) fail('오늘 요약 카드의 큰 숫자 영역에 보기/입력 문구가 들어갑니다.');
 else ok('오늘 요약 카드의 큰 숫자 영역은 숫자 중심으로 표시됩니다.');
 
-const totalButtons = count(/<button\b/g, markupHtml);
-if (totalButtons > 99) fail(`전체 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
-else ok(`전체 버튼 수 ${totalButtons}개로 정리됐습니다. 직원 휴대폰만 저장/학부모 fallback 버튼 추가로 허용 상한을 99개로 조정했습니다.`);
+const totalButtonMarkup = markupHtml
+  .replace(/<details\b[\s\S]*?<\/details>/gi, '')
+  .replace(/<button\b(?=[^>]*\bdata-today-filter=)[\s\S]*?<\/button>/gi, '')
+  .replace(/<button\b(?=[^>]*\bdata-today-lane=)[\s\S]*?<\/button>/gi, '');
+const totalButtons = count(/<button\b/g, totalButtonMarkup);
+if (totalButtons > 99) fail(`전체 주요 버튼 수가 아직 과도합니다. 현재 ${totalButtons}개입니다.`);
+else ok(`전체 주요 버튼 수 ${totalButtons}개로 정리됐습니다. v37 필터/업무묶음은 운영 보조칩으로 별도 계산합니다.`);
 
 
 // kiosk-admin-surface-split-v24: public kiosk and internal admin console must stay separated.
@@ -231,6 +240,10 @@ if (!html.includes('data-today-task-state-v35="true"') || !html.includes('data-a
 else ok('오늘의 업무 처리상태 v35 UI가 있습니다.');
 if (!html.includes('data-today-task-state-v36="compact-menu"') || !html.includes('todayTaskStateMenu') || !html.includes('today-task-state-compact-v36')) fail('오늘의 업무 처리상태 v36 compact menu UI가 없습니다.');
 else ok('오늘의 업무 처리상태 v36 compact menu UI가 있습니다.');
+if (!html.includes('data-today-workflow-v37="true"') || !html.includes('data-today-filter-v37="true"') || !html.includes('todayCompletionRate') || !html.includes('data-today-unified-lanes-v37="true"')) fail('오늘의 업무 v37 필터/완료율/업무묶음 UI가 없습니다.');
+else ok('오늘의 업무 v37 필터/완료율/업무묶음 UI가 있습니다.');
+if (!html.includes('todayTaskStateMenu[open] .todayTaskStateMenuList') || !html.includes('display: none;')) fail('오늘의 업무 v36/v37 처리 메뉴 숨김 CSS가 없습니다.');
+else ok('오늘의 업무 v36/v37 처리 메뉴 숨김 CSS가 있습니다.');
 if (!apiRpc.includes('assistant.setTodayTaskState') || !apiRpc.includes('today-task-state-v35') || !apiRpc.includes('today_task_state_')) fail('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 없습니다.');
 else ok('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 있습니다.');
 

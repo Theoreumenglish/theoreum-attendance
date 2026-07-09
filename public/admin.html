@@ -5335,6 +5335,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 }
 .todayTaskStateMenu[open] > summary { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
 .todayTaskStateMenuList {
+  display: none;
   position: absolute;
   right: 0;
   top: calc(100% + 7px);
@@ -5345,6 +5346,10 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 18px 42px rgba(15,23,42,.16);
+}
+.todayTaskStateMenu[open] .todayTaskStateMenuList {
+  display: grid;
+  gap: 2px;
 }
 .todayTaskStateButton {
   width: 100%;
@@ -5369,6 +5374,101 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 @media (max-width: 900px) {
   .todayTaskStateStrip { display: flex; justify-content: flex-end; }
   .todayTaskStateMenuList { right: 0; }
+}
+
+
+/* today-workflow-v37: compact filters, completion rate, and unified workflow lanes. */
+.todayWorkflowV37 {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+.todayWorkflowSummary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.todayWorkflowSummaryCard {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 11px 12px;
+  min-height: 70px;
+}
+.todayWorkflowSummaryCard b {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: #111827;
+}
+.todayWorkflowSummaryCard span {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.todayWorkflowSummaryCard.good b { color: #047857; }
+.todayWorkflowSummaryCard.warn b { color: #b45309; }
+.todayWorkflowSummaryCard.hot b { color: #b91c1c; }
+.todayFilterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+.todayFilterChip {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 999px;
+  min-height: 30px;
+  padding: 6px 11px;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+.todayFilterChip:hover { background: #f8fafc; border-color: #cbd5e1; }
+.todayFilterChip.active {
+  color: #ffffff;
+  background: #111827;
+  border-color: #111827;
+}
+.todayUnifiedLanesV37 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.todayLaneCard {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 11px 12px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.todayLaneCard:hover { background: #ffffff; border-color: #cbd5e1; }
+.todayLaneCard .laneTitle { font-size: 12px; font-weight: 950; color: #334155; }
+.todayLaneCard .laneDesc { margin-top: 3px; font-size: 11px; font-weight: 750; color: #64748b; }
+.todayLaneCard b { font-size: 22px; letter-spacing: -0.05em; color: #111827; }
+.todayLaneCard.active { border-color: #111827; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, .08); }
+.todayLaneCard.clinic b { color: #7c3aed; }
+.todayLaneCard.message b { color: #dc2626; }
+.todayLaneCard.absence b { color: #b91c1c; }
+#todayAbsenceRows tr.todayFilterHidden { display: none !important; }
+@media (max-width: 900px) {
+  .todayWorkflowSummary,
+  .todayUnifiedLanesV37 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+  .todayWorkflowSummary,
+  .todayUnifiedLanesV37 { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -5793,6 +5893,27 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 <div><b id="todayAbsencePresent">-</b><span>등원</span></div>
 <div><b id="todayAbsenceExcused">-</b><span>처리됨</span></div>
 <div><b id="todayAbsenceClasses">-</b><span>수업/클리닉</span></div>
+</div>
+<div class="todayWorkflowV37" data-today-workflow-v37="true">
+  <div class="todayWorkflowSummary" data-today-completion-v37="true">
+    <div class="todayWorkflowSummaryCard hot"><b id="todayOpenCount">-</b><span>남은 업무</span></div>
+    <div class="todayWorkflowSummaryCard good"><b id="todayDoneCount">-</b><span>처리 완료</span></div>
+    <div class="todayWorkflowSummaryCard"><b id="todayCompletionRate">-</b><span>완료율</span></div>
+    <div class="todayWorkflowSummaryCard warn"><b id="todayCriticalCount">-</b><span>20분+ 긴급</span></div>
+  </div>
+  <div class="todayFilterBar" data-today-filter-v37="true" aria-label="오늘의 업무 필터">
+    <button class="todayFilterChip active" type="button" data-today-filter="all">전체</button>
+    <button class="todayFilterChip" type="button" data-today-filter="open">미처리</button>
+    <button class="todayFilterChip" type="button" data-today-filter="done">처리됨</button>
+    <button class="todayFilterChip" type="button" data-today-filter="critical">20분+</button>
+    <button class="todayFilterChip" type="button" data-today-filter="clinic">클리닉</button>
+    <button class="todayFilterChip" type="button" data-today-filter="nophone">번호없음</button>
+  </div>
+  <div class="todayUnifiedLanesV37" data-today-unified-lanes-v37="true" aria-label="업무 묶음">
+    <button class="todayLaneCard absence active" type="button" data-today-lane="all"><span><span class="laneTitle">미등원</span><span class="laneDesc">수업·클리닉 미등원 처리</span></span><b id="todayLaneAbsenceOpen">-</b></button>
+    <button class="todayLaneCard clinic" type="button" data-today-lane="clinic"><span><span class="laneTitle">클리닉</span><span class="laneDesc">오프라인 클리닉 미참석</span></span><b id="todayLaneClinicOpen">-</b></button>
+    <button class="todayLaneCard message" type="button" data-today-lane="message"><span><span class="laneTitle">문자 확인</span><span class="laneDesc">연락 실패·번호 없음 우선</span></span><b id="todayLaneMessageOpen">-</b></button>
+  </div>
 </div>
 <div class="liveAbsenceMeta" id="todayAbsenceMeta">조회 전</div>
 <div class="todayAbsenceGuide" data-today-absence-guide="true"><span></span></div>
@@ -7491,6 +7612,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       saveSeq: 0,
       todayAbsenceTimer: null,
       todayAbsenceAuto: true,
+      todayTaskFilter: localStorage.getItem('TODAY_TASK_FILTER_V37') || 'all',
       recentClasses: JSON.parse(localStorage.getItem('OPS_RECENT_CLASSES') || '[]'),
       recentStudents: JSON.parse(localStorage.getItem('OPS_RECENT_STUDENTS') || '[]'),
       lastOverview: null,
@@ -7511,6 +7633,12 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       enabled: true,
       afterSaveReload: 'background',
       phoneMirror: 'parallel-server'
+    };
+    window.__THEOREUM_TODAY_WORKFLOW_V37__ = {
+      enabled: true,
+      compactMenuFixed: true,
+      filters: ['all', 'open', 'done', 'critical', 'clinic', 'message', 'nophone'],
+      lanes: ['absence', 'clinic', 'message']
     };
     window.__THEOREUM_ADMIN_RPC_CALLS__ = [];
 
@@ -12214,33 +12342,105 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       if (meta) meta.textContent = message;
     }
 
+    function todayItemIsDone(item = {}) {
+      return todayTaskStateDone(item?.task_state?.status);
+    }
+
+    function todayItemIsClinic(item = {}) {
+      return String(item?.source_type || '').trim().toUpperCase() === 'OFFLINE_CLINIC';
+    }
+
+    function todayItemNeedsMessageAttention(item = {}) {
+      const text = [item.contact_status, item.notify_status, item.last_error, item.message_status].map(x => String(x || '')).join(' ');
+      return /실패|오류|에러|FAIL|ERROR|번호 없음|번호없음|NO_PHONE/i.test(text) || (!item.parent_phone && !item.student_phone);
+    }
+
+    function todayItemMatchesFilter(item = {}) {
+      const filter = String(App.todayTaskFilter || 'all').trim().toLowerCase();
+      const lateMin = Math.max(0, Number(item.late_min || 0));
+      if (filter === 'open') return !todayItemIsDone(item);
+      if (filter === 'done') return todayItemIsDone(item);
+      if (filter === 'critical') return lateMin >= 20;
+      if (filter === 'clinic') return todayItemIsClinic(item);
+      if (filter === 'message') return todayItemNeedsMessageAttention(item);
+      if (filter === 'nophone') return !item.parent_phone && !item.student_phone;
+      return true;
+    }
+
+    function updateTodayWorkflowV37(allItems = [], visibleItems = [], data = {}) {
+      const total = allItems.length;
+      const done = allItems.filter(todayItemIsDone).length;
+      const open = Math.max(0, total - done);
+      const critical = allItems.filter(item => Number(item.late_min || 0) >= 20 && !todayItemIsDone(item)).length;
+      const clinicOpen = allItems.filter(item => todayItemIsClinic(item) && !todayItemIsDone(item)).length;
+      const messageOpen = allItems.filter(item => todayItemNeedsMessageAttention(item) && !todayItemIsDone(item)).length;
+      const completion = total ? Math.round((done / total) * 100) : 100;
+      const setText = (sel, value) => { const el = $(sel); if (el) el.textContent = String(value); };
+      setText('#todayOpenCount', open);
+      setText('#todayDoneCount', done);
+      setText('#todayCompletionRate', `${completion}%`);
+      setText('#todayCriticalCount', critical);
+      setText('#todayLaneAbsenceOpen', open);
+      setText('#todayLaneClinicOpen', clinicOpen);
+      setText('#todayLaneMessageOpen', messageOpen);
+      document.querySelectorAll('[data-today-filter]').forEach(btn => {
+        const v = String(btn.getAttribute('data-today-filter') || 'all').toLowerCase();
+        btn.classList.toggle('active', v === String(App.todayTaskFilter || 'all').toLowerCase());
+        if (v === 'all') btn.textContent = `전체 ${total}`;
+        if (v === 'open') btn.textContent = `미처리 ${open}`;
+        if (v === 'done') btn.textContent = `처리됨 ${done}`;
+        if (v === 'critical') btn.textContent = `20분+ ${critical}`;
+        if (v === 'clinic') btn.textContent = `클리닉 ${clinicOpen}`;
+        if (v === 'nophone') btn.textContent = `번호없음 ${Number(data.no_phone_count || allItems.filter(x => !x.parent_phone && !x.student_phone).length)}`;
+      });
+      document.querySelectorAll('[data-today-lane]').forEach(btn => {
+        const lane = String(btn.getAttribute('data-today-lane') || 'all').toLowerCase();
+        const active = (lane === 'all' && ['all', 'open', 'done', 'critical', 'nophone'].includes(String(App.todayTaskFilter || 'all').toLowerCase())) || lane === String(App.todayTaskFilter || '').toLowerCase();
+        btn.classList.toggle('active', active);
+      });
+      const meta = $('#todayAbsenceMeta');
+      if (meta) {
+        const checked = shortTs(data.checked_at || '');
+        const filterName = document.querySelector(`[data-today-filter="${esc(App.todayTaskFilter || 'all')}"]`)?.textContent || '전체';
+        meta.textContent = `${checked} · ${filterName} ${visibleItems.length}건 · 완료 ${done}/${total}${data.no_phone_count ? ` · 번호없음 ${data.no_phone_count}` : ''}`;
+      }
+    }
+
+    function setTodayTaskFilterV37(filter = 'all') {
+      const safe = ['all', 'open', 'done', 'critical', 'clinic', 'message', 'nophone'].includes(String(filter).toLowerCase()) ? String(filter).toLowerCase() : 'all';
+      App.todayTaskFilter = safe;
+      localStorage.setItem('TODAY_TASK_FILTER_V37', safe);
+      renderTodayAbsenceBoard(App.lastAbsenceBoard || {});
+    }
+
     function renderTodayAbsenceBoard(data = {}) {
       const rawItems = Array.isArray(data.items) ? data.items : [];
-      const items = rawItems.slice().sort((a, b) => {
+      const allItems = rawItems.slice().sort((a, b) => {
         const doneA = todayTaskStateDone(a?.task_state?.status) ? 1 : 0;
         const doneB = todayTaskStateDone(b?.task_state?.status) ? 1 : 0;
         return doneA - doneB || Number(b.late_min || 0) - Number(a.late_min || 0);
       });
+      const items = allItems.filter(todayItemMatchesFilter);
       const missingEl = $('#todayAbsenceMissing');
       const presentEl = $('#todayAbsencePresent');
       const excusedEl = $('#todayAbsenceExcused');
       const classesEl = $('#todayAbsenceClasses');
-      if (missingEl) missingEl.textContent = String(data.missing_count ?? items.length ?? 0);
+      const doneCount = allItems.filter(todayItemIsDone).length;
+      if (missingEl) missingEl.textContent = String(data.missing_count ?? allItems.length ?? 0);
       if (presentEl) presentEl.textContent = String(data.present_count ?? 0);
-      if (excusedEl) excusedEl.textContent = String((Number(data.excused_count || 0) + Number(data.processed_count || 0)) || 0);
+      if (excusedEl) excusedEl.textContent = String((Number(data.excused_count || 0) + doneCount) || 0);
       if (classesEl) classesEl.textContent = String(data.class_count ?? 0);
-
-      const checked = shortTs(data.checked_at || '');
-      const meta = $('#todayAbsenceMeta');
-      if (meta) {
-        const critical = items.filter(x => Number(x.late_min || 0) >= 20).length;
-        meta.textContent = `${checked} · 수업 ${data.active_schedule_count ?? 0} · 명단 ${data.roster_count ?? 0}${critical ? ` · 20분+ ${critical}` : ''}${data.no_phone_count ? ` · 번호없음 ${data.no_phone_count}` : ''}`;
-      }
+      updateTodayWorkflowV37(allItems, items, data);
 
       const rows = $('#todayAbsenceRows');
       if (!rows) return;
-      if (!items.length) {
+      rows.setAttribute('data-today-workflow-v37', 'filtered');
+      if (!allItems.length) {
         rows.innerHTML = `<tr><td colspan="5" style="color:var(--muted);">미등원 없음</td></tr>`;
+        return;
+      }
+      if (!items.length) {
+        rows.innerHTML = `<tr><td colspan="5" style="color:var(--muted);">현재 필터에 해당하는 업무가 없습니다.</td></tr>`;
         return;
       }
 
@@ -12251,7 +12451,6 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
         const rowCls = [risk === 'high' ? 'absenceRiskHigh' : (risk === 'medium' ? 'absenceRiskMedium' : ''), taskDone ? 'todayTaskDone' : ''].filter(Boolean).join(' ');
         const parentPhone = item.parent_phone || '';
         const studentPhone = item.student_phone || '';
-        const primaryPhone = studentPhone || parentPhone || '';
         const contact = [
           parentPhone ? `학부모 ${phoneText(parentPhone)}` : '',
           studentPhone ? `학생 ${phoneText(studentPhone)}` : ''
@@ -12265,7 +12464,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
           <button class="miniAction" type="button" data-abs-copy-student="${esc(studentPhone)}">학생 번호 복사</button>
           <button class="miniAction" type="button" data-abs-copy-parent="${esc(parentPhone)}">학부모 번호 복사</button>`;
         const stateStrip = renderTodayTaskStateStrip(item);
-        return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}">
+        return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}" data-today-filter-row-v37="true">
           <td><div class="absenceClassName">${esc(item.class_name || item.class_id || '-')}</div><div class="mutedInline">${esc(item.start || '')}${teacherLabel ? ' · ' + esc(teacherLabel) : ''}</div><span class="absenceSourceChip ${isOfflineClinic ? 'clinic' : ''}">${esc(sourceLabel)}</span></td>
           <td>${studentLine}</td>
           <td><span class="lateBadge ${esc(risk)}">${lateMin}분</span></td>
@@ -13015,6 +13214,17 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
             openWorkDrawer('student', App.selectedStudent);
             loadStudentProfile().catch(() => {});
           }
+          return;
+        }
+        const filterBtn = e.target.closest('[data-today-filter]');
+        if (filterBtn) {
+          setTodayTaskFilterV37(filterBtn.getAttribute('data-today-filter') || 'all');
+          return;
+        }
+        const laneBtn = e.target.closest('[data-today-lane]');
+        if (laneBtn) {
+          const lane = String(laneBtn.getAttribute('data-today-lane') || 'all').toLowerCase();
+          setTodayTaskFilterV37(lane === 'absence' ? 'all' : lane);
           return;
         }
         const stateBtn = e.target.closest('[data-abs-task-state]');

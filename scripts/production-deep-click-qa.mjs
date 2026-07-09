@@ -668,6 +668,11 @@ async function clickNav(go) {
           visibleStateButtons: Array.from(document.querySelectorAll('#todayAbsenceRows [data-abs-task-state]')).filter(isVisible).length,
           taskStateButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-task-state]').length,
           taskStateBadges: document.querySelectorAll('#todayAbsenceRows .todayTaskStateBadge').length,
+          workflowV37: !!document.querySelector('[data-today-workflow-v37="true"]'),
+          workflowFiltersV37: document.querySelectorAll('[data-today-filter-v37="true"] [data-today-filter]').length,
+          workflowLanesV37: document.querySelectorAll('[data-today-unified-lanes-v37="true"] [data-today-lane]').length,
+          workflowCompletionV37: !!document.querySelector('[data-today-completion-v37="true"] #todayCompletionRate'),
+          workflowRowsV37: document.querySelectorAll('#todayAbsenceRows [data-today-filter-row-v37="true"]').length,
           studentTabButtons: document.querySelectorAll('[data-abs-student]').length,
           bannedIntroVisible: /학생 이름을 먼저 찾고|처음 쓰는 직원도|자동화 설명/.test(visibleText),
           topLate: rows.slice(0, 8).map(row => Number(row.getAttribute('data-absence-late') || 0))
@@ -706,7 +711,8 @@ async function clickNav(go) {
         else if (todayGuard.taskStateStrips < todayGuard.actionableRows || todayGuard.taskStateButtons < todayGuard.actionableRows * 4 || todayGuard.taskStateBadges < todayGuard.actionableRows) fail('today task state v35', `state controls missing strips=${todayGuard.taskStateStrips} buttons=${todayGuard.taskStateButtons} badges=${todayGuard.taskStateBadges} rows=${todayGuard.actionableRows}`);
         else if (todayGuard.taskStateCompactMenus < todayGuard.actionableRows || todayGuard.taskStateMenuSummaries < todayGuard.actionableRows) fail('today task state compact v36', `compact menu missing menus=${todayGuard.taskStateCompactMenus} summaries=${todayGuard.taskStateMenuSummaries} rows=${todayGuard.actionableRows}`);
         else if (todayGuard.visibleStateButtons > 0) fail('today task state compact v36', `state buttons should be hidden inside compact menu, visible=${todayGuard.visibleStateButtons}`);
-        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions + compact state menu ready`);
+        else if (!todayGuard.workflowV37 || todayGuard.workflowFiltersV37 < 5 || todayGuard.workflowLanesV37 < 3 || !todayGuard.workflowCompletionV37) fail('today workflow v37', `missing filter/progress/lane UI filters=${todayGuard.workflowFiltersV37} lanes=${todayGuard.workflowLanesV37} completion=${todayGuard.workflowCompletionV37}`);
+        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions + compact state menu + v37 workflow filters ready`);
       } else ok('today absence board rows', `${todayGuard.absenceRows} row groups rendered`);
     }
     if (go === 'classes') {
@@ -1527,6 +1533,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '- Kiosk viewport fit/no-bottom-helper v34 guard',
     '- Today task processing state v35 guard',
     '- Today task compact state menu v36 guard',
+    '- Today workflow filter/completion v37 guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',
