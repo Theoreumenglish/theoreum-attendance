@@ -226,6 +226,12 @@ else ok('kiosk-settings v33 PIN 기반 층 설정 endpoint가 있습니다.');
 if (!html.includes('centralStaffOnlyPhoneChanged') || !html.includes('admin.central.staff.phoneOnly')) fail('직원 휴대폰만 변경 시 phoneOnly 저장 경로가 없습니다.');
 else ok('직원 휴대폰만 변경 시 phoneOnly 저장 경로가 있습니다.');
 
+
+if (!html.includes('data-today-task-state-v35="true"') || !html.includes('data-abs-task-state') || !html.includes('todayTaskStateBadge')) fail('오늘의 업무 처리상태 v35 UI가 없습니다.');
+else ok('오늘의 업무 처리상태 v35 UI가 있습니다.');
+if (!apiRpc.includes('assistant.setTodayTaskState') || !apiRpc.includes('today-task-state-v35') || !apiRpc.includes('today_task_state_')) fail('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 없습니다.');
+else ok('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 있습니다.');
+
 if (failed > 0) {
   console.error('');
   console.error(`Admin UX check failed: ${failed} issue(s)`);

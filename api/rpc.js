@@ -6809,6 +6809,134 @@ function liveAbsenceActionType(stage) {
   return 'ABSENT_' + String(stage);
 }
 
+
+
+function todayTaskRuntimeKey(yyyymmdd) {
+  return `today_task_state_${normalizeYmdInput(yyyymmdd || kstYmd(new Date()))}`;
+}
+
+function todayTaskRowKey(row = {}) {
+  const ymd = normalizeYmdInput(row.yyyymmdd || row.ymd || kstYmd(new Date())) || kstYmd(new Date());
+  const source = String(row.source_type || row.source || 'CLASS').trim().toUpperCase() || 'CLASS';
+  const scope = source === 'OFFLINE_CLINIC'
+    ? String(row.clinic_task_id || row.task_id || row.class_id || '').trim()
+    : String(row.class_id || row.classId || '').trim();
+  const sid = normalizeStudentId(row.student_id || row.studentId || '');
+  return [ymd, source, scope || 'none', sid || '0000'].join(':');
+}
+
+function normalizeTodayTaskStatus(status) {
+  const v = String(status || '').trim().toUpperCase();
+  if (['CONTACT_DONE', 'CONTACTED', 'CALL_DONE', '연락완료'].includes(v)) return 'CONTACT_DONE';
+  if (['ATTENDANCE_DONE', 'CHECKED', 'MANUAL_DONE', '출결완료'].includes(v)) return 'ATTENDANCE_DONE';
+  if (['CLINIC_DONE', 'CLINIC_ADDED', '클리닉완료'].includes(v)) return 'CLINIC_DONE';
+  if (['HOLD', 'PENDING_HOLD', '보류'].includes(v)) return 'HOLD';
+  return 'OPEN';
+}
+
+function todayTaskStatusLabel(status) {
+  const v = normalizeTodayTaskStatus(status);
+  if (v === 'CONTACT_DONE') return '연락 완료';
+  if (v === 'ATTENDANCE_DONE') return '출결 처리 완료';
+  if (v === 'CLINIC_DONE') return '클리닉 추가 완료';
+  if (v === 'HOLD') return '보류';
+  return '미처리';
+}
+
+function todayTaskStatusDone(status) {
+  return normalizeTodayTaskStatus(status) !== 'OPEN';
+}
+
+function normalizeTodayTaskStateRecord(raw = {}) {
+  const status = normalizeTodayTaskStatus(raw.status || raw.state || 'OPEN');
+  return {
+    status,
+    label: todayTaskStatusLabel(status),
+    note: String(raw.note || '').trim().slice(0, 120),
+    updated_at: String(raw.updated_at || '').trim(),
+    updated_by: String(raw.updated_by || '').trim()
+  };
+}
+
+async function readTodayTaskStateMap(supabase, yyyymmdd) {
+  const key = todayTaskRuntimeKey(yyyymmdd);
+  try {
+    const { data, error } = await supabase
+      .from('runtime_config')
+      .select('key, value_json, updated_at')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) return { ok: false, states: {}, error: error.message || 'today task state 조회 실패' };
+    const value = data?.value_json && typeof data.value_json === 'object' ? data.value_json : {};
+    const rawStates = value.states && typeof value.states === 'object' ? value.states : {};
+    const states = {};
+    for (const [rowKey, record] of Object.entries(rawStates)) {
+      if (!rowKey || !record || typeof record !== 'object') continue;
+      states[rowKey] = normalizeTodayTaskStateRecord(record);
+    }
+    return { ok: true, key, states, updated_at: data?.updated_at || '' };
+  } catch (err) {
+    return { ok: false, states: {}, error: err?.message || 'today task state 조회 실패' };
+  }
+}
+
+async function assistantSetTodayTaskStateDirect(args = {}, sessionToken = '') {
+  const auth = await requireRole(sessionToken, 'assistant');
+  if (!auth.ok) return auth.out;
+
+  const yyyymmdd = normalizeYmdInput(args.yyyymmdd || args.ymd || kstYmd(new Date()));
+  if (!yyyymmdd) return fail(400, 'INVALID_INPUT', 'yyyymmdd 8자리가 필요합니다.');
+
+  const rowKey = String(args.row_key || args.rowKey || todayTaskRowKey({
+    yyyymmdd,
+    source_type: args.source_type || args.sourceType || 'CLASS',
+    class_id: args.class_id || args.classId || '',
+    clinic_task_id: args.clinic_task_id || args.clinicTaskId || '',
+    student_id: args.student_id || args.studentId || ''
+  })).trim();
+  if (!rowKey) return fail(400, 'INVALID_INPUT', 'row_key가 필요합니다.');
+
+  const status = normalizeTodayTaskStatus(args.status || args.state || 'OPEN');
+  const supabase = getSupabaseAdmin();
+  const current = await readTodayTaskStateMap(supabase, yyyymmdd);
+  if (!current.ok) return fail(500, 'DB_SELECT_FAILED', current.error || '오늘 업무 처리상태 조회 실패');
+
+  const states = { ...(current.states || {}) };
+  if (status === 'OPEN') {
+    delete states[rowKey];
+  } else {
+    states[rowKey] = normalizeTodayTaskStateRecord({
+      status,
+      note: args.note || args.memo || '',
+      updated_at: new Date().toISOString(),
+      updated_by: auth.me?.staff_id || ''
+    });
+  }
+
+  const entries = Object.entries(states).slice(-500);
+  const compactStates = Object.fromEntries(entries);
+  const write = await writeRuntimeConfig(todayTaskRuntimeKey(yyyymmdd), {
+    yyyymmdd,
+    states: compactStates,
+    updated_at: new Date().toISOString(),
+    updated_by: auth.me?.staff_id || '',
+    version: 'today-task-state-v35'
+  }, auth.me?.staff_id || '');
+
+  if (write.error) return fail(500, 'DB_UPSERT_FAILED', write.error.message || '오늘 업무 처리상태 저장 실패');
+  fastCacheDelPrefix('todayAbsenceBoard');
+
+  return success({
+    yyyymmdd,
+    row_key: rowKey,
+    status,
+    label: todayTaskStatusLabel(status),
+    saved: status !== 'OPEN',
+    state_count: Object.keys(compactStates).length,
+    marker: 'today-task-state-v35'
+  });
+}
+
 async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
   const auth = await requireRole(sessionToken, 'assistant');
   if (!auth.ok) return auth.out;
@@ -7236,6 +7364,19 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
 
   items.sort((a, b) => Number(b.late_min || 0) - Number(a.late_min || 0) || String(a.class_id || '').localeCompare(String(b.class_id || '')) || String(a.student_name || '').localeCompare(String(b.student_name || '')));
 
+  const stateOut = await readTodayTaskStateMap(supabase, yyyymmdd);
+  const stateMap = stateOut.ok ? stateOut.states : {};
+  let processedCount = 0;
+  for (const item of items) {
+    item.yyyymmdd = yyyymmdd;
+    const rowKey = todayTaskRowKey(item);
+    const taskState = normalizeTodayTaskStateRecord(stateMap[rowKey] || {});
+    item.task_key = rowKey;
+    item.task_state = taskState;
+    item.task_state_label = taskState.label;
+    if (todayTaskStatusDone(taskState.status)) processedCount++;
+  }
+
   const out = {
     yyyymmdd,
     checked_at: now.toISOString(),
@@ -7252,6 +7393,11 @@ async function assistantTodayAbsenceBoardDirect(args = {}, sessionToken = '') {
     upcoming_count: upcomingCount,
     no_phone_count: noPhoneCount,
     offline_clinic_missing_count: offlineClinicMissingCount,
+    processed_count: processedCount,
+    open_count: Math.max(0, missingCount - processedCount),
+    task_state_source: stateOut.ok ? 'runtime_config' : 'unavailable',
+    task_state_error: stateOut.ok ? '' : (stateOut.error || 'today task state unavailable'),
+    task_state_marker: 'today-task-state-v35',
     groups,
     items
   };
@@ -8094,6 +8240,12 @@ export default async function handler(req, res) {
 
   if (op === 'assistant.listAbsenceExcuses') {
     const result = await assistantListAbsenceExcusesDirect(payload.args || {}, sessionToken);
+    return send(res, result.status, result.body);
+  }
+
+
+  if (op === 'assistant.setTodayTaskState') {
+    const result = await assistantSetTodayTaskStateDirect(payload.args || {}, sessionToken);
     return send(res, result.status, result.body);
   }
 

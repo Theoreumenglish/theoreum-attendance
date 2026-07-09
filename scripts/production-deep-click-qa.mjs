@@ -639,6 +639,7 @@ async function clickNav(go) {
           v21: !!document.querySelector('[data-today-labels-v21="true"]'),
           v22: !!document.querySelector('[data-today-clean-v22="true"]'),
           v23: !!document.querySelector('[data-today-clean-v23="true"]'),
+          v35: !!document.querySelector('[data-today-task-state-v35="true"]'),
           workerSummary: !!document.querySelector('[data-today-worker-summary="true"]'),
           absenceGuideVisible: !!document.querySelector('[data-today-absence-guide="true"]') && isVisible(document.querySelector('[data-today-absence-guide="true"]')),
           compactTaskCopyVisible: /다음 행동:|처리 기준|숫자가 뜬 항목부터|조교·강사가 오늘 놓치면/.test(visibleText),
@@ -661,6 +662,9 @@ async function clickNav(go) {
           actionText: absenceRowsEl ? Array.from(absenceRowsEl.querySelectorAll('.absenceQuickActions')).slice(0, 3).map(el => el.innerText || '').join(' ') : '',
           excusedLabelVisible: /\b예외\b/.test(document.querySelector('.liveAbsenceStats')?.innerText || ''),
           clinicButtons: document.querySelectorAll('[data-abs-clinic]').length,
+          taskStateStrips: document.querySelectorAll('#todayAbsenceRows [data-today-task-state-v35="true"]').length,
+          taskStateButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-task-state]').length,
+          taskStateBadges: document.querySelectorAll('#todayAbsenceRows .todayTaskStateBadge').length,
           studentTabButtons: document.querySelectorAll('[data-abs-student]').length,
           bannedIntroVisible: /학생 이름을 먼저 찾고|처음 쓰는 직원도|자동화 설명/.test(visibleText),
           topLate: rows.slice(0, 8).map(row => Number(row.getAttribute('data-absence-late') || 0))
@@ -670,6 +674,7 @@ async function clickNav(go) {
       else if (!todayGuard.dashboardVisible || !todayGuard.boardVisible) fail('today priority board', 'auto-generated today board exists but is not visible to staff');
       else if (todayGuard.calmVisible) fail('today priority board', 'static calm intro shell is still visible instead of the real work board');
       else if (!todayGuard.v19 || !todayGuard.v20 || !todayGuard.v21 || !todayGuard.v22 || !todayGuard.v23) fail('today clean task board', 'missing v23 clean task board marker');
+      else if (!todayGuard.v35) fail('today task state v35', 'missing today task state v35 marker');
       else if (!todayGuard.workerSummary) fail('today clean task board', 'missing compact status counters');
       else if (todayGuard.bannedIntroVisible || todayGuard.compactTaskCopyVisible) fail('today clean task board', 'explanation copy is still visible on today tab');
       else if (todayGuard.missions < 1) fail('today priority board', 'no actionable mission items');
@@ -695,7 +700,8 @@ async function clickNav(go) {
         else if (todayGuard.manualInputButtons < todayGuard.actionableRows) fail('today absence direct input actions', `${todayGuard.manualInputButtons}/${todayGuard.actionableRows} 출결 처리 buttons rendered`);
         else if (todayGuard.studentTabButtons < todayGuard.actionableRows) fail('today absence student tab actions', `${todayGuard.studentTabButtons}/${todayGuard.actionableRows} student tab buttons rendered`);
         else if (todayGuard.clinicButtons < todayGuard.actionableRows) fail('today absence clinic actions', `${todayGuard.clinicButtons}/${todayGuard.actionableRows} clinic buttons rendered`);
-        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions ready`);
+        else if (todayGuard.taskStateStrips < todayGuard.actionableRows || todayGuard.taskStateButtons < todayGuard.actionableRows * 4 || todayGuard.taskStateBadges < todayGuard.actionableRows) fail('today task state v35', `state controls missing strips=${todayGuard.taskStateStrips} buttons=${todayGuard.taskStateButtons} badges=${todayGuard.taskStateBadges} rows=${todayGuard.actionableRows}`);
+        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions + state controls ready`);
       } else ok('today absence board rows', `${todayGuard.absenceRows} row groups rendered`);
     }
     if (go === 'classes') {
@@ -1514,6 +1520,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '- Kiosk/staff hot path v32 guard',
     '- Unified student/staff kiosk v33 guard',
     '- Kiosk viewport fit/no-bottom-helper v34 guard',
+    '- Today task processing state v35 guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

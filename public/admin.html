@@ -5277,6 +5277,52 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
   display: none !important;
 }
 
+
+
+/* today-task-state-v35: persistent processing state for each absence task. */
+.todayTaskStateStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.todayTaskStateBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.todayTaskStateBadge.done { border-color: #bbf7d0; background: #f0fdf4; color: #047857; }
+.todayTaskStateBadge.hold { border-color: #fed7aa; background: #fff7ed; color: #c2410c; }
+.todayTaskStateButton {
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.todayTaskStateButton:hover { border-color: #93c5fd; background: #eff6ff; }
+.todayTaskStateButton.clear { color: #64748b; background: #f8fafc; }
+#todayAbsenceRows tr.todayTaskDone {
+  opacity: .78;
+  background: linear-gradient(90deg, rgba(240,253,244,.92), rgba(255,255,255,.96));
+}
+#todayAbsenceRows tr.todayTaskDone .absenceStudentName { text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: rgba(15, 23, 42, .32); }
+
 </style>
 </head>
 <body class="adminConsoleSurfaceV24" data-surface="admin-console">
@@ -5646,7 +5692,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="clinic"><div><div class="k">클리닉 미등원</div><div class="v" id="dailyClinicCount">-</div></div><div class="s">오프라인</div></div>
 <div class="dailyWorkCard" role="button" tabindex="0" data-daily-task="message"><div><div class="k">문자 실패</div><div class="v" id="dailyMessageCount">-</div></div><div class="s">추가 확인</div></div>
 </div>
-<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true" data-today-clean-v20="true" data-today-labels-v21="true" data-today-clean-v22="true" data-today-clean-v23="true">
+<div class="card cardPad todayConsole todayMissionPanel" data-today-priority-board="true" data-today-staff-todo-v19="true" data-today-clean-v20="true" data-today-labels-v21="true" data-today-clean-v22="true" data-today-clean-v23="true" data-today-task-state-v35="true">
 <div class="todayStaffBoardHeader">
 <div>
 <div class="todayStaffBoardTitle"><div class="sectionTitle">오늘의 업무</div></div>
@@ -12031,6 +12077,80 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       return digits || '-';
     }
 
+    function todayTaskStateLabel(status) {
+      const v = String(status || 'OPEN').trim().toUpperCase();
+      if (v === 'CONTACT_DONE') return '연락 완료';
+      if (v === 'ATTENDANCE_DONE') return '출결 처리 완료';
+      if (v === 'CLINIC_DONE') return '클리닉 추가 완료';
+      if (v === 'HOLD') return '보류';
+      return '미처리';
+    }
+
+    function todayTaskStateDone(status) {
+      return String(status || 'OPEN').trim().toUpperCase() !== 'OPEN';
+    }
+
+    function todayTaskStateClass(status) {
+      const v = String(status || 'OPEN').trim().toUpperCase();
+      if (v === 'HOLD') return 'hold';
+      if (v !== 'OPEN') return 'done';
+      return '';
+    }
+
+    function fallbackTodayTaskKey(item = {}) {
+      const ymd = String(item.yyyymmdd || $('#todayAbsenceYmd')?.value || kstYmd()).replace(/[^0-9]/g, '') || kstYmd();
+      const source = String(item.source_type || 'CLASS').trim().toUpperCase() || 'CLASS';
+      const scope = source === 'OFFLINE_CLINIC' ? String(item.clinic_task_id || item.class_id || '').trim() : String(item.class_id || '').trim();
+      const sid = normalizeSid(item.student_id || '');
+      return [ymd, source, scope || 'none', sid || '0000'].join(':');
+    }
+
+    function renderTodayTaskStateStrip(item = {}) {
+      const state = item.task_state || {};
+      const status = String(state.status || 'OPEN').trim().toUpperCase() || 'OPEN';
+      const label = state.label || todayTaskStateLabel(status);
+      const rowKey = item.task_key || fallbackTodayTaskKey(item);
+      const basePayload = `data-abs-state-key="${esc(rowKey)}" data-abs-state-student="${esc(item.student_id || '')}" data-abs-state-name="${esc(item.student_name || '')}" data-abs-state-source="${esc(item.source_type || '')}" data-abs-state-class="${esc(item.class_id || '')}" data-abs-state-clinic="${esc(item.clinic_task_id || '')}"`;
+      return `<div class="todayTaskStateStrip" data-today-task-state-v35="true" data-today-task-key="${esc(rowKey)}">
+        <span class="todayTaskStateBadge ${esc(todayTaskStateClass(status))}">${esc(label)}</span>
+        <button class="todayTaskStateButton" type="button" data-abs-task-state="CONTACT_DONE" ${basePayload}>연락 완료</button>
+        <button class="todayTaskStateButton" type="button" data-abs-task-state="ATTENDANCE_DONE" ${basePayload}>출결 완료</button>
+        <button class="todayTaskStateButton" type="button" data-abs-task-state="CLINIC_DONE" ${basePayload}>클리닉 완료</button>
+        <button class="todayTaskStateButton" type="button" data-abs-task-state="HOLD" ${basePayload}>보류</button>
+        ${status !== 'OPEN' ? `<button class="todayTaskStateButton clear" type="button" data-abs-task-state="OPEN" ${basePayload}>되돌리기</button>` : ''}
+      </div>`;
+    }
+
+    async function setTodayTaskStateFromButton(btn) {
+      const status = String(btn?.dataset?.absTaskState || 'OPEN').trim().toUpperCase() || 'OPEN';
+      const yyyymmdd = String($('#todayAbsenceYmd')?.value || '').replace(/[^0-9]/g, '') || kstYmd();
+      const rowKey = String(btn?.dataset?.absStateKey || '').trim();
+      const studentId = normalizeSid(btn?.dataset?.absStateStudent || '');
+      const studentName = String(btn?.dataset?.absStateName || '').trim();
+      const label = todayTaskStateLabel(status);
+      if (!rowKey && !studentId) {
+        showToast('처리상태를 저장할 학생 정보가 없습니다.');
+        return;
+      }
+      const r = await rpc('assistant.setTodayTaskState', {
+        yyyymmdd,
+        row_key: rowKey,
+        status,
+        student_id: studentId,
+        student_name: studentName,
+        source_type: btn?.dataset?.absStateSource || '',
+        class_id: btn?.dataset?.absStateClass || '',
+        clinic_task_id: btn?.dataset?.absStateClinic || ''
+      }, { timeoutMs: 15000, cacheTtlMs: 0 });
+      if (!r.ok) {
+        showToast(r.error?.message || '오늘 업무 처리상태 저장 실패');
+        return;
+      }
+      clearRpcCache('assistant.todayAbsenceBoard');
+      showToast(status === 'OPEN' ? '처리상태를 되돌렸습니다.' : `${label}로 표시했습니다.`);
+      await loadTodayAbsenceBoard({ force: true, silent: true });
+    }
+
     function setTodayAbsenceLoading(message = '조회 중...') {
       const rows = $('#todayAbsenceRows');
       if (rows) rows.innerHTML = `<tr><td colspan="5" style="color:var(--muted);">${esc(message)}</td></tr>`;
@@ -12040,14 +12160,18 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 
     function renderTodayAbsenceBoard(data = {}) {
       const rawItems = Array.isArray(data.items) ? data.items : [];
-      const items = rawItems.slice().sort((a, b) => Number(b.late_min || 0) - Number(a.late_min || 0));
+      const items = rawItems.slice().sort((a, b) => {
+        const doneA = todayTaskStateDone(a?.task_state?.status) ? 1 : 0;
+        const doneB = todayTaskStateDone(b?.task_state?.status) ? 1 : 0;
+        return doneA - doneB || Number(b.late_min || 0) - Number(a.late_min || 0);
+      });
       const missingEl = $('#todayAbsenceMissing');
       const presentEl = $('#todayAbsencePresent');
       const excusedEl = $('#todayAbsenceExcused');
       const classesEl = $('#todayAbsenceClasses');
       if (missingEl) missingEl.textContent = String(data.missing_count ?? items.length ?? 0);
       if (presentEl) presentEl.textContent = String(data.present_count ?? 0);
-      if (excusedEl) excusedEl.textContent = String(data.excused_count ?? 0);
+      if (excusedEl) excusedEl.textContent = String((Number(data.excused_count || 0) + Number(data.processed_count || 0)) || 0);
       if (classesEl) classesEl.textContent = String(data.class_count ?? 0);
 
       const checked = shortTs(data.checked_at || '');
@@ -12067,7 +12191,8 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       rows.innerHTML = items.slice(0, 120).map(item => {
         const lateMin = Math.max(0, Number(item.late_min || 0));
         const risk = item.risk || (lateMin >= 20 ? 'high' : lateMin >= 5 ? 'medium' : 'low');
-        const rowCls = risk === 'high' ? 'absenceRiskHigh' : (risk === 'medium' ? 'absenceRiskMedium' : '');
+        const taskDone = todayTaskStateDone(item.task_state?.status);
+        const rowCls = [risk === 'high' ? 'absenceRiskHigh' : (risk === 'medium' ? 'absenceRiskMedium' : ''), taskDone ? 'todayTaskDone' : ''].filter(Boolean).join(' ');
         const parentPhone = item.parent_phone || '';
         const studentPhone = item.student_phone || '';
         const primaryPhone = studentPhone || parentPhone || '';
@@ -12083,12 +12208,14 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
         const phoneMenu = `
           <button class="miniAction" type="button" data-abs-copy-student="${esc(studentPhone)}">학생 번호 복사</button>
           <button class="miniAction" type="button" data-abs-copy-parent="${esc(parentPhone)}">학부모 번호 복사</button>`;
+        const stateStrip = renderTodayTaskStateStrip(item);
         return `<tr class="${esc(rowCls)}" data-absence-late="${esc(lateMin)}">
           <td><div class="absenceClassName">${esc(item.class_name || item.class_id || '-')}</div><div class="mutedInline">${esc(item.start || '')}${teacherLabel ? ' · ' + esc(teacherLabel) : ''}</div><span class="absenceSourceChip ${isOfflineClinic ? 'clinic' : ''}">${esc(sourceLabel)}</span></td>
           <td>${studentLine}</td>
           <td><span class="lateBadge ${esc(risk)}">${lateMin}분</span></td>
           <td><div class="absenceContactLine">${contact}</div><div class="absenceStatusLine">${stage}</div></td>
           <td>
+            ${stateStrip}
             <div class="absenceQuickActions">
               ${phoneMenu}
               <button class="miniAction primary" data-abs-student="${esc(item.student_id || '')}" data-abs-name="${esc(item.student_name || '')}" type="button">학생 정보</button>
@@ -12832,6 +12959,11 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
             openWorkDrawer('student', App.selectedStudent);
             loadStudentProfile().catch(() => {});
           }
+          return;
+        }
+        const stateBtn = e.target.closest('[data-abs-task-state]');
+        if (stateBtn) {
+          setTodayTaskStateFromButton(stateBtn).catch(err => showToast(err && err.message ? err.message : '처리상태 저장 실패'));
           return;
         }
         const studentPhoneCopyEl = e.target.closest('[data-abs-copy-student]');
