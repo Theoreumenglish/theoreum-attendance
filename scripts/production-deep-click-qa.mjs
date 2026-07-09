@@ -1211,18 +1211,44 @@ async function run() {
     await verifyKioskAdminSurfaceSplit('admin');
   }, { screenshot: false });
 
-  await step('admin core api parity', async () => {
+  await step('admin boot lazy readiness', async () => {
+    const boot = await page.evaluate(() => ({
+      marker: window.__THEOREUM_ADMIN_BOOT_LAZY_READINESS_V30__ || null,
+      calls: Array.isArray(window.__THEOREUM_ADMIN_RPC_CALLS__) ? window.__THEOREUM_ADMIN_RPC_CALLS__.slice() : []
+    }));
+    if (!boot.marker || boot.marker.finalReadinessAuto !== false || boot.marker.staffCatalogBootLazy !== true) {
+      throw new Error('admin boot lazy marker missing or invalid: ' + JSON.stringify(boot.marker));
+    }
+    const ops = boot.calls.map(x => String(x?.op || ''));
+    const heavy = ops.filter(op => op === 'admin.finalReadiness' || op === 'admin.central.staff.list');
+    if (heavy.length) {
+      throw new Error('admin boot called heavy API before user action: ' + heavy.join(', '));
+    }
+  }, { screenshot: false });
+
+  await step('admin boot api parity', async () => {
     await apiRpc('meta.supportedOps');
     await apiRpc('auth.me', {});
-    await apiRpc('admin.finalReadiness');
-    await apiRpc('admin.phoneIdentity.audit');
-    await apiRpc('admin.central.staff.list', { force: true });
     const searchBody = await apiRpc('admin.master.searchStudents', { q: qaStudentId || qaStudentQuery, limit: 5 });
     const students = extractStudentsFromSearchPayload(searchBody);
     const resolvedId = qaStudentId || String(students[0]?.student_id || '').trim();
     if (resolvedId) await apiRpc('admin.lectureAssignment.list', { student_id: resolvedId, include_archived: true, limit: 5 });
     else warn('admin lecture assignment list skipped', 'QA student id was not resolved from admin.master.searchStudents');
   }, { screenshot: false });
+
+  if (String(process.env.QA_HEAVY_ADMIN_CHECKS || '').toUpperCase() === '1') {
+    await step('admin heavy readiness on demand', async () => {
+      await clickNav('advanced');
+      const clicked = await clickIfExists('#btnFinalReadiness', 'final readiness button', 5000);
+      if (!clicked) throw new Error('final readiness button not visible');
+      await page.waitForFunction(() => {
+        const text = [document.querySelector('#finalReadinessSummary')?.innerText || '', document.querySelector('#finalReadinessRows')?.innerText || ''].join('\n');
+        return /최종 운영 체크|정상|확인 필요|조치 필요/.test(text) && !/자동 실행하지 않습니다|최종 체크를 실행하세요/.test(text);
+      }, null, { timeout: 45000 });
+    }, { screenshot: false });
+  } else {
+    ok('admin heavy readiness skipped', 'set QA_HEAVY_ADMIN_CHECKS=1 to run admin.finalReadiness on demand');
+  }
 
   for (const go of ['dashboard', 'students', 'attendance', 'clinic', 'words', 'messages', 'classes', 'reports', 'staff', 'advanced']) {
     await step('admin nav ' + go, async () => {

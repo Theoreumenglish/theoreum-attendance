@@ -109,6 +109,13 @@ else ok('오늘 화면에서 자동 ON/학생 선택 카드를 제거했습니�
 if (todayBoard.includes('<span>예외</span>')) fail('오늘 미등원 통계에 예외라는 오래된 표현이 남아 있습니다.');
 else ok('오늘 미등원 통계에서 예외 표현을 제거했습니다.');
 
+if (!html.includes('__THEOREUM_ADMIN_BOOT_LAZY_READINESS_V30__')) fail('관리자 부팅 최적화 v30 마커가 없습니다.');
+else ok('관리자 부팅 최적화 v30 마커가 있습니다.');
+if (/setTimeout\(\(\) => \{ loadClassCatalog\(\); loadStaffCatalog\(\); \}, 0\)/.test(html)) fail('로그인 직후 직원 목록을 자동 로드하고 있습니다. 직원 목록은 필요할 때만 불러와야 합니다.');
+else ok('로그인 직후 직원 목록 자동 로드를 제거했습니다.');
+if (!html.includes('로그인 직후 자동 실행하지 않습니다. 필요할 때만 최종 체크 실행을 누르세요.')) fail('최종 운영 체크가 온디맨드 실행임을 안내하지 않습니다.');
+else ok('최종 운영 체크를 온디맨드 실행으로 안내합니다.');
+
 if (/body\.opsFlowV3\[data-current-view="dashboard"\]\s+#dashboard\s*\{\s*display:\s*none\s*!important;\s*\}/.test(html)) fail('오늘 화면 #dashboard가 CSS로 숨겨져 있습니다.');
 else ok('오늘 화면 #dashboard는 숨김 처리되어 있지 않습니다.');
 if (!/body\.opsFlowV3\[data-current-view="dashboard"\]\s+\.calmOpsShell\s*\{\s*display:\s*none\s*!important;/.test(html)) fail('정적 calmOpsShell이 오늘 화면에서 숨겨지지 않았습니다.');

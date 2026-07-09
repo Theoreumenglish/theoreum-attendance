@@ -7296,7 +7296,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 <div class="tableWrap" style="margin-top:16px;">
 <table class="table">
 <thead><tr><th>항목</th><th>상태</th><th>내용</th><th>다음 조치</th></tr></thead>
-<tbody id="finalReadinessRows"><tr><td colspan="4" style="color:var(--muted);">최종 체크를 실행하세요.</td></tr></tbody>
+<tbody id="finalReadinessRows"><tr><td colspan="4" style="color:var(--muted);">로그인 직후 자동 실행하지 않습니다. 필요할 때만 최종 체크 실행을 누르세요.</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -7407,6 +7407,13 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
 
     document.body.classList.add('consoleOperatorGuard');
     document.body.classList.add('adminConsoleV7');
+
+    window.__THEOREUM_ADMIN_BOOT_LAZY_READINESS_V30__ = {
+      finalReadinessAuto: false,
+      staffCatalogBootLazy: true,
+      heavyChecks: ['admin.finalReadiness', 'admin.central.staff.list']
+    };
+    window.__THEOREUM_ADMIN_RPC_CALLS__ = [];
 
     function esc(value) {
       return String(value ?? '')
@@ -8378,6 +8385,11 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
     }
 
     async function rpc(op, args = {}, options = {}) {
+      try {
+        window.__THEOREUM_ADMIN_RPC_CALLS__ = Array.isArray(window.__THEOREUM_ADMIN_RPC_CALLS__) ? window.__THEOREUM_ADMIN_RPC_CALLS__ : [];
+        window.__THEOREUM_ADMIN_RPC_CALLS__.push({ op: String(op || ''), endpoint: '/api/rpc', ts: Date.now() });
+        if (window.__THEOREUM_ADMIN_RPC_CALLS__.length > 120) window.__THEOREUM_ADMIN_RPC_CALLS__.splice(0, window.__THEOREUM_ADMIN_RPC_CALLS__.length - 120);
+      } catch (_) {}
       const timeoutMs = Number(options.timeoutMs || 25000);
       const ttlMs = options.cacheTtlMs != null ? Number(options.cacheTtlMs || 0) : defaultRpcCacheTtl(op);
       const cacheKey = ttlMs > 0 ? op + '|' + stableJson(args || {}) : '';
@@ -8506,7 +8518,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
         loadOverview();
         loadTodayAbsenceBoard({ silent: true }).catch(() => {});
         startTodayAbsenceAuto();
-        setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); }, 0);
+        setTimeout(() => { loadClassCatalog(); }, 0);
         return;
       }
 
@@ -8538,7 +8550,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
         loadOverview();
         loadTodayAbsenceBoard({ silent: true }).catch(() => {});
         startTodayAbsenceAuto();
-        setTimeout(() => { loadClassCatalog(); loadStaffCatalog(); }, 0);
+        setTimeout(() => { loadClassCatalog(); }, 0);
         return;
       }
 
