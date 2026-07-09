@@ -663,6 +663,9 @@ async function clickNav(go) {
           excusedLabelVisible: /\b예외\b/.test(document.querySelector('.liveAbsenceStats')?.innerText || ''),
           clinicButtons: document.querySelectorAll('[data-abs-clinic]').length,
           taskStateStrips: document.querySelectorAll('#todayAbsenceRows [data-today-task-state-v35="true"]').length,
+          taskStateCompactMenus: document.querySelectorAll('#todayAbsenceRows [data-today-task-state-v36="compact-menu"]').length,
+          taskStateMenuSummaries: document.querySelectorAll('#todayAbsenceRows .todayTaskStateMenu > summary').length,
+          visibleStateButtons: Array.from(document.querySelectorAll('#todayAbsenceRows [data-abs-task-state]')).filter(isVisible).length,
           taskStateButtons: document.querySelectorAll('#todayAbsenceRows [data-abs-task-state]').length,
           taskStateBadges: document.querySelectorAll('#todayAbsenceRows .todayTaskStateBadge').length,
           studentTabButtons: document.querySelectorAll('[data-abs-student]').length,
@@ -701,7 +704,9 @@ async function clickNav(go) {
         else if (todayGuard.studentTabButtons < todayGuard.actionableRows) fail('today absence student tab actions', `${todayGuard.studentTabButtons}/${todayGuard.actionableRows} student tab buttons rendered`);
         else if (todayGuard.clinicButtons < todayGuard.actionableRows) fail('today absence clinic actions', `${todayGuard.clinicButtons}/${todayGuard.actionableRows} clinic buttons rendered`);
         else if (todayGuard.taskStateStrips < todayGuard.actionableRows || todayGuard.taskStateButtons < todayGuard.actionableRows * 4 || todayGuard.taskStateBadges < todayGuard.actionableRows) fail('today task state v35', `state controls missing strips=${todayGuard.taskStateStrips} buttons=${todayGuard.taskStateButtons} badges=${todayGuard.taskStateBadges} rows=${todayGuard.actionableRows}`);
-        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions + state controls ready`);
+        else if (todayGuard.taskStateCompactMenus < todayGuard.actionableRows || todayGuard.taskStateMenuSummaries < todayGuard.actionableRows) fail('today task state compact v36', `compact menu missing menus=${todayGuard.taskStateCompactMenus} summaries=${todayGuard.taskStateMenuSummaries} rows=${todayGuard.actionableRows}`);
+        else if (todayGuard.visibleStateButtons > 0) fail('today task state compact v36', `state buttons should be hidden inside compact menu, visible=${todayGuard.visibleStateButtons}`);
+        else ok('today absence board rows', `${todayGuard.actionableRows} actionable rows · quick actions + compact state menu ready`);
       } else ok('today absence board rows', `${todayGuard.absenceRows} row groups rendered`);
     }
     if (go === 'classes') {
@@ -1521,6 +1526,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '- Unified student/staff kiosk v33 guard',
     '- Kiosk viewport fit/no-bottom-helper v34 guard',
     '- Today task processing state v35 guard',
+    '- Today task compact state menu v36 guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

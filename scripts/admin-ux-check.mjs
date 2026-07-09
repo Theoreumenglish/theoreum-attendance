@@ -229,6 +229,8 @@ else ok('직원 휴대폰만 변경 시 phoneOnly 저장 경로가 있습니다.
 
 if (!html.includes('data-today-task-state-v35="true"') || !html.includes('data-abs-task-state') || !html.includes('todayTaskStateBadge')) fail('오늘의 업무 처리상태 v35 UI가 없습니다.');
 else ok('오늘의 업무 처리상태 v35 UI가 있습니다.');
+if (!html.includes('data-today-task-state-v36="compact-menu"') || !html.includes('todayTaskStateMenu') || !html.includes('today-task-state-compact-v36')) fail('오늘의 업무 처리상태 v36 compact menu UI가 없습니다.');
+else ok('오늘의 업무 처리상태 v36 compact menu UI가 있습니다.');
 if (!apiRpc.includes('assistant.setTodayTaskState') || !apiRpc.includes('today-task-state-v35') || !apiRpc.includes('today_task_state_')) fail('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 없습니다.');
 else ok('오늘의 업무 처리상태 v35 API/runtime_config 저장 경로가 있습니다.');
 
