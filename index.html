@@ -1768,7 +1768,7 @@
 
 </style>
 </head>
-<body class="kioskModernV3 kioskSurfaceSplitV24" data-surface="kiosk">
+<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27" data-surface="kiosk">
 	<div class="busy" id="busyBar"></div>
 
 	<div id="offlineLock">
@@ -1807,14 +1807,14 @@
 			</div>
 			<div class="kioskSettingsField">
 				<label for="kioskSettingsPin">PIN</label>
-				<input id="kioskSettingsPin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 입력">
+				<input id="kioskSettingsPin" type="password" inputmode="numeric" autocomplete="off" placeholder="저장된 PIN 사용" data-kiosk-pin-autofill="true">
 			</div>
 			<div class="kioskSettingsActionRow">
 				<button id="btnKioskSetFloor5" type="button">5F로 설정</button>
 				<button class="secondary" id="btnKioskSetFloor7" type="button">7F로 설정</button>
 			</div>
 			<button class="kioskSettingsReload" id="btnKioskSettingsReload" type="button">화면 새로고침</button>
-			<div class="kioskSettingsMsg" id="kioskSettingsMsg">층 설정만 바꿉니다. 운영/직원/학생 관리는 관리자 콘솔에서 처리합니다.</div>
+			<div class="kioskSettingsMsg" id="kioskSettingsMsg">층 설정 전용입니다.</div>
 		</div>
 	</div>
 
@@ -6363,6 +6363,21 @@ const StaffUI = {
 
 		const KioskSettings = {
 			_bound: false,
+			_pinStorageKey: 'THEOREUM_KIOSK_SETTINGS_PIN',
+
+			readSavedPin() {
+				try {
+					return String(localStorage.getItem(KioskSettings._pinStorageKey) || '').replace(/\D/g, '').slice(0, 8);
+				} catch (_) {
+					return '';
+				}
+			},
+
+			writeSavedPin(pin) {
+				const safePin = String(pin || '').replace(/\D/g, '').slice(0, 8);
+				if (!safePin) return;
+				try { localStorage.setItem(KioskSettings._pinStorageKey, safePin); } catch (_) {}
+			},
 
 			bind() {
 				if (KioskSettings._bound) return;
@@ -6411,12 +6426,15 @@ const StaffUI = {
 
 			open() {
 				KioskSettings.syncFloor();
-				KioskSettings.setMsg('층 설정만 바꿉니다. 운영/직원/학생 관리는 관리자 콘솔에서 처리합니다.');
+				KioskSettings.setMsg('층 설정 전용입니다.');
 				const panel = $('#kioskSettingsPanel');
 				if (!panel) return;
+				const pinEl = $('#kioskSettingsPin');
+				const savedPin = KioskSettings.readSavedPin();
+				if (pinEl && savedPin && !String(pinEl.value || '').trim()) pinEl.value = savedPin;
 				panel.classList.add('show');
 				panel.setAttribute('aria-hidden', 'false');
-				setTimeout(() => safeFocus($('#kioskSettingsPin')), 80);
+				setTimeout(() => safeFocus(pinEl), 80);
 			},
 
 			close() {
@@ -6424,21 +6442,21 @@ const StaffUI = {
 				if (!panel) return;
 				panel.classList.remove('show');
 				panel.setAttribute('aria-hidden', 'true');
-				const pin = $('#kioskSettingsPin');
-				if (pin) pin.value = '';
-				KioskSettings.setMsg('층 설정만 바꿉니다. 운영/직원/학생 관리는 관리자 콘솔에서 처리합니다.');
+				KioskSettings.setMsg('층 설정 전용입니다.');
 				setTimeout(() => safeFocus($('#kPhoneMid')), 40);
 			},
 
 			async setFloor(floor) {
 				const pinEl = $('#kioskSettingsPin');
-				const pin = String(pinEl && pinEl.value ? pinEl.value : '').trim();
+				let pin = String(pinEl && pinEl.value ? pinEl.value : '').replace(/\D/g, '').slice(0, 8);
+				if (!pin) pin = KioskSettings.readSavedPin();
 				if (!pin) {
 					KioskSettings.setMsg('PIN을 입력하세요.', false);
 					safeFocus(pinEl);
 					return;
 				}
 
+				if (pinEl && !String(pinEl.value || '').trim()) pinEl.value = pin;
 				KioskSettings.setMsg(floor + ' 설정 중...', null);
 				const r = await App.rpc('admin.setKioskFloor', { kiosk_floor: floor, pin });
 				if (!r.ok) {
@@ -6446,6 +6464,7 @@ const StaffUI = {
 					return;
 				}
 
+				KioskSettings.writeSavedPin(pin);
 				App.meta = App.meta || {};
 				App.meta.kiosk_floor = floor;
 				UI.setKioskFloor(floor);

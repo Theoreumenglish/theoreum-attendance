@@ -886,36 +886,51 @@ async function verifyKioskAdminSurfaceSplit(surface) {
 
 
 async function verifyKioskSettingsTabV26() {
-  await clickIfExists('#btnKioskSettings', 'kiosk settings button', 5000);
-  await page.waitForFunction(() => {
-    const panel = document.querySelector('#kioskSettingsPanel');
-    if (!panel) return false;
-    const s = getComputedStyle(panel);
-    const r = panel.getBoundingClientRect();
-    return panel.classList.contains('show') && s.display !== 'none' && r.width > 0 && r.height > 0;
-  }, { timeout: 5000 });
+  try {
+    await clickIfExists('#btnKioskSettings', 'kiosk settings button', 5000);
+    await page.waitForFunction(() => {
+      const panel = document.querySelector('#kioskSettingsPanel');
+      if (!panel) return false;
+      const s = getComputedStyle(panel);
+      const r = panel.getBoundingClientRect();
+      return panel.classList.contains('show') && s.display !== 'none' && r.width > 0 && r.height > 0;
+    }, { timeout: 5000 });
 
-  const result = await page.evaluate(() => {
-    const panel = document.querySelector('#kioskSettingsPanel');
-    const text = String(panel?.innerText || '').replace(/\s+/g, ' ');
-    const has5 = !!document.querySelector('#btnKioskSetFloor5');
-    const has7 = !!document.querySelector('#btnKioskSetFloor7');
-    const hasPin = !!document.querySelector('#kioskSettingsPin');
-    const hasReload = !!document.querySelector('#btnKioskSettingsReload');
-    return { text, has5, has7, hasPin, hasReload };
-  });
+    const result = await page.evaluate(() => {
+      const panel = document.querySelector('#kioskSettingsPanel');
+      const text = String(panel?.innerText || '').replace(/\s+/g, ' ');
+      const has5 = !!document.querySelector('#btnKioskSetFloor5');
+      const has7 = !!document.querySelector('#btnKioskSetFloor7');
+      const hasPin = !!document.querySelector('#kioskSettingsPin');
+      const hasReload = !!document.querySelector('#btnKioskSettingsReload');
+      const pinAutofill = !!document.querySelector('#kioskSettingsPin[data-kiosk-pin-autofill="true"]');
+      return { text, has5, has7, hasPin, hasReload, pinAutofill };
+    });
 
-  if (!result.has5 || !result.has7 || !result.hasPin) {
-    throw new Error('kiosk settings missing floor/PIN controls');
+    if (!result.has5 || !result.has7 || !result.hasPin) {
+      throw new Error('kiosk settings missing floor/PIN controls');
+    }
+    if (!result.pinAutofill) {
+      throw new Error('kiosk settings PIN autofill marker missing');
+    }
+    if (/관리자 콘솔|중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(result.text)) {
+      throw new Error('kiosk settings panel contains admin/runtime-heavy tools: ' + result.text.slice(0, 300));
+    }
+    if (!/키오스크 설정/.test(result.text) || !/5F로 설정/.test(result.text) || !/7F로 설정/.test(result.text)) {
+      throw new Error('kiosk settings panel labels are not clear enough: ' + result.text.slice(0, 300));
+    }
+  } finally {
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.locator('#btnKioskSettingsClose').click({ timeout: 1000 }).catch(() => {});
+    await page.evaluate(() => {
+      const panel = document.querySelector('#kioskSettingsPanel');
+      if (panel) {
+        panel.classList.remove('show');
+        panel.setAttribute('aria-hidden', 'true');
+      }
+    }).catch(() => {});
+    await waitQuiet(250);
   }
-  if (/중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(result.text)) {
-    throw new Error('kiosk settings panel contains admin/runtime-heavy tools: ' + result.text.slice(0, 300));
-  }
-  if (!/키오스크 설정/.test(result.text) || !/5F로 설정/.test(result.text) || !/7F로 설정/.test(result.text)) {
-    throw new Error('kiosk settings panel labels are not clear enough: ' + result.text.slice(0, 300));
-  }
-  await page.keyboard.press('Escape').catch(() => {});
-  await waitQuiet(200);
 }
 
 async function verifyKioskRuntimeSplitV25() {

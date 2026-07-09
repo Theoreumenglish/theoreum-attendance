@@ -18,6 +18,8 @@ const required = [
   ['kiosk runtime split QA marker', '__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__'],
   ['kiosk settings tab restored', 'id="btnKioskSettings"'],
   ['kiosk settings panel exists', 'id="kioskSettingsPanel"'],
+  ['kiosk settings PIN local autofill marker', 'data-kiosk-pin-autofill="true"'],
+  ['kiosk settings local PIN key', 'THEOREUM_KIOSK_SETTINGS_PIN'],
   ['kiosk settings floor 5F action', 'id="btnKioskSetFloor5"'],
   ['kiosk settings floor 7F action', 'id="btnKioskSetFloor7"'],
   ['staff fast clock buttons', 'btnStaffClockInFast'],
@@ -80,7 +82,7 @@ const settingsPanel = settingsPanelMatch ? settingsPanelMatch[0] : '';
 if (!settingsPanel) {
   console.error('FAIL kiosk settings panel markup missing');
   failed += 1;
-} else if (/중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(settingsPanel)) {
+} else if (/관리자 콘솔|중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(settingsPanel)) {
   console.error('FAIL kiosk settings panel contains admin/runtime-heavy tools');
   failed += 1;
 } else {
