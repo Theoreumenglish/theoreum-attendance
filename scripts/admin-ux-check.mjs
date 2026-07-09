@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync('public/admin.html', 'utf8');
 const apiRpc = readFileSync('api/rpc.js', 'utf8');
 const kioskApi = readFileSync('api/kiosk-mark.js', 'utf8');
+const kioskUnifiedApi = readFileSync('api/kiosk-unified.js', 'utf8');
+const kioskSettingsApi = readFileSync('api/kiosk-settings.js', 'utf8');
 const staffClockApi = readFileSync('api/staff-clock.js', 'utf8');
 const markupHtml = html.replace(/<!--[\s\S]*?-->/g, '').split('<script>')[0];
 let failed = 0;
@@ -189,7 +191,7 @@ else ok('키오스크 루트에서 관리자 콘솔 진입 버튼을 제거했�
 if (!html.includes('data-surface="admin-console"') || !html.includes('키오스크 새 창')) fail('관리자 콘솔 surface 마커 또는 키오스크 새 창 링크가 없습니다.');
 else ok('관리자 콘솔 surface 마커와 키오스크 새 창 링크가 있습니다.');
 
-if (!kioskHtml.includes('__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__') || !kioskHtml.includes("return '/api/kiosk-mark'") || !kioskHtml.includes("return '/api/staff-clock'")) fail('키오스크 런타임/API 분리 마커 또는 전용 endpoint가 없습니다.');
+if (!kioskHtml.includes('__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__') || !kioskHtml.includes("return '/api/kiosk-unified'") || !kioskHtml.includes("return '/api/kiosk-settings'") || !kioskHtml.includes("return '/api/staff-clock'")) fail('키오스크 런타임/API 분리 마커 또는 전용 endpoint가 없습니다.');
 else ok('키오스크 런타임/API 분리 마커와 전용 endpoint가 있습니다.');
 if (!kioskHtml.includes('__THEOREUM_KIOSK_SPEED_V31__') || !kioskHtml.includes('queueSubmit(delayMs = 20)')) fail('키오스크 고속 입력 v31 마커 또는 20ms autosubmit이 없습니다.');
 else ok('키오스크 고속 입력 v31 마커가 있습니다.');
@@ -210,6 +212,13 @@ else ok('staff-clock v32 직원 전화번호 exact-index marker가 있습니다.
 
 if (!staffClockApi.includes('readStaffExactRowsForPhoneClock')) fail('staff-clock v32 exact indexed lookup helper가 없습니다.');
 else ok('staff-clock v32 exact indexed lookup helper가 있습니다.');
+
+if (!kioskHtml.includes('__THEOREUM_UNIFIED_KIOSK_V33__') || !kioskHtml.includes('data-unified-kiosk-v33="true"')) fail('통합 키오스크 v33 마커가 없습니다.');
+else ok('통합 키오스크 v33 마커가 있습니다.');
+if (!kioskUnifiedApi.includes('handleKioskMark') || !kioskUnifiedApi.includes('handleStaffClock') || !kioskUnifiedApi.includes('unified_staff_fallback_v33')) fail('kiosk-unified v33 학생/직원 통합 endpoint가 없습니다.');
+else ok('kiosk-unified v33 학생/직원 통합 endpoint가 있습니다.');
+if (!kioskSettingsApi.includes('kiosk_settings_pin_no_admin_session_v33') || !kioskSettingsApi.includes('writeRuntimeConfig')) fail('kiosk-settings v33 PIN 기반 층 설정 endpoint가 없습니다.');
+else ok('kiosk-settings v33 PIN 기반 층 설정 endpoint가 있습니다.');
 
 if (failed > 0) {
   console.error('');

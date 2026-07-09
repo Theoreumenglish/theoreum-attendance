@@ -1877,7 +1877,7 @@
 		<div class="card heroCard">
 			<div class="titleWrap">
 				<span class="floor-badge" id="floorPill">5F</span>
-				<h2 class="cardTitle">출결 키오스크</h2>
+				<h2 class="cardTitle">통합 출결 키오스크</h2>
 			</div>
 
 			<div class="actGrid">
@@ -1888,7 +1888,7 @@
 						<polyline points="10 17 15 12 10 7"></polyline>
 						<line x1="15" y1="12" x2="3" y2="12"></line>
 					</svg>
-					<span>등원</span>
+					<span>등원/출근</span>
 				</button>
 
 				<button class="actBtn" id="btnCHECK_OUT" type="button" data-mode="CHECK_OUT">
@@ -1898,7 +1898,7 @@
 						<polyline points="16 17 21 12 16 7"></polyline>
 						<line x1="21" y1="12" x2="9" y2="12"></line>
 					</svg>
-					<span>하원</span>
+					<span>하원/퇴근</span>
 				</button>
 
 				<button class="actBtn" id="btnMOVE" type="button" data-mode="MOVE">
@@ -1925,7 +1925,7 @@
 			</div>
 
 			<div class="input-wrapper">
-				<div class="phoneSegmentRow" id="kPhoneSegmentRow" aria-label="휴대폰 번호 뒤 8자리 입력">
+				<div class="phoneSegmentRow" id="kPhoneSegmentRow" aria-label="학생·직원 휴대폰 번호 뒤 8자리 입력">
 					<span class="phoneStatic">010-</span>
 					<input
 						class="phoneSegmentInput"
@@ -1983,11 +1983,9 @@
 
 			</div>
 
-      <div class="staffClockLane" aria-label="직원 전용 출퇴근 빠른 실행">
-        <div class="staffClockLaneTitle">직원 전용 출퇴근</div>
-        <button class="staffClockLaneBtn in" id="btnStaffClockInFast" type="button">직원 출근</button>
-        <button class="staffClockLaneBtn out" id="btnStaffClockOutFast" type="button">직원 퇴근</button>
-        <div class="staffClockLaneHint">학생 출결 버튼과 분리된 직원 전용 버튼입니다. 누른 뒤 뒤 8자리만 입력합니다.</div>
+      <div class="unifiedKioskHint" data-unified-kiosk-v33="true" aria-label="학생 직원 통합 전화번호 출결 안내">
+        <strong>학생·직원 통합 입력</strong>
+        <span>등원/출근, 하원/퇴근을 누른 뒤 010 제외 뒤 8자리만 입력합니다.</span>
       </div>
 
 			<div class="msg" id="kMsg"></div>
@@ -2504,6 +2502,8 @@
 				// v25 runtime split: kiosk-facing writes do not share the heavy admin RPC surface.
 				// Admin console remains on /api/rpc; the public kiosk uses narrow serverless endpoints.
 				switch (String(op || '').trim()) {
+					case 'kiosk.unified':
+						return '/api/kiosk-unified';
 					case 'kiosk.mark':
 						return '/api/kiosk-mark';
 					case 'staff.clock':
@@ -2512,6 +2512,8 @@
 						return '/api/staff-clock-qr';
 					case 'kiosk.approvePin':
 						return '/api/kiosk-approve-pin';
+					case 'kiosk.setFloor':
+						return '/api/kiosk-settings';
 					default:
 						return '/api/rpc';
 				}
@@ -2519,7 +2521,7 @@
 
 			rpcTimeoutFor(op) {
 				const key = String(op || '').trim();
-				if (key === 'kiosk.mark' || key === 'staff.clock' || key === 'staff.clock.qr') return 20000;
+				if (key === 'kiosk.unified' || key === 'kiosk.mark' || key === 'staff.clock' || key === 'staff.clock.qr' || key === 'kiosk.setFloor') return 20000;
 				return 15000;
 			},
 
@@ -2545,9 +2547,11 @@
 							window.__THEOREUM_RPC_CALLS__ = Array.isArray(window.__THEOREUM_RPC_CALLS__) ? window.__THEOREUM_RPC_CALLS__ : [];
 							window.__THEOREUM_RPC_CALLS__.push({ op, endpoint, at: Date.now() });
 							window.__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__ = {
+								kioskUnified: '/api/kiosk-unified',
 								kioskMark: '/api/kiosk-mark',
 								staffClock: '/api/staff-clock',
 								staffClockQr: '/api/staff-clock-qr',
+								kioskSettings: '/api/kiosk-settings',
 								adminRpc: '/api/rpc'
 							};
 							window.__THEOREUM_KIOSK_SPEED_V31__ = {
@@ -2560,6 +2564,12 @@
 								modalOkMs: 1200,
 								serverHotPath: 'student-exact-lookup-plus-parallel-state-notify',
 								staffPhoneHotPath: 'staff-phone-exact-index-first'
+							};
+							window.__THEOREUM_UNIFIED_KIOSK_V33__ = {
+								mode: 'student-staff-one-phone-input',
+								endpoint: '/api/kiosk-unified',
+								floorSettingsEndpoint: '/api/kiosk-settings',
+								staffVisibleSeparateLane: false
 							};
 						} catch (_) {}
 
@@ -3865,8 +3875,8 @@
         const action = Kiosk.staffQuickOpen
           ? (Kiosk.staffQuickAction === 'OUT' ? '직원 퇴근' : '직원 출근')
           : ({
-              CHECK_IN: '등원',
-              CHECK_OUT: '하원',
+              CHECK_IN: '등원/출근',
+              CHECK_OUT: '하원/퇴근',
               MOVE: '교실 이동',
               OUTING: '외출/복귀'
             }[Kiosk.action] || '출결');
@@ -4113,7 +4123,7 @@
 					Kiosk.pendingKioskAction = Kiosk.action;
 					Kiosk.pendingKioskInput = normalizedInputForTrace;
 
-					const r = await App.rpc('kiosk.mark', {
+					const r = await App.rpc('kiosk.unified', {
 						action: Kiosk.action,
 						input: val,
 						kiosk_floor: kioskFloor
@@ -5854,7 +5864,7 @@ const StaffUI = {
 				const pin = prompt('[보안 확인] 키오스크 층을 변경하려면 관리자 PIN을 입력하세요.');
 				if (!pin) return;
 
-				const r = await App.rpc('admin.setKioskFloor', { kiosk_floor: floor, pin });
+				const r = await App.rpc('kiosk.setFloor', { kiosk_floor: floor, pin });
 				if (!r.ok) {
 					UI.toast(false, (r.error && r.error.message) ? r.error.message : '실패');
 					return;
@@ -6512,7 +6522,7 @@ const StaffUI = {
 
 				if (pinEl && !String(pinEl.value || '').trim()) pinEl.value = pin;
 				KioskSettings.setMsg(floor + ' 설정 중...', null);
-				const r = await App.rpc('admin.setKioskFloor', { kiosk_floor: floor, pin });
+				const r = await App.rpc('kiosk.setFloor', { kiosk_floor: floor, pin });
 				if (!r.ok) {
 					KioskSettings.setMsg((r.error && r.error.message) ? r.error.message : '층 설정에 실패했습니다.', false);
 					return;

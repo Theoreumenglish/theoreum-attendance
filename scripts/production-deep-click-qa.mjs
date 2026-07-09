@@ -970,8 +970,17 @@ async function verifyKioskRuntimeSplitV25() {
   const markers = await page.evaluate(() => window.__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__ || null).catch(() => null);
   const speedV31 = await page.evaluate(() => window.__THEOREUM_KIOSK_SPEED_V31__ || null).catch(() => null);
   const speedV32 = await page.evaluate(() => window.__THEOREUM_KIOSK_SPEED_V32__ || null).catch(() => null);
-  const kioskCalls = calls.filter(x => String(x?.op || '') === 'kiosk.mark');
-  if (!markers || markers.kioskMark !== '/api/kiosk-mark' || markers.adminRpc !== '/api/rpc') {
+  const unifiedV33 = await page.evaluate(() => window.__THEOREUM_UNIFIED_KIOSK_V33__ || null).catch(() => null);
+  const unifiedCalls = calls.filter(x => String(x?.op || '') === 'kiosk.unified');
+  const legacyKioskCalls = calls.filter(x => String(x?.op || '') === 'kiosk.mark');
+
+  if (
+    !markers ||
+    markers.kioskUnified !== '/api/kiosk-unified' ||
+    markers.kioskSettings !== '/api/kiosk-settings' ||
+    markers.kioskMark !== '/api/kiosk-mark' ||
+    markers.adminRpc !== '/api/rpc'
+  ) {
     throw new Error('kiosk runtime split marker is missing or invalid');
   }
   if (!speedV31 || Number(speedV31.autoSubmitDelayMs || 0) > 20 || speedV31.serverHotPath !== 'indexed-phone-lookup-plus-insert-dedupe') {
@@ -985,12 +994,25 @@ async function verifyKioskRuntimeSplitV25() {
   ) {
     throw new Error('kiosk/staff hot path v32 marker is missing or invalid: ' + JSON.stringify(speedV32));
   }
-  if (!kioskCalls.length) {
-    throw new Error('kiosk.mark call was not captured during kiosk QA');
+  if (
+    !unifiedV33 ||
+    unifiedV33.mode !== 'student-staff-one-phone-input' ||
+    unifiedV33.endpoint !== '/api/kiosk-unified' ||
+    unifiedV33.floorSettingsEndpoint !== '/api/kiosk-settings' ||
+    unifiedV33.staffVisibleSeparateLane !== false
+  ) {
+    throw new Error('unified kiosk v33 marker is missing or invalid: ' + JSON.stringify(unifiedV33));
   }
-  const bad = kioskCalls.filter(x => String(x?.endpoint || '') !== '/api/kiosk-mark');
+  if (!unifiedCalls.length) {
+    throw new Error('kiosk.unified call was not captured during kiosk QA');
+  }
+  const bad = unifiedCalls.filter(x => String(x?.endpoint || '') !== '/api/kiosk-unified');
   if (bad.length) {
-    throw new Error('kiosk.mark still used admin RPC endpoint: ' + JSON.stringify(bad.slice(0, 3)));
+    throw new Error('kiosk.unified still used the wrong endpoint: ' + JSON.stringify(bad.slice(0, 3)));
+  }
+  const legacyBad = legacyKioskCalls.filter(x => String(x?.endpoint || '') === '/api/rpc');
+  if (legacyBad.length) {
+    throw new Error('legacy kiosk.mark used admin RPC endpoint: ' + JSON.stringify(legacyBad.slice(0, 3)));
   }
 }
 
@@ -1149,46 +1171,45 @@ async function run() {
       throw new Error(`phone input lost digits: mid=${midVal}, last=${lastVal}, raw=${rawDigits}`);
     }
   });
-  await step('kiosk runtime/API split: kiosk mark direct endpoint', async () => {
+  await step('kiosk runtime/API split: unified direct endpoint', async () => {
     await verifyKioskRuntimeSplitV25();
   }, { screenshot: false });
   await checkedDomAudit('kiosk_after_phone');
 
-  await step('kiosk staff hotword', async () => {
+  await step('kiosk unified student/staff phone surface', async () => {
     await page.goto(urlOf('/'), { waitUntil: 'domcontentloaded', timeout: timeoutMs });
     await waitQuiet(700);
-    await page.keyboard.type('staff');
-    await waitQuiet(700);
-    const visible = await page.locator('#kStaffQuick').evaluate(el => !el.hasAttribute('aria-hidden') || el.getAttribute('aria-hidden') === 'false').catch(() => false);
-    const body = await page.locator('body').innerText({ timeout: 2000 }).catch(() => '');
-    if (!visible && !/직원 출근|직원 모드/.test(body)) throw new Error('staff hotword did not open staff quick mode');
-    const activeId = await page.evaluate(() => document.activeElement?.id || '');
-    if (!['kPhoneMid', 'kPhoneLast'].includes(activeId)) throw new Error(`staff hotword did not focus phone segments: active=${activeId}`);
-    const staffLaneStillVisible = await page.evaluate(() => {
-      const lane = document.querySelector('.staffClockLane');
-      if (!lane) return false;
-      const s = getComputedStyle(lane);
-      const r = lane.getBoundingClientRect();
-      return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0 && s.pointerEvents !== 'none';
-    }).catch(() => false);
-    if (staffLaneStillVisible) throw new Error('staff quick mode opened but permanent staff lane is still active/visible behind overlay');
+    const info = await page.evaluate(() => {
+      const visible = el => {
+        if (!el) return false;
+        const s = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0;
+      };
+      return {
+        bodyText: document.body.innerText || '',
+        marker: window.__THEOREUM_UNIFIED_KIOSK_V33__ || null,
+        laneVisible: visible(document.querySelector('.staffClockLane')),
+        hintVisible: visible(document.querySelector('[data-unified-kiosk-v33="true"]')),
+        inText: document.querySelector('#btnCHECK_IN span')?.textContent || '',
+        outText: document.querySelector('#btnCHECK_OUT span')?.textContent || '',
+        activeId: document.activeElement?.id || ''
+      };
+    });
 
-    const compactOk = await page.evaluate(() => {
-      const panel = document.querySelector('#kStaffQuick');
-      const row = document.querySelector('#kPhoneSegmentRow');
-      if (!panel || !row) return false;
-      const ps = getComputedStyle(panel);
-      const pr = panel.getBoundingClientRect();
-      const rr = row.getBoundingClientRect();
-      const overlapsPhone = !(pr.right <= rr.left || pr.left >= rr.right || pr.bottom <= rr.top || pr.top >= rr.bottom);
-      return panel.getAttribute('data-staff-quick-inline-v28') === 'true'
-        && ps.position !== 'fixed'
-        && !overlapsPhone
-        && pr.height <= 190;
-    }).catch(() => false);
-    if (!compactOk) throw new Error('staff quick panel is not compact/inline enough for 13-inch kiosk phone input');
+    if (!info.marker || info.marker.mode !== 'student-staff-one-phone-input') {
+      throw new Error('unified kiosk marker missing: ' + JSON.stringify(info.marker));
+    }
+    if (info.laneVisible) throw new Error('separate staff lane is still visible on unified kiosk');
+    if (!info.hintVisible) throw new Error('unified kiosk hint is not visible');
+    if (!/등원\/출근/.test(info.inText) || !/하원\/퇴근/.test(info.outText)) {
+      throw new Error('unified action labels are missing: ' + JSON.stringify({ inText: info.inText, outText: info.outText }));
+    }
+    if (!['kPhoneMid', 'kPhoneLast'].includes(info.activeId)) {
+      throw new Error(`unified kiosk did not focus phone segments: active=${info.activeId}`);
+    }
   });
-  await checkedDomAudit('kiosk_staff_hotword');
+  await checkedDomAudit('kiosk_unified_surface');
 
   await apiRpc('auth.login', { staff_id: staffId, password });
   const loginBody = apiResults.at(-1)?.ok ? null : null;
@@ -1473,10 +1494,12 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '',
     '## What this checked',
     '- Real browser page load',
-    '- Kiosk phone input and staff hotword',
+    '- Kiosk phone input',
+    '- Unified student/staff kiosk phone surface',
     '- Kiosk/admin surface split guard',
     '- Kiosk runtime/API split guard',
     '- Kiosk/staff hot path v32 guard',
+    '- Unified student/staff kiosk v33 guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

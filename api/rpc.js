@@ -1,5 +1,7 @@
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { handleKioskMark } from './kiosk-mark.js';
+import { handleKioskUnified } from './kiosk-unified.js';
+import { handleKioskSettings } from './kiosk-settings.js';
 import { handleStaffClockQr } from './staff-clock-qr.js';
 import { handleStaffClock } from './staff-clock.js';
 import { handleKioskApprovePin } from './kiosk-approve-pin.js';
@@ -7767,6 +7769,16 @@ export default async function handler(req, res) {
 
   if (op === 'kiosk.approvePin') {
     const result = await handleKioskApprovePin(payload);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'kiosk.setFloor') {
+    const result = await handleKioskSettings(payload);
+    return send(res, result.status, result.body);
+  }
+
+  if (op === 'kiosk.unified') {
+    const result = await handleKioskUnified(payload);
     return send(res, result.status, result.body);
   }
 

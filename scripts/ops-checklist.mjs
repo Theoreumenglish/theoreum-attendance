@@ -288,7 +288,7 @@ checkText('student-today.html', 'studentToday.publicGet', 'root student-today st
 checkText('docs/PRODUCTION_QA_PARITY_V1.md', 'production-qa-parity-megapatch-v1', 'production QA parity 문서');
 
 checkText('scripts/production-deep-click-qa.mjs', 'TheOreum Production Deep Click QA Report', 'production deep click QA report');
-checkText('scripts/production-deep-click-qa.mjs', 'kiosk staff hotword', 'production deep click QA kiosk staff hotword');
+checkText('scripts/production-deep-click-qa.mjs', 'kiosk unified student/staff phone surface', 'production deep click QA unified kiosk surface');
 checkText('scripts/production-deep-click-qa.mjs', 'phone identity audit UI', 'production deep click QA phone identity UI');
 checkText('scripts/production-deep-click-qa.mjs', 'PRODUCTION_DEEP_QA_BUNDLE.zip', 'production deep click QA screenshot bundle');
 checkText('scripts/run-production-deep-click-qa.ps1', 'npm install --no-save playwright@1', 'production deep click QA auto Playwright install');

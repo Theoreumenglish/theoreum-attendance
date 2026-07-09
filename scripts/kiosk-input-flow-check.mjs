@@ -10,9 +10,10 @@ const required = [
   ['focus loss guard', "input.addEventListener('blur'"],
   ['focus watchdog keeps segment focus', 'activeIsKioskTarget'],
   ['phone tail segmented submit', 'Kiosk.submitPhoneSegmentsOnEnter()'],
-  ['staff quick phone clock path', "App.rpc('staff.clock'"],
-  ['kiosk mark direct endpoint', "case 'kiosk.mark':"],
-  ['kiosk mark endpoint path', "return '/api/kiosk-mark'"],
+  ['unified kiosk direct endpoint', "case 'kiosk.unified':"],
+  ['unified kiosk endpoint path', "return '/api/kiosk-unified'"],
+  ['kiosk mark direct endpoint retained', "case 'kiosk.mark':"],
+  ['kiosk mark endpoint path retained', "return '/api/kiosk-mark'"],
   ['staff clock direct endpoint path', "return '/api/staff-clock'"],
   ['staff QR direct endpoint path', "return '/api/staff-clock-qr'"],
   ['kiosk runtime split QA marker', '__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__'],
@@ -32,12 +33,16 @@ const required = [
   ['13-inch staff quick inline marker', 'staff-quick-inline-v28'],
   ['staff quick inline dataset marker', 'data-staff-quick-inline-v28="true"'],
   ['staff quick keeps phone segment visible copy', '번호 입력칸은 계속 보이게 유지됩니다'],
-  ['staff fast clock buttons', 'btnStaffClockInFast'],
-  ['staff hotword global guard', 'bindGlobalStaffHotkeys'],
   ['compact kiosk visual marker', 'kiosk-visual-qa-v1'],
   ['kiosk speed v32 runtime marker', '__THEOREUM_KIOSK_SPEED_V32__'],
   ['kiosk speed v32 student hot path', 'student-exact-lookup-plus-parallel-state-notify'],
   ['kiosk speed v32 staff hot path', 'staff-phone-exact-index-first'],
+  ['unified kiosk v33 runtime marker', '__THEOREUM_UNIFIED_KIOSK_V33__'],
+  ['unified kiosk v33 data marker', 'data-unified-kiosk-v33="true"'],
+  ['unified kiosk action label in', '등원/출근'],
+  ['unified kiosk action label out', '하원/퇴근'],
+  ['kiosk settings dedicated endpoint', "case 'kiosk.setFloor':"],
+  ['kiosk settings endpoint path', "return '/api/kiosk-settings'"],
 ];
 
 const forbidden = [
@@ -104,12 +109,20 @@ if (!settingsPanel) {
   console.log('OK kiosk settings panel is minimal');
 }
 
-// v25: kiosk runtime writes should use dedicated API files rather than the heavy admin RPC bundle.
-if (/case 'kiosk\.mark':[\s\S]{0,160}return '\/api\/kiosk-mark'/.test(html) && /fetch\(endpoint,/.test(html)) {
-  console.log('OK kiosk mark uses dedicated endpoint');
+// v33: kiosk runtime writes should enter the unified endpoint. The unified endpoint can resolve
+// student CHECK_IN/CHECK_OUT first and then staff IN/OUT without exposing separate staff UI.
+if (/case 'kiosk\.unified':[\s\S]{0,180}return '\/api\/kiosk-unified'/.test(html) && /fetch\(endpoint,/.test(html)) {
+  console.log('OK kiosk unified uses dedicated endpoint');
 } else {
-  console.error('FAIL kiosk mark dedicated endpoint guard missing');
+  console.error('FAIL kiosk unified dedicated endpoint guard missing');
   failed += 1;
+}
+
+if (!/data-unified-kiosk-v33=["']true["']/.test(html) || !/__THEOREUM_UNIFIED_KIOSK_V33__/.test(html)) {
+  console.error('FAIL unified kiosk v33 marker missing');
+  failed += 1;
+} else {
+  console.log('OK unified kiosk v33 markers');
 }
 
 if (failed) process.exit(1);
