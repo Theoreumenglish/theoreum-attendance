@@ -968,9 +968,13 @@ async function verifyKioskSettingsTabV26() {
 async function verifyKioskRuntimeSplitV25() {
   const calls = await page.evaluate(() => Array.isArray(window.__THEOREUM_RPC_CALLS__) ? window.__THEOREUM_RPC_CALLS__.slice() : []);
   const markers = await page.evaluate(() => window.__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__ || null).catch(() => null);
+  const speed = await page.evaluate(() => window.__THEOREUM_KIOSK_SPEED_V31__ || null).catch(() => null);
   const kioskCalls = calls.filter(x => String(x?.op || '') === 'kiosk.mark');
   if (!markers || markers.kioskMark !== '/api/kiosk-mark' || markers.adminRpc !== '/api/rpc') {
     throw new Error('kiosk runtime split marker is missing or invalid');
+  }
+  if (!speed || Number(speed.autoSubmitDelayMs || 0) > 20 || speed.serverHotPath !== 'indexed-phone-lookup-plus-insert-dedupe') {
+    throw new Error('kiosk speed v31 marker is missing or invalid: ' + JSON.stringify(speed));
   }
   if (!kioskCalls.length) {
     throw new Error('kiosk.mark call was not captured during kiosk QA');

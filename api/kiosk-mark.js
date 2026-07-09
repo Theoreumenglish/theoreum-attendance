@@ -37,6 +37,62 @@ function phoneTailMatches(phone, tail8) {
   return !!tail && /^010\d{8}$/.test(digits) && digits.slice(-8) === tail;
 }
 
+function phoneTailLookupCandidates(tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  if (!tail) return [];
+  const plain = '010' + tail;
+  const dashed = '010-' + tail.slice(0, 4) + '-' + tail.slice(4, 8);
+  return Array.from(new Set([plain, dashed]));
+}
+
+function collectPhoneTailMatches(rows, tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  const byStudent = new Map();
+
+  for (const row of (Array.isArray(rows) ? rows : [])) {
+    if (!row || !isActiveStudentStatus(row.status)) continue;
+    const sid = normalizeStudentId(row.student_id);
+    if (!sid) continue;
+
+    const studentTail = normalizePhoneTail8(row.student_phone);
+    const studentMatch = phoneTailMatches(row.student_phone, tail);
+    const parentFallbackMatch = !studentTail && phoneTailMatches(row.parent_phone, tail);
+
+    if (studentMatch || parentFallbackMatch) {
+      byStudent.set(sid, {
+        ...row,
+        phone_identity_source: studentMatch ? 'student_phone' : 'parent_phone_fallback'
+      });
+    }
+  }
+
+  return Array.from(byStudent.values());
+}
+
+function resolvePhoneTailMatches(matches) {
+  if (matches.length === 1) {
+    return {
+      resolved: true,
+      data: matches[0],
+      error: null,
+      code: matches[0].phone_identity_source === 'parent_phone_fallback' ? 'OK_PARENT_FALLBACK' : 'OK'
+    };
+  }
+
+  if (matches.length > 1) {
+    return {
+      resolved: true,
+      data: null,
+      error: null,
+      code: 'PHONE_AMBIGUOUS',
+      message: '같은 휴대폰 끝 8자리의 재원생이 여러 명입니다. 데스크에 문의하세요.',
+      count: matches.length
+    };
+  }
+
+  return { resolved: false };
+}
+
 function isStudentQrText(input) {
   return /^(?:QR(?:1|2)|Q3)\./i.test(String(input || '').trim());
 }
@@ -116,41 +172,57 @@ async function findStudentByPhoneTail8(supabase, tail8) {
     };
   }
 
+  const selectCols = 'student_id, student_name, school, grade, student_phone, parent_phone, status, qr_id, is_exception';
+  const candidates = phoneTailLookupCandidates(tail);
+
+  // v31 kiosk-speed: most phone numbers are stored as 010-0000-0000 or 01000000000.
+  // Try indexed exact lookup first; fall back to legacy ilike only for irregular old data.
+  if (candidates.length) {
+    const [studentExact, parentExact] = await Promise.all([
+      supabase
+        .from('students')
+        .select(selectCols)
+        .in('status', ['재원', 'active'])
+        .in('student_phone', candidates)
+        .limit(10),
+      supabase
+        .from('students')
+        .select(selectCols)
+        .in('status', ['재원', 'active'])
+        .in('parent_phone', candidates)
+        .limit(10)
+    ]);
+
+    if (studentExact.error) return { data: null, error: studentExact.error };
+    if (parentExact.error) return { data: null, error: parentExact.error };
+
+    const exactMatches = collectPhoneTailMatches([
+      ...(Array.isArray(studentExact.data) ? studentExact.data : []),
+      ...(Array.isArray(parentExact.data) ? parentExact.data : [])
+    ], tail);
+    const exactResolved = resolvePhoneTailMatches(exactMatches);
+    if (exactResolved.resolved) {
+      return {
+        ...exactResolved,
+        fast_lookup: true
+      };
+    }
+  }
+
   const { data, error } = await supabase
     .from('students')
-    .select('student_id, student_name, school, grade, student_phone, parent_phone, status, qr_id, is_exception')
+    .select(selectCols)
     .or(`student_phone.ilike.%${tail}%,parent_phone.ilike.%${tail}%`)
     .limit(50);
 
   if (error) return { data: null, error };
 
-  const matches = [];
-  for (const row of (Array.isArray(data) ? data : [])) {
-    if (!isActiveStudentStatus(row?.status)) continue;
-    const studentTail = normalizePhoneTail8(row?.student_phone);
-    const studentMatch = phoneTailMatches(row?.student_phone, tail);
-    // 학생 본인 번호가 없거나 010 형식이 아닌 경우에만 학부모 번호를 출결 fallback으로 사용합니다.
-    // 형제/자매처럼 같은 학부모 번호가 여러 명에게 걸리면 아래 ambiguous 처리로 막습니다.
-    const parentFallbackMatch = !studentTail && phoneTailMatches(row?.parent_phone, tail);
-    if (studentMatch || parentFallbackMatch) {
-      matches.push({
-        ...row,
-        phone_identity_source: studentMatch ? 'student_phone' : 'parent_phone_fallback'
-      });
-    }
-  }
-
-  if (matches.length === 1) {
-    return { data: matches[0], error: null, code: matches[0].phone_identity_source === 'parent_phone_fallback' ? 'OK_PARENT_FALLBACK' : 'OK' };
-  }
-
-  if (matches.length > 1) {
+  const matches = collectPhoneTailMatches(data, tail);
+  const resolved = resolvePhoneTailMatches(matches);
+  if (resolved.resolved) {
     return {
-      data: null,
-      error: null,
-      code: 'PHONE_AMBIGUOUS',
-      message: '같은 휴대폰 끝 8자리의 재원생이 여러 명입니다. 데스크에 문의하세요.',
-      count: matches.length
+      ...resolved,
+      fast_lookup: false
     };
   }
 
@@ -702,39 +774,44 @@ export async function handleKioskMark(payload) {
     const now = new Date();
     const nowMs = now.getTime();
 
-    const { data: existingTrace, error: traceErr } = await findExistingTrace(supabase, traceId);
-    if (traceErr) {
-      return fail(500, 'DB_SELECT_FAILED', traceErr.message || 'attendance_logs trace 조회 실패');
-    }
-    if (existingTrace) {
-      const stateWrite = await upsertTodayStateFromExistingRecord(
-        supabase,
-        existingTrace,
-        'duplicate_trace'
-      );
+    // v31 kiosk-speed: attendance_logs.trace_id has a unique index in production.
+    // Skip the pre-insert trace SELECT on the hot path and rely on duplicate-key handling below.
+    // Set KIOSK_PRESELECT_TRACE=Y only if a local/dev DB does not have the trace_id unique index yet.
+    if (String(process.env.KIOSK_PRESELECT_TRACE || '').trim().toUpperCase() === 'Y') {
+      const { data: existingTrace, error: traceErr } = await findExistingTrace(supabase, traceId);
+      if (traceErr) {
+        return fail(500, 'DB_SELECT_FAILED', traceErr.message || 'attendance_logs trace 조회 실패');
+      }
+      if (existingTrace) {
+        const stateWrite = await upsertTodayStateFromExistingRecord(
+          supabase,
+          existingTrace,
+          'duplicate_trace'
+        );
 
-      return success({
-        ok: true,
-        data: {
-          duplicate: true,
-          alreadyDone: false,
-          source: 'supabase-direct',
-          perf: perfSnapshot(perfStartMs, { path: 'duplicate_trace' }),
-          state: {
-            write_ok: !!stateWrite.ok,
-            skipped: !!stateWrite.skipped,
-            reason: stateWrite.reason || '',
-            error: stateWrite.ok ? '' : String(stateWrite.error || ''),
-            warning: stateWrite.ok ? '' : 'DUPLICATE_TRACE_STATE_WRITE_FAILED'
+        return success({
+          ok: true,
+          data: {
+            duplicate: true,
+            alreadyDone: false,
+            source: 'supabase-direct',
+            perf: perfSnapshot(perfStartMs, { path: 'duplicate_trace_preselect' }),
+            state: {
+              write_ok: !!stateWrite.ok,
+              skipped: !!stateWrite.skipped,
+              reason: stateWrite.reason || '',
+              error: stateWrite.ok ? '' : String(stateWrite.error || ''),
+              warning: stateWrite.ok ? '' : 'DUPLICATE_TRACE_STATE_WRITE_FAILED'
+            },
+            ui: {
+              title: '중복 입력',
+              message: '이미 처리된 요청입니다.'
+            }
           },
-          ui: {
-            title: '중복 입력',
-            message: '이미 처리된 요청입니다.'
-          }
-        },
-        traceId,
-        record: existingTrace
-      });
+          traceId,
+          record: existingTrace
+        });
+      }
     }
 
     let sid = sidFromIdInput;
@@ -760,6 +837,9 @@ export async function handleKioskMark(payload) {
       studentFromPhone = phoneOut.data;
       sid = normalizeStudentId(studentFromPhone.student_id);
       inputMode = 'PHONE_LAST8';
+      try {
+        studentFromPhone.phone_lookup_fast = phoneOut.fast_lookup === true ? 'Y' : 'N';
+      } catch (_) {}
     }
 
     if (isQr) {
@@ -829,6 +909,9 @@ export async function handleKioskMark(payload) {
       metaJson.phone_attendance = 'Y';
       metaJson.phone_prefix = '010';
       metaJson.phone_tail8 = phoneTail8;
+      if (studentFromPhone && studentFromPhone.phone_lookup_fast) {
+        metaJson.phone_lookup_fast = studentFromPhone.phone_lookup_fast;
+      }
     }
 
     if (inputMode === 'STUDENT_ID_LEGACY') {

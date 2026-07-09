@@ -2581,8 +2581,10 @@ async function adminCentralStaffUpsertDirect(args = {}, sessionToken = '') {
   if (result.body?.ok === true && phoneProvided) {
     const auth = await authMeDirect(String(sessionToken || '').trim(), { touch: false }).catch(() => null);
     const actor = auth?.staff_id || '';
-    const phoneDirectory = await upsertStaffPhoneDirectory({ ...staff, source: 'admin.central.staff.upsert' }, actor);
-    const phonePatch = await patchCentralStaffPhoneMirror(staff.staff_id, normalizedPhone || '');
+    const [phoneDirectory, phonePatch] = await Promise.all([
+      upsertStaffPhoneDirectory({ ...staff, source: 'admin.central.staff.upsert' }, actor),
+      patchCentralStaffPhoneMirror(staff.staff_id, normalizedPhone || '')
+    ]);
     result.body.data = {
       ...(result.body.data || {}),
       staff_phone: normalizedPhone || '',
@@ -2621,8 +2623,10 @@ async function adminCentralStaffPhoneOnlyDirect(args = {}, sessionToken = '') {
     source: 'admin.central.staff.phoneOnly'
   };
 
-  const phoneDirectory = await upsertStaffPhoneDirectory(phoneStaff, auth.me?.staff_id || '');
-  const phonePatch = await patchCentralStaffPhoneMirror(staffId, normalizedPhone);
+  const [phoneDirectory, phonePatch] = await Promise.all([
+    upsertStaffPhoneDirectory(phoneStaff, auth.me?.staff_id || ''),
+    patchCentralStaffPhoneMirror(staffId, normalizedPhone)
+  ]);
   fastCacheDelPrefix('central.staff.list');
   fastCacheDelPrefix('central_staff_list');
 

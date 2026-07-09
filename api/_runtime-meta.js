@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../lib/supabase-admin.js';
 
-const RUNTIME_META_CACHE_TTL_MS = 3000;
+// v31 kiosk-speed: floor/safe-mode metadata should not hit Supabase on every check-in.
+// Kiosk settings writes invalidate this cache; safe-mode changes may take up to 10s per warm runtime.
+const RUNTIME_META_CACHE_TTL_MS = 10000;
 
 let runtimeMetaCache = null;
 let runtimeMetaCacheExp = 0;

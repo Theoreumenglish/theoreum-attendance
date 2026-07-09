@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 const html = readFileSync('public/admin.html', 'utf8');
 const apiRpc = readFileSync('api/rpc.js', 'utf8');
+const kioskApi = readFileSync('api/kiosk-mark.js', 'utf8');
 const markupHtml = html.replace(/<!--[\s\S]*?-->/g, '').split('<script>')[0];
 let failed = 0;
 function ok(message) { console.log('OK', message); }
@@ -111,6 +112,8 @@ else ok('오늘 미등원 통계에서 예외 표현을 제거했습니다.');
 
 if (!html.includes('__THEOREUM_ADMIN_BOOT_LAZY_READINESS_V30__')) fail('관리자 부팅 최적화 v30 마커가 없습니다.');
 else ok('관리자 부팅 최적화 v30 마커가 있습니다.');
+if (!html.includes('__THEOREUM_STAFF_SAVE_SPEED_V31__') || !html.includes("afterSaveReload: 'background'")) fail('직원 저장 후 백그라운드 갱신 v31 마커가 없습니다.');
+else ok('직원 저장 후 백그라운드 갱신 v31 마커가 있습니다.');
 if (/setTimeout\(\(\) => \{ loadClassCatalog\(\); loadStaffCatalog\(\); \}, 0\)/.test(html)) fail('로그인 직후 직원 목록을 자동 로드하고 있습니다. 직원 목록은 필요할 때만 불러와야 합니다.');
 else ok('로그인 직후 직원 목록 자동 로드를 제거했습니다.');
 if (!html.includes('로그인 직후 자동 실행하지 않습니다. 필요할 때만 최종 체크 실행을 누르세요.')) fail('최종 운영 체크가 온디맨드 실행임을 안내하지 않습니다.');
@@ -187,11 +190,16 @@ else ok('관리자 콘솔 surface 마커와 키오스크 새 창 링크가 있�
 
 if (!kioskHtml.includes('__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__') || !kioskHtml.includes("return '/api/kiosk-mark'") || !kioskHtml.includes("return '/api/staff-clock'")) fail('키오스크 런타임/API 분리 마커 또는 전용 endpoint가 없습니다.');
 else ok('키오스크 런타임/API 분리 마커와 전용 endpoint가 있습니다.');
+if (!kioskHtml.includes('__THEOREUM_KIOSK_SPEED_V31__') || !kioskHtml.includes('queueSubmit(delayMs = 20)')) fail('키오스크 고속 입력 v31 마커 또는 20ms autosubmit이 없습니다.');
+else ok('키오스크 고속 입력 v31 마커가 있습니다.');
 if (!kioskHtml.includes('id="btnKioskSettings"') || !kioskHtml.includes('id="kioskSettingsPanel"')) fail('키오스크 설정 탭 또는 설정 패널이 없습니다.');
 else ok('키오스크 설정 탭을 유지했습니다.');
 const kioskSettingsPanel = (kioskHtml.match(/<div\s+id=["']kioskSettingsPanel["'][\s\S]*?<\/div>\s*<\/div>/i) || [''])[0];
 if (/중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(kioskSettingsPanel)) fail('키오스크 설정 패널에 관리자/무거운 기능이 남아 있습니다.');
 else ok('키오스크 설정 패널은 층 설정 중심으로 정리되었습니다.');
+
+if (!kioskApi.includes('phoneTailLookupCandidates') || !kioskApi.includes('KIOSK_PRESELECT_TRACE')) fail('키오스크 서버 hot path v31 최적화가 없습니다.');
+else ok('키오스크 서버 hot path v31 최적화가 있습니다.');
 
 if (failed > 0) {
   console.error('');

@@ -1772,7 +1772,7 @@
 
 </style>
 </head>
-<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27 kioskSettingsPinFocusV29" data-surface="kiosk">
+<body class="kioskModernV3 kioskSurfaceSplitV24 kioskSettingsFixV27 kioskSettingsPinFocusV29 kioskSpeedV31" data-surface="kiosk">
 	<div class="busy" id="busyBar"></div>
 
 	<div id="offlineLock">
@@ -2550,6 +2550,11 @@
 								staffClockQr: '/api/staff-clock-qr',
 								adminRpc: '/api/rpc'
 							};
+							window.__THEOREUM_KIOSK_SPEED_V31__ = {
+								autoSubmitDelayMs: 20,
+								modalOkMs: 1200,
+								serverHotPath: 'indexed-phone-lookup-plus-insert-dedupe'
+							};
 						} catch (_) {}
 
 						const res = await fetch(endpoint, {
@@ -2774,7 +2779,9 @@
 					: '<svg width="80" height="80" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
 				m.classList.add('show');
-				setTimeout(() => m.classList.remove('show'), 2000);
+				const kioskFastModal = document.body && document.body.classList && document.body.classList.contains('kioskSpeedV31');
+				const closeMs = kioskFastModal ? (ok ? 1200 : 1600) : 2000;
+				setTimeout(() => m.classList.remove('show'), closeMs);
 			},
 
 			initAudio() {
@@ -3118,7 +3125,7 @@
             (!Kiosk.staffQuickOpen && Kiosk.isCompleteStudentQr(v)) ||
             Kiosk.shouldSubmitPhoneTail8(v)
           ) {
-            Kiosk.queueSubmit(120);
+            Kiosk.queueSubmit(20);
             return;
           }
         });
@@ -3194,7 +3201,7 @@
 					if (App.currentView === 'kiosk' && !$('#offlineLock').classList.contains('show') && !Kiosk.isSubmitting && !activeIsKioskTarget) {
 						Kiosk.focusPhoneSegment();
 					}
-				}, 700);
+				}, 1000);
 
 				Kiosk.setAction('CHECK_IN');
 				Kiosk.focusPhoneSegment(50);
@@ -3486,14 +3493,14 @@
         if (Kiosk.staffQuickOpen && Kiosk.isCompleteStaffQr(normalized)) {
           const input = $('#kInput');
           if (input) input.value = normalized;
-          Kiosk.queueSubmit(120);
+          Kiosk.queueSubmit(20);
           return;
         }
 
         if (!Kiosk.staffQuickOpen && Kiosk.isCompleteStudentQr(normalized)) {
           const input = $('#kInput');
           if (input) input.value = normalized;
-          Kiosk.queueSubmit(120);
+          Kiosk.queueSubmit(20);
           return;
         }
 
@@ -3510,7 +3517,7 @@
           Kiosk.syncPhoneTailToRawInput();
 
           if (tail.length >= 8) {
-            Kiosk.queueSubmit(80);
+            Kiosk.queueSubmit(20);
           } else if (last) {
             safeFocus(last, 10);
           }
@@ -3528,7 +3535,7 @@
 
         const tail = Kiosk.syncPhoneTailToRawInput();
         if (tail.length === 8) {
-          Kiosk.queueSubmit(80);
+          Kiosk.queueSubmit(20);
         }
       },
 
@@ -3704,7 +3711,7 @@
         return Kiosk.normalizePhoneTail8(raw).length === 8;
       },
 
-      queueSubmit(delayMs = 120) {
+      queueSubmit(delayMs = 20) {
         clearTimeout(Kiosk._autoTimer);
         Kiosk._autoTimer = setTimeout(() => {
           Kiosk.submit();
@@ -3845,6 +3852,19 @@
           input.setAttribute('inputmode', 'text');
         }
         Kiosk.focusPhoneSegment(50);
+      },
+
+
+      showSubmitHint(msgEl) {
+        const action = Kiosk.staffQuickOpen
+          ? (Kiosk.staffQuickAction === 'OUT' ? '직원 퇴근' : '직원 출근')
+          : ({
+              CHECK_IN: '등원',
+              CHECK_OUT: '하원',
+              MOVE: '교실 이동',
+              OUTING: '외출/복귀'
+            }[Kiosk.action] || '출결');
+        UI.showMsg(msgEl || $('#kMsg'), true, action + ' 처리 중...');
       },
 
 			setLoading(loading) {
@@ -4003,6 +4023,7 @@
 					Kiosk.clearPhoneSegmentInputs();
 					UI.clearMsg(msg);
 					setDbg('');
+					Kiosk.showSubmitHint(msg);
 
 					if (Kiosk.staffQuickOpen) {
 						const staffAction = Kiosk.staffQuickAction || 'IN';
@@ -4250,7 +4271,7 @@
             Kiosk.shouldSubmitPhoneTail8(v);
 
           if (shouldSubmit) {
-            Kiosk.queueSubmit(40);
+            Kiosk.queueSubmit(10);
           } else {
             Kiosk.submitPhoneSegmentsOnEnter();
           }

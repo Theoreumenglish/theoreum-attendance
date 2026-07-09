@@ -7413,6 +7413,11 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       staffCatalogBootLazy: true,
       heavyChecks: ['admin.finalReadiness', 'admin.central.staff.list']
     };
+    window.__THEOREUM_STAFF_SAVE_SPEED_V31__ = {
+      enabled: true,
+      afterSaveReload: 'background',
+      phoneMirror: 'parallel-server'
+    };
     window.__THEOREUM_ADMIN_RPC_CALLS__ = [];
 
     function esc(value) {
@@ -9372,7 +9377,7 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
             safeOptimisticDone(pending, '직원 휴대폰 저장 완료', '비밀번호/PIN은 변경하지 않았습니다.');
             clearRpcCache();
             showToast('직원 휴대폰을 저장했습니다.');
-            await loadCentralStaff();
+            loadCentralStaff().catch(() => {});
           };
           input?.focus();
           input?.select();
@@ -9417,8 +9422,8 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       clearRpcCache();
       showToast('비밀번호/PIN은 유지하고 휴대폰 번호만 저장했습니다.');
       App.staffCatalogLoadedOnce = false;
-      await loadStaffCatalog({ force: true });
-      await loadCentralStaff();
+      loadStaffCatalog({ force: true }).catch(() => {});
+      loadCentralStaff().catch(() => {});
       restoreCentralStaffPhoneFocus(focusSnapshot);
     }
 
@@ -9431,8 +9436,8 @@ body.adminConsoleSurfaceV24 .kioskSurfaceBadge {
       clearRpcCache();
       showToast('직원을 저장했습니다.');
       App.staffCatalogLoadedOnce = false;
-      await loadStaffCatalog({ force: true });
-      await loadCentralStaff();
+      loadStaffCatalog({ force: true }).catch(() => {});
+      loadCentralStaff().catch(() => {});
       restoreCentralStaffPhoneFocus(focusSnapshot);
     }
 
