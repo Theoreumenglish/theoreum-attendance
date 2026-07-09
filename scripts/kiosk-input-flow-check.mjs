@@ -16,6 +16,10 @@ const required = [
   ['staff clock direct endpoint path', "return '/api/staff-clock'"],
   ['staff QR direct endpoint path', "return '/api/staff-clock-qr'"],
   ['kiosk runtime split QA marker', '__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__'],
+  ['kiosk settings tab restored', 'id="btnKioskSettings"'],
+  ['kiosk settings panel exists', 'id="kioskSettingsPanel"'],
+  ['kiosk settings floor 5F action', 'id="btnKioskSetFloor5"'],
+  ['kiosk settings floor 7F action', 'id="btnKioskSetFloor7"'],
   ['staff fast clock buttons', 'btnStaffClockInFast'],
   ['staff hotword global guard', 'bindGlobalStaffHotkeys'],
   ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
@@ -68,6 +72,19 @@ if (/id="navAdmin"|관리자 콘솔<\/button>|location\.href=['"]\/admin\.html/.
   failed += 1;
 } else {
   console.log('OK no visible admin console launcher on kiosk root');
+}
+
+// v26: kiosk settings tab must exist, but only with kiosk device settings.
+const settingsPanelMatch = html.match(/<div\s+id=["']kioskSettingsPanel["'][\s\S]*?<\/div>\s*<\/div>/i);
+const settingsPanel = settingsPanelMatch ? settingsPanelMatch[0] : '';
+if (!settingsPanel) {
+  console.error('FAIL kiosk settings panel markup missing');
+  failed += 1;
+} else if (/중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(settingsPanel)) {
+  console.error('FAIL kiosk settings panel contains admin/runtime-heavy tools');
+  failed += 1;
+} else {
+  console.log('OK kiosk settings panel is minimal');
 }
 
 // v25: kiosk runtime writes should use dedicated API files rather than the heavy admin RPC bundle.

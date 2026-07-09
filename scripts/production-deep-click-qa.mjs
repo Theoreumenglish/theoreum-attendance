@@ -853,7 +853,7 @@ async function verifyKioskAdminSurfaceSplit(surface) {
       return s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || '1') !== 0 && r.width > 0 && r.height > 0;
     };
     const visibleText = String(document.body.innerText || '').replace(/\s+/g, ' ');
-    const visibleIds = ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT', 'loginId', 'loginPw', 'btnLogin']
+    const visibleIds = ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT', 'btnKioskSettings', 'loginId', 'loginPw', 'btnLogin']
       .filter(id => isVisible(document.getElementById(id)));
     return {
       surface: document.body.dataset.surface || '',
@@ -870,7 +870,7 @@ async function verifyKioskAdminSurfaceSplit(surface) {
     if (/관리자 콘솔|직원 로그인|중앙DB|설정\/점검|학생 관리/.test(result.visibleText)) {
       throw new Error('admin/staff console wording is visible on kiosk root');
     }
-    const required = ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT'];
+    const required = ['kPhoneMid', 'kPhoneLast', 'btnCHECK_IN', 'btnCHECK_OUT', 'btnKioskSettings'];
     const missing = required.filter(id => !result.visibleIds.includes(id));
     if (missing.length) throw new Error('kiosk controls missing after surface split: ' + missing.join(', '));
   }
@@ -883,6 +883,40 @@ async function verifyKioskAdminSurfaceSplit(surface) {
   }
 }
 
+
+
+async function verifyKioskSettingsTabV26() {
+  await clickIfExists('#btnKioskSettings', 'kiosk settings button', 5000);
+  await page.waitForFunction(() => {
+    const panel = document.querySelector('#kioskSettingsPanel');
+    if (!panel) return false;
+    const s = getComputedStyle(panel);
+    const r = panel.getBoundingClientRect();
+    return panel.classList.contains('show') && s.display !== 'none' && r.width > 0 && r.height > 0;
+  }, { timeout: 5000 });
+
+  const result = await page.evaluate(() => {
+    const panel = document.querySelector('#kioskSettingsPanel');
+    const text = String(panel?.innerText || '').replace(/\s+/g, ' ');
+    const has5 = !!document.querySelector('#btnKioskSetFloor5');
+    const has7 = !!document.querySelector('#btnKioskSetFloor7');
+    const hasPin = !!document.querySelector('#kioskSettingsPin');
+    const hasReload = !!document.querySelector('#btnKioskSettingsReload');
+    return { text, has5, has7, hasPin, hasReload };
+  });
+
+  if (!result.has5 || !result.has7 || !result.hasPin) {
+    throw new Error('kiosk settings missing floor/PIN controls');
+  }
+  if (/중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(result.text)) {
+    throw new Error('kiosk settings panel contains admin/runtime-heavy tools: ' + result.text.slice(0, 300));
+  }
+  if (!/키오스크 설정/.test(result.text) || !/5F로 설정/.test(result.text) || !/7F로 설정/.test(result.text)) {
+    throw new Error('kiosk settings panel labels are not clear enough: ' + result.text.slice(0, 300));
+  }
+  await page.keyboard.press('Escape').catch(() => {});
+  await waitQuiet(200);
+}
 
 async function verifyKioskRuntimeSplitV25() {
   const calls = await page.evaluate(() => Array.isArray(window.__THEOREUM_RPC_CALLS__) ? window.__THEOREUM_RPC_CALLS__.slice() : []);
@@ -985,6 +1019,10 @@ async function run() {
   await checkedDomAudit('root');
   await step('kiosk/admin surface split: kiosk root', async () => {
     await verifyKioskAdminSurfaceSplit('kiosk');
+  }, { screenshot: false });
+
+  await step('kiosk settings minimal tab', async () => {
+    await verifyKioskSettingsTabV26();
   }, { screenshot: false });
 
   await step('kiosk phone input', async () => {

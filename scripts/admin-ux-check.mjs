@@ -180,6 +180,11 @@ else ok('관리자 콘솔 surface 마커와 키오스크 새 창 링크가 있�
 
 if (!kioskHtml.includes('__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__') || !kioskHtml.includes("return '/api/kiosk-mark'") || !kioskHtml.includes("return '/api/staff-clock'")) fail('키오스크 런타임/API 분리 마커 또는 전용 endpoint가 없습니다.');
 else ok('키오스크 런타임/API 분리 마커와 전용 endpoint가 있습니다.');
+if (!kioskHtml.includes('id="btnKioskSettings"') || !kioskHtml.includes('id="kioskSettingsPanel"')) fail('키오스크 설정 탭 또는 설정 패널이 없습니다.');
+else ok('키오스크 설정 탭을 유지했습니다.');
+const kioskSettingsPanel = (kioskHtml.match(/<div\s+id=["']kioskSettingsPanel["'][\s\S]*?<\/div>\s*<\/div>/i) || [''])[0];
+if (/중앙DB|학생 관리|직원 관리|고급 관리자|실패 알림|미등원 즉시|캐시 비우기|알림톡 payload/.test(kioskSettingsPanel)) fail('키오스크 설정 패널에 관리자/무거운 기능이 남아 있습니다.');
+else ok('키오스크 설정 패널은 층 설정 중심으로 정리되었습니다.');
 
 if (failed > 0) {
   console.error('');
