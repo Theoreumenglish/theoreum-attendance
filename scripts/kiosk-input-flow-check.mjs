@@ -34,7 +34,10 @@ const required = [
   ['staff quick keeps phone segment visible copy', '번호 입력칸은 계속 보이게 유지됩니다'],
   ['staff fast clock buttons', 'btnStaffClockInFast'],
   ['staff hotword global guard', 'bindGlobalStaffHotkeys'],
-  ['compact kiosk visual marker', 'kiosk-visual-qa-v1']
+  ['compact kiosk visual marker', 'kiosk-visual-qa-v1'],
+  ['kiosk speed v32 runtime marker', '__THEOREUM_KIOSK_SPEED_V32__'],
+  ['kiosk speed v32 student hot path', 'student-exact-lookup-plus-parallel-state-notify'],
+  ['kiosk speed v32 staff hot path', 'staff-phone-exact-index-first'],
 ];
 
 const forbidden = [

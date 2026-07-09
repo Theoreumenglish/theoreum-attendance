@@ -968,13 +968,22 @@ async function verifyKioskSettingsTabV26() {
 async function verifyKioskRuntimeSplitV25() {
   const calls = await page.evaluate(() => Array.isArray(window.__THEOREUM_RPC_CALLS__) ? window.__THEOREUM_RPC_CALLS__.slice() : []);
   const markers = await page.evaluate(() => window.__THEOREUM_KIOSK_RUNTIME_SPLIT_V25__ || null).catch(() => null);
-  const speed = await page.evaluate(() => window.__THEOREUM_KIOSK_SPEED_V31__ || null).catch(() => null);
+  const speedV31 = await page.evaluate(() => window.__THEOREUM_KIOSK_SPEED_V31__ || null).catch(() => null);
+  const speedV32 = await page.evaluate(() => window.__THEOREUM_KIOSK_SPEED_V32__ || null).catch(() => null);
   const kioskCalls = calls.filter(x => String(x?.op || '') === 'kiosk.mark');
   if (!markers || markers.kioskMark !== '/api/kiosk-mark' || markers.adminRpc !== '/api/rpc') {
     throw new Error('kiosk runtime split marker is missing or invalid');
   }
-  if (!speed || Number(speed.autoSubmitDelayMs || 0) > 20 || speed.serverHotPath !== 'indexed-phone-lookup-plus-insert-dedupe') {
-    throw new Error('kiosk speed v31 marker is missing or invalid: ' + JSON.stringify(speed));
+  if (!speedV31 || Number(speedV31.autoSubmitDelayMs || 0) > 20 || speedV31.serverHotPath !== 'indexed-phone-lookup-plus-insert-dedupe') {
+    throw new Error('kiosk speed v31 marker is missing or invalid: ' + JSON.stringify(speedV31));
+  }
+  if (
+    !speedV32 ||
+    Number(speedV32.autoSubmitDelayMs || 0) > 20 ||
+    speedV32.serverHotPath !== 'student-exact-lookup-plus-parallel-state-notify' ||
+    speedV32.staffPhoneHotPath !== 'staff-phone-exact-index-first'
+  ) {
+    throw new Error('kiosk/staff hot path v32 marker is missing or invalid: ' + JSON.stringify(speedV32));
   }
   if (!kioskCalls.length) {
     throw new Error('kiosk.mark call was not captured during kiosk QA');
@@ -1428,6 +1437,12 @@ async function run() {
       });
       const body = await res.text();
       if (!res.ok) throw new Error(`staff-clock http=${res.status}: ${body.slice(0, 500)}`);
+      let json = null;
+      try { json = JSON.parse(body || '{}'); } catch (_) {}
+      const perf = json?.data?.perf || {};
+      if (perf.path !== 'staff_phone_exact_index_v32') {
+        throw new Error('staff.clock did not use v32 exact-index phone path: ' + JSON.stringify(perf));
+      }
     }, { screenshot: false });
   } else if (qaStaffTail8) {
     warn('staff clock write skipped', 'Run npm run prod:qa:deep:write to perform staff phone clock test.');
@@ -1461,6 +1476,7 @@ function buildReportLines(bundleResult = null, sourceResult = null, packageResul
     '- Kiosk phone input and staff hotword',
     '- Kiosk/admin surface split guard',
     '- Kiosk runtime/API split guard',
+    '- Kiosk/staff hot path v32 guard',
     '- Admin login UI',
     '- Core menu navigation',
     '- Phone identity UI',

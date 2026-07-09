@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync('public/admin.html', 'utf8');
 const apiRpc = readFileSync('api/rpc.js', 'utf8');
 const kioskApi = readFileSync('api/kiosk-mark.js', 'utf8');
+const staffClockApi = readFileSync('api/staff-clock.js', 'utf8');
 const markupHtml = html.replace(/<!--[\s\S]*?-->/g, '').split('<script>')[0];
 let failed = 0;
 function ok(message) { console.log('OK', message); }
@@ -200,6 +201,15 @@ else ok('키오스크 설정 패널은 층 설정 중심으로 정리되었습�
 
 if (!kioskApi.includes('phoneTailLookupCandidates') || !kioskApi.includes('KIOSK_PRESELECT_TRACE')) fail('키오스크 서버 hot path v31 최적화가 없습니다.');
 else ok('키오스크 서버 hot path v31 최적화가 있습니다.');
+
+if (!kioskApi.includes('parallel_state_notify_v32')) fail('kiosk-mark v32 병렬 상태/알림 hot path marker가 없습니다.');
+else ok('kiosk-mark v32 병렬 상태/알림 hot path marker가 있습니다.');
+
+if (!staffClockApi.includes('staff_phone_exact_index_v32')) fail('staff-clock v32 직원 전화번호 exact-index marker가 없습니다.');
+else ok('staff-clock v32 직원 전화번호 exact-index marker가 있습니다.');
+
+if (!staffClockApi.includes('readStaffExactRowsForPhoneClock')) fail('staff-clock v32 exact indexed lookup helper가 없습니다.');
+else ok('staff-clock v32 exact indexed lookup helper가 있습니다.');
 
 if (failed > 0) {
   console.error('');

@@ -1092,8 +1092,10 @@ export async function handleKioskMark(payload) {
       error: '',
       reason: 'NOT_ATTENDANCE_ACTION'
     };
-  
-    const stateWrite = await upsertTodayStateAfterAction({
+
+    // v32 kiosk hot path: after the durable attendance log is inserted, state upsert
+    // and parent notification queue can run in parallel instead of adding sequential wait.
+    const stateWritePromise = upsertTodayStateAfterAction({
       supabase,
       yyyymmdd,
       sid,
@@ -1104,16 +1106,19 @@ export async function handleKioskMark(payload) {
       stateSource
     });
 
-    if (finalAction === 'CHECK_IN' || finalAction === 'CHECK_OUT') {
-      notifyResult = await enqueueAttendanceNotify(
-        {
-          ...student,
-          student_name: student.student_name || verifiedStudentName || ''
-        },
-        finalAction,
-        traceId
-      );
-    }
+    const notifyPromise = (finalAction === 'CHECK_IN' || finalAction === 'CHECK_OUT')
+      ? enqueueAttendanceNotify(
+          {
+            ...student,
+            student_name: student.student_name || verifiedStudentName || ''
+          },
+          finalAction,
+          traceId
+        )
+      : Promise.resolve(notifyResult);
+
+    const [stateWrite, notifyOut] = await Promise.all([stateWritePromise, notifyPromise]);
+    notifyResult = notifyOut || notifyResult;
 
     return success({
       ok: true,
@@ -1128,10 +1133,11 @@ export async function handleKioskMark(payload) {
         },
         notify: notifyResult,
         perf: perfSnapshot(perfStartMs, {
-          path: 'main',
+          path: 'main_parallel_state_notify_v32',
           action: finalAction,
           input_mode: inputMode,
-          state_source: stateSource
+          state_source: stateSource,
+          hot_path: 'parallel_state_notify_v32'
         }),
         state: {
           source: stateSource,

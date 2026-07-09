@@ -60,6 +60,57 @@ function staffPhoneTailMatches(row, tail8) {
   return !!tail && !!phone && phone.slice(-8) === tail;
 }
 
+function phoneTailLookupCandidates(tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  if (!tail) return [];
+  return Array.from(new Set([
+    '010' + tail,
+    '010-' + tail.slice(0, 4) + '-' + tail.slice(4, 8)
+  ]));
+}
+
+function resolveStaffPhoneMatches(rows, tail8) {
+  const tail = normalizePhoneTail8(tail8);
+  const byId = new Map();
+
+  for (const row of (Array.isArray(rows) ? rows : [])) {
+    const staffId = normalizeStaffId(row?.staff_id);
+    if (!staffId) continue;
+    if (!staffPhoneTailMatches(row, tail)) continue;
+    if (normalizeStatus(row?.status) !== 'active' || normalizeRevoked(row?.revoked) === 'Y') continue;
+    if (!byId.has(staffId)) byId.set(staffId, row);
+  }
+
+  const matches = Array.from(byId.values());
+  if (matches.length === 1) return { resolved: true, data: matches[0], error: null, code: 'OK' };
+  if (matches.length > 1) {
+    return {
+      resolved: true,
+      data: null,
+      error: null,
+      code: 'PHONE_AMBIGUOUS',
+      message: '같은 휴대폰 끝 8자리의 재직 직원이 여러 명입니다. 관리자에게 문의하세요.',
+      count: matches.length
+    };
+  }
+  return { resolved: false };
+}
+
+async function readStaffExactRowsForPhoneClock(tableName, candidates) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(tableName)
+    .select('staff_id, name, role, status, revoked, staff_phone')
+    .in('staff_phone', candidates)
+    .limit(20);
+
+  if (error) {
+    return { data: [], error, table: tableName };
+  }
+
+  return { data: Array.isArray(data) ? data : [], error: null, table: tableName };
+}
+
 function normalizeRole(input) {
   const v = String(input || '').trim().toLowerCase();
   if (!v) return 'assistant';
@@ -169,6 +220,33 @@ async function readStaffForPhoneClock(phoneTail8) {
     };
   }
 
+  const candidates = phoneTailLookupCandidates(tail);
+
+  // v32 kiosk/staff hot path: production has btree indexes on staff_phone.
+  // Try exact indexed phone lookups first instead of loading whole staff snapshots
+  // on every kiosk 직원 출근/퇴근 request.
+  if (candidates.length) {
+    const exactReads = await Promise.all([
+      readStaffExactRowsForPhoneClock('staff_phone_directory', candidates),
+      readStaffExactRowsForPhoneClock('staff_snapshot', candidates),
+      readStaffExactRowsForPhoneClock('staff', candidates)
+    ]);
+
+    const exactSources = [];
+    for (const read of exactReads) {
+      if (!read.error || isMissingTableError(read.table, read.error)) exactSources.push(...read.data);
+      else return { data: null, error: read.error, code: 'DB_SELECT_FAILED' };
+    }
+
+    const exactResolved = resolveStaffPhoneMatches(exactSources, tail);
+    if (exactResolved.resolved) {
+      return {
+        ...exactResolved,
+        fast_lookup: true
+      };
+    }
+  }
+
   const sources = [];
   const directory = await readStaffPhoneDirectoryRowsForClock();
   if (!directory.error || isMissingTableError('staff_phone_directory', directory.error)) sources.push(...directory.data);
@@ -182,24 +260,11 @@ async function readStaffForPhoneClock(phoneTail8) {
   if (!staff.error || isMissingTableError('staff', staff.error)) sources.push(...staff.data);
   else return { data: null, error: staff.error, code: 'DB_SELECT_FAILED' };
 
-  const byId = new Map();
-  for (const row of sources) {
-    const staffId = normalizeStaffId(row?.staff_id);
-    if (!staffId) continue;
-    if (!staffPhoneTailMatches(row, tail)) continue;
-    if (normalizeStatus(row?.status) !== 'active' || normalizeRevoked(row?.revoked) === 'Y') continue;
-    if (!byId.has(staffId)) byId.set(staffId, row);
-  }
-
-  const matches = Array.from(byId.values());
-  if (matches.length === 1) return { data: matches[0], error: null, code: 'OK' };
-  if (matches.length > 1) {
+  const resolved = resolveStaffPhoneMatches(sources, tail);
+  if (resolved.resolved) {
     return {
-      data: null,
-      error: null,
-      code: 'PHONE_AMBIGUOUS',
-      message: '같은 휴대폰 끝 8자리의 재직 직원이 여러 명입니다. 관리자에게 문의하세요.',
-      count: matches.length
+      ...resolved,
+      fast_lookup: false
     };
   }
 
@@ -207,9 +272,8 @@ async function readStaffForPhoneClock(phoneTail8) {
     data: null,
     error: null,
     code: 'PHONE_NOT_FOUND',
-    message: '등록된 직원 휴대폰 번호를 찾지 못했습니다. 관리자에게 문의하세요.'
-  };
-}
+    message: '등록된 직원 휴대폰 번호를 찾지 못했습니다.'
+  };}
 
 function normalizeInputMode(input) {
   const s = String(input || '').trim().toUpperCase();
@@ -304,7 +368,11 @@ export async function handleStaffClock(payload) {
         msg: result.duplicate ? '중복 입력 방지 (이미 처리됨)' : ('휴대폰 번호 근태 기록: ' + action),
         staff_id: staffId,
         name,
-        role
+        role,
+        perf: {
+          path: staffOut.fast_lookup === true ? 'staff_phone_exact_index_v32' : 'staff_phone_fallback_scan',
+          phone_lookup_fast: staffOut.fast_lookup === true ? 'Y' : 'N'
+        }
       },
       traceId,
       record: result.record || null,
